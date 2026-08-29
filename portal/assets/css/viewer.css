@@ -61,6 +61,108 @@
   background: #052e16;
 }
 
+/* ===== Version switcher ===== */
+.version-switcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.version-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.version-nav-btn:hover {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.version-nav-btn.is-disabled {
+  color: #475569;
+  pointer-events: none;
+}
+
+.ver-badge--dropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ver-badge--dropdown:hover {
+  background: #263449;
+}
+
+.version-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 22px;
+  z-index: 20;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+}
+
+.version-dropdown-menu.open {
+  display: block;
+}
+
+.version-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.version-dropdown-item:hover {
+  background: #263449;
+}
+
+.version-dropdown-item.is-current {
+  background: #052e16;
+  color: #4ade80;
+}
+
+.version-dropdown-item-num {
+  font-size: 0.78rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.version-dropdown-item-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.version-dropdown-item-date {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.version-dropdown-item.is-current .version-dropdown-item-date {
+  color: #86efac;
+}
+
 .page-indicator {
   font-size: 0.82rem;
   color: #94a3b8;
@@ -99,6 +201,11 @@
 .status-badge.approved {
   background: #052e16;
   color: #4ade80;
+}
+
+.status-badge.historical {
+  background: #334155;
+  color: #cbd5e1;
 }
 
 /* ===== Annotation hint bar ===== */
@@ -632,9 +739,13 @@
 .file-popup-frame {
   flex: 1;
   width: 100%;
-  min-height: 520px;
+  min-height: 65vh;
   border: none;
   background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
 }
 
 /* ===== Return for Revision modal ===== */
@@ -656,7 +767,7 @@
   pointer-events: all;
 }
 
-.return-modal-card {
+.panel-modal-card {
   background: var(--card-background);
   color: var(--primary-text);
   border-radius: 12px;
@@ -667,7 +778,7 @@
   padding: 0;
 }
 
-.return-modal-header {
+.panel-modal-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -676,7 +787,7 @@
   border-bottom: 1px solid var(--divider-color);
 }
 
-.return-modal-label {
+.panel-modal-label {
   font-size: 0.65em;
   font-weight: 700;
   text-transform: uppercase;
@@ -685,7 +796,7 @@
   margin: 0 0 0.2rem;
 }
 
-.return-modal-title {
+.panel-modal-title {
   font-size: 0.9em;
   font-weight: 600;
   color: var(--primary-text);
@@ -693,14 +804,14 @@
   margin: 0;
 }
 
-.return-modal-body {
+.panel-modal-body {
   padding: 1.25rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.return-modal-intro {
+.panel-modal-intro {
   font-size: 0.88em;
   color: var(--muted-text);
   margin: 0;
@@ -784,7 +895,7 @@
   text-align: right;
 }
 
-.return-modal-actions {
+.panel-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;

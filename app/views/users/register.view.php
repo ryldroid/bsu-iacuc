@@ -30,7 +30,7 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <?php if (!empty($success)): ?>
                 <div class="success-message">
-                    Account created successfully!
+                    Account created successfully! We've sent a link to verify your email.
                     <!-- <span>Redirecting in <span id="countdown">1</span> second...</span> -->
 
                     <span>Redirecting...</span>

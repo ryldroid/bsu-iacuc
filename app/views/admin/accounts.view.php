@@ -16,10 +16,28 @@ $csrf = $csrf ?? '';
 
     <main class="main-content" id="main-content" tabindex="-1">
 
-        <h1>Accounts</h1>
+        <div class="dashboard-page-header">
+            <h1 class="dashboard-page-title">Accounts</h1>
+        </div>
+
+        <?php if (!empty($_SESSION['flash_success'])): ?>
+            <div class="alert success-message" id="flashSuccess">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#check-icon" />
+                </svg>
+                <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['flash_success']); ?>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['flash_error'])): ?>
+            <div class="alert error-messages" id="flashError">
+                <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['flash_error']); ?>
+        <?php endif; ?>
 
         <!-- GENERATE INVITE LINK -->
-        <section class="invite-section">
+        <section class="accounts-card invite-section">
             <h2>Staff Registration Link</h2>
 
             <form class="invite-form" action="<?= ROOT ?>/admin/generate_invite" method="POST">
@@ -35,7 +53,7 @@ $csrf = $csrf ?? '';
                     </select>
                 </div>
 
-                <button type="submit">
+                <button type="submit" class="accounts-btn-primary">
                     Generate Invite Link
                 </button>
             </form>
@@ -53,6 +71,7 @@ $csrf = $csrf ?? '';
 
                         <button
                             type="button"
+                            class="accounts-btn-primary"
                             onclick="copyInviteLink()">
                             Copy
                         </button>
@@ -64,24 +83,22 @@ $csrf = $csrf ?? '';
         </section>
 
         <!-- PENDING ACCOUNTS -->
-        <section class="pending-section">
+        <section class="accounts-card pending-section">
             <h2>Pending Staff Approvals</h2>
 
-            <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="success-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($_SESSION['flash_success']); ?>
-                </div>
-                <?php unset($_SESSION['flash_success']); ?>
-            <?php endif; ?>
-
             <?php if (empty($pending)): ?>
-                <p>No pending applications. You're all caught up!</p>
+                <div class="empty-state">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-circle-icon" />
+                        </svg>
+                        All caught up
+                    </h3>
+                    <p>No pending applications right now.</p>
+                </div>
 
             <?php else: ?>
-                <p><?= count($pending); ?> pending application(s)</p>
+                <p class="pending-count"><?= count($pending); ?> pending application(s)</p>
 
                 <?php foreach ($pending as $applicant): ?>
                     <div class="pending-box">
@@ -107,7 +124,7 @@ $csrf = $csrf ?? '';
                                 data-confirm-ok-text="Approve">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
                                 <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
-                                <button type="submit">Approve</button>
+                                <button type="submit" class="accounts-btn-primary">Approve</button>
                             </form>
 
                             <form method="POST" action="<?= ROOT ?>/admin/reject"

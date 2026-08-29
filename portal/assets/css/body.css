@@ -405,7 +405,7 @@ main a.underlined:hover {
     background: none;
     color: var(--primary-text);
     font-weight: 500;
-    border-bottom-color: var(--brand-color);
+    border-bottom-color: var(--brand-text);
     transform: none;
 }
 

@@ -1,5 +1,3 @@
-/* ===== GENERAL ===== */
-
 body {
     position: relative;
     overflow-x: hidden;
@@ -98,7 +96,6 @@ input:focus-visible {
     box-shadow: 0 1px 4px var(--shadow-color-soft);
 }
 
-/* ===== Password show/hide toggle ===== */
 .password-field-wrap {
     position: relative;
     width: 80%;
@@ -158,8 +155,6 @@ form>a {
     margin-bottom: 1em;
 }
 
-/* ===== BUTTONS ===== */
-
 main button {
     width: 200px;
     margin-bottom: .4em;
@@ -198,8 +193,6 @@ main button:hover {
     background-color: var(--danger-tint-strong);
 }
 
-/* ===== MESSAGES ===== */
-
 .success-message {
     text-align: center;
     border-radius: 8px;
@@ -209,8 +202,6 @@ main button:hover {
     margin: 0 0 20px 0;
     width: 80%;
 }
-
-/* ===== INFO POPUP ===== */
 
 .info-wrapper {
     position: relative;
@@ -246,8 +237,6 @@ main button:hover {
     align-items: center;
 }
 
-/* ===== PASSWORD ===== */
-
 .password-requirements {
     width: 60%;
     text-align: left;
@@ -260,8 +249,6 @@ main button:hover {
     padding-left: 1.2em;
     margin-top: 0.3em;
 }
-
-/* ===== OTHER ===== */
 
 .form-label {
     color: var(--secondary-text);
@@ -287,7 +274,6 @@ main button:hover {
     color: var(--brand-color-light);
 }
 
-/* ===== FORM ===== */
 .label-group {
     display: flex;
     align-items: flex-start;
@@ -319,11 +305,50 @@ main button:hover {
     margin: 0;
 }
 
+.hidden-form {
+    display: none;
+}
+
+.email-verify-badge {
+    display: inline-block;
+    vertical-align: middle;
+    background: var(--status-warning-bg);
+    color: var(--warning-text);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 999px;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
+.email-verify-resend {
+    display: block;
+    width: 80%;
+    text-align: left;
+    margin: -0.8em 0 2em;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    color: var(--brand-text);
+    font-weight: 600;
+    text-decoration: underline;
+    font-size: .8em;
+    cursor: pointer;
+    font-style: italic;
+
+}
+
+.email-verify-resend:hover {
+    background: none;
+    color: var(--brand-color-hover);
+    text-decoration: none;
+}
+
 .logout-form {
     display: block;
 }
-
-/* ===== CERTIFICATE SECTION ===== */
 
 .certificate-section {
     width: 80%;
@@ -376,8 +401,6 @@ main button:hover {
     justify-content: center;
 }
 
-/* ===== RESPONSIVE ===== */
-
 @media (max-width: 600px) {
     main {
         margin: 24px;
@@ -395,7 +418,8 @@ main button:hover {
     form>a,
     form .helper,
     .password-requirements,
-    .password-field-wrap {
+    .password-field-wrap,
+    .email-verify-resend {
         width: 90%;
     }
 

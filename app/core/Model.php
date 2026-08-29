@@ -58,6 +58,7 @@ class Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->ensureColumn('users', 'phone_number', "varchar(20) DEFAULT NULL AFTER `email`");
+        $this->ensureColumn('users', 'email_verified', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email`");
 
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
                     `id`                     int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -129,6 +130,17 @@ class Model
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $c->query("CREATE TABLE IF NOT EXISTS `email_verifications` (
+                    `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`    int(11) NOT NULL,
+                    `token`      varchar(64) NOT NULL UNIQUE,
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `expires_at` datetime NOT NULL,
+                    `used`       tinyint(1) NOT NULL DEFAULT 0,
+                    INDEX (`token`),
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         $c->query("CREATE TABLE IF NOT EXISTS `audit_logs` (
                     `id`          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`     INT DEFAULT NULL,
@@ -158,6 +170,19 @@ class Model
                     `used_by`    INT DEFAULT NULL,
                     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
                     `expires_at` DATETIME NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $c->query("CREATE TABLE IF NOT EXISTS `notifications` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`    int(11)      NOT NULL,
+                    `type`       varchar(50)  NOT NULL,
+                    `title`      varchar(255) NOT NULL,
+                    `message`    text         DEFAULT NULL,
+                    `link`       varchar(255) DEFAULT NULL,
+                    `is_read`    tinyint(1)   NOT NULL DEFAULT 0,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_notif_user` (`user_id`, `is_read`),
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (

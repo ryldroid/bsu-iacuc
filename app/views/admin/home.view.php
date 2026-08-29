@@ -88,6 +88,7 @@ foreach ($protocols as &$protocol) {
     $protocol['status_display'] = $statusDisplayMap[$key] ?? $protocol['status'];
     $protocol['badge_class']    = $badgeClassMap[$key]    ?? 'badge-to-review';
     $protocol['filter_slug']    = $filterSlugMap[$key]    ?? 'other';
+    $protocol['version_display'] = $protocol['latest_version'] ? 'v' . (int) $protocol['latest_version'] : 'v1';
 }
 unset($protocol);
 
@@ -466,7 +467,7 @@ foreach ($protocols as $p) {
                             <div class="protocol-meta">
                                 <p class="research-title"><?= $title ?></p>
                                 <p class="protocol-meta-line">
-                                    <?= $researcherName ?> &middot; <?= $submittedDate ?>
+                                    <?= $protocol['version_display'] ?> &middot; <?= $researcherName ?> &middot; <?= $submittedDate ?>
                                 </p>
                             </div>
 
@@ -961,7 +962,7 @@ foreach ($protocols as $p) {
         }
     });
 
-    function buildHistorySection(versions, sectionLabel) {
+    function buildHistorySection(versions, sectionLabel, protocolId, isProtocolSection) {
         if (!versions || versions.length === 0) return '';
         const rows = versions.map((v, i) => {
             const date = new Date(v.uploaded_at).toLocaleString('en-PH', {
@@ -972,6 +973,28 @@ foreach ($protocols as $p) {
                 minute: '2-digit'
             });
             const isLatest = i === 0;
+
+            // Protocol submissions open the full reviewer viewer (PDF + comments
+            // for that exact version), read-only when it's not the latest round.
+            // Certs/auth letters have no annotations, so a quick file preview
+            // is still the right call for those.
+            const openBtn = isProtocolSection ?
+                `<a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </a>` :
+                `<button class="button history-open-btn"
+                        data-file-url="${ROOT_URL + '/apply/file/' + v.id}"
+                        data-file-title="${v.original_name.replace(/"/g, '&quot;')}"
+                        onclick="openFilePopup(this.dataset.fileUrl, this.dataset.fileTitle)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </button>`;
+
             return `
                 <div class="history-row${isLatest ? ' history-row--latest' : ''}">
                     <div class="history-row-meta">
@@ -982,15 +1005,7 @@ foreach ($protocols as $p) {
                         <span class="history-filename">${v.original_name}</span>
                         <span class="helper">${date}</span>
                     </div>
-                    <button class="button history-open-btn"
-                        data-file-url="${ROOT_URL + '/apply/file/' + v.id}"
-                        data-file-title="${v.original_name.replace(/"/g, '&quot;')}"
-                        onclick="openFilePopup(this.dataset.fileUrl, this.dataset.fileTitle)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </button>
+                    ${openBtn}
                 </div>`;
         }).join('');
         return `<div class="history-section-label">${sectionLabel}</div>${rows}`;
@@ -1009,10 +1024,10 @@ foreach ($protocols as $p) {
         }
 
         let html = '';
-        html += buildHistorySection(data.protocol_files, 'Protocol Submissions');
-        html += buildHistorySection(data.cert_files, 'IACUC Training Certificates');
+        html += buildHistorySection(data.protocol_files, 'Protocol Submissions', data.protocol_id, true);
+        html += buildHistorySection(data.cert_files, 'IACUC Training Certificates', data.protocol_id, false);
         if (!data.is_pi) {
-            html += buildHistorySection(data.auth_files, 'Authorization Letters');
+            html += buildHistorySection(data.auth_files, 'Authorization Letters', data.protocol_id, false);
         }
         body.innerHTML = html;
     }

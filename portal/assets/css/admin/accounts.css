@@ -1,18 +1,18 @@
-section {
+.accounts-card {
     margin: 1.5rem 0;
     padding: 1.5rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    background: var(--divider-color-subtle);
     max-width: 800px;
+    background: var(--card-background);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
 }
 
-/* ===== GENERATE INVITE LINK BOX ===== */
-
-.invite-section h2 {
+.accounts-card h2 {
     font-size: 1.1rem;
+    font-weight: 700;
     margin-bottom: 1rem;
-    color: var(--secondary-text);
+    color: var(--brand-text);
 }
 
 .invite-form {
@@ -40,30 +40,37 @@ section {
 
 .invite-form select:focus {
     outline: none;
-    border-color: var(--brand-color);
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
-main .button,
-main button {
+.accounts-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    padding: 0.6rem 2rem;
+    padding: 10px 20px;
     background: var(--brand-color);
     color: var(--text-on-brand);
     border: none;
-    border-radius: var(--radius);
-    font-size: 0.8rem;
+    border-radius: var(--btn-radius);
+    font-size: 0.85em;
+    font-weight: 600;
+    font-family: var(--font-body);
     cursor: pointer;
-    box-shadow: 0 2px 4px var(--shadow-color-soft);
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
     margin: 0;
-    transition: background 0.15s ease;
+    transition: background 150ms ease;
 }
 
-.invite-form button:hover {
+.accounts-btn-primary:hover {
     background: var(--brand-color-hover);
+    color: var(--text-on-brand);
 }
 
-.invite-form button:active {
-    transform: translateY(1.5px);
+.accounts-btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .invite-link-container {
@@ -99,29 +106,8 @@ main button {
 
 .invite-link-row input:focus {
     outline: none;
-    border-color: var(--brand-color);
-}
-
-.invite-link-row button {
-    flex-shrink: 0;
-    padding: 0.6rem 1.2rem;
-    background: var(--brand-color);
-    color: var(--text-on-brand);
-    border: none;
-    border-radius: var(--radius);
-    font-size: 0.8rem;
-    cursor: pointer;
-    box-shadow: 0 2px 4px var(--shadow-color-soft);
-    margin: 0;
-    transition: background 0.2s ease;
-}
-
-.invite-link-row button:hover {
-    background: var(--brand-color-hover);
-}
-
-.invite-link-row button:active {
-    transform: translateY(1px);
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
 #copy-message {
@@ -131,33 +117,47 @@ main button {
     min-height: 1.5em;
 }
 
-@media (max-width: 768px) {
-    form button {
-        width: 100%;
-    }
-
-    .form-section {
-        width: 100%;
-        display: flex;
-        gap: .5em;
-        align-items: center;
-    }
-
-    .pending-box .actions {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .pending-box .actions form {
-        width: 100%;
-    }
+.pending-count {
+    color: var(--muted-text);
+    font-size: 0.85em;
+    margin-bottom: .75rem;
 }
 
-/* ===== INDIVIDUAL PENDING ACCOUNTS ===== */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .5em;
+    margin: 30px auto;
+    padding: 40px 20px;
+    border-radius: var(--btn-radius);
+    background-color: var(--brand-surface-faint);
+}
+
+.empty-state h3 {
+    display: flex;
+    align-items: center;
+    gap: .5em;
+    font-family: var(--font-default);
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--brand-text);
+}
+
+.empty-state h3 svg {
+    flex-shrink: 0;
+}
+
+.empty-state p {
+    color: var(--muted-text);
+    font-size: .9em;
+}
 
 .pending-box {
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
+    background: var(--divider-color-subtle);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
     padding: 1rem;
     margin: 1rem 0;
 }
@@ -177,10 +177,6 @@ main button {
     margin-top: 1em;
 }
 
-.pending-box button {
-    margin-top: 0;
-}
-
 .pending-box * {
     display: inline-block;
     margin-top: .2em;
@@ -191,12 +187,47 @@ main button {
 }
 
 .reject-btn {
+    padding: 10px 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    font-family: var(--font-body);
     border: 1px solid var(--danger-color);
+    border-radius: var(--btn-radius);
     background: none;
     color: var(--danger-color);
+    box-shadow: none;
+    margin: 0;
+    cursor: pointer;
 }
 
 .reject-btn:hover {
     background-color: var(--danger-color);
     color: var(--text-on-brand);
+}
+
+@media (max-width: 768px) {
+    form .accounts-btn-primary {
+        width: 100%;
+    }
+
+    .form-section {
+        width: 100%;
+        display: flex;
+        gap: .5em;
+        align-items: center;
+    }
+
+    .pending-box .actions {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pending-box .actions form {
+        width: 100%;
+    }
+
+    .pending-box .actions .accounts-btn-primary,
+    .pending-box .actions .reject-btn {
+        width: 100%;
+    }
 }

@@ -49,6 +49,14 @@ class Controller
     exit;
   }
 
+  protected function verifyCsrfHeader(): void
+  {
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (empty($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+      $this->jsonError(403, 'Invalid CSRF token.');
+    }
+  }
+
   protected function requirePostMethod(): void
   {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -74,6 +82,9 @@ class Controller
     if ($fresh && $fresh['role'] !== $_SESSION['user']['role']) {
       $_SESSION['user']['role'] = $fresh['role'];
     }
+    if ($fresh) {
+      $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
+    }
   }
 
   protected function generateCsrfToken(): string
@@ -86,23 +97,37 @@ class Controller
 
   protected function verifyCsrfToken(bool $rotateAfter = false): void
   {
-    $token = $_POST['csrf_token'] ?? '';
+    $token        = $_POST['csrf_token'] ?? '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    $expired      = $sessionToken === '';
 
-    if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    if (!hash_equals($sessionToken, $token)) {
       $wantsJson = isset($_SERVER['HTTP_ACCEPT']) &&
         str_contains($_SERVER['HTTP_ACCEPT'], 'application/json');
 
       if ($wantsJson) {
-        http_response_code(403);
+        http_response_code($expired ? 401 : 403);
         header('Content-Type: application/json');
-        echo json_encode(['error' => 'Invalid or missing CSRF token.', 'code' => 403]);
-      } else {
-        $this->renderError(403, '403 - Forbidden', [
-          'Invalid or missing security token. Please reload the page and try again.',
-        ], [
-          ['label' => '← Go Back', 'href' => 'javascript:history.back()'],
+        echo json_encode([
+          'error' => $expired
+            ? 'Your session has expired. Please reload the page and try again.'
+            : 'Invalid or missing CSRF token.',
+          'code' => $expired ? 401 : 403,
         ]);
+        exit;
       }
+
+      if ($expired) {
+        $_SESSION['flash_error'] = 'Your session expired due to inactivity. Please try again.';
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? (ROOT . '/')));
+        exit;
+      }
+
+      $this->renderError(403, '403 - Forbidden', [
+        'Invalid or missing security token. Please reload the page and try again.',
+      ], [
+        ['label' => '← Go Back', 'href' => 'javascript:history.back()'],
+      ]);
       exit;
     }
 
@@ -230,5 +255,21 @@ class Controller
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';
     $this->redirect($loginRoute);
+  }
+
+  protected function sendEmailVerification(array $user): void
+  {
+    require_once dirname(__DIR__) . '/models/UserModel.php';
+    $userModel = new UserModel();
+
+    $token = bin2hex(random_bytes(32));
+    $userModel->createEmailVerification((int) $user['id'], $token);
+
+    $verify_url = ROOT . '/users/verify_email?token=' . $token;
+
+    Mailer::sendTemplate('verify_email', [
+      'first_name' => $user['first_name'],
+      'verify_url' => $verify_url,
+    ], $user['email'], $user['first_name'], 'BSU-IACUC: Verify Your Email');
   }
 }

@@ -5,7 +5,7 @@
  *   GET  /apply                        → upload form (researcher)
  *   POST /apply/submit                 → save new protocol + upload file
  *   POST /apply/reupload               → upload a new version (status must be Needs Revision)
- *   GET  /apply/viewer/{id}            → PDF.js viewer for a protocol
+ *   GET  /apply/viewer/{id}/{versionId?} → PDF.js viewer for a protocol (versionId optional; defaults to latest, used by "Show History" to open a specific past version read-only)
  *   GET  /apply/file/{vid}             → stream a file by version id
  *   GET  /apply/hascert                → check if researcher has cert on file
  *   GET  /apply/versions/{id}          → protocol file version history (JSON)
@@ -31,19 +31,36 @@ class Apply extends Controller
 
     // ===== HELPERS =====
 
-    private function verifyCsrfHeader(): void
-    {
-        $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-        if (empty($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
-            $this->jsonError(403, 'Invalid CSRF token.');
-        }
-    }
-
     private function requireProtocolAccess(array $protocol, int $userId, string $role): void
     {
         if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['admin', 'reviewer'])) {
             $this->jsonError(403, 'Access denied.');
         }
+    }
+
+    private function notifyStatusChange(array $protocol, string $newStatus): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        if (!$owner) {
+            return;
+        }
+
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::send(
+            (int) $protocol['user_id'],
+            'protocol_status_changed',
+            'Protocol Status Updated',
+            "Your protocol \"$title\" is now: $newStatus.",
+            'submissions',
+            [
+                'template' => 'protocol_status_changed',
+                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus],
+                'to'       => $owner['email'] ?? '',
+                'name'     => $owner['first_name'] ?? '',
+                'subject'  => 'BSU-IACUC: Protocol Status Updated',
+            ]
+        );
     }
 
     private function addFileUrls(array $versions): array
@@ -61,12 +78,6 @@ class Apply extends Controller
         return $protocolId . '/' . basename($absPath);
     }
 
-    // Turns a raw detected MIME type (from finfo) into a short, user-facing
-    // description, so a rejection message can say what the file actually is
-    // instead of just "upload failed". Used when the real file content
-    // doesn't match its extension — e.g. a ".png" that's actually WebP
-    // (common with images saved from Facebook/Messenger, which silently
-    // re-encodes images even though the filename still ends in .png).
     private function describeMime(string $mime): string
     {
         $known = [
@@ -104,10 +115,6 @@ class Apply extends Controller
         $finfo   = new finfo(FILEINFO_MIME_TYPE);
         $mime    = $finfo->file($file['tmp_name']);
 
-        // Some libmagic/finfo builds report certain PNGs (commonly
-        // palette/indexed PNGs from screenshot tools) as image/x-png
-        // instead of image/png, and some JPEGs as image/pjpeg instead of
-        // image/jpeg. Accept those known-equivalent variants too.
         $mimeMap = [
             'pdf'  => ['application/pdf'],
             'jpg'  => ['image/jpeg', 'image/pjpeg'],
@@ -271,6 +278,36 @@ class Apply extends Controller
 
         $model->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
 
+        $submitter = $userModel->getUser($actor['id']);
+
+        Notifier::send(
+            $actor['id'],
+            'protocol_submitted',
+            'Protocol Submitted',
+            "Your protocol \"$title\" has been submitted and is now under review.",
+            'submissions',
+            [
+                'template' => 'protocol_submitted',
+                'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title],
+                'to'       => $submitter['email'] ?? '',
+                'name'     => $submitter['first_name'] ?? '',
+                'subject'  => 'BSU-IACUC: Protocol Submitted',
+            ]
+        );
+
+        Notifier::sendToRole(
+            'admin',
+            'new_submission_admin',
+            'New Protocol Submitted',
+            ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . " submitted \"$title\".",
+            'admin/records',
+            [
+                'template' => 'protocol_submitted_admin',
+                'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title],
+                'subject'  => 'BSU-IACUC: New Protocol Submission',
+            ]
+        );
+
         echo json_encode(['success' => true, 'protocolId' => $protocolId]);
         exit;
     }
@@ -405,6 +442,7 @@ class Apply extends Controller
         }
 
         $model->updateStatus($protocolId, 'Under Review');
+        $this->notifyStatusChange($protocol, 'Under Review');
         $model->logAudit('protocol_revised', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol # $protocolId resubmitted");
         $_SESSION['flash_success'] = 'Your protocol has been resubmitted and is back under review.';
 
@@ -414,7 +452,7 @@ class Apply extends Controller
 
     // ===== VIEWER  (GET /apply/viewer/{protocolId}) =====
 
-    public function viewer(int $protocolId = 0): void
+    public function viewer(int $protocolId = 0, int $versionId = 0): void
     {
         $this->requireLogin();
 
@@ -436,7 +474,26 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $version = $model->getLatestVersion($protocolId, 'protocol');
+        $latestVersion = $model->getLatestVersion($protocolId, 'protocol');
+
+        if ($versionId > 0) {
+            // Opened from "Show History" — load that specific version instead
+            // of always showing the latest one.
+            $version = $model->getVersionById($versionId);
+
+            if (
+                !$version
+                || (int) $version['protocol_id'] !== $protocolId
+                || $version['file_type'] !== 'protocol'
+            ) {
+                http_response_code(404);
+                echo 'That protocol version could not be found.';
+                exit;
+            }
+        } else {
+            $version = $latestVersion;
+        }
+
         if (!$version) {
             $this->renderError(404, 'No File Found', [
                 'No protocol file has been uploaded for this submission yet.',
@@ -444,14 +501,28 @@ class Apply extends Controller
             ]);
         }
 
+        // Comments, "Finish Review", and "Return for Revision" only ever apply
+        // to the current round — never let those act on a superseded version,
+        // even if the protocol's overall status happens to read "Under Review"
+        // because a *newer* version is now the one being reviewed.
+        $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
+
         $isStaff    = in_array($actor['role'], ['admin', 'reviewer']);
         $backBase   = $isStaff ? ROOT . '/admin/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
+        // Needed by the in-viewer "Re-submit Protocol" panel, which mirrors
+        // the same reupload flow that used to live only on the list page.
+        $userModel     = new UserModel();
+        $hasCertOnFile = $isStaff ? false : $userModel->hasCert($actor['id']);
+
         $this->view('protocol', [
             'protocol'          => $protocol,
             'version'           => $version,
+            'versions'          => $model->getVersions($protocolId, 'protocol'),
+            'fromFilter'        => $fromFilter,
+            'isLatestVersion'   => $isLatestVersion,
             'csrf'              => $this->generateCsrfToken(),
             'isStaff'           => $isStaff,
             'isAdmin'           => $actor['role'] === 'admin',
@@ -460,6 +531,7 @@ class Apply extends Controller
             'latestCertVersion' => $model->getLatestVersion($protocolId, 'cert'),
             'latestAuthVersion' => $model->getLatestVersion($protocolId, 'auth'),
             'returnReason'      => $model->getLatestReturnReason($protocolId),
+            'hasCertOnFile'     => $hasCertOnFile,
         ]);
     }
 
@@ -554,7 +626,14 @@ class Apply extends Controller
         }
 
         if (!in_array($actor['role'], ['admin', 'reviewer'])) {
-            if (strtolower($version['protocol_status'] ?? '') !== 'needs revision') {
+            $latestVersion   = $model->getLatestVersion((int) $version['protocol_id'], 'protocol');
+            $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
+
+            // A researcher can always read the comments on a superseded round —
+            // that's the whole point of history. On the *current* round, though,
+            // keep hiding them until the reviewer has actually sent the protocol
+            // back, so in-progress/unfinished review notes aren't exposed early.
+            if ($isLatestVersion && strtolower($version['protocol_status'] ?? '') !== 'needs revision') {
                 echo json_encode([]);
                 exit;
             }
@@ -644,6 +723,7 @@ class Apply extends Controller
 
         if ($ok) {
             $model->logAudit('status_updated', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
+            $this->notifyStatusChange($protocol, $newStatus);
 
             if ($newStatus === 'Reviewed') {
                 require_once dirname(__DIR__) . '/models/RecordModel.php';
@@ -706,6 +786,7 @@ class Apply extends Controller
         }
 
         $model->updateStatus($protocolId, 'Approved');
+        $this->notifyStatusChange($protocol, 'Approved');
         $model->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance uploaded for protocol # $protocolId; marked Approved");
         $_SESSION['flash_success'] = 'Clearance uploaded. The protocol has been marked as Approved.';
 
@@ -773,7 +854,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $allowedReasons  = ['wrong_cert', 'wrong_auth', 'other'];
+        $allowedReasons  = ['wrong_cert', 'wrong_auth'];
         $filteredReasons = array_values(array_filter($body['reasons'] ?? [], fn($r) => in_array($r, $allowedReasons, true)));
 
         $model    = new ProtocolModel();
@@ -798,6 +879,7 @@ class Apply extends Controller
                 . ($filteredReasons ? ' Reasons: ' . implode(', ', $filteredReasons) : '')
                 . ($comment !== '' ? ' Comment: ' . mb_substr($comment, 0, 200) : '');
             $model->logAudit('protocol_returned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $detail);
+            $this->notifyStatusChange($protocol, 'Needs Revision');
             $_SESSION['flash_success'] = 'Protocol returned for revision. The researcher will be notified to make corrections.';
         }
 

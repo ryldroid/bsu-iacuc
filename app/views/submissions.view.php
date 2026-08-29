@@ -244,21 +244,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
                             <!-- Actions -->
                             <div class="actions">
-                                <?php if ($needsRevision): ?>
-                                    <button class="button button--primary"
-                                        data-protocol-id="<?= $protocolIdInt ?>"
-                                        data-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
-                                        data-is-pi="<?= !empty($protocol['is_pi']) ? 'true' : 'false' ?>"
-                                        data-wrong-cert="<?= !empty($protocol['rr_wrong_cert']) ? 'true' : 'false' ?>"
-                                        data-wrong-auth="<?= !empty($protocol['rr_wrong_auth']) ? 'true' : 'false' ?>"
-                                        data-other-reason="<?= !empty($protocol['rr_other_reason']) ? 'true' : 'false' ?>"
-                                        onclick="openReuploadModal(+this.dataset.protocolId, this.dataset.title, this.dataset.isPi === 'true', this.dataset)">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#upload-icon" />
-                                        </svg>
-                                        Re-submit Protocol
-                                    </button>
-                                <?php endif; ?>
+                                <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                    onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#<?= $needsRevision ? 'upload-icon' : 'eye-icon' ?>" />
+                                    </svg>
+                                    <?= $needsRevision ? 'Open &amp; Re-submit' : 'Open' ?>
+                                </a>
 
                                 <?php if ($isApproved): ?>
                                     <a class="download-clearance-btn button button--primary"
@@ -271,10 +263,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php endif; ?>
 
                                 <div class="actions-secondary">
-                                    <a class="action-link" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
-                                        onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
-                                        View
-                                    </a>
                                     <button class="action-link"
                                         data-protocol-id="<?= $protocolIdInt ?>"
                                         data-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
@@ -297,41 +285,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
         <?php endif; ?>
     </main>
-</div>
-
-<!-- Re-submit protocol modal -->
-<div class="modal-backdrop" id="reuploadModalBackdrop">
-    <div class="modal-card">
-        <h2>Re-submit Protocol</h2>
-        <p id="reuploadSubtitle" class="helper"></p>
-
-        <div id="reuploadError" class="alert error-messages" style="display:none"></div>
-
-        <label for="reupload_file" id="reuploadFileLabel">Revised protocol file</label>
-        <input type="file" id="reupload_file" name="protocol_file"
-            accept=".pdf,application/pdf">
-        <p class="helper" id="reuploadFileHint">PDF only · Max 10 MB</p>
-
-        <div id="reuploadCertField">
-            <label for="reupload_cert_file">Training certificate (optional)</label>
-            <input type="file" id="reupload_cert_file" name="cert_file"
-                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
-            <p class="helper">Only upload a new certificate if the reviewer flagged the one on file &middot; PDF, JPG, or PNG &middot; max 10 MB</p>
-        </div>
-
-        <div id="reuploadAuthField">
-            <label for="reupload_auth_file">Authorization letter (optional)</label>
-            <input type="file" id="reupload_auth_file" name="auth_file"
-                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
-            <p class="helper">Only upload a new letter if the reviewer flagged the one on file &middot; PDF, JPG, or PNG &middot; max 10 MB</p>
-        </div>
-
-        <div class="modal-actions">
-            <button class="button" type="button" onclick="closeReuploadModal()">Cancel</button>
-            <button class="button button--primary" type="button" id="reuploadSubmitBtn"
-                onclick="submitReupload()">Submit</button>
-        </div>
-    </div>
 </div>
 
 <!-- History modal -->
@@ -372,7 +325,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
-    const researcherHasCertOnFile = <?= $hasCertOnFile ? 'true' : 'false' ?>;
     const statusMeta = <?= json_encode($statusMeta) ?>;
     const filterBtns = document.querySelectorAll('.status-card');
     const protocolCards = document.querySelectorAll('.protocol');
@@ -463,117 +415,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
         }
     })();
 
-    // ===== Re-submit protocol modal (protocol file + optional cert + optional auth letter) =====
-    const resubmitModal = document.getElementById('reuploadModalBackdrop');
-    const reuploadCertField = document.getElementById('reuploadCertField');
-    const reuploadAuthField = document.getElementById('reuploadAuthField');
-    let currentProtocolId = null;
-    let protocolFileRequired = true;
-
-    function openReuploadModal(protocolId, title, isPi, dataset) {
-        currentProtocolId = protocolId;
-        const wrongCert = dataset?.wrongCert === 'true';
-        const wrongAuth = dataset?.wrongAuth === 'true';
-        const otherReason = dataset?.otherReason === 'true';
-
-        const noSpecificFlags = !wrongCert && !wrongAuth && !otherReason;
-        protocolFileRequired = otherReason || noSpecificFlags;
-
-        document.getElementById('reuploadFileLabel').textContent =
-            protocolFileRequired ? 'Revised protocol file' : 'Revised protocol file (optional)';
-        document.getElementById('reuploadFileHint').textContent =
-            protocolFileRequired ? 'PDF only · Max 10 MB' : 'Only upload if you also revised the protocol · PDF only · Max 10 MB';
-
-        document.getElementById('reuploadSubtitle').textContent = title;
-        document.getElementById('reupload_file').value = '';
-        document.getElementById('reupload_cert_file').value = '';
-        document.getElementById('reupload_auth_file').value = '';
-        document.getElementById('reuploadError').style.display = 'none';
-        reuploadCertField.style.display = researcherHasCertOnFile ? '' : 'none';
-        reuploadAuthField.style.display = isPi ? 'none' : '';
-        resubmitModal.classList.add('open');
-    }
-
-    function closeReuploadModal() {
-        resubmitModal.classList.remove('open');
-        currentProtocolId = null;
-    }
-    resubmitModal.addEventListener('click', e => {
-        if (e.target === resubmitModal) closeReuploadModal();
-    });
-
-    async function uploadProtocolFile(endpoint, fieldName, file) {
-        const formData = new FormData();
-        formData.append('protocol_id', currentProtocolId);
-        if (file) formData.append(fieldName, file);
-
-        const res = await fetch(ROOT_URL + endpoint, {
-            method: 'POST',
-            body: formData
-        });
-        return res.json();
-    }
-
-    async function submitReupload() {
-        const protocolFileInput = document.getElementById('reupload_file');
-        const certFileInput = document.getElementById('reupload_cert_file');
-        const authFileInput = document.getElementById('reupload_auth_file');
-        const errBox = document.getElementById('reuploadError');
-        const submitBtn = document.getElementById('reuploadSubmitBtn');
-        const protocolFile = protocolFileInput.files[0] ?? null;
-
-        if (protocolFileRequired && !protocolFile) {
-            errBox.textContent = 'Please select your revised protocol file.';
-            errBox.style.display = 'block';
-            return;
-        }
-
-        if (protocolFile) {
-            if (protocolFile.type !== 'application/pdf' || protocolFile.name.split('.').pop().toLowerCase() !== 'pdf') {
-                errBox.textContent = 'Only PDF files are accepted for the protocol form.';
-                errBox.style.display = 'block';
-                return;
-            }
-            if (protocolFile.size > 10 * 1024 * 1024) {
-                errBox.textContent = 'Protocol file is too large. Maximum size is 10 MB.';
-                errBox.style.display = 'block';
-                return;
-            }
-        }
-
-        submitBtn.disabled = true;
-        errBox.style.display = 'none';
-
-        try {
-            if (certFileInput.files.length) {
-                const certFile = certFileInput.files[0];
-                if (!['pdf', 'jpg', 'jpeg', 'png'].includes(certFile.name.split('.').pop().toLowerCase())) {
-                    throw new Error('Certificate must be PDF, JPG, or PNG.');
-                }
-                const certResult = await uploadProtocolFile('/apply/reuploadcert', 'cert_file', certFile);
-                if (!certResult.success) throw new Error(certResult.error ?? 'Certificate upload failed. Please try again.');
-            }
-
-            if (authFileInput.files.length) {
-                const authFile = authFileInput.files[0];
-                if (!['pdf', 'jpg', 'jpeg', 'png'].includes(authFile.name.split('.').pop().toLowerCase())) {
-                    throw new Error('Authorization letter must be PDF, JPG, or PNG.');
-                }
-                const authResult = await uploadProtocolFile('/apply/reuploadauth', 'auth_file', authFile);
-                if (!authResult.success) throw new Error(authResult.error ?? 'Authorization letter upload failed. Please try again.');
-            }
-
-            const protocolResult = await uploadProtocolFile('/apply/reupload', 'protocol_file', protocolFile);
-            if (!protocolResult.success) throw new Error(protocolResult.error ?? 'Upload failed. Please try again.');
-
-            window.location.reload();
-        } catch (err) {
-            errBox.textContent = err.message || 'Network error. Please try again.';
-            errBox.style.display = 'block';
-            submitBtn.disabled = false;
-        }
-    }
-
     // ===== Continue vs New Application =====
     (function() {
         const saveKey = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
@@ -659,7 +500,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
             closeHistoryModal();
-            closeReuploadModal();
             closeFilePopup();
         }
     });
@@ -692,12 +532,34 @@ function statusIconSvg(string $iconId, int $size = 14): string
         });
     }
 
-    function buildVersionRows(versions, sectionLabel) {
+    function buildVersionRows(versions, sectionLabel, protocolId, isProtocolSection) {
         if (!versions || versions.length === 0) return '';
 
         const rows = versions.map((v, index) => {
             const isLatest = index === 0;
             const dateString = formatDate(v.uploaded_at);
+
+            // Protocol submissions open the full reviewer viewer (PDF + comments
+            // for that exact version), scoped read-only when it's not the latest
+            // round. Certs/auth letters have no annotations, so a quick file
+            // preview is still the right call for those.
+            const openBtn = isProtocolSection ?
+                `<a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </a>` :
+                `<button class="button history-open-btn"
+                        data-file-url="${v.file_url}"
+                        data-file-title="${v.original_name.replace(/"/g, '&quot;')}"
+                        onclick="openFilePopup(this.dataset.fileUrl, this.dataset.fileTitle)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </button>`;
+
             return `
                 <div class="history-row${isLatest ? ' history-row--latest' : ''}">
                     <div class="history-row-meta">
@@ -708,15 +570,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         <span class="history-filename">${v.original_name}</span>
                         <span class="helper">${dateString}</span>
                     </div>
-                    <button class="button history-open-btn"
-                        data-file-url="${v.file_url}"
-                        data-file-title="${v.original_name.replace(/"/g, '&quot;')}"
-                        onclick="openFilePopup(this.dataset.fileUrl, this.dataset.fileTitle)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </button>
+                    ${openBtn}
                 </div>`;
         }).join('');
 
@@ -749,18 +603,18 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         <use href="#info-icon" />
                     </svg>
                     Returned for revision by ${reason.first_name} ${reason.last_name}
-                    <span class="helper">&mdash; ${formatDate(reason.created_at)}</span>
+                    <span class="helper">&middot; ${formatDate(reason.created_at)}</span>
                 </div>
                 ${issueLabels.length > 0 ? `<ul class="history-return-issues">${issueLabels.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
                 ${reason.comment ? `<p class="history-return-comment">"${reason.comment}"</p>` : ''}
             </div>`;
         }
 
-        html += buildVersionRows(data.protocol_files, 'Protocol Submissions');
-        html += buildVersionRows(data.cert_files, 'Training Certificates');
+        html += buildVersionRows(data.protocol_files, 'Protocol Submissions', data.protocol_id, true);
+        html += buildVersionRows(data.cert_files, 'Training Certificates', data.protocol_id, false);
 
         if (!data.is_pi) {
-            html += buildVersionRows(data.auth_files, 'Authorization Letters');
+            html += buildVersionRows(data.auth_files, 'Authorization Letters', data.protocol_id, false);
         }
 
         body.innerHTML = html;

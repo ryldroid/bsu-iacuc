@@ -581,7 +581,7 @@ include "includes/scroll-top.php";
 
         const formats = [{
                 title: 'Word document (.DOCX)',
-                subtitle: 'Editable format — convert to PDF once complete.',
+                subtitle: 'Convert to PDF once complete.',
                 url: formDocxUrl,
             },
             {
