@@ -29,16 +29,6 @@ include "includes/scroll-top.php";
 
             <div class="stepper" id="stepper"></div>
 
-            <div class="storage-notice">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#info-icon" />
-                </svg>
-                <span>
-                    <span class="bold">Your progress is saved automatically.</span>
-                    Log in on another device to pick up this application right where you left off.
-                </span>
-            </div>
-
             <div class="card" id="page-content"></div>
         </div>
 
