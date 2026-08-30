@@ -281,36 +281,38 @@ include "includes/scroll-top.php";
     // ===== APPLY BUTTON:  Continue vs New =====
     (function() {
         const isLoggedIn = <?= isset($_SESSION['user']['user_id']) ? 'true' : 'false' ?>;
-        const SAVE_KEY = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
         const ROOT_URL = '<?= ROOT ?>';
         const applyUrl = ROOT_URL + '/apply';
         const container = document.getElementById('apply-actions');
         if (!container) return;
 
         if (!isLoggedIn) return;
-        let saved = null;
-        try {
-            const raw = localStorage.getItem(SAVE_KEY);
-            if (raw) saved = JSON.parse(raw);
-        } catch (e) {}
 
-        const inProgress = saved && !saved.submittedId && (
-            saved.step > 0 ||
-            saved.agreedTerms ||
-            saved.agreedPrivacy ||
-            saved.title ||
-            saved.certName ||
-            saved.authName ||
-            saved.protocolName
-        );
+        fetch(ROOT_URL + '/apply/draft')
+            .then(r => r.json())
+            .then(d => {
+                const inProgress = d.exists && (
+                    d.step > 0 ||
+                    d.agreedTerms ||
+                    d.agreedPrivacy ||
+                    d.title ||
+                    d.cert ||
+                    d.auth ||
+                    d.protocol
+                );
 
-        if (!inProgress) {
-            container.innerHTML =
-                `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
-            return;
-        }
+                if (!inProgress) {
+                    container.innerHTML =
+                        `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
+                    return;
+                }
 
-        container.innerHTML = `<a href="${applyUrl}" class="button btn-apply">Continue Application →</a>`;
+                container.innerHTML = `<a href="${applyUrl}" class="button btn-apply">Continue Application →</a>`;
+            })
+            .catch(() => {
+                container.innerHTML =
+                    `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
+            });
     })();
 </script>
 

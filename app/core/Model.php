@@ -201,6 +201,24 @@ class Model
                     FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
                     FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_drafts` (
+                    `id`                  int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`             int(11)      NOT NULL UNIQUE,
+                    `step`                tinyint(4)   NOT NULL DEFAULT 0,
+                    `agreed_terms`        tinyint(1)   NOT NULL DEFAULT 0,
+                    `agreed_privacy`      tinyint(1)   NOT NULL DEFAULT 0,
+                    `is_pi`               tinyint(1)   DEFAULT NULL,
+                    `title`               varchar(255) NOT NULL DEFAULT '',
+                    `protocol_file_path`  varchar(255) DEFAULT NULL,
+                    `protocol_file_name`  varchar(255) DEFAULT NULL,
+                    `cert_file_path`      varchar(255) DEFAULT NULL,
+                    `cert_file_name`      varchar(255) DEFAULT NULL,
+                    `auth_file_path`      varchar(255) DEFAULT NULL,
+                    `auth_file_name`      varchar(255) DEFAULT NULL,
+                    `updated_at`          timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
     }
 
     private function ensureColumn(string $table, string $column, string $definition): void

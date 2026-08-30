@@ -417,54 +417,57 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
     // ===== Continue vs New Application =====
     (function() {
-        const saveKey = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
         const applyUrl = '<?= ROOT ?>/apply';
         const container = document.getElementById('apply-actions-sub');
         if (!container) return;
 
-        let savedData = null;
-        try {
-            const raw = localStorage.getItem(saveKey);
-            if (raw) savedData = JSON.parse(raw);
-        } catch (e) {}
+        fetch('<?= ROOT ?>/apply/draft')
+            .then(r => r.json())
+            .then(d => {
+                const hasInProgressDraft = d.exists && (
+                    d.step > 0 ||
+                    d.agreedTerms ||
+                    d.agreedPrivacy ||
+                    d.title ||
+                    d.cert ||
+                    d.auth ||
+                    d.protocol
+                );
+                if (!hasInProgressDraft) return;
 
-        const hasInProgressDraft = savedData && !savedData.submittedId && (
-            savedData.step > 0 ||
-            savedData.agreedTerms ||
-            savedData.agreedPrivacy ||
-            savedData.title ||
-            savedData.certName ||
-            savedData.authName ||
-            savedData.protocolName
-        );
-        if (!hasInProgressDraft) return;
+                container.innerHTML = `
+                    <div class="apply-actions">
+                        <a href="${applyUrl}" class="btn-apply button">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#arrow-right-icon" />
+                            </svg>
+                            <span>Continue Application</span>
+                        </a>
+                        <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
+                            data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
+                            data-confirm-ok-text="Yes, Start Over"
+                            data-confirm-cancel-text="Go Back"
+                            data-confirm-danger="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#add-icon" />
+                            </svg>
+                            <span>New Application</span>
+                        </button>
+                    </div>`;
 
-        container.innerHTML = `
-            <div class="apply-actions">
-                <a href="${applyUrl}" class="btn-apply button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#arrow-right-icon" />
-                    </svg>
-                    <span>Continue Application</span>
-                </a>
-                <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
-                    data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
-                    data-confirm-ok-text="Yes, Start Over"
-                    data-confirm-cancel-text="Go Back"
-                    data-confirm-danger="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#add-icon" />
-                    </svg>
-                    <span>New Application</span>
-                </button>
-            </div>`;
-
-        document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
-            try {
-                localStorage.removeItem(saveKey);
-            } catch (e) {}
-            window.location.href = applyUrl;
-        });
+                document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
+                    fetch('<?= ROOT ?>/apply/draftclear', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': NOTIF_CSRF_TOKEN
+                        }
+                    }).finally(() => {
+                        window.location.href = applyUrl;
+                    });
+                });
+            })
+            .catch(() => {});
     })();
 
     // ===== History modal =====
