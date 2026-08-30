@@ -151,8 +151,11 @@ class Model
                     `target_id`   INT DEFAULT NULL,
                     `details`     TEXT DEFAULT NULL,
                     `ip_address`  VARCHAR(45) DEFAULT NULL,
-                    `created_at`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
+                    `created_at`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_audit_created_at` (`created_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
 
         $c->query("CREATE TABLE IF NOT EXISTS `login_attempts` (
                     `id`           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -207,6 +210,16 @@ class Model
         $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
         if ($exists && $exists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+    }
+
+    private function ensureIndex(string $table, string $indexName, string $definition): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'");
+        if ($exists && $exists->num_rows === 0) {
+            $c->query("ALTER TABLE `$table` ADD INDEX `$indexName` $definition");
         }
     }
 

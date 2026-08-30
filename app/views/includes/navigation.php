@@ -47,6 +47,9 @@ $role = $user['role'] ?? '';
                         </div>
                     </li>
 
+                <?php endif; ?>
+
+                <?php if (in_array($role, ['admin', 'reviewer'])): ?>
                     <li>
                         <a href="<?= ROOT ?>/admin/accounts">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -54,7 +57,7 @@ $role = $user['role'] ?? '';
                             </svg>
                         </a>
                         <div>
-                            <span>Manage Accounts</span>
+                            <span>Administration</span>
                         </div>
                     </li>
                 <?php endif; ?>

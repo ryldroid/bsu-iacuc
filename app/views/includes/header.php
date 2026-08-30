@@ -167,14 +167,18 @@ $hideHeader     = $hideHeader     ?? false;
                 My Profile</a>
 
               <?php if ($role === 'researcher'): ?>
-                <a data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out" href="<?= ROOT ?>/users/logout">
+                <form method="POST" action="<?= ROOT ?>/users/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                 <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
-                  <a data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out" href="<?= ROOT ?>/admin/logout">
+                  <form method="POST" action="<?= ROOT ?>/admin/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                   <?php endif; ?>
-                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#log-out-icon" />
-                  </svg>
-                  Log Out</a>
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                  <button type="submit" class="btn-header-logout">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#log-out-icon" />
+                    </svg>
+                    Log Out
+                  </button>
+                  </form>
             </div>
 
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->

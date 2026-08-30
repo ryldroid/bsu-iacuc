@@ -339,6 +339,10 @@ header nav a:hover::after {
     background: var(--brand-tint-active);
 }
 
+.header-auth .btn-header-logout {
+    margin-left: 0;
+}
+
 .header-auth img {
     width: 32px;
     height: 32px;
@@ -372,7 +376,8 @@ header nav a:hover::after {
     align-items: flex-start;
 }
 
-#account-dropdown a {
+#account-dropdown a,
+#account-dropdown button {
     padding: .75em 1em;
     text-decoration: none;
     width: 100%;
@@ -381,13 +386,28 @@ header nav a:hover::after {
     display: flex;
     align-items: center;
     gap: .5em;
+
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: inherit;
+    font-size: 1em;
+    font-family: inherit;
+    cursor: pointer;
 }
 
-#account-dropdown a svg {
+#account-dropdown form {
+    width: 100%;
+    margin: 0;
+}
+
+#account-dropdown a svg,
+#account-dropdown button svg {
     flex-shrink: 0;
 }
 
-#account-dropdown a:hover {
+#account-dropdown a:hover,
+#account-dropdown button:hover {
     background-color: var(--hover-surface);
 }
 
