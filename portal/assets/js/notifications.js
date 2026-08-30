@@ -71,7 +71,7 @@ async function loadNotifications() {
     renderBadge(data.unread_count);
     renderList(data.items);
   } catch (e) {
-    /* silent — bell just stays as-is */
+    /* silent:  bell just stays as-is */
   }
 }
 

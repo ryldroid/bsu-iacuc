@@ -1,4 +1,4 @@
-/* ===== Generic modal (backdrop + card) — shared by account, submissions, admin pages ===== */
+/* ===== Generic modal (backdrop + card):  shared by account, submissions, admin pages ===== */
 .modal-backdrop {
     display: none;
     position: fixed;
@@ -88,16 +88,6 @@
     padding: 6px 10px;
 }
 
-/* .file-popup-frame holds a static pdf-pages container + img + message
-   (created once, never rebuilt) — only one is ever visible at a time via
-   [hidden], toggled in JS based on the file's actual content type. PDF
-   pages are rendered via pdf.js into scrollable canvases; an image is
-   scaled down to fit *within* the frame without cropping or stretching.
-   align-items is flex-start (not center) because a centered flex item
-   that overflows gets symmetric overflow above and below, and scrolling
-   can only reveal the bottom half — the top of a tall PDF becomes
-   unreachable. The image still centers fine since it never overflows and
-   has its own margin:auto. */
 .file-popup-frame {
     flex: 1;
     width: 100%;

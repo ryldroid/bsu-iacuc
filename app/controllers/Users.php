@@ -265,6 +265,10 @@ class Users extends Controller
 
   public function logout()
   {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->redirect('home');
+    }
+
     $uid      = $_SESSION['user']['user_id'] ?? null;
     $uname    = $_SESSION['user']['username'] ?? '';
     $urole    = $_SESSION['user']['role'] ?? '';
@@ -447,7 +451,7 @@ class Users extends Controller
     $this->model->markEmailVerificationUsed($token);
     $this->model->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
 
-    $_SESSION['flash_success'] = 'Your email is successfully verified! You will now receive relevant notifications in your inbox.';
+    $_SESSION['flash_success'] = 'Your email has been verified!';
     $this->redirect($this->isLoggedIn() ? 'users/account' : 'users/login');
   }
 

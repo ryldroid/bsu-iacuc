@@ -82,7 +82,7 @@ if ($authRequired) {
 }
 $resubmitIntro = ($certRequired || $authRequired)
     ? 'Upload your revised protocol file, plus the document(s) the reviewer flagged below.'
-    : 'Upload your revised protocol file below. This will send the protocol back to the reviewer.';
+    : 'Upload your revised protocol file below.';
 
 include 'includes/header.php';
 ?>
@@ -388,11 +388,11 @@ include 'includes/header.php';
                     <p class="panel-modal-label">Re-submit Protocol</p>
                     <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn" onclick="closeReuploadModal()" aria-label="Close">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="tool-btn close-modal" onclick="closeReuploadModal()" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <use href="#close-icon" />
                     </svg>
-                    Close
+                    <!-- Close -->
                 </button>
             </div>
             <div class="panel-modal-body">
@@ -884,10 +884,6 @@ include 'includes/header.php';
         filePopupMessage.hidden = state !== 'message';
     }
 
-    // PDFs are rendered with pdf.js (same as the main protocol viewer)
-    // instead of an <iframe>/native PDF plugin — the browser's embedded PDF
-    // viewer doesn't reliably size itself inside a flex layout and ends up
-    // rendering a tiny, letterboxed page.
     async function renderPopupPdf(fileUrl) {
         filePopupPdfPages.innerHTML = '';
         const frameWidth = filePopupFrame.clientWidth;

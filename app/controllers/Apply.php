@@ -154,9 +154,6 @@ class Apply extends Controller
         $finfo    = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filePath);
 
-        // Normalize known libmagic variants (see saveUpload()) to their
-        // canonical mime type so the whitelist check and the Content-Type
-        // header sent to the browser both stay correct.
         $normalize = [
             'image/x-png' => 'image/png',
             'image/pjpeg' => 'image/jpeg',
@@ -477,8 +474,6 @@ class Apply extends Controller
         $latestVersion = $model->getLatestVersion($protocolId, 'protocol');
 
         if ($versionId > 0) {
-            // Opened from "Show History" — load that specific version instead
-            // of always showing the latest one.
             $version = $model->getVersionById($versionId);
 
             if (
@@ -501,10 +496,6 @@ class Apply extends Controller
             ]);
         }
 
-        // Comments, "Finish Review", and "Return for Revision" only ever apply
-        // to the current round — never let those act on a superseded version,
-        // even if the protocol's overall status happens to read "Under Review"
-        // because a *newer* version is now the one being reviewed.
         $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
 
         $isStaff    = in_array($actor['role'], ['admin', 'reviewer']);
@@ -512,8 +503,6 @@ class Apply extends Controller
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
-        // Needed by the in-viewer "Re-submit Protocol" panel, which mirrors
-        // the same reupload flow that used to live only on the list page.
         $userModel     = new UserModel();
         $hasCertOnFile = $isStaff ? false : $userModel->hasCert($actor['id']);
 
@@ -629,10 +618,6 @@ class Apply extends Controller
             $latestVersion   = $model->getLatestVersion((int) $version['protocol_id'], 'protocol');
             $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
 
-            // A researcher can always read the comments on a superseded round —
-            // that's the whole point of history. On the *current* round, though,
-            // keep hiding them until the reviewer has actually sent the protocol
-            // back, so in-progress/unfinished review notes aren't exposed early.
             if ($isLatestVersion && strtolower($version['protocol_status'] ?? '') !== 'needs revision') {
                 echo json_encode([]);
                 exit;

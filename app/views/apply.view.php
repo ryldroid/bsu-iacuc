@@ -366,7 +366,7 @@ include "includes/scroll-top.php";
         <span><span class="bold">All uploads will be thoroughly examined.</span> Make sure documents are legible, complete, and accurate before submitting.</span>
     </div>`;
 
-    // ===== STEP 0 — Requirements & Process =====
+    // ===== STEP 0 :  Requirements & Process =====
     function step0() {
         const checkSvgSm = `<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#check-circle-icon" />
@@ -429,7 +429,7 @@ include "includes/scroll-top.php";
     </div>`;
     }
 
-    // ===== STEP 1 — Terms & Conditions =====
+    // ===== STEP 1:  Terms & Conditions =====
     function step1() {
         return `
     <div class="page-tag">Step 2 of 5</div>
@@ -507,7 +507,7 @@ include "includes/scroll-top.php";
     </div>`;
     }
 
-    // ===== STEP 2 — Attach Documents =====
+    // ===== STEP 2:  Attach Documents =====
     function step2() {
         const certRequired = !state.certAlready;
 
@@ -574,7 +574,7 @@ include "includes/scroll-top.php";
     </div>`;
     }
 
-    // ===== STEP 3 — Download Protocol Form =====
+    // ===== STEP 3:  Download Protocol Form =====
     function step3() {
         const formPdfUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.pdf';
         const formDocxUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.docx';
@@ -635,7 +635,7 @@ include "includes/scroll-top.php";
     </div>`;
     }
 
-    // ===== STEP 4 — Upload Protocol Form & Enter Title =====
+    // ===== STEP 4:  Upload Protocol Form & Enter Title =====
     function step4() {
         return `
     <div class="page-tag">Step 5 of 5</div>
@@ -680,7 +680,7 @@ include "includes/scroll-top.php";
     </div>`;
     }
 
-    // ===== STEP 5 — Done =====
+    // ===== STEP 5:  Done =====
     function step5() {
         return `
     <div class="success-center">

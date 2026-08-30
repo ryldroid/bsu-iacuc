@@ -294,6 +294,29 @@
   color: #fff;
 }
 
+.close-modal {
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: black;
+}
+
+.close-modal svg {
+  transition: none;
+}
+
+.close-modal:hover {
+  color: var(--danger-color);
+  background: none;
+  border: 1px solid var(--danger-color);
+}
+
+.close-modal:active {
+  transform: none;
+  color: var(--danger-color-hover);
+  box-shadow: none;
+}
+
 /* ===== Main layout: PDF column + sidebar ===== */
 .viewer-layout {
   display: flex;
@@ -715,7 +738,7 @@
   margin-left: auto;
 }
 
-/* ===== File popup modal (cert / auth letter) — .file-popup-card layout shared via modals.css, colors overridden below for the dark viewer chrome ===== */
+/* ===== File popup modal (cert / auth letter):  .file-popup-card layout shared via modals.css, colors overridden below for the dark viewer chrome ===== */
 .file-popup-header {
   display: flex;
   align-items: center;

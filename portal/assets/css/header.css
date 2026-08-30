@@ -330,7 +330,7 @@ header nav a:hover::after {
     cursor: pointer;
 
     margin-left: .5em;
-    padding: 5px 2px 5px 5px;
+    padding: 5px;
     border-radius: 6px;
     transition: all 0.2s ease;
 }
@@ -443,4 +443,10 @@ header nav a:hover::after {
     .header-auth .greeting {
         display: none;
     }
+}
+
+.notif-bell {
+    position: relative;
+    border-radius: 50% !important;
+    padding: 40px 20px;
 }

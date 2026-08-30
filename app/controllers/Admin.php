@@ -347,6 +347,10 @@ class Admin extends Controller
 
     public function logout(): void
     {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/home');
+        }
+
         $actor = $this->actor();
         $this->model->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Staff logged out');
 

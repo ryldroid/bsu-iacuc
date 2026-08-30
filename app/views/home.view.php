@@ -278,7 +278,7 @@ include "includes/scroll-top.php";
             }
         });
     });
-    // ===== APPLY BUTTON — Continue vs New =====
+    // ===== APPLY BUTTON:  Continue vs New =====
     (function() {
         const isLoggedIn = <?= isset($_SESSION['user']['user_id']) ? 'true' : 'false' ?>;
         const SAVE_KEY = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
