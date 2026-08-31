@@ -236,7 +236,7 @@ class Admin extends Controller
 
     // ===== OTHER PAGES =====
 
-    // [MODIFIED by <your-name> - this method already existed; now also loads
+    // [MODIFIED SPM 
     //  the announcements list and passes the user's role so the view can
     //  decide whether to show Add/Edit/Delete buttons (admin only).]
     public function announcements(): void
@@ -253,7 +253,7 @@ class Admin extends Controller
             'announcements' => $model->getAll(),
         ]);
     }
-    // [END MODIFIED]
+    // END MODIFIED
 
     public function accounts(): void
     {
