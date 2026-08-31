@@ -236,14 +236,24 @@ class Admin extends Controller
 
     // ===== OTHER PAGES =====
 
+    // [MODIFIED by <your-name> - this method already existed; now also loads
+    //  the announcements list and passes the user's role so the view can
+    //  decide whether to show Add/Edit/Delete buttons (admin only).]
     public function announcements(): void
     {
         $this->requireAdmin();
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
         $this->view('admin/announcements', [
-            'user' => $_SESSION['user'],
-            'csrf' => $this->generateCsrfToken(),
+            'user'          => $_SESSION['user'],
+            'role'          => $_SESSION['user']['role'] ?? '',
+            'csrf'          => $this->generateCsrfToken(),
+            'announcements' => $model->getAll(),
         ]);
     }
+    // [END MODIFIED]
 
     public function accounts(): void
     {
@@ -563,4 +573,119 @@ class Admin extends Controller
     {
         $this->handleResetPassword('admin/reset_password', 'admin/login');
     }
+
+    // ===== ANNOUNCEMENTS ("From Our Office" section) — add/edit/delete =====
+    // ADDED SPM - the view-only `announcements()` method already
+
+    public function announcements_add(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $title = trim($_POST['title'] ?? '');
+        $body  = trim($_POST['body'] ?? '');
+
+        if ($title === '') {
+            $this->jsonError(422, 'Title is required.');
+        }
+        if ($body === '') {
+            $this->jsonError(422, 'Announcement content is required.');
+        }
+
+        $actor = $this->actor();
+        $ok    = $model->insert($title, $body, $actor['id'] ?: null);
+
+        if ($ok) {
+            $model->logAudit('announcement_added', $actor['id'], $actor['name'], $actor['role'], 'announcement', null, "Announcement added: $title");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement added.' : 'Insert failed.']);
+        exit;
+    }
+
+    public function announcements_get(): void
+    {
+        $this->requireAdmin(true);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id  = (int) ($_GET['id'] ?? 0);
+        $row = $id > 0 ? $model->getById($id) : null;
+
+        echo json_encode(
+            $row
+                ? ['ok' => true, 'data' => $row]
+                : ['ok' => false, 'message' => 'Announcement not found.']
+        );
+        exit;
+    }
+
+    public function announcements_edit(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id    = (int) ($_POST['id'] ?? 0);
+        $title = trim($_POST['title'] ?? '');
+        $body  = trim($_POST['body'] ?? '');
+
+        if ($id < 1 || !$model->exists($id)) {
+            $this->jsonError(404, 'Announcement not found.');
+        }
+        if ($title === '') {
+            $this->jsonError(422, 'Title is required.');
+        }
+        if ($body === '') {
+            $this->jsonError(422, 'Announcement content is required.');
+        }
+
+        $ok = $model->update($id, $title, $body);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('announcement_edited', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement edited: $title");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement updated.' : 'Update failed.']);
+        exit;
+    }
+
+    public function announcements_delete(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id < 1) {
+            $this->jsonError(400, 'No announcement id given.');
+        }
+
+        $ok = $model->delete($id);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('announcement_deleted', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement deleted: #$id");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement deleted.' : 'Delete failed.']);
+        exit;
+    }
+    // END ADDED
 }
