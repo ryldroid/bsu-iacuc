@@ -236,9 +236,9 @@ class Admin extends Controller
 
     // ===== OTHER PAGES =====
 
-    // [MODIFIED SPM 
+    // MODIFIED SPM 
     //  the announcements list and passes the user's role so the view can
-    //  decide whether to show Add/Edit/Delete buttons (admin only).]
+    //  decide whether to show Add/Edit/Delete buttons (admin only).
     public function announcements(): void
     {
         $this->requireAdmin();
