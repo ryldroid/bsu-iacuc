@@ -17,7 +17,7 @@
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8.5em; 
+  gap: 6.5em;
 }
 
 .announcements-sections>.announcements,
@@ -81,7 +81,7 @@ h2 {
   flex-direction: column;
   gap: 1em;
   margin-top: 1em;
-  min-width: 0; 
+  min-width: 0;
 }
 
 .office-announcement-card {
@@ -109,6 +109,7 @@ h2 {
 .office-announcement-body {
   margin: 0;
   white-space: pre-line;
+  font-family: var(--font-body);
 }
 
 .announcements-empty {
