@@ -30,6 +30,53 @@ class UserModel extends Model
     return $stmt->get_result()->fetch_assoc() ?: null;
   }
 
+  // ===== AUDIT LOGS =====
+
+  public function getAuditLogDateRange(): array
+  {
+    $result = $this->connection->query(
+      "SELECT MIN(DATE(created_at)) AS earliest, MAX(DATE(created_at)) AS latest FROM audit_logs"
+    );
+    return $result->fetch_assoc() ?: ['earliest' => null, 'latest' => null];
+  }
+
+  public function getAuditLogs(?string $fromDate = null, ?string $toDate = null): array
+  {
+    $sql = "SELECT created_at, username, role, action, target_type, target_id, details, ip_address
+      FROM audit_logs";
+
+    $conditions = [];
+    $types      = '';
+    $params     = [];
+
+    if ($fromDate !== null && $fromDate !== '') {
+      $conditions[] = 'created_at >= ?';
+      $types       .= 's';
+      $params[]     = $fromDate . ' 00:00:00';
+    }
+
+    if ($toDate !== null && $toDate !== '') {
+      $conditions[] = 'created_at <= ?';
+      $types       .= 's';
+      $params[]     = $toDate . ' 23:59:59';
+    }
+
+    if (!empty($conditions)) {
+      $sql .= ' WHERE ' . implode(' AND ', $conditions);
+    }
+
+    $sql .= ' ORDER BY created_at DESC';
+
+    $stmt = $this->connection->prepare($sql);
+
+    if (!empty($params)) {
+      $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
   // ===== IACUC TRAINING CERTIFICATE =====
 
   public function getCert(int $userId): ?array

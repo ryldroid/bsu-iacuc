@@ -257,12 +257,114 @@ class Admin extends Controller
 
     public function accounts(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
+
+        $auditDateRange = $this->model->getAuditLogDateRange();
+
+        $today       = date('Y-m-d');
+        $ninetyAgo   = date('Y-m-d', strtotime('-90 days'));
+        $defaultTo   = $auditDateRange['latest'] ? min($today, $auditDateRange['latest']) : $today;
+        $defaultFrom = $auditDateRange['earliest'] ? max($ninetyAgo, $auditDateRange['earliest']) : $ninetyAgo;
+        $defaultFrom = min($defaultFrom, $defaultTo);
+
         $this->view('admin/accounts', [
-            'user'    => $_SESSION['user'],
-            'csrf'    => $this->generateCsrfToken(),
-            'pending' => $this->model->getPendingUsers(),
+            'user'           => $_SESSION['user'],
+            'csrf'           => $this->generateCsrfToken(),
+            'pending'        => $_SESSION['user']['role'] === 'admin' ? $this->model->getPendingUsers() : [],
+            'auditDateRange' => $auditDateRange,
+            'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ]);
+    }
+
+    // ===== AUDIT LOGS =====
+
+    public function downloadAuditLogs(): void
+    {
+        $this->requireStaff();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/accounts');
+        }
+
+        $this->verifyCsrfToken(false);
+
+        $fullHistory = ($_POST['full_history'] ?? '') === '1';
+
+        if ($fullHistory) {
+            $fromDate = null;
+            $toDate   = null;
+        } else {
+            $fromDate = $this->sanitizeDate($_POST['from_date'] ?? '');
+            $toDate   = $this->sanitizeDate($_POST['to_date'] ?? '');
+
+            if ($fromDate === null || $toDate === null) {
+                $_SESSION['flash_error'] = 'Please select both a from and to date, or choose to export the full history.';
+                $this->redirect('admin/accounts');
+            }
+        }
+
+        $actor = $this->actor();
+        $logs  = $this->model->getAuditLogs($fromDate, $toDate);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Audit Logs');
+
+        $headers = ['Timestamp', 'Username', 'Role', 'Action', 'Target Type', 'Target ID', 'Details', 'IP Address'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $row = 2;
+        foreach ($logs as $log) {
+            $sheet->fromArray([
+                $log['created_at'],
+                $log['username'],
+                $log['role'],
+                $log['action'],
+                $log['target_type'],
+                $log['target_id'],
+                $log['details'],
+                $log['ip_address'],
+            ], null, "A$row");
+            $row++;
+        }
+
+        foreach (range('A', 'H') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $rangeDescription = $fullHistory
+            ? 'Exported audit logs to Excel (full history)'
+            : "Exported audit logs to Excel ({$fromDate} to {$toDate})";
+
+        $this->model->logAudit(
+            'audit_logs_exported',
+            $actor['id'],
+            $actor['name'],
+            $actor['role'],
+            'audit_logs',
+            null,
+            $rangeDescription
+        );
+
+        $filename = 'audit-logs-' . date('Y-m-d_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    private function sanitizeDate(string $date): ?string
+    {
+        if ($date === '') {
+            return null;
+        }
+
+        $parsed = \DateTime::createFromFormat('Y-m-d', $date);
+        return ($parsed && $parsed->format('Y-m-d') === $date) ? $date : null;
     }
 
     // ===== LOG IN =====

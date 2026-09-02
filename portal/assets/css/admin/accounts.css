@@ -231,3 +231,81 @@
         width: 100%;
     }
 }
+
+/* ===== AUDIT LOGS ===== */
+
+.audit-section .audit-description {
+    color: var(--secondary-text);
+    margin-bottom: 1rem;
+}
+
+.audit-form {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.audit-form .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.audit-form .form-section label {
+    font-size: 0.85rem;
+    color: var(--secondary-text);
+}
+
+.audit-form input {
+    margin-bottom: 0;
+}
+
+.audit-form input[type="date"] {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    background: var(--card-background);
+    color: var(--primary-text);
+}
+
+.audit-form input[type="date"]:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+}
+
+.audit-form input[type="date"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.audit-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--primary-text);
+    white-space: nowrap;
+}
+
+.audit-full-history {
+    justify-content: center;
+}
+
+.audit-section .accounts-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .audit-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .audit-form .accounts-btn-primary {
+        width: 100%;
+    }
+}
