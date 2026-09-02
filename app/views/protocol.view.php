@@ -303,6 +303,18 @@ include 'includes/header.php';
         </div>
     </div>
 
+    <!-- ===== Comment popup (small screens: shown at tap position instead of the sidebar) ===== -->
+    <div class="annot-popup" id="annotPopup">
+        <div class="annot-item-header">
+            <span class="annot-num" id="annotPopupNum"></span>
+            <span class="annot-page" id="annotPopupPage"></span>
+            <button class="annot-delete" id="annotPopupDelete" title="Delete comment" style="display:none">✕</button>
+            <button class="annot-popup-close" id="annotPopupClose" aria-label="Close">&times;</button>
+        </div>
+        <p class="annot-comment" id="annotPopupComment"></p>
+        <p class="annot-date" id="annotPopupDate"></p>
+    </div>
+
     <!-- ===== Comment dialog (reviewer only, latest version, while under review) ===== -->
     <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
@@ -741,7 +753,7 @@ include 'includes/header.php';
             label.className = 'annot-label';
             label.textContent = idx + 1;
             box.appendChild(label);
-            box.addEventListener('click', () => highlightSidebarItem(ann.id));
+            box.addEventListener('click', (e) => handleAnnotBoxClick(e, ann.id));
             overlay.appendChild(box);
         });
 
@@ -803,6 +815,86 @@ include 'includes/header.php';
         });
         highlightSidebarItem(annotId);
     }
+
+    // ===== Comment popup (small screens) =====
+    // Below the layout breakpoint the sidebar stacks under the PDF instead of
+    // sitting beside it, so tapping a marker shows the comment in a popup at
+    // the tap position instead of just scrolling/highlighting the sidebar.
+    const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
+    const annotPopup = document.getElementById('annotPopup');
+
+    function handleAnnotBoxClick(e, annotId) {
+        highlightSidebarItem(annotId);
+        if (MOBILE_MQ.matches) {
+            e.stopPropagation();
+            showAnnotPopup(annotId, e.clientX, e.clientY);
+        }
+    }
+
+    function showAnnotPopup(annotId, x, y) {
+        const idx = annotations.findIndex(a => a.id === annotId);
+        if (idx === -1) return;
+        const ann = annotations[idx];
+
+        document.getElementById('annotPopupNum').textContent = idx + 1;
+        document.getElementById('annotPopupPage').textContent = 'Page ' + ann.page_number;
+        document.getElementById('annotPopupComment').textContent = ann.comment;
+        document.getElementById('annotPopupDate').textContent = formatAnnotDate(ann.created_at);
+
+        const deleteBtn = document.getElementById('annotPopupDelete');
+        if (CAN_REVIEW && !ann._queued) {
+            deleteBtn.style.display = '';
+            deleteBtn.onclick = () => {
+                confirmAction('Delete this comment? This cannot be undone.', {
+                        okText: 'Delete',
+                        danger: true
+                    })
+                    .then(ok => ok && deleteAnnotation(annotId));
+                closeAnnotPopup();
+            };
+        } else {
+            deleteBtn.style.display = 'none';
+            deleteBtn.onclick = null;
+        }
+
+        // Position near the tap point, then clamp to stay on-screen.
+        annotPopup.style.left = '0px';
+        annotPopup.style.top = '0px';
+        annotPopup.classList.add('open');
+
+        const margin = 10;
+        const rect = annotPopup.getBoundingClientRect();
+        let left = x + margin;
+        let top = y + margin;
+        if (left + rect.width > window.innerWidth - margin) left = x - rect.width - margin;
+        if (left < margin) left = margin;
+        if (top + rect.height > window.innerHeight - margin) top = y - rect.height - margin;
+        if (top < margin) top = margin;
+
+        annotPopup.style.left = left + 'px';
+        annotPopup.style.top = top + 'px';
+    }
+
+    function closeAnnotPopup() {
+        annotPopup.classList.remove('open');
+    }
+
+    document.getElementById('annotPopupClose').addEventListener('click', closeAnnotPopup);
+
+    document.addEventListener('click', (e) => {
+        if (annotPopup.classList.contains('open') &&
+            !annotPopup.contains(e.target) &&
+            !e.target.closest('.annot-box')) {
+            closeAnnotPopup();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAnnotPopup();
+    });
+
+    window.addEventListener('scroll', closeAnnotPopup, true);
+    MOBILE_MQ.addEventListener('change', closeAnnotPopup);
 
     // ===== Delete annotation =====
     async function deleteAnnotation(annotId) {

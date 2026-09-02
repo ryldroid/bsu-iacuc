@@ -490,6 +490,38 @@
   padding: 1.5rem 0;
 }
 
+/* ===== Comment popup (small screens) ===== */
+.annot-popup {
+  position: fixed;
+  z-index: 300;
+  width: min(280px, calc(100vw - 20px));
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  display: none;
+}
+
+.annot-popup.open {
+  display: block;
+}
+
+.annot-popup-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 2px;
+  margin-left: auto;
+}
+
+.annot-popup-close:hover {
+  color: #e2e8f0;
+}
+
 /* ===== Modal overrides for dark viewer context ===== */
 .viewer-body .modal-backdrop {
   position: fixed;
@@ -637,45 +669,10 @@
     flex: none;
   }
 
-  .annot-sidebar {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid #334155;
-    padding: 0.75rem;
-    overflow-y: visible;
-    flex: none;
-  }
-
+  /* Comments are opened via tap-to-popup on the marker instead, so the
+     stacked list/toggle underneath the PDF isn't needed here. */
+  .annot-sidebar,
   .sidebar-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    background: #16213e;
-    border: none;
-    border-bottom: 1px solid #334155;
-    color: #94a3b8;
-    font-size: 0.82rem;
-    cursor: pointer;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .sidebar-toggle:hover {
-    background: #1e293b;
-    color: #e2e8f0;
-  }
-
-  .sidebar-toggle-icon {
-    transition: transform 0.2s ease;
-  }
-
-  .sidebar-toggle.collapsed .sidebar-toggle-icon {
-    transform: rotate(-90deg);
-  }
-
-  .annot-sidebar.collapsed .annot-sidebar-inner {
     display: none;
   }
 
