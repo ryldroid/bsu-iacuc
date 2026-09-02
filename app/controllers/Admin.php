@@ -236,14 +236,24 @@ class Admin extends Controller
 
     // ===== OTHER PAGES =====
 
+    // [MODIFIED by SPM - this method already existed; now also loads
+    //  the announcements list and passes the user's role so the view can
+    //  decide whether to show Add/Edit/Delete buttons (admin only).
     public function announcements(): void
     {
         $this->requireAdmin();
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
         $this->view('admin/announcements', [
-            'user' => $_SESSION['user'],
-            'csrf' => $this->generateCsrfToken(),
+            'user'          => $_SESSION['user'],
+            'role'          => $_SESSION['user']['role'] ?? '',
+            'csrf'          => $this->generateCsrfToken(),
+            'announcements' => $model->getAll(),
         ]);
     }
+    // END MODIFIED
 
     public function accounts(): void
     {
@@ -563,4 +573,223 @@ class Admin extends Controller
     {
         $this->handleResetPassword('admin/reset_password', 'admin/login');
     }
+
+    // ===== ANNOUNCEMENTS ("From Our Office" section) — add/edit/delete =====
+    // ADDED by SPM - the view-only `announcements()`
+    //  Does NOT touch the "From Our Partner Pages" Facebook section, which stays auto-updating.]
+
+    private function announcementImageDir(): string
+    {
+        return dirname(__DIR__, 2) . '/portal/assets/uploads/announcements/';
+    }
+
+    // Validates and saves an uploaded image 
+    private function saveAnnouncementImage(string $inputName, ?string &$reason = null): string|false|null
+    {
+        if (empty($_FILES[$inputName]['tmp_name']) || $_FILES[$inputName]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+
+        $file = $_FILES[$inputName];
+
+        if ($file['size'] > 5 * 1024 * 1024) {
+            $reason = 'That image is larger than the 5 MB limit.';
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        if (!in_array($ext, $allowedExts, true)) {
+            $reason = 'Please upload a JPG, PNG, WEBP, or GIF image.';
+            return false;
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($file['tmp_name']);
+        $mimeMap = [
+            'jpg'  => ['image/jpeg', 'image/pjpeg'],
+            'jpeg' => ['image/jpeg', 'image/pjpeg'],
+            'png'  => ['image/png', 'image/x-png'],
+            'webp' => ['image/webp'],
+            'gif'  => ['image/gif'],
+        ];
+        if (!in_array($mime, $mimeMap[$ext], true)) {
+            $reason = 'That file doesn\'t look like a real image (its content doesn\'t match a "' . $ext . '" file). Please re-save or export it and try again.';
+            return false;
+        }
+
+        $dir = $this->announcementImageDir();
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
+
+        if (!move_uploaded_file($file['tmp_name'], $dir . $safeName)) {
+            $reason = 'Could not save the uploaded image. Please try again.';
+            return false;
+        }
+
+        return $safeName;
+    }
+
+    private function deleteAnnouncementImage(?string $filename): void
+    {
+        if (!$filename) return;
+        $path = $this->announcementImageDir() . $filename;
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    public function announcements_add(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $title = trim($_POST['title'] ?? '');
+        $body  = trim($_POST['body'] ?? '');
+
+        if ($title === '') {
+            $this->jsonError(422, 'Title is required.');
+        }
+        if ($body === '') {
+            $this->jsonError(422, 'Announcement content is required.');
+        }
+
+        // [ADDED by SPM - optional image upload]
+        $imageReason = null;
+        $imageName   = $this->saveAnnouncementImage('image', $imageReason);
+        if ($imageName === false) {
+            $this->jsonError(422, $imageReason ?: 'Image upload failed.');
+        }
+        // END ADDED
+
+        $actor = $this->actor();
+        $ok    = $model->insert($title, $body, $imageName, $actor['id'] ?: null);
+
+        if ($ok) {
+            $model->logAudit('announcement_added', $actor['id'], $actor['name'], $actor['role'], 'announcement', null, "Announcement added: $title");
+        } elseif ($imageName) {
+            // insert failed after the image was already written to disk - clean it up
+            $this->deleteAnnouncementImage($imageName);
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement added.' : 'Insert failed.']);
+        exit;
+    }
+
+    public function announcements_get(): void
+    {
+        $this->requireAdmin(true);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id  = (int) ($_GET['id'] ?? 0);
+        $row = $id > 0 ? $model->getById($id) : null;
+
+        echo json_encode(
+            $row
+                ? ['ok' => true, 'data' => $row]
+                : ['ok' => false, 'message' => 'Announcement not found.']
+        );
+        exit;
+    }
+
+    public function announcements_edit(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id    = (int) ($_POST['id'] ?? 0);
+        $title = trim($_POST['title'] ?? '');
+        $body  = trim($_POST['body'] ?? '');
+
+        $existing = $id > 0 ? $model->getById($id) : null;
+        if (!$existing) {
+            $this->jsonError(404, 'Announcement not found.');
+        }
+        if ($title === '') {
+            $this->jsonError(422, 'Title is required.');
+        }
+        if ($body === '') {
+            $this->jsonError(422, 'Announcement content is required.');
+        }
+
+        // [ADDED by SPM - optional image replace/remove on edit.
+        $imageReason = null;
+        $newImage    = $this->saveAnnouncementImage('image', $imageReason);
+        if ($newImage === false) {
+            $this->jsonError(422, $imageReason ?: 'Image upload failed.');
+        }
+
+        $removeImage = ($_POST['remove_image'] ?? '') === '1';
+
+        if ($newImage !== null) {
+            $imageToSave = $newImage;
+            $this->deleteAnnouncementImage($existing['image_path']);
+        } elseif ($removeImage) {
+            $imageToSave = null;
+            $this->deleteAnnouncementImage($existing['image_path']);
+        } else {
+            $imageToSave = 'KEEP';
+        }
+        // END ADDED
+
+        $ok = $model->update($id, $title, $body, $imageToSave);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('announcement_edited', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement edited: $title");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement updated.' : 'Update failed.']);
+        exit;
+    }
+
+    public function announcements_delete(): void
+    {
+        $this->requireAdmin(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $model = new AnnouncementModel();
+
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id < 1) {
+            $this->jsonError(400, 'No announcement id given.');
+        }
+
+        // ADDED by SPM- clean up the image file (if any) along with the row
+        $existing = $model->getById($id);
+        // END ADDED
+
+        $ok = $model->delete($id);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('announcement_deleted', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement deleted: #$id");
+            if ($existing) {
+                $this->deleteAnnouncementImage($existing['image_path']);
+            }
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement deleted.' : 'Delete failed.']);
+        exit;
+    }
+    // END ADDED
 }
