@@ -1,4 +1,4 @@
-/* ===== STAFF DASHBOARD — admin-home.css ===== */
+/* ===== STAFF DASHBOARD:  admin-home.css ===== */
 
 main {
     padding: 52px 16px;
@@ -149,10 +149,7 @@ main {
     }
 }
 
-/* ===== Protocol list pagination visibility =====
-   (.protocols-list / .protocol / .status-filters / .status-card / .status-legend-bar /
-   .legend-* / .status-guide / .no-results / .history-* / .empty-state are all styled
-   by protocol-list.css, loaded alongside this file — shared with the My Protocols page.) */
+/* ===== Protocol list pagination visibility ===== */
 .protocol.protocol-row-hidden {
     display: none;
 }

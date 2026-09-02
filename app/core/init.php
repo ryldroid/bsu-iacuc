@@ -14,7 +14,7 @@ session_set_cookie_params([
     'path'     => '/',
     'secure'   => $isHttps,
     'httponly' => true,
-    'samesite' => 'Strict',
+    'samesite' => 'Lax',
 ]);
 
 session_name('bsu_iacuc');
@@ -44,6 +44,7 @@ require_once 'config.php';
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
 require_once 'ErrorPage.php';
 require_once 'Mailer.php';
+require_once 'Notifier.php';
 require_once 'Model.php';
 require_once 'Controller.php';
 require_once 'App.php';

@@ -168,10 +168,11 @@ class Users extends Controller
 
     session_regenerate_id(true);
     $_SESSION['user'] = [
-      'user_id'    => $user['id'],
-      'first_name' => $user['first_name'],
-      'username'   => $user['username'],
-      'role'       => $user['role'],
+      'user_id'        => $user['id'],
+      'first_name'     => $user['first_name'],
+      'username'       => $user['username'],
+      'role'           => $user['role'],
+      'email_verified' => (bool) $user['email_verified'],
     ];
 
     $this->model->logAudit(
@@ -237,6 +238,12 @@ class Users extends Controller
     $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number);
 
     if ($ok) {
+      $this->sendEmailVerification([
+        'id'         => $this->model->connection->insert_id,
+        'first_name' => $first_name,
+        'email'      => $email,
+      ]);
+
       $_SESSION['new_username'] = $username;
       $this->view('users/register', [
         'errors'  => [],
@@ -258,6 +265,10 @@ class Users extends Controller
 
   public function logout()
   {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->redirect('home');
+    }
+
     $uid      = $_SESSION['user']['user_id'] ?? null;
     $uname    = $_SESSION['user']['username'] ?? '';
     $urole    = $_SESSION['user']['role'] ?? '';
@@ -282,9 +293,10 @@ class Users extends Controller
       : null;
 
     $this->view('users/account', [
-      'csrf'        => $this->generateCsrfToken(),
-      'errors'      => !empty($_SESSION['flash_error']) ? [$_SESSION['flash_error']] : [],
-      'certificate' => $certificate,
+      'csrf'           => $this->generateCsrfToken(),
+      'errors'         => !empty($_SESSION['flash_error']) ? [$_SESSION['flash_error']] : [],
+      'certificate'    => $certificate,
+      'email_verified' => (bool) $user['email_verified'],
       'old'         => [
         'first_name'   => $user['first_name'],
         'last_name'    => $user['last_name'],
@@ -361,7 +373,17 @@ class Users extends Controller
       $_SESSION['user']['username']   = $username;
       $_SESSION['user']['role'] = $role;
 
-      $_SESSION['flash_success'] = 'Account updated successfully!';
+      if ($email !== $current_user['email']) {
+        $this->model->markEmailUnverified($id);
+        $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
+        $_SESSION['user']['email_verified'] = false;
+
+        $this->model->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
+
+        $_SESSION['flash_success'] = 'Account updated successfully! Verify your new email to keep getting email notifications.';
+      } else {
+        $_SESSION['flash_success'] = 'Account updated successfully!';
+      }
     } else {
       $_SESSION['flash_error'] = 'Update failed. Please try again.';
     }
@@ -410,5 +432,61 @@ class Users extends Controller
       'users/reset_password',
       'users/login'
     );
+  }
+
+  public function verify_email(): void
+  {
+    $token  = $_GET['token'] ?? '';
+    $record = $this->model->getEmailVerification($token);
+
+    if (!$record) {
+      $_SESSION['flash_error'] = 'This verification link is invalid or has expired.';
+      $this->redirect($this->isLoggedIn() ? 'users/account' : 'users/login');
+      return;
+    }
+
+    $userId = (int) $record['user_id'];
+
+    $this->model->markEmailVerified($userId);
+    $this->model->markEmailVerificationUsed($token);
+    $this->model->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
+
+    $_SESSION['flash_success'] = 'Your email has been verified!';
+    $this->redirect($this->isLoggedIn() ? 'users/account' : 'users/login');
+  }
+
+  public function resend_verification(): void
+  {
+    $this->requireLogin();
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->redirect('users/account');
+    }
+
+    $this->verifyCsrfToken();
+
+    $id   = (int) $_SESSION['user']['user_id'];
+    $user = $this->model->getUser($id);
+
+    $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/users/account');
+
+    if (!empty($user['email_verified'])) {
+      header('Location: ' . $back);
+      exit;
+    }
+
+    $cooldown  = 45;
+    $elapsed   = $this->model->secondsSinceLastVerificationEmail($id);
+
+    if ($elapsed !== null && $elapsed < $cooldown) {
+      $_SESSION['flash_error'] = 'Please wait ' . ($cooldown - $elapsed) . ' seconds before requesting another verification link.';
+      header('Location: ' . $back);
+      exit;
+    }
+
+    $this->sendEmailVerification($user);
+    $_SESSION['flash_success'] = 'Verification link sent to your email. Please check your inbox.';
+    header('Location: ' . $back);
+    exit;
   }
 }

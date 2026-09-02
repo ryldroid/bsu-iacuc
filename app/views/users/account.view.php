@@ -20,6 +20,12 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
             Back to Home
         </a>
 
+        <?php if (empty($email_verified)): ?>
+            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/users/resend_verification">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+            </form>
+        <?php endif; ?>
+
         <form class="account-form" method="POST" action="<?= ROOT ?>/users/update"
             data-confirm-message="Save changes to your account?"
             data-confirm-ok-text="Save Changes">
@@ -90,8 +96,17 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
             <div class="input-group">
                 <input type="email" id="email" name="email" placeholder=" "
                     value="<?= htmlspecialchars($old['email'] ?? ''); ?>" required>
-                <label for="email">Email <span class="required-asterisk">*</span></label>
+                <label for="email">
+                    Email <span class="required-asterisk">*</span>
+                    <?php if (empty($email_verified)): ?>
+                        <span class="email-verify-badge">Unverified</span>
+                    <?php endif; ?>
+                </label>
             </div>
+
+            <?php if (empty($email_verified)): ?>
+                <button type="submit" form="resend-verification-form" class="email-verify-resend">Verify email</button>
+            <?php endif; ?>
 
             <div class="input-group">
                 <input type="tel" id="phone_number" name="phone_number" placeholder=" "

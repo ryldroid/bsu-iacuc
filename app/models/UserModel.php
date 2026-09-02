@@ -195,6 +195,75 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== EMAIL VERIFICATION =====
+
+  public function createEmailVerification(int $user_id, string $token): bool
+  {
+    $stmt = $this->connection->prepare(
+      "DELETE FROM email_verifications WHERE user_id = ?"
+    );
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+
+    $stmt = $this->connection->prepare(
+      "INSERT INTO email_verifications (user_id, token, expires_at)
+        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))"
+    );
+    $stmt->bind_param('is', $user_id, $token);
+    return $stmt->execute();
+  }
+
+  public function getEmailVerification(string $token): ?array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT * FROM email_verifications
+        WHERE token = ? AND used = 0 AND expires_at > NOW()"
+    );
+    $stmt->bind_param('s', $token);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc() ?: null;
+  }
+
+  public function markEmailVerificationUsed(string $token): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE email_verifications SET used = 1 WHERE token = ?"
+    );
+    $stmt->bind_param('s', $token);
+    return $stmt->execute();
+  }
+
+  public function markEmailVerified(int $user_id): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET email_verified = 1 WHERE id = ?"
+    );
+    $stmt->bind_param('i', $user_id);
+    return $stmt->execute();
+  }
+
+  public function markEmailUnverified(int $user_id): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET email_verified = 0 WHERE id = ?"
+    );
+    $stmt->bind_param('i', $user_id);
+    return $stmt->execute();
+  }
+
+  public function secondsSinceLastVerificationEmail(int $user_id): ?int
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) AS elapsed
+        FROM email_verifications WHERE user_id = ?
+        ORDER BY created_at DESC LIMIT 1"
+    );
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row ? (int) $row['elapsed'] : null;
+  }
+
   // ===== LOGIN ATTEMPTS =====
 
   public function countRecentAttempts(string $identifier, int $windowSeconds = 900): int

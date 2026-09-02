@@ -1,4 +1,4 @@
-/* ===== PROTOCOL LIST — protocol-list.css =====
+/* ===== PROTOCOL LIST:  protocol-list.css =====
    Shared by the admin Protocol Inbox (admin/home_view.php) and the
    researcher My Protocols page (submissions_view.php). Anything specific
    to only one of those pages stays in admin-home.css / submissions.css. */
@@ -766,7 +766,6 @@
   }
 
   .legend-info-panel {
-    right: auto;
-    left: 0;
+    width: min(85vw, 320px);
   }
 }

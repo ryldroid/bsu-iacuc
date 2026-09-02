@@ -125,7 +125,7 @@ article {
     font-weight: 800;
 
     background-color: var(--brand-color-hover);
-    color: var(--primary-text);
+    color: var(--text-on-brand);
 }
 
 .btn-apply-outline {

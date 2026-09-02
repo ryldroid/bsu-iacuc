@@ -519,8 +519,8 @@ main button svg {
     align-items: center;
     gap: 6px;
     background: var(--card-background);
-    border: 1.5px solid var(--brand-color);
-    color: var(--brand-color);
+    border: 1.5px solid var(--brand-text);
+    color: var(--brand-text);
     padding: 8px 18px;
     border-radius: 8px;
     font-size: .8rem;

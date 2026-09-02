@@ -38,7 +38,7 @@ $role = $user['role'] ?? '';
                 <div class="success-message">
                     <p>
                         Your application has been received and is pending approval.
-                        We'll email you once your account has been reviewed. You may now close this window.
+                        We'll email you once your account has been reviewed. We've also sent a link to verify your email. You may now close this window.
                     </p>
                 </div>
 

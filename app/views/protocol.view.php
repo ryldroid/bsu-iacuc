@@ -2,10 +2,15 @@
 
 /** @var array  $protocol */
 /** @var array  $version  */
+/** @var bool   $isLatestVersion */
 /** @var string $csrf     */
 /** @var bool   $isStaff    */
 /** @var bool   $isAdmin    */
 /** @var bool   $isReviewer */
+/** @var array|null $returnReason */
+/** @var array|null $latestCertVersion */
+/** @var array|null $latestAuthVersion */
+/** @var bool   $hasCertOnFile */
 
 $title = htmlspecialchars($protocol['research_title'] ?? 'Protocol', ENT_QUOTES, 'UTF-8');
 
@@ -16,9 +21,17 @@ $statusLabels = [
     'endorsed'       => 'Endorsed',
     'approved'       => 'Approved',
 ];
-$statusKey   = strtolower($protocol['status'] ?? '');
-$statusLabel = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
-$isCompleted = in_array($statusKey, ['approved'], true);
+$statusKey       = strtolower($protocol['status'] ?? '');
+$statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
+$isCompleted     = in_array($statusKey, ['approved'], true);
+$isLatestVersion = $isLatestVersion ?? true;
+
+$canReview = $isReviewer && $statusKey === 'under review' && $isLatestVersion;
+
+$canResubmit = !$isStaff && $isLatestVersion && $statusKey === 'needs revision';
+
+$rrWrongCert          = !empty($returnReason['wrong_cert']);
+$rrWrongAuth          = !empty($returnReason['wrong_auth']);
 
 $fileUrl    = ROOT . '/apply/file/' . (int) $version['id'];
 $annotApi   = ROOT . '/apply/annotate';
@@ -29,11 +42,47 @@ $versionNum = (int) $version['version_number'];
 
 $backUrl = $backUrl ?? ($isStaff ? ROOT . '/admin/home' : ROOT . '/submissions');
 
+$versions   = $versions ?? [$version];
+$fromFilter = $fromFilter ?? '';
+
+function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): string
+{
+    $url = ROOT . '/apply/viewer/' . $protocolId . '/' . $versionId;
+    return $fromFilter !== '' ? $url . '?from=' . urlencode($fromFilter) : $url;
+}
+
+$prevVersion = null;
+$nextVersion = null;
+foreach ($versions as $v) {
+    if ((int) $v['version_number'] === $versionNum - 1) {
+        $prevVersion = $v;
+    }
+    if ((int) $v['version_number'] === $versionNum + 1) {
+        $nextVersion = $v;
+    }
+}
+
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
 $isPi              = ! empty($protocol['is_pi']);
+$certRequired      = $hasCertOnFile && $rrWrongCert;
+$authRequired      = !$isPi && $rrWrongAuth;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
 $latestAuthFileUrl = ! empty($latestAuthVersion['id']) ? ROOT . '/apply/file/' . (int) $latestAuthVersion['id'] : null;
+
+$flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
+$resubmitDocs      = [
+    ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF only · max 10 MB', 'accept' => 'application/pdf,.pdf', 'required' => true],
+];
+if ($certRequired) {
+    $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
+}
+if ($authRequired) {
+    $resubmitDocs[] = ['key' => 'auth', 'title' => 'Authorization letter', 'subtitle' => 'Flagged by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
+}
+$resubmitIntro = ($certRequired || $authRequired)
+    ? 'Upload your revised protocol file, plus the document(s) the reviewer flagged below.'
+    : 'Upload your revised protocol file below.';
 
 include 'includes/header.php';
 ?>
@@ -41,6 +90,9 @@ include 'includes/header.php';
 <!-- PDF.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
+<?php if ($canResubmit): ?>
+    <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
+<?php endif; ?>
 
 <div class="viewer-body">
 
@@ -102,7 +154,7 @@ include 'includes/header.php';
         <div class="viewer-topbar-left">
             <a href="<?= $backUrl ?>"
                 class="tool-btn"
-                <?php if ($isReviewer && $statusKey === 'under review'): ?>
+                <?php if ($canReview): ?>
                 onclick="event.preventDefault();
    confirmAction(
        'Leave this review and return to the dashboard? Your comments have been saved.',
@@ -122,10 +174,66 @@ include 'includes/header.php';
             </a>
 
             <span class="viewer-title"><?= $title ?></span>
-            <span class="ver-badge">v<?= $versionNum ?></span>
-            <span class="status-badge status-badge--<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>">
-                <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
-            </span>
+
+            <div class="version-switcher" id="versionSwitcher">
+                <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
+                    <?= $prevVersion ? 'href="' . versionViewerUrl($protocolId, (int) $prevVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
+                    aria-label="Previous version" title="Previous version">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <use href="#back-icon" />
+                    </svg>
+                </a>
+
+                <button type="button" class="ver-badge ver-badge--dropdown" id="versionSwitcherTrigger"
+                    aria-haspopup="true" aria-expanded="false">
+                    v<?= $versionNum ?>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6" />
+                    </svg>
+                </button>
+
+                <a class="version-nav-btn<?= !$nextVersion ? ' is-disabled' : '' ?>"
+                    <?= $nextVersion ? 'href="' . versionViewerUrl($protocolId, (int) $nextVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
+                    aria-label="Next version" title="Next version">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#arrow-right-icon" />
+                    </svg>
+                </a>
+
+                <div class="version-dropdown-menu" id="versionDropdownMenu">
+                    <?php foreach ($versions as $v): ?>
+                        <?php
+                        $vNum   = (int) $v['version_number'];
+                        $vId    = (int) $v['id'];
+                        $vName  = trim(($v['first_name'] ?? '') . ' ' . ($v['last_name'] ?? ''));
+                        $vDate  = !empty($v['uploaded_at']) ? date('M j, Y g:i A', strtotime($v['uploaded_at'])) : '';
+                        $vIsCur = $vId === $versionId;
+                        ?>
+                        <a class="version-dropdown-item<?= $vIsCur ? ' is-current' : '' ?>"
+                            href="<?= versionViewerUrl($protocolId, $vId, $fromFilter) ?>">
+                            <span class="version-dropdown-item-num">v<?= $vNum ?></span>
+                            <span class="version-dropdown-item-meta">
+                                <span class="version-dropdown-item-date"><?= htmlspecialchars($vDate, ENT_QUOTES, 'UTF-8') ?></span>
+                            </span>
+                            <?php if ($vIsCur): ?>
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#location-icon" />
+                                </svg>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <?php if ($isLatestVersion): ?>
+                <span class="status-badge status-badge--<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
+                </span>
+            <?php else: ?>
+                <span class="status-badge historical">
+                    Viewing history: read only
+                </span>
+            <?php endif; ?>
         </div>
 
         <div class="viewer-topbar-right">
@@ -138,7 +246,7 @@ include 'includes/header.php';
                 Download
             </a>
 
-            <?php if ($isReviewer && $statusKey === 'under review'): ?>
+            <?php if ($canReview): ?>
                 <button class="tool-btn tool-btn--warn" id="btnNeedsRevision"
                     onclick="openReturnModal()">
                     Return for Revision
@@ -147,14 +255,22 @@ include 'includes/header.php';
                     onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Finish Review', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
                     Finish Review
                 </button>
-            <?php elseif ($isCompleted): ?>
+            <?php elseif ($canResubmit): ?>
+                <button class="tool-btn tool-btn--success" id="btnResubmit"
+                    onclick="openReuploadModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Re-submit Protocol
+                </button>
+            <?php elseif ($isCompleted && $isLatestVersion): ?>
                 <span class="ver-badge ver-badge--green">✓ Approved</span>
             <?php endif; ?>
         </div>
     </div>
 
-    <?php if ($isReviewer && $statusKey === 'under review'): ?>
-        <!-- ===== Annotation hint (reviewer only, while under review) ===== -->
+    <?php if ($canReview): ?>
+        <!-- ===== Annotation hint (reviewer only, while under review, latest version only) ===== -->
         <div class="annot-toolbar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414A2 2 0 019 13z" />
@@ -189,8 +305,8 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <!-- ===== Comment dialog (reviewer only, while under review) ===== -->
-    <?php if ($isReviewer && $statusKey === 'under review'): ?>
+    <!-- ===== Comment dialog (reviewer only, latest version, while under review) ===== -->
+    <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
             <div class="modal-card">
                 <h2>Add Comment</h2>
@@ -205,14 +321,14 @@ include 'includes/header.php';
 
 </div><!-- .viewer-body -->
 
-<?php if ($isReviewer && $statusKey === 'under review'): ?>
+<?php if ($canReview): ?>
     <!-- ===== Return for Revision modal ===== -->
     <div class="modal-backdrop" id="returnRevisionBackdrop">
-        <div class="modal-card return-modal-card">
-            <div class="return-modal-header">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
                 <div>
-                    <p class="return-modal-label">Return for Revision</p>
-                    <p class="return-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="panel-modal-label">Return for Revision</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
                 <button class="tool-btn" onclick="closeReturnModal()" aria-label="Close">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -221,8 +337,8 @@ include 'includes/header.php';
                     Close
                 </button>
             </div>
-            <div class="return-modal-body">
-                <p class="return-modal-intro">Optionally select the issue(s) with this protocol. The researcher will see this feedback.</p>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">Optionally select the issue(s) with this protocol. The researcher will see this feedback.</p>
 
                 <fieldset class="return-reasons-fieldset">
                     <legend class="return-reasons-legend">Issues found <span class="return-comment-optional">(optional)</span></legend>
@@ -236,11 +352,6 @@ include 'includes/header.php';
                         <input type="checkbox" name="return_reason" value="wrong_auth" id="returnReasonWrongAuth">
                         <span class="return-reason-label">Wrong / invalid authorization letter</span>
                     </label>
-
-                    <label class="return-reason-option">
-                        <input type="checkbox" name="return_reason" value="other" id="returnReasonOther">
-                        <span class="return-reason-label">Other</span>
-                    </label>
                 </fieldset>
 
                 <label class="return-comment-label" for="returnComment">
@@ -253,7 +364,7 @@ include 'includes/header.php';
 
                 <div id="returnRevisionError" class="error-messages" hidden></div>
 
-                <div class="return-modal-actions">
+                <div class="panel-modal-actions">
                     <button class="tool-btn" type="button" onclick="closeReturnModal()">Cancel</button>
                     <button class="tool-btn tool-btn--warn" type="button" id="returnRevisionSubmitBtn"
                         onclick="submitReturnRevision()">
@@ -261,6 +372,44 @@ include 'includes/header.php';
                             <use href="#back-icon" />
                         </svg>
                         Return for Revision
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ($canResubmit): ?>
+    <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
+    <div class="modal-backdrop" id="reuploadModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label">Re-submit Protocol</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="tool-btn close-modal" onclick="closeReuploadModal()" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <use href="#close-icon" />
+                    </svg>
+                    <!-- Close -->
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro"><?= htmlspecialchars($resubmitIntro, ENT_QUOTES, 'UTF-8') ?></p>
+
+                <div class="doc-list" id="reuploadDocList"></div>
+
+                <div id="reuploadError" class="error-messages" hidden></div>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeReuploadModal()">Cancel</button>
+                    <button class="tool-btn tool-btn--success" type="button" id="reuploadSubmitBtn"
+                        onclick="submitReupload()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        Submit
                     </button>
                 </div>
             </div>
@@ -280,7 +429,11 @@ include 'includes/header.php';
                 Close
             </button>
         </div>
-        <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
+        <div class="file-popup-frame" id="filePopupFrame">
+            <div id="filePopupPdfPages" class="file-popup-pdf-pages" hidden></div>
+            <img id="filePopupImg" alt="">
+            <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
+        </div>
     </div>
 </div>
 <style>
@@ -322,10 +475,39 @@ include 'includes/header.php';
     const IS_REVIEWER = <?= $isReviewer ? 'true' : 'false' ?>;
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;
     const STATUS_KEY = <?= json_encode($statusKey) ?>;
-    const CAN_REVIEW = IS_REVIEWER && STATUS_KEY === 'under review';
+    const IS_LATEST_VERSION = <?= $isLatestVersion ? 'true' : 'false' ?>;
+    const CAN_REVIEW = <?= $canReview ? 'true' : 'false' ?>;
     const CSRF_TOKEN = <?= json_encode($csrf)      ?>;
     const ANNOT_API = <?= json_encode($annotApi)  ?>;
     const STATUS_API = <?= json_encode($statusApi) ?>;
+    const ROOT_URL = <?= json_encode(ROOT) ?>;
+    const CAN_RESUBMIT = <?= $canResubmit ? 'true' : 'false' ?>;
+    const RESUBMIT_DOCS = <?= json_encode($resubmitDocs) ?>;
+
+    // ===== Version switcher dropdown =====
+    const versionTrigger = document.getElementById('versionSwitcherTrigger');
+    const versionMenu = document.getElementById('versionDropdownMenu');
+    const versionSwitcher = document.getElementById('versionSwitcher');
+
+    versionTrigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = versionMenu.classList.toggle('open');
+        versionTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (versionSwitcher && !versionSwitcher.contains(e.target)) {
+            versionMenu?.classList.remove('open');
+            versionTrigger?.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            versionMenu?.classList.remove('open');
+            versionTrigger?.setAttribute('aria-expanded', 'false');
+        }
+    });
 
     // ===== State =====
     let pdfDoc = null;
@@ -689,16 +871,91 @@ include 'includes/header.php';
 
     // ===== File popup (cert / auth letter) =====
     const filePopupBackdrop = document.getElementById('filePopupBackdrop');
+    const filePopupFrame = document.getElementById('filePopupFrame');
+    const filePopupPdfPages = document.getElementById('filePopupPdfPages');
+    const filePopupImg = document.getElementById('filePopupImg');
+    const filePopupMessage = document.getElementById('filePopupMessage');
+    let filePopupObjectUrl = null;
 
-    function openFilePopup(fileUrl, title) {
+    // Exactly one of these three stays visible at a time.
+    function showFilePopupState(state) {
+        filePopupPdfPages.hidden = state !== 'pdf';
+        filePopupImg.hidden = state !== 'img';
+        filePopupMessage.hidden = state !== 'message';
+    }
+
+    async function renderPopupPdf(fileUrl) {
+        filePopupPdfPages.innerHTML = '';
+        const frameWidth = filePopupFrame.clientWidth;
+        const doc = await pdfjsLib.getDocument(fileUrl).promise;
+
+        for (let p = 1; p <= doc.numPages; p++) {
+            const page = await doc.getPage(p);
+            const scale = Math.min(1.5, (frameWidth - 48) / page.getViewport({
+                scale: 1
+            }).width);
+            const vp = page.getViewport({
+                scale
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            filePopupPdfPages.appendChild(canvas);
+
+            await page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: vp
+            }).promise;
+        }
+    }
+
+    async function openFilePopup(fileUrl, title) {
         document.getElementById('filePopupTitle').textContent = title;
-        document.getElementById('filePopupFrame').src = fileUrl;
         filePopupBackdrop.classList.add('open');
+        filePopupFrame.scrollTop = 0;
+
+        filePopupMessage.textContent = 'Loading…';
+        showFilePopupState('message');
+
+        try {
+            const res = await fetch(fileUrl);
+            if (!res.ok) throw new Error('Failed to load file');
+
+            const contentType = res.headers.get('content-type') || '';
+
+            if (contentType.includes('pdf')) {
+                await renderPopupPdf(fileUrl);
+                showFilePopupState('pdf');
+                filePopupFrame.scrollTop = 0;
+                return;
+            }
+
+            // Images: fetch as a blob so we control sizing via CSS
+            // (object-fit: contain) instead of leaving it to the browser's
+            // bare image viewer, which doesn't reliably scale to fit an iframe.
+            const blob = await res.blob();
+
+            if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = URL.createObjectURL(blob);
+
+            filePopupImg.src = filePopupObjectUrl;
+            filePopupImg.alt = title;
+            showFilePopupState('img');
+        } catch (err) {
+            filePopupMessage.textContent = 'Could not load this file.';
+            showFilePopupState('message');
+        }
     }
 
     function closeFilePopup() {
         filePopupBackdrop.classList.remove('open');
-        document.getElementById('filePopupFrame').src = 'about:blank';
+        filePopupPdfPages.innerHTML = '';
+        filePopupImg.removeAttribute('src');
+        if (filePopupObjectUrl) {
+            URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = null;
+        }
     }
 
     filePopupBackdrop.addEventListener('click', e => {
@@ -715,7 +972,7 @@ include 'includes/header.php';
         _resizeTimer = setTimeout(renderAnnotations, 100);
     });
 
-    <?php if ($isReviewer && $statusKey === 'under review'): ?>
+    <?php if ($canReview): ?>
         // ===== Return for Revision modal =====
         const RETURN_REVISION_API = <?= json_encode(ROOT . '/apply/return_revision') ?>;
         const returnBackdrop = document.getElementById('returnRevisionBackdrop');
@@ -775,6 +1032,164 @@ include 'includes/header.php';
                 }
             } catch {
                 errBox.textContent = 'Network error. Please try again.';
+                errBox.hidden = false;
+                submitBtn.disabled = false;
+            }
+        }
+    <?php endif; ?>
+
+    <?php if ($canResubmit): ?>
+        // ===== Re-submit protocol (protocol file + any docs the reviewer flagged) =====
+        const resubmitModal = document.getElementById('reuploadModalBackdrop');
+        const RESUBMIT_ENDPOINTS = {
+            protocol: {
+                path: '/apply/reupload',
+                field: 'protocol_file'
+            },
+            cert: {
+                path: '/apply/reuploadcert',
+                field: 'cert_file'
+            },
+            auth: {
+                path: '/apply/reuploadauth',
+                field: 'auth_file'
+            }
+        };
+        let resubmitFiles = {};
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function validateResubmitFile(key, file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (key === 'protocol') {
+                if (file.type !== 'application/pdf' || ext !== 'pdf') {
+                    return 'Only PDF files are accepted for the protocol form.';
+                }
+            } else if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+                return 'Only PDF, JPG, or PNG files are accepted.';
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                return 'File is too large. Maximum size is 10 MB.';
+            }
+            return null;
+        }
+
+        function resubmitDocRow(doc) {
+            const file = resubmitFiles[doc.key];
+            const action = file ?
+                `<div class="doc-row-done">
+                    <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg>
+                    <label class="doc-row-replace">
+                        Replace
+                        <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
+                    </label>
+                </div>` :
+                `<label class="btn-upload-inline">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#upload-icon" /></svg>
+                    Upload
+                    <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
+                </label>`;
+            const subLine = file ?
+                `<span class="doc-row-sub done">${escHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>` :
+                `<span class="doc-row-sub">${doc.subtitle}</span>`;
+
+            return `<div class="doc-row">
+                <div class="doc-row-info">
+                    <div class="doc-row-title">${doc.title}${doc.required ? ' <span class="req">*</span>' : ''}</div>
+                    ${subLine}
+                </div>
+                <div class="doc-row-action">${action}</div>
+            </div>`;
+        }
+
+        function renderResubmitDocs() {
+            document.getElementById('reuploadDocList').innerHTML = RESUBMIT_DOCS.map(resubmitDocRow).join('');
+        }
+
+        function handleResubmitUpload(event, key) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const err = validateResubmitFile(key, file);
+            if (err) {
+                alert(err);
+                event.target.value = '';
+                return;
+            }
+            resubmitFiles[key] = file;
+            renderResubmitDocs();
+        }
+
+        function openReuploadModal() {
+            resubmitFiles = {};
+            renderResubmitDocs();
+            document.getElementById('reuploadError').hidden = true;
+            resubmitModal.classList.add('open');
+        }
+
+        function closeReuploadModal() {
+            resubmitModal.classList.remove('open');
+        }
+        resubmitModal.addEventListener('click', e => {
+            if (e.target === resubmitModal) closeReuploadModal();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeReuploadModal();
+        });
+
+        async function uploadProtocolFile(endpoint, fieldName, file) {
+            const formData = new FormData();
+            formData.append('protocol_id', PROTOCOL_ID);
+            if (file) formData.append(fieldName, file);
+
+            const res = await fetch(ROOT_URL + endpoint, {
+                method: 'POST',
+                body: formData
+            });
+            return res.json();
+        }
+
+        async function submitReupload() {
+            const errBox = document.getElementById('reuploadError');
+            const submitBtn = document.getElementById('reuploadSubmitBtn');
+
+            for (const doc of RESUBMIT_DOCS) {
+                if (doc.required && !resubmitFiles[doc.key]) {
+                    errBox.textContent = `Please select your ${doc.title.toLowerCase()}.`;
+                    errBox.hidden = false;
+                    return;
+                }
+            }
+
+            submitBtn.disabled = true;
+            errBox.hidden = true;
+
+            try {
+                for (const doc of RESUBMIT_DOCS) {
+                    if (doc.key === 'protocol') continue;
+                    const file = resubmitFiles[doc.key];
+                    if (!file) continue;
+                    const {
+                        path,
+                        field
+                    } = RESUBMIT_ENDPOINTS[doc.key];
+                    const result = await uploadProtocolFile(path, field, file);
+                    if (!result.success) throw new Error(result.error ?? `${doc.title} upload failed. Please try again.`);
+                }
+
+                const {
+                    path,
+                    field
+                } = RESUBMIT_ENDPOINTS.protocol;
+                const protocolResult = await uploadProtocolFile(path, field, resubmitFiles.protocol);
+                if (!protocolResult.success) throw new Error(protocolResult.error ?? 'Upload failed. Please try again.');
+
+                window.location.reload();
+            } catch (err) {
+                errBox.textContent = err.message || 'Network error. Please try again.';
                 errBox.hidden = false;
                 submitBtn.disabled = false;
             }

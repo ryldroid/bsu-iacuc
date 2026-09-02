@@ -116,8 +116,31 @@ main h1 {
     }
 
     .contact-row {
+        /* grid-template-columns: 1fr; */
+        gap: 4px;
+    }
+
+    .contact-row dd {
+        font-size: .9em;
+        overflow-wrap: break-word;
+    }
+}
+
+@media (max-width: 450px) {
+    .contact-row {
         grid-template-columns: 1fr;
-        gap: 2px;
+    }
+
+    .notable-people {
+        flex-wrap: wrap;
+    }
+
+    .contact-details {
+        gap: 1em;
+    }
+
+    .contact-row a {
+        /* overflow-wrap: break-word; */
     }
 }
 

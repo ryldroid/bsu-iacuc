@@ -31,6 +31,60 @@ header img {
     height: 36px;
 }
 
+.verify-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--status-info-bg);
+    color: var(--status-info-text);
+    padding: 10px 20px;
+    font-size: 0.85em;
+}
+
+.verify-banner-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.verify-banner-text svg {
+    flex-shrink: 0;
+}
+
+.verify-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.verify-banner-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.verify-banner-close {
+    background: none;
+    border: none;
+    padding: 2px;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.75;
+}
+
+.verify-banner-close:hover {
+    opacity: 1;
+}
+
 .header-logo-cont {
     flex: 1;
 }
@@ -276,7 +330,7 @@ header nav a:hover::after {
     cursor: pointer;
 
     margin-left: .5em;
-    padding: 5px 2px 5px 5px;
+    padding: 5px;
     border-radius: 6px;
     transition: all 0.2s ease;
 }
@@ -389,4 +443,10 @@ header nav a:hover::after {
     .header-auth .greeting {
         display: none;
     }
+}
+
+.notif-bell {
+    position: relative;
+    border-radius: 50% !important;
+    padding: 40px 20px;
 }

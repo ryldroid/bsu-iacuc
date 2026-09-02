@@ -71,11 +71,21 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.querySelectorAll("header nav a, aside nav a").forEach((link) => {
-  if (link.href === window.location.href) {
+  const linkPath = link.pathname.replace(/\/+$/, "");
+  const currentPath = window.location.pathname.replace(/\/+$/, "");
+  if (linkPath === currentPath) {
     link.classList.add("active-link");
     link.setAttribute("aria-current", "page");
   }
 });
+
+// ===== VERIFY EMAIL BANNER =====
+
+document
+  .getElementById("verifyEmailBannerClose")
+  ?.addEventListener("click", () => {
+    document.getElementById("verifyEmailBanner")?.remove();
+  });
 
 function updateNavbar(e) {
   if (!sidebar || !mobileMenu) return;

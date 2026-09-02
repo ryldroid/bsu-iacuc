@@ -342,10 +342,11 @@ class Admin extends Controller
 
         session_regenerate_id(true);
         $_SESSION['user'] = [
-            'user_id'    => $user['id'],
-            'first_name' => $user['first_name'],
-            'username'   => $user['username'],
-            'role'       => $user['role'],
+            'user_id'        => $user['id'],
+            'first_name'     => $user['first_name'],
+            'username'       => $user['username'],
+            'role'           => $user['role'],
+            'email_verified' => (bool) $user['email_verified'],
         ];
 
         $this->model->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Staff logged in');
@@ -356,6 +357,10 @@ class Admin extends Controller
 
     public function logout(): void
     {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/home');
+        }
+
         $actor = $this->actor();
         $this->model->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Staff logged out');
 
@@ -461,7 +466,9 @@ class Admin extends Controller
         $ok = $this->model->insertUser($username, $first_name, $last_name, $email, password_hash($password, PASSWORD_DEFAULT), $role, 'pending');
 
         if ($ok) {
-            $this->model->consumeInviteToken($token, $this->model->connection->insert_id);
+            $newUserId = $this->model->connection->insert_id;
+            $this->model->consumeInviteToken($token, $newUserId);
+            $this->sendEmailVerification(['id' => $newUserId, 'first_name' => $first_name, 'email' => $email]);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'BSU-IACUC: Application Received');
             $this->view('admin/register', [
                 'csrf'    => $this->generateCsrfToken(),
@@ -527,7 +534,20 @@ class Admin extends Controller
             $this->model->approveUser($id);
 
             if ($applicant) {
-                Mailer::sendTemplate('application_approved', ['first_name' => $applicant['first_name']], $applicant['email'], $applicant['first_name'], 'BSU-IACUC: Application Approved');
+                Notifier::send(
+                    $id,
+                    'account_verified',
+                    'Account Verified',
+                    'Your account has been verified. You can now log in.',
+                    'users/login',
+                    [
+                        'template' => 'application_approved',
+                        'vars'     => ['first_name' => $applicant['first_name']],
+                        'to'       => $applicant['email'],
+                        'name'     => $applicant['first_name'],
+                        'subject'  => 'BSU-IACUC: Application Approved',
+                    ]
+                );
             }
         }
 
