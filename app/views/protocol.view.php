@@ -308,22 +308,35 @@ include 'includes/header.php';
         <div class="annot-item-header">
             <span class="annot-num" id="annotPopupNum"></span>
             <span class="annot-page" id="annotPopupPage"></span>
-            <button class="annot-delete" id="annotPopupDelete" title="Delete comment" style="display:none">✕</button>
             <button class="annot-popup-close" id="annotPopupClose" aria-label="Close">&times;</button>
         </div>
         <p class="annot-comment" id="annotPopupComment"></p>
         <p class="annot-date" id="annotPopupDate"></p>
+        <div class="annot-popup-actions" id="annotPopupActions" style="display:none">
+            <button class="annot-edit" id="annotPopupEdit" title="Edit comment">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#edit-icon">
+                </svg>
+                Edit
+            </button>
+            <button class="annot-delete" id="annotPopupDelete" title="Delete comment">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#trash-icon">
+                </svg>
+                Delete
+            </button>
+        </div>
     </div>
 
     <!-- ===== Comment dialog (reviewer only, latest version, while under review) ===== -->
     <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
             <div class="modal-card">
-                <h2>Add Comment</h2>
+                <h2 id="commentDialogTitle">Add Comment</h2>
                 <textarea id="commentText" rows="4" placeholder="Type your comment…"></textarea>
                 <div class="modal-actions">
                     <button class="tool-btn" onclick="cancelComment()">Cancel</button>
-                    <button class="tool-btn active" onclick="saveComment()">Save</button>
+                    <button class="tool-btn active" id="commentDialogSave" onclick="saveComment()">Save</button>
                 </div>
             </div>
         </div>
@@ -524,6 +537,7 @@ include 'includes/header.php';
     let annotations = [];
     let pendingBox = null;
     let dragState = null;
+    let editingAnnotId = null;
 
     // ===== Load PDF =====
     async function loadPdf() {
@@ -654,19 +668,61 @@ include 'includes/header.php';
 
     // ===== Comment dialog =====
     function openCommentDialog() {
+        editingAnnotId = null;
+        document.getElementById('commentDialogTitle').textContent = 'Add Comment';
+        document.getElementById('commentDialogSave').textContent = 'Save';
         document.getElementById('commentText').value = '';
+        document.getElementById('commentDialog').classList.add('open');
+        document.getElementById('commentText').focus();
+    }
+
+    function editAnnotation(annotId) {
+        const ann = annotations.find(a => a.id === annotId);
+        if (!ann) return;
+        pendingBox = null;
+        editingAnnotId = annotId;
+        document.getElementById('commentDialogTitle').textContent = 'Edit Comment';
+        document.getElementById('commentDialogSave').textContent = 'Save Changes';
+        document.getElementById('commentText').value = ann.comment;
         document.getElementById('commentDialog').classList.add('open');
         document.getElementById('commentText').focus();
     }
 
     function cancelComment() {
         pendingBox = null;
+        editingAnnotId = null;
         document.getElementById('commentDialog').classList.remove('open');
     }
     async function saveComment() {
         const text = document.getElementById('commentText').value.trim();
-        if (!text || !pendingBox) return;
+        if (!text || (!pendingBox && !editingAnnotId)) return;
         document.getElementById('commentDialog').classList.remove('open');
+
+        if (editingAnnotId) {
+            const annotId = editingAnnotId;
+            editingAnnotId = null;
+            const res = await fetch(ANNOT_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    action: 'edit',
+                    id: annotId,
+                    comment: text,
+                }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                const ann = annotations.find(a => a.id === annotId);
+                if (ann) ann.comment = text;
+                renderAnnotations();
+            } else {
+                alert('Could not save comment: ' + (data.error ?? 'unknown error'));
+            }
+            return;
+        }
 
         const res = await fetch(ANNOT_API, {
             method: 'POST',
@@ -773,8 +829,17 @@ include 'includes/header.php';
                 <span class="annot-page">Page ${ann.page_number}</span>
                 ${ann._queued ? '<span class="annot-queued-badge">Pending sync</span>' : ''}
                 ${CAN_REVIEW && !ann._queued ? `
+                <button class="annot-edit" title="Edit comment" onclick="event.stopPropagation(); editAnnotation(${ann.id})">
+                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#edit-icon">
+                    </svg>
+                </button>
                 <button class="annot-delete" title="Delete comment"
-                    onclick="confirmAction('Delete this comment? This cannot be undone.', { okText: 'Delete', danger: true }).then(ok => ok && deleteAnnotation(${ann.id}))">✕</button>` : ''}
+                    onclick="event.stopPropagation(); confirmAction('Delete this comment? This cannot be undone.', { okText: 'Delete', danger: true }).then(ok => ok && deleteAnnotation(${ann.id}))">
+                     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#trash-icon">
+                    </svg>
+                </button>` : ''}
             </div>
             <p class="annot-comment">${escHtml(ann.comment)}</p>
             <p class="annot-date">${formatAnnotDate(ann.created_at)}</p>
@@ -841,9 +906,17 @@ include 'includes/header.php';
         document.getElementById('annotPopupComment').textContent = ann.comment;
         document.getElementById('annotPopupDate').textContent = formatAnnotDate(ann.created_at);
 
+        const actions = document.getElementById('annotPopupActions');
+        const editBtn = document.getElementById('annotPopupEdit');
         const deleteBtn = document.getElementById('annotPopupDelete');
         if (CAN_REVIEW && !ann._queued) {
-            deleteBtn.style.display = '';
+            actions.style.display = '';
+
+            editBtn.onclick = () => {
+                closeAnnotPopup();
+                editAnnotation(annotId);
+            };
+
             deleteBtn.onclick = () => {
                 confirmAction('Delete this comment? This cannot be undone.', {
                         okText: 'Delete',
@@ -853,7 +926,8 @@ include 'includes/header.php';
                 closeAnnotPopup();
             };
         } else {
-            deleteBtn.style.display = 'none';
+            actions.style.display = 'none';
+            editBtn.onclick = null;
             deleteBtn.onclick = null;
         }
 

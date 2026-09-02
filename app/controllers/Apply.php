@@ -13,7 +13,7 @@
  *   GET  /apply/cert/{userId}          → stream a researcher's stored certificate
  *   GET  /apply/clearance/{id}         → redirect to latest clearance file
  *   POST /apply/clearance_upload       → attach clearance doc and mark Approved (admin)
- *   GET|POST /apply/annotate           → get/save/delete annotations (JSON)
+ *   GET|POST /apply/annotate           → get/save/edit/delete annotations (JSON)
  *   POST /apply/status                 → update protocol status (JSON)
  *   POST /apply/return_revision        → return for revision with reasons (JSON)
  *   GET  /apply/returnreason/{id}      → get latest return reason (JSON)
@@ -780,6 +780,7 @@ class Apply extends Controller
 
         match ($body['action'] ?? '') {
             'save'   => $this->handleSaveAnnotation($model, $body),
+            'edit'   => $this->handleEditAnnotation($model, $body),
             'delete' => $this->handleDeleteAnnotation($model, $body),
             default  => $this->jsonError(400, 'Unknown action.'),
         };
@@ -841,6 +842,19 @@ class Apply extends Controller
         }
 
         echo json_encode(['id' => $newId, 'ok' => true]);
+        exit;
+    }
+
+    private function handleEditAnnotation(ProtocolModel $model, array $body): void
+    {
+        $annotId = (int) ($body['id'] ?? 0);
+        $comment = trim($body['comment'] ?? '');
+
+        if ($annotId < 1 || $comment === '') {
+            $this->jsonError(400, 'Missing or invalid fields.');
+        }
+
+        echo json_encode(['ok' => $model->updateAnnotation($annotId, $comment)]);
         exit;
     }
 

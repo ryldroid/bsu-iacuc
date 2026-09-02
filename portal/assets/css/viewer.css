@@ -469,6 +469,22 @@
   color: #ef4444;
 }
 
+.annot-edit {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.annot-edit:hover {
+  background: rgba(96, 165, 250, .25);
+  color: #60a5fa;
+}
+
 .annot-comment {
   margin: 0;
   font-size: 0.82rem;
@@ -520,6 +536,28 @@
 
 .annot-popup-close:hover {
   color: #e2e8f0;
+}
+
+.annot-popup-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #334155;
+}
+
+.annot-popup-actions .annot-edit,
+.annot-popup-actions .annot-delete {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
 }
 
 /* ===== Modal overrides for dark viewer context ===== */
@@ -669,8 +707,6 @@
     flex: none;
   }
 
-  /* Comments are opened via tap-to-popup on the marker instead, so the
-     stacked list/toggle underneath the PDF isn't needed here. */
   .annot-sidebar,
   .sidebar-toggle {
     display: none;

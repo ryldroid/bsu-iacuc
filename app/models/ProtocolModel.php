@@ -327,6 +327,24 @@ class ProtocolModel extends Model
         return $this->connection->insert_id;
     }
 
+    public function updateAnnotation(int $annotationId, string $comment): bool
+    {
+        $comment = trim($comment);
+        if ($annotationId < 1 || $comment === '') {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `annotations` SET comment = ? WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('si', $comment, $annotationId);
+        return $stmt->execute();
+    }
+
     public function deleteAnnotation(int $annotationId): bool
     {
         $stmt = $this->connection->prepare(
