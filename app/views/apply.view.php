@@ -29,16 +29,6 @@ include "includes/scroll-top.php";
 
             <div class="stepper" id="stepper"></div>
 
-            <div class="storage-notice">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#info-icon" />
-                </svg>
-                <span>
-                    <span class="bold">Progress is saved in this browser only.</span>
-                    Clearing your browser data, switching browsers, or using a different device will reset your progress.
-                </span>
-            </div>
-
             <div class="card" id="page-content"></div>
         </div>
 
@@ -49,7 +39,7 @@ include "includes/scroll-top.php";
     // ===== CONSTANTS =====
     const ROOT = '<?= ROOT ?>';
     const STEPS = ['Requirements', 'Terms', 'Documents', 'Download form', 'Upload and submit', 'Done'];
-    const SAVE_KEY = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
+    const DRAFT_CSRF = NOTIF_CSRF_TOKEN;
 
     // ===== STATE =====
     let state = {
@@ -68,109 +58,53 @@ include "includes/scroll-top.php";
         submittedId: null,
     };
 
-    let files = {
-        cert: null,
-        auth: null,
-        protocol: null
-    };
+    // ===== DRAFT SYNC =====
+    let _saveTimer = null;
 
-    // ===== PERSISTENCE =====
     function saveState() {
-        try {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-        } catch (e) {}
+        clearTimeout(_saveTimer);
+        _saveTimer = setTimeout(pushDraftFields, 500);
     }
 
-    function loadState() {
+    async function pushDraftFields() {
         try {
-            const raw = localStorage.getItem(SAVE_KEY);
-            if (raw) Object.assign(state, JSON.parse(raw));
-        } catch (e) {}
-    }
-
-    function clearState() {
-        try {
-            localStorage.removeItem(SAVE_KEY);
-        } catch (e) {}
-    }
-
-    // ===== FILE PERSISTENCE =====
-    const IDB_NAME = 'bsu_iacuc_apply_files';
-    const IDB_STORE = 'files';
-    const IDB_KEY_PREFIX = SAVE_KEY + '_';
-    const FILE_KEYS = ['cert', 'auth', 'protocol'];
-
-    function idbOpen() {
-        return new Promise((resolve, reject) => {
-            if (!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
-            const req = indexedDB.open(IDB_NAME, 1);
-            req.onupgradeneeded = () => {
-                if (!req.result.objectStoreNames.contains(IDB_STORE)) {
-                    req.result.createObjectStore(IDB_STORE);
-                }
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-    }
-
-    async function idbSetFile(key, file) {
-        try {
-            const db = await idbOpen();
-            await new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, 'readwrite');
-                tx.objectStore(IDB_STORE).put(file, IDB_KEY_PREFIX + key);
-                tx.oncomplete = resolve;
-                tx.onerror = () => reject(tx.error);
+            await fetch(ROOT + '/apply/draftsave', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': DRAFT_CSRF
+                },
+                body: JSON.stringify({
+                    step: state.step,
+                    agreedTerms: state.agreedTerms,
+                    agreedPrivacy: state.agreedPrivacy,
+                    isPi: state.isPi,
+                    title: state.title
+                })
             });
         } catch (e) {}
     }
 
-    async function idbGetFile(key) {
+    async function loadDraft() {
         try {
-            const db = await idbOpen();
-            return await new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, 'readonly');
-                const req = tx.objectStore(IDB_STORE).get(IDB_KEY_PREFIX + key);
-                req.onsuccess = () => resolve(req.result || null);
-                req.onerror = () => reject(req.error);
-            });
-        } catch (e) {
-            return null;
-        }
-    }
+            const res = await fetch(ROOT + '/apply/draft');
+            const d = await res.json();
+            if (!d.exists) return;
 
-    async function idbDeleteFile(key) {
-        try {
-            const db = await idbOpen();
-            await new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, 'readwrite');
-                tx.objectStore(IDB_STORE).delete(IDB_KEY_PREFIX + key);
-                tx.oncomplete = resolve;
-                tx.onerror = () => reject(tx.error);
+            state.step = d.step;
+            state.agreedTerms = d.agreedTerms;
+            state.agreedPrivacy = d.agreedPrivacy;
+            state.isPi = d.isPi;
+            state.title = d.title;
+
+            ['protocol', 'cert', 'auth'].forEach(key => {
+                const f = d[key];
+                state[key + 'Name'] = f ? f.name : null;
+                state[key + 'Size'] = f ? f.size : null;
             });
         } catch (e) {}
     }
 
-    async function idbClearAllFiles() {
-        await Promise.all(FILE_KEYS.map(idbDeleteFile));
-    }
-
-    async function hydrateFiles() {
-        for (const key of FILE_KEYS) {
-            if (state[key + 'Name'] && !files[key]) {
-                const f = await idbGetFile(key);
-                if (f) {
-                    files[key] = f;
-                } else {
-                    state[key + 'Name'] = null;
-                    state[key + 'Size'] = null;
-                }
-            }
-        }
-        saveState();
-        render();
-    }
 
     // ===== NAVIGATION =====
     function goTo(n) {
@@ -222,12 +156,13 @@ include "includes/scroll-top.php";
     // ===== LEAVE DIALOG =====
     let _leaveHref = ROOT + '/submissions';
 
-    function askLeave(e, overrideHref) {
+    async function askLeave(e, overrideHref) {
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
         const destination = overrideHref || _leaveHref;
-        saveState();
+        clearTimeout(_saveTimer);
+        await pushDraftFields();
         confirmAction(
-            'Leave the form? Your progress has been saved. You can return and continue where you left off.', {
+            'Leave the form? Your progress has been saved. You can continue from any device.', {
                 okText: 'Leave',
                 cancelText: 'Stay'
             }
@@ -380,8 +315,8 @@ include "includes/scroll-top.php";
                     `<span class="status-pill status-pill-done">${checkSvgSm}On file</span>` : `<span class="status-pill status-pill-required">Required</span>`,
             },
             {
-                title: 'Authorization letter by the Principal Investigator',
-                subtitle: 'Only needed if you are not the PI of the study.',
+                title: 'Authorization letter by the Principal Investigator (PI)',
+                subtitle: 'Only needed for non-PIs. Disregard if you are the PI of this study.',
                 pill: `<span class="status-pill status-pill-muted">If applicable</span>`,
             },
         ];
@@ -694,7 +629,7 @@ include "includes/scroll-top.php";
             Your protocol has been received and will be assigned to a reviewer at BSU-CCARD. Expect feedback within <strong>5–7 business days</strong>. You will be notified via email.
         </p>
         <div class="success-btn-row">
-            <a href="${ROOT}/submissions?submitted=1" class="btn-link" onclick="clearState(); disarmGuard();">
+            <a href="${ROOT}/submissions?submitted=1" class="btn-link" onclick="disarmGuard();">
                 Go to My Protocols
             </a>
         </div>
@@ -748,12 +683,10 @@ include "includes/scroll-top.php";
     function setIsPi(val) {
         state.isPi = val;
         saveState();
-        if (val === true) {
-            files.auth = null;
+        if (val === true && state.authName) {
             state.authName = null;
             state.authSize = null;
-            saveState();
-            idbDeleteFile('auth');
+            removeDraftFile('auth');
         }
         render();
     }
@@ -782,7 +715,7 @@ include "includes/scroll-top.php";
         goTo(3);
     }
 
-    function handleUpload(event, key) {
+    async function handleUpload(event, key) {
         const file = event.target.files[0];
         if (!file) return;
 
@@ -819,28 +752,69 @@ include "includes/scroll-top.php";
             return;
         }
 
-        files[key] = file;
-        state[key + 'Name'] = file.name;
-        state[key + 'Size'] = file.size;
-
         const titleInp = document.getElementById('inp-title');
         if (titleInp) {
             state.title = titleInp.value;
+            saveState();
         }
 
-        saveState();
-        idbSetFile(key, file);
-        render();
+        event.target.disabled = true;
+
+        const fieldMap = {
+            protocol: 'protocol_file',
+            cert: 'cert',
+            auth: 'auth'
+        };
+        const fd = new FormData();
+        fd.append('key', key);
+        fd.append(fieldMap[key], file);
+
+        try {
+            const res = await fetch(ROOT + '/apply/draftupload', {
+                method: 'POST',
+                body: fd
+            });
+            const json = await res.json();
+
+            if (!res.ok || json.error) {
+                alert(json.error ?? 'Upload failed. Please try again.');
+                event.target.disabled = false;
+                event.target.value = '';
+                return;
+            }
+
+            state[key + 'Name'] = json.name;
+            state[key + 'Size'] = json.size;
+            render();
+        } catch (e) {
+            alert('Network error. Please check your connection and try again.');
+            event.target.disabled = false;
+            event.target.value = '';
+        }
     }
 
     function removeFile(key) {
-        files[key] = null;
         state[key + 'Name'] = null;
         state[key + 'Size'] = null;
-        saveState();
-        idbDeleteFile(key);
         render();
+        removeDraftFile(key);
     }
+
+    async function removeDraftFile(key) {
+        try {
+            await fetch(ROOT + '/apply/draftremovefile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': DRAFT_CSRF
+                },
+                body: JSON.stringify({
+                    key
+                })
+            });
+        } catch (e) {}
+    }
+
 
     // ===== SUBMIT =====
     async function submitProtocol() {
@@ -854,7 +828,6 @@ include "includes/scroll-top.php";
         const titleInp = document.getElementById('inp-title');
         if (titleInp) {
             state.title = titleInp.value.trim();
-            saveState();
         }
 
         if (!state.title) {
@@ -863,7 +836,7 @@ include "includes/scroll-top.php";
             return;
         }
 
-        if (!state.protocolName || !files.protocol) {
+        if (!state.protocolName) {
             errBox.textContent = 'Please upload your completed protocol form.';
             errBox.style.display = 'flex';
             return;
@@ -873,17 +846,12 @@ include "includes/scroll-top.php";
         btnLabel.style.display = 'none';
         spinner.style.display = 'inline';
 
-        const fd = new FormData();
-        fd.append('title', state.title);
-        fd.append('is_pi', state.isPi === true ? '1' : '0');
-        fd.append('protocol_file', files.protocol);
-        if (files.cert) fd.append('cert', files.cert);
-        if (files.auth) fd.append('auth', files.auth);
+        clearTimeout(_saveTimer);
+        await pushDraftFields();
 
         try {
             const res = await fetch(ROOT + '/apply/submit', {
-                method: 'POST',
-                body: fd
+                method: 'POST'
             });
             const json = await res.json();
 
@@ -898,7 +866,6 @@ include "includes/scroll-top.php";
 
             state.submittedId = json.protocolId ?? null;
             disarmGuard();
-            idbClearAllFiles();
 
             state.step = 5;
             render();
@@ -906,7 +873,6 @@ include "includes/scroll-top.php";
                 top: 0,
                 behavior: 'smooth'
             });
-            clearState();
 
         } catch (err) {
             errBox.textContent = 'Network error. Please check your connection and try again.';
@@ -918,7 +884,9 @@ include "includes/scroll-top.php";
     }
 
     // ===== INIT =====
-    loadState();
+    render();
+
+    loadDraft().then(render);
 
     fetch(ROOT + '/apply/hascert')
         .then(r => r.json())
@@ -930,9 +898,6 @@ include "includes/scroll-top.php";
             state.certAlready = false;
             render();
         });
-
-    render();
-    hydrateFiles();
 
     armGuard();
 </script>

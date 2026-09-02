@@ -309,17 +309,25 @@ main button:hover {
     display: none;
 }
 
-.email-verify-badge {
+.email-badge {
     display: inline-block;
     vertical-align: middle;
-    background: var(--status-warning-bg);
-    color: var(--warning-text);
     font-size: 11px;
     font-weight: 600;
     padding: 1px 8px;
     border-radius: 999px;
     margin-left: 4px;
     white-space: nowrap;
+}
+
+.email-verify-badge {
+    background: var(--status-warning-bg);
+    color: var(--warning-text);
+}
+
+.email-verified-badge {
+    background: var(--brand-color);
+    color: var(--text-on-brand);
 }
 
 .email-verify-resend {

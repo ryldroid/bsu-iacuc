@@ -160,7 +160,44 @@ class UserModel extends Model
 
   public function deleteUser(int $id): bool
   {
-    $stmt = $this->connection->prepare("DELETE FROM $this->table WHERE id = ?");
+    $stmt = $this->connection->prepare("SELECT cert_path FROM $this->table WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $existing = $stmt->get_result()->fetch_assoc();
+
+    $anonUsername   = 'deleted_user_' . $id . '_' . bin2hex(random_bytes(3));
+    $anonEmail      = $anonUsername . '@deleted.local';
+    $randomPassword = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
+
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table
+          SET username = ?, first_name = 'Deleted', last_name = 'User',
+              email = ?, phone_number = NULL, password = ?, status = 'deleted',
+              cert_path = NULL, cert_original_name = NULL, cert_uploaded_at = NULL
+        WHERE id = ?"
+    );
+    $stmt->bind_param('sssi', $anonUsername, $anonEmail, $randomPassword, $id);
+    $ok = $stmt->execute();
+
+    if ($ok && !empty($existing['cert_path'])) {
+      @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $existing['cert_path']);
+    }
+
+    return $ok;
+  }
+
+  public function deactivateUser(int $id): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE $this->table SET status = 'deactivated' WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    return $stmt->execute();
+  }
+
+  public function reactivateUser(int $id): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET status = 'active' WHERE id = ? AND status = 'deactivated'"
+    );
     $stmt->bind_param('i', $id);
     return $stmt->execute();
   }

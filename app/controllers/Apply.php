@@ -19,6 +19,12 @@
  *   GET  /apply/returnreason/{id}      → get latest return reason (JSON)
  *   POST /apply/reuploadcert           → replace researcher's stored certificate
  *   POST /apply/reuploadauth           → replace authorization letter
+ *   GET  /apply/draft                  → load the current user's in-progress draft (JSON)
+ *   POST /apply/draftsave              → save draft step/checkboxes/title (JSON)
+ *   POST /apply/draftupload            → upload a draft file (protocol/cert/auth)
+ *   GET  /apply/draftfile/{key}        → stream a draft file belonging to the current user
+ *   POST /apply/draftremovefile        → remove a single draft file
+ *   POST /apply/draftclear             → discard the current user's draft entirely
  */
 
 class Apply extends Controller
@@ -27,6 +33,7 @@ class Apply extends Controller
     {
         require_once dirname(__DIR__) . '/models/ProtocolModel.php';
         require_once dirname(__DIR__) . '/models/UserModel.php';
+        require_once dirname(__DIR__) . '/models/DraftModel.php';
     }
 
     // ===== HELPERS =====
@@ -58,7 +65,7 @@ class Apply extends Controller
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus],
                 'to'       => $owner['email'] ?? '',
                 'name'     => $owner['first_name'] ?? '',
-                'subject'  => 'BSU-IACUC: Protocol Status Updated',
+                'subject'  => 'Protocol Status Updated',
             ]
         );
     }
@@ -71,6 +78,11 @@ class Apply extends Controller
     private function protocolDir(int $protocolId): string
     {
         return dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $protocolId . '/';
+    }
+
+    private function draftDir(int $userId): string
+    {
+        return dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $userId . '/';
     }
 
     private function relPath(int $protocolId, string $absPath): string
@@ -189,64 +201,46 @@ class Apply extends Controller
         header('Content-Type: application/json');
         $this->requirePostMethod();
 
-        $title = trim($_POST['title'] ?? '');
+        $model      = new ProtocolModel();
+        $userModel  = new UserModel();
+        $draftModel = new DraftModel();
+        $actor      = $this->actor();
+
+        $draft = $draftModel->getByUser($actor['id']);
+        if (!$draft) {
+            $this->jsonError(422, 'No draft found. Please fill out the application first.');
+        }
+
+        $title = trim($draft['title'] ?? '');
         if ($title === '') {
             $this->jsonError(422, 'Protocol title is required.');
         }
 
-        $isPi      = ($_POST['is_pi'] ?? '') === '1';
-        $model     = new ProtocolModel();
-        $userModel = new UserModel();
-        $actor     = $this->actor();
+        $isPi = (bool) $draft['is_pi'];
 
-        $existingCert     = $userModel->getCert($actor['id']);
-        $certFileProvided = !empty($_FILES['cert']['tmp_name']) && $_FILES['cert']['error'] === UPLOAD_ERR_OK;
+        $draftDirAbs = dirname(__DIR__, 2) . '/storage/uploads/drafts/';
 
-        if (!$existingCert && !$certFileProvided) {
+        $docRelPath = $draft['protocol_file_path'] ?? null;
+        if (!$docRelPath || !is_file($draftDirAbs . $docRelPath)) {
+            $this->jsonError(422, 'Please upload your completed protocol form.');
+        }
+        $docOriginalName = $draft['protocol_file_name'];
+
+        $existingCert = $userModel->getCert($actor['id']);
+        $certRelPath  = $draft['cert_file_path'] ?? null;
+        if (!$existingCert && (!$certRelPath || !is_file($draftDirAbs . $certRelPath))) {
             $this->jsonError(422, 'Please upload your IACUC Training Certificate.');
         }
+        $certOriginalName = $draft['cert_file_name'];
 
-        $authFileProvided = !empty($_FILES['auth']['tmp_name']) && $_FILES['auth']['error'] === UPLOAD_ERR_OK;
-        if (!$isPi && !$authFileProvided) {
+        $authRelPath = $draft['auth_file_path'] ?? null;
+        if (!$isPi && (!$authRelPath || !is_file($draftDirAbs . $authRelPath))) {
             $this->jsonError(422, 'Please upload the Authorization Letter, or confirm that you are the Principal Investigator.');
         }
-
-        $tmpDir    = $this->protocolDir(0);
-        $docReason = null;
-        $docUpload = $this->saveUpload('protocol_file', $tmpDir, ['pdf'], required: true, reason: $docReason);
-        if ($docUpload === false) {
-            $this->jsonError(422, $docReason ?? 'Protocol file upload failed. Only PDF files are accepted (max 10 MB).');
-        }
-        [$docPathTmp, $docOriginalName] = $docUpload;
-
-        $certPathTmp = $certOriginalName = null;
-        if (!$existingCert) {
-            $certReason = null;
-            $certUpload = $this->saveUpload('cert', $tmpDir, ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $certReason);
-            if ($certUpload === false) {
-                @unlink($docPathTmp);
-                $this->jsonError(422, $certReason ?? 'Certificate upload failed. Accepted formats: PDF, JPG, PNG (max 10 MB).');
-            }
-            [$certPathTmp, $certOriginalName] = $certUpload;
-        }
-
-        $authPathTmp = $authOriginalName = null;
-        if (!$isPi) {
-            $authReason = null;
-            $authUpload = $this->saveUpload('auth', $tmpDir, ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $authReason);
-            if ($authUpload === false) {
-                @unlink($docPathTmp);
-                @unlink($certPathTmp);
-                $this->jsonError(422, $authReason ?? 'Authorization letter upload failed. Accepted formats: PDF, JPG, PNG (max 10 MB).');
-            }
-            [$authPathTmp, $authOriginalName] = $authUpload;
-        }
+        $authOriginalName = $draft['auth_file_name'];
 
         $protocolId = $model->insertProtocol($actor['id'], $title, $isPi);
         if (!$protocolId) {
-            @unlink($docPathTmp);
-            @unlink($certPathTmp);
-            @unlink($authPathTmp);
             $this->jsonError(500, 'Could not create protocol record. Please try again.');
         }
 
@@ -255,23 +249,25 @@ class Apply extends Controller
             mkdir($finalDir, 0750, true);
         }
 
-        $docFinal = $finalDir . basename($docPathTmp);
-        rename($docPathTmp, $docFinal);
+        $docFinal = $finalDir . basename($docRelPath);
+        rename($draftDirAbs . $docRelPath, $docFinal);
         $model->insertVersion($protocolId, $this->relPath($protocolId, $docFinal), $docOriginalName, $actor['id'], 'protocol');
 
-        if ($certPathTmp !== null) {
-            $certFinal = $finalDir . basename($certPathTmp);
-            rename($certPathTmp, $certFinal);
+        if ($certRelPath && is_file($draftDirAbs . $certRelPath)) {
+            $certFinal = $finalDir . basename($certRelPath);
+            rename($draftDirAbs . $certRelPath, $certFinal);
             $relCert = $this->relPath($protocolId, $certFinal);
             $model->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
             $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
         }
 
-        if ($authPathTmp !== null) {
-            $authFinal = $finalDir . basename($authPathTmp);
-            rename($authPathTmp, $authFinal);
+        if ($authRelPath && is_file($draftDirAbs . $authRelPath)) {
+            $authFinal = $finalDir . basename($authRelPath);
+            rename($draftDirAbs . $authRelPath, $authFinal);
             $model->insertVersion($protocolId, $this->relPath($protocolId, $authFinal), $authOriginalName, $actor['id'], 'auth');
         }
+
+        $draftModel->clear($actor['id']);
 
         $model->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
 
@@ -288,7 +284,7 @@ class Apply extends Controller
                 'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title],
                 'to'       => $submitter['email'] ?? '',
                 'name'     => $submitter['first_name'] ?? '',
-                'subject'  => 'BSU-IACUC: Protocol Submitted',
+                'subject'  => 'Protocol Submitted',
             ]
         );
 
@@ -301,7 +297,7 @@ class Apply extends Controller
             [
                 'template' => 'protocol_submitted_admin',
                 'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title],
-                'subject'  => 'BSU-IACUC: New Protocol Submission',
+                'subject'  => 'New Protocol Submission',
             ]
         );
 
@@ -320,6 +316,201 @@ class Apply extends Controller
         $actor     = $this->actor();
 
         echo json_encode(['has_cert' => $userModel->hasCert($actor['id'])]);
+        exit;
+    }
+
+    // ===== DRAFT  (GET /apply/draft) =====
+
+    public function draft(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        $row   = (new DraftModel())->getByUser($actor['id']);
+
+        if (!$row) {
+            echo json_encode(['exists' => false]);
+            exit;
+        }
+
+        $fileInfo = function (string $key) use ($actor, $row): ?array {
+            $path = $row[$key . '_file_path'] ?? null;
+            if (!$path) {
+                return null;
+            }
+            $abs = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path;
+            return [
+                'name' => $row[$key . '_file_name'],
+                'size' => is_file($abs) ? filesize($abs) : null,
+                'url'  => ROOT . '/apply/draftfile/' . $key,
+            ];
+        };
+
+        echo json_encode([
+            'exists'        => true,
+            'step'          => (int) $row['step'],
+            'agreedTerms'   => (bool) $row['agreed_terms'],
+            'agreedPrivacy' => (bool) $row['agreed_privacy'],
+            'isPi'          => $row['is_pi'] === null ? null : (bool) $row['is_pi'],
+            'title'         => $row['title'],
+            'protocol'      => $fileInfo('protocol'),
+            'cert'          => $fileInfo('cert'),
+            'auth'          => $fileInfo('auth'),
+        ]);
+        exit;
+    }
+
+    // ===== DRAFT SAVE  (POST /apply/draftsave) =====
+
+    public function draftsave(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $actor = $this->actor();
+
+        $isPi = array_key_exists('isPi', $body) ? $body['isPi'] : null;
+
+        $ok = (new DraftModel())->saveFields(
+            $actor['id'],
+            (int) ($body['step'] ?? 0),
+            (bool) ($body['agreedTerms'] ?? false),
+            (bool) ($body['agreedPrivacy'] ?? false),
+            $isPi === null ? null : (bool) $isPi,
+            (string) ($body['title'] ?? '')
+        );
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== DRAFT UPLOAD  (POST /apply/draftupload) =====
+
+    public function draftupload(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+        $this->requirePostMethod();
+
+        $actor = $this->actor();
+        $key   = $_POST['key'] ?? '';
+
+        $fieldMap = ['protocol' => 'protocol_file', 'cert' => 'cert', 'auth' => 'auth'];
+        if (!isset($fieldMap[$key])) {
+            $this->jsonError(400, 'Invalid file key.');
+        }
+
+        $allowedExts = $key === 'protocol' ? ['pdf'] : ['pdf', 'jpg', 'jpeg', 'png'];
+
+        $reason = null;
+        $upload = $this->saveUpload($fieldMap[$key], $this->draftDir($actor['id']), $allowedExts, required: true, reason: $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Upload failed.');
+        }
+        [$absPath, $originalName] = $upload;
+
+        $model = new DraftModel();
+        $old   = $model->getByUser($actor['id']);
+        $oldPath = $old[$key . '_file_path'] ?? null;
+
+        $relPath = $this->relPath($actor['id'], $absPath);
+        $model->saveFile($actor['id'], $key, $relPath, $originalName);
+
+        if ($oldPath) {
+            @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $oldPath);
+        }
+
+        echo json_encode([
+            'ok'   => true,
+            'name' => $originalName,
+            'size' => filesize($absPath),
+            'url'  => ROOT . '/apply/draftfile/' . $key,
+        ]);
+        exit;
+    }
+
+    // ===== DRAFT FILE  (GET /apply/draftfile/{key}) =====
+
+    public function draftfile(string $key = ''): void
+    {
+        $this->requireLogin();
+
+        $actor = $this->actor();
+        $row   = (new DraftModel())->getByUser($actor['id']);
+
+        $path = $row[$key . '_file_path'] ?? null;
+        if (!$row || !$path) {
+            $this->jsonError(404, 'File not found.');
+        }
+
+        $abs = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path;
+        if (!is_file($abs)) {
+            $this->jsonError(404, 'File not found.');
+        }
+
+        $this->streamFile($abs, $row[$key . '_file_name']);
+    }
+
+    // ===== DRAFT REMOVE FILE  (POST /apply/draftremovefile) =====
+
+    public function draftremovefile(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $key  = $body['key'] ?? '';
+        $actor = $this->actor();
+
+        if (!in_array($key, ['protocol', 'cert', 'auth'], true)) {
+            $this->jsonError(400, 'Invalid file key.');
+        }
+
+        $model = new DraftModel();
+        $row   = $model->getByUser($actor['id']);
+        $path  = $row[$key . '_file_path'] ?? null;
+
+        $ok = $model->removeFile($actor['id'], $key);
+
+        if ($path) {
+            @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== DRAFT CLEAR  (POST /apply/draftclear) =====
+
+    public function draftclear(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor = $this->actor();
+        $model = new DraftModel();
+        $row   = $model->getByUser($actor['id']);
+
+        if ($row) {
+            foreach (['protocol', 'cert', 'auth'] as $key) {
+                $path = $row[$key . '_file_path'] ?? null;
+                if ($path) {
+                    @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
+                }
+            }
+        }
+
+        $ok = $model->clear($actor['id']);
+
+        echo json_encode(['ok' => $ok]);
         exit;
     }
 
@@ -517,8 +708,8 @@ class Apply extends Controller
             'isAdmin'           => $actor['role'] === 'admin',
             'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
-            'latestCertVersion' => $model->getLatestVersion($protocolId, 'cert'),
-            'latestAuthVersion' => $model->getLatestVersion($protocolId, 'auth'),
+            'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
+            'latestAuthVersion' => $model->getLatestVersionAsOf($protocolId, 'auth', $version['uploaded_at']),
             'returnReason'      => $model->getLatestReturnReason($protocolId),
             'hasCertOnFile'     => $hasCertOnFile,
         ]);
@@ -1012,10 +1203,7 @@ class Apply extends Controller
             'protocol_id'    => $protocolId,
             'title'          => $protocol['research_title'],
             'status'         => $protocol['status'],
-            'is_pi'          => (bool) ($protocol['is_pi'] ?? true),
             'protocol_files' => $this->addFileUrls($model->getVersions($protocolId, 'protocol')),
-            'cert_files'     => $this->addFileUrls($model->getVersions($protocolId, 'cert')),
-            'auth_files'     => $this->addFileUrls($model->getVersions($protocolId, 'auth')),
             'return_reason'  => $model->getLatestReturnReason($protocolId),
         ]);
         exit;

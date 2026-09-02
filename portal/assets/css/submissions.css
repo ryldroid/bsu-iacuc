@@ -50,11 +50,20 @@
     main {
         max-width: 95%;
     }
+}
 
+@media (max-width: 650px) {
+    .submission-header .btn-apply .new-span {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
     .submission-header .btn-apply span {
         display: none;
     }
 }
+
 
 @media (min-width: 768px) and (max-width: 1200px) {
     main {
@@ -83,34 +92,4 @@
 
 .success-message {
     margin: 20px auto 0;
-}
-
-/* ===== History modal: return-reason banner (My Protocols only) ===== */
-.history-return-banner {
-    background: var(--status-warning-bg);
-    margin: .75rem 1.5rem;
-    border-radius: 0 6px 6px 0;
-    padding: .75rem 1rem;
-    font-size: .82rem;
-}
-
-.history-return-banner-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 700;
-    color: var(--status-warning-text);
-    flex-wrap: wrap;
-}
-
-.history-return-issues {
-    margin: .5rem 0 0 1.25rem;
-    color: var(--muted-text);
-    line-height: 1.8;
-}
-
-.history-return-comment {
-    margin-top: .5rem;
-    font-style: italic;
-    color: var(--muted-text);
 }

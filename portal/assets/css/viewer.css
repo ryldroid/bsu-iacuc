@@ -738,7 +738,17 @@
   margin-left: auto;
 }
 
-/* ===== File popup modal (cert / auth letter):  .file-popup-card layout shared via modals.css, colors overridden below for the dark viewer chrome ===== */
+/* ===== File popup modal (cert / auth letter) ===== */
+.viewer-body .file-popup-card {
+  max-width: 1200px;
+  width: 94vw;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 96vh;
+}
+
 .file-popup-header {
   display: flex;
   align-items: center;
@@ -769,6 +779,47 @@
   align-items: center;
   justify-content: center;
   overflow: auto;
+}
+
+.file-popup-frame [hidden] {
+  display: none;
+}
+
+.file-popup-pdf-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  height: 700px;
+}
+
+.file-popup-pdf-pages canvas {
+  max-width: 100%;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+}
+
+.file-popup-frame img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  margin: auto;
+}
+
+@media (max-width: 768px) {
+  .viewer-body .file-popup-card {
+    width: 98vw;
+    max-height: 95vh;
+  }
+
+  .file-popup-frame {
+    min-height: 50vh;
+  }
+
+  .file-popup-pdf-pages {
+    height: 400px;
+  }
 }
 
 /* ===== Return for Revision modal ===== */

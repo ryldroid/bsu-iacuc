@@ -211,7 +211,9 @@ $hideHeader     = $hideHeader     ?? false;
         <span>Verify your email to receive notification updates via email and keep up to date on your protocols' status.</span>
       </div>
       <div class="verify-banner-actions">
-        <form method="POST" action="<?= ROOT ?>/users/resend_verification">
+        <form method="POST" action="<?= ROOT ?>/users/resend_verification"
+          data-confirm-message="Send a verification link to <?= htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
+          data-confirm-ok-text="Send">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
           <button type="submit" class="verify-banner-link">Verify my email</button>
         </form>

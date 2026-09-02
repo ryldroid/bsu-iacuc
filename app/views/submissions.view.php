@@ -11,7 +11,6 @@ include 'includes/scroll-top.php';
 
 $count = count($protocols);
 
-// ===== Per-status counts for the filter pill badges (mirrors admin dashboard) =====
 $countsByStatusSlug = [];
 foreach ($protocols as $p) {
     $slug = strtolower(str_replace(' ', '-', $p['status']));
@@ -19,7 +18,6 @@ foreach ($protocols as $p) {
 }
 $totalProtocolCount = count($protocols);
 
-// ===== Status metadata: color + icon + plain-language description =====
 $statusMeta = [
     'under-review' => [
         'label' => 'Under Review',
@@ -31,19 +29,19 @@ $statusMeta = [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => 'The reviewer found an issue and sent it back. Click "Show History" to see the feedback, then "Re-submit Protocol" to upload your revised file.',
+        'desc'  => 'The reviewer found an issue and sent it back. Review the comments and re-submit your protocol to upload your revised file.',
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. No action needed. Pending endorsement to DA-CARFU, then the BAI Central Office.',
+        'desc'  => 'The reviewer has finished their assessment. No action needed. Pending endorsement to DA-CARFU and the BAI Central Office.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => 'Your protocol has been endorsed. No action needed. The administrator is preparing your clearance document.',
+        'desc'  => 'Your protocol has been endorsed. No action needed. Please wait as BAI processes your animal research permit.',
     ],
     'approved' => [
         'label' => 'Approved',
@@ -53,9 +51,6 @@ $statusMeta = [
     ],
 ];
 
-/**
- * Status icon: references a symbol already defined in sprites.php.
- */
 function statusIconSvg(string $iconId, int $size = 14): string
 {
     return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -226,7 +221,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
                                     <div class="return-reason-inline">
                                         <p class="return-reason-by">
-                                            Returned by <?= htmlspecialchars($protocol['rr_reviewer_name'], ENT_QUOTES, 'UTF-8') ?>
+                                            Note from the reviewer:
                                         </p>
                                         <?php if (!empty($returnIssues)): ?>
                                             <ul class="return-reason-issues">
@@ -297,7 +292,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
             <button class="history-modal-close button" onclick="closeHistoryModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon">
+                    <use href="#close-icon" />
                 </svg>
             </button>
         </div>
@@ -417,54 +412,58 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
     // ===== Continue vs New Application =====
     (function() {
-        const saveKey = 'bsu_iacuc_apply_v2_u<?= (int) ($_SESSION['user']['user_id'] ?? 0) ?>';
         const applyUrl = '<?= ROOT ?>/apply';
         const container = document.getElementById('apply-actions-sub');
         if (!container) return;
 
-        let savedData = null;
-        try {
-            const raw = localStorage.getItem(saveKey);
-            if (raw) savedData = JSON.parse(raw);
-        } catch (e) {}
+        fetch('<?= ROOT ?>/apply/draft')
+            .then(r => r.json())
+            .then(d => {
+                const hasInProgressDraft = d.exists && (
+                    d.step > 0 ||
+                    d.agreedTerms ||
+                    d.agreedPrivacy ||
+                    d.title ||
+                    d.cert ||
+                    d.auth ||
+                    d.protocol
+                );
+                if (!hasInProgressDraft) return;
 
-        const hasInProgressDraft = savedData && !savedData.submittedId && (
-            savedData.step > 0 ||
-            savedData.agreedTerms ||
-            savedData.agreedPrivacy ||
-            savedData.title ||
-            savedData.certName ||
-            savedData.authName ||
-            savedData.protocolName
-        );
-        if (!hasInProgressDraft) return;
+                container.innerHTML = `
+                    <div class="apply-actions">
+                        <a href="${applyUrl}" class="btn-apply button" title="Continue Application">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#arrow-right-icon" />
+                            </svg>
+                            <span>Resume Application</span>
+                        </a>
+                        <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
+                            data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
+                            data-confirm-ok-text="Yes, Start Over"
+                            data-confirm-cancel-text="Go Back"
+                            data-confirm-danger="true"
+                            title="New Application">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#add-icon" />
+                            </svg>
+                            <span class="new-span">New Application</span>
+                        </button>
+                    </div>`;
 
-        container.innerHTML = `
-            <div class="apply-actions">
-                <a href="${applyUrl}" class="btn-apply button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#arrow-right-icon" />
-                    </svg>
-                    <span>Continue Application</span>
-                </a>
-                <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
-                    data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
-                    data-confirm-ok-text="Yes, Start Over"
-                    data-confirm-cancel-text="Go Back"
-                    data-confirm-danger="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#add-icon" />
-                    </svg>
-                    <span>New Application</span>
-                </button>
-            </div>`;
-
-        document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
-            try {
-                localStorage.removeItem(saveKey);
-            } catch (e) {}
-            window.location.href = applyUrl;
-        });
+                document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
+                    fetch('<?= ROOT ?>/apply/draftclear', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': NOTIF_CSRF_TOKEN
+                        }
+                    }).finally(() => {
+                        window.location.href = applyUrl;
+                    });
+                });
+            })
+            .catch(() => {});
     })();
 
     // ===== History modal =====
@@ -522,6 +521,16 @@ function statusIconSvg(string $iconId, int $size = 14): string
         if (e.target === filePopupBackdrop) closeFilePopup();
     });
 
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        } [ch]));
+    }
+
     function formatDate(isoString) {
         return new Date(isoString).toLocaleString('en-PH', {
             year: 'numeric',
@@ -532,92 +541,66 @@ function statusIconSvg(string $iconId, int $size = 14): string
         });
     }
 
-    function buildVersionRows(versions, sectionLabel, protocolId, isProtocolSection) {
+    function buildReturnNote(reason) {
+        const issueLabels = [];
+        if (reason.wrong_cert) issueLabels.push('Wrong / invalid training certificate');
+        if (reason.wrong_auth) issueLabels.push('Wrong / invalid authorization letter');
+        if (reason.other_reason) issueLabels.push('Other');
+
+        return `<div class="history-return-note">
+            <div class="history-return-note-header">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#info-icon" />
+                </svg>
+                Returned for revision by ${escapeHtml(reason.first_name)} ${escapeHtml(reason.last_name)}
+            </div>
+            <p class="history-return-date">${formatDate(reason.created_at)}</p>
+            ${issueLabels.length > 0 ? `<ul class="history-return-issues">${issueLabels.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
+            ${reason.comment ? `<p class="history-return-comment">${escapeHtml(reason.comment)}</p>` : ''}
+        </div>`;
+    }
+
+    function buildVersionRows(versions, protocolId, returnReason) {
         if (!versions || versions.length === 0) return '';
 
         const rows = versions.map((v, index) => {
             const isLatest = index === 0;
             const dateString = formatDate(v.uploaded_at);
 
-            // Protocol submissions open the full reviewer viewer (PDF + comments
-            // for that exact version), scoped read-only when it's not the latest
-            // round. Certs/auth letters have no annotations, so a quick file
-            // preview is still the right call for those.
-            const openBtn = isProtocolSection ?
-                `<a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </a>` :
-                `<button class="button history-open-btn"
-                        data-file-url="${v.file_url}"
-                        data-file-title="${v.original_name.replace(/"/g, '&quot;')}"
-                        onclick="openFilePopup(this.dataset.fileUrl, this.dataset.fileTitle)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </button>`;
-
             return `
-                <div class="history-row${isLatest ? ' history-row--latest' : ''}">
-                    <div class="history-row-meta">
-                        <span class="history-ver">v${v.version_number}</span>
-                        ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
+                <div class="history-entry">
+                    <div class="history-row${isLatest ? ' history-row--latest' : ''}">
+                        <div class="history-row-meta">
+                            <span class="history-ver">v${v.version_number}</span>
+                            ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
+                        </div>
+                        <div class="history-row-detail">
+                            <span class="history-filename">${escapeHtml(v.original_name)}</span>
+                            <span class="helper">${dateString}</span>
+                        </div>
+                        <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
+                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon" />
+                            </svg>
+                            Open
+                        </a>
                     </div>
-                    <div class="history-row-detail">
-                        <span class="history-filename">${v.original_name}</span>
-                        <span class="helper">${dateString}</span>
-                    </div>
-                    ${openBtn}
+                    ${isLatest && returnReason ? buildReturnNote(returnReason) : ''}
                 </div>`;
         }).join('');
 
-        return `<div class="history-section-label">${sectionLabel}</div>${rows}`;
+        return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
     }
 
     function renderHistory(data) {
         const body = document.getElementById('historyModalBody');
-        const hasProtocolFiles = data.protocol_files && data.protocol_files.length > 0;
-        const hasCertFiles = data.cert_files && data.cert_files.length > 0;
-        const hasAuthFiles = data.auth_files && data.auth_files.length > 0;
 
-        if (!hasProtocolFiles && !hasCertFiles && !hasAuthFiles) {
+        if (!data.protocol_files || data.protocol_files.length === 0) {
             body.innerHTML = '<p class="helper" style="padding:1.5rem">No submission history found.</p>';
             return;
         }
 
-        let html = '';
-
-        if (data.return_reason) {
-            const reason = data.return_reason;
-            const issueLabels = [];
-            if (reason.wrong_cert) issueLabels.push('Wrong / invalid training certificate');
-            if (reason.wrong_auth) issueLabels.push('Wrong / invalid authorization letter');
-            if (reason.other_reason) issueLabels.push('Other');
-
-            html += `<div class="history-return-banner">
-                <div class="history-return-banner-header">
-                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    Returned for revision by ${reason.first_name} ${reason.last_name}
-                    <span class="helper">&middot; ${formatDate(reason.created_at)}</span>
-                </div>
-                ${issueLabels.length > 0 ? `<ul class="history-return-issues">${issueLabels.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
-                ${reason.comment ? `<p class="history-return-comment">"${reason.comment}"</p>` : ''}
-            </div>`;
-        }
-
-        html += buildVersionRows(data.protocol_files, 'Protocol Submissions', data.protocol_id, true);
-        html += buildVersionRows(data.cert_files, 'Training Certificates', data.protocol_id, false);
-
-        if (!data.is_pi) {
-            html += buildVersionRows(data.auth_files, 'Authorization Letters', data.protocol_id, false);
-        }
-
-        body.innerHTML = html;
+        body.innerHTML = buildVersionRows(data.protocol_files, data.protocol_id, data.return_reason);
     }
 
     // ===== Status legend info panel (hover on desktop, tap on touch) =====

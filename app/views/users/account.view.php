@@ -21,7 +21,9 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
         </a>
 
         <?php if (empty($email_verified)): ?>
-            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/users/resend_verification">
+            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/users/resend_verification"
+                data-confirm-message="Send a verification link to <?= htmlspecialchars($old['email'] ?? '') ?>?"
+                data-confirm-ok-text="Send">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
             </form>
         <?php endif; ?>
@@ -99,7 +101,9 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                 <label for="email">
                     Email <span class="required-asterisk">*</span>
                     <?php if (empty($email_verified)): ?>
-                        <span class="email-verify-badge">Unverified</span>
+                        <span class="email-verify-badge email-badge">Unverified</span>
+                    <?php else: ?>
+                        <span class="email-verified-badge email-badge">Verified</span>
                     <?php endif; ?>
                 </label>
             </div>
@@ -143,7 +147,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
         <fieldset class="form-actions">
             <legend>Account Actions</legend>
 
-            <form method="POST"
+            <form method="POST" action="<?= ROOT ?>/users/deactivate"
                 data-confirm-message="Are you sure? Reactivate your account at any time by logging in."
                 data-confirm-ok-text="Deactivate"
                 data-confirm-danger="true">
