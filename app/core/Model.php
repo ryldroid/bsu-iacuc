@@ -185,6 +185,19 @@ class Model
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `title`      varchar(255) NOT NULL,
+                    `body`       text         NOT NULL,
+                    `image_path` varchar(255) DEFAULT NULL,
+                    `posted_by`  int(11)      DEFAULT NULL,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`posted_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('announcements', 'image_path', "varchar(255) DEFAULT NULL AFTER `body`");
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
