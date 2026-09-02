@@ -84,6 +84,7 @@ class Controller
     }
     if ($fresh) {
       $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
+      $_SESSION['user']['email']          = $fresh['email'];
     }
   }
 
@@ -163,7 +164,7 @@ class Controller
     $this->verifyCsrfToken();
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
 
-    $success = 'A reset link has been sent to your email.';
+    $success = 'Please check your email inbox and click on the link to reset your password.';
 
     $user = $userModel->getUserByEmail($email);
     if ($user) {
@@ -175,7 +176,7 @@ class Controller
       Mailer::sendTemplate('password_reset', [
         'first_name' => $user['first_name'],
         'reset_url'  => $reset_url,
-      ], $user['email'], $user['first_name'], 'BSU-IACUC: Password Reset');
+      ], $user['email'], $user['first_name'], 'Password Reset');
     }
 
     $this->view('users/forgot_password', [
@@ -250,7 +251,18 @@ class Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $userModel->updatePassword((int) $reset['user_id'], $hash);
+    $ok   = $userModel->updatePassword((int) $reset['user_id'], $hash);
+
+    if (!$ok) {
+      $this->view('users/reset_password', [
+        'csrf'   => $this->generateCsrfToken(),
+        'token'  => $token,
+        'route'  => $resetRoute,
+        'errors' => ['Something went wrong resetting your password. Please try again.'],
+      ]);
+      return;
+    }
+
     $userModel->markResetUsed($token);
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';
@@ -270,6 +282,6 @@ class Controller
     Mailer::sendTemplate('verify_email', [
       'first_name' => $user['first_name'],
       'verify_url' => $verify_url,
-    ], $user['email'], $user['first_name'], 'BSU-IACUC: Verify Your Email');
+    ], $user['email'], $user['first_name'], 'Verify Your Email');
   }
 }

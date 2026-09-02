@@ -561,7 +561,7 @@ class Admin extends Controller
             $newUserId = $this->model->connection->insert_id;
             $this->model->consumeInviteToken($token, $newUserId);
             $this->sendEmailVerification(['id' => $newUserId, 'first_name' => $first_name, 'email' => $email]);
-            Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'BSU-IACUC: Application Received');
+            Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
             $this->view('admin/register', [
                 'csrf'    => $this->generateCsrfToken(),
                 'token'   => htmlspecialchars($token),
@@ -637,7 +637,7 @@ class Admin extends Controller
                         'vars'     => ['first_name' => $applicant['first_name']],
                         'to'       => $applicant['email'],
                         'name'     => $applicant['first_name'],
-                        'subject'  => 'BSU-IACUC: Application Approved',
+                        'subject'  => 'Application Approved',
                     ]
                 );
             }
@@ -666,7 +666,7 @@ class Admin extends Controller
             $this->model->rejectUser($id);
 
             if ($applicant) {
-                Mailer::sendTemplate('application_rejected', ['first_name' => $applicant['first_name']], $applicant['email'], $applicant['first_name'], 'BSU-IACUC: Application Update');
+                Mailer::sendTemplate('application_rejected', ['first_name' => $applicant['first_name']], $applicant['email'], $applicant['first_name'], 'Application Update');
             }
         }
 

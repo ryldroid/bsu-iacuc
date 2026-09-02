@@ -166,11 +166,18 @@ class Users extends Controller
       $this->redirect('users/login');
     }
 
+    $reactivated = false;
+    if (($user['status'] ?? 'active') === 'deactivated') {
+      $this->model->reactivateUser((int) $user['id']);
+      $reactivated = true;
+    }
+
     session_regenerate_id(true);
     $_SESSION['user'] = [
       'user_id'        => $user['id'],
       'first_name'     => $user['first_name'],
       'username'       => $user['username'],
+      'email'          => $user['email'],
       'role'           => $user['role'],
       'email_verified' => (bool) $user['email_verified'],
     ];
@@ -184,6 +191,11 @@ class Users extends Controller
       targetId: (int)$user['id'],
       description: 'Researcher logged in'
     );
+
+    if ($reactivated) {
+      $this->model->logAudit('account_reactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Account reactivated by logging in');
+      $_SESSION['flash_success'] = 'Welcome back! Your account has been reactivated.';
+    }
 
     $this->redirect('submissions');
   }
@@ -371,6 +383,7 @@ class Users extends Controller
     if ($ok) {
       $_SESSION['user']['first_name'] = $first_name;
       $_SESSION['user']['username']   = $username;
+      $_SESSION['user']['email']      = $email;
       $_SESSION['user']['role'] = $role;
 
       if ($email !== $current_user['email']) {
@@ -401,13 +414,47 @@ class Users extends Controller
 
     $this->verifyCsrfToken();
 
-    $id = (int) $_SESSION['user']['user_id'];
-    $ok = $this->model->deleteUser($id);
+    $id       = (int) $_SESSION['user']['user_id'];
+    $username = $_SESSION['user']['username'] ?? '';
+    $role     = $_SESSION['user']['role'] ?? '';
+    $ok       = $this->model->deleteUser($id);
 
     if ($ok) {
+      $this->model->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
+
       session_destroy();
       session_start();
       $_SESSION['flash_success'] = 'Your account has been deleted.';
+      $this->redirect('users/login');
+    }
+
+    $_SESSION['flash_error'] = 'Account deletion failed. Please try again or contact support.';
+    $this->redirect('users/account');
+  }
+
+  public function deactivate()
+  {
+    $this->requireLogin();
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->redirect('users/account');
+    }
+
+    $this->verifyCsrfToken();
+
+    $id       = (int) $_SESSION['user']['user_id'];
+    $username = $_SESSION['user']['username'] ?? '';
+    $role     = $_SESSION['user']['role'] ?? '';
+    $ok       = $this->model->deactivateUser($id);
+
+    if ($ok) {
+      $this->model->logAudit('account_deactivated', $id, $username, $role, 'user', $id, 'User deactivated their account');
+
+      session_destroy();
+      session_start();
+      $_SESSION['flash_success'] = 'Your account has been deactivated. Submissions have been hidden from the staff. Log in again at any time to reactivate.';
+    } else {
+      $_SESSION['flash_error'] = 'Deactivation failed. Please try again.';
     }
 
     $this->redirect('users/login');

@@ -61,7 +61,7 @@ class Notifier
         $email['vars'] ?? [],
         $email['to'],
         $email['name'] ?? '',
-        $email['subject'] ?? 'BSU-IACUC: Notification'
+        $email['subject'] ?? 'Notification'
       );
     } catch (Throwable $e) {
       error_log('Notifier email error: ' . $e->getMessage());

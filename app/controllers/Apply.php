@@ -65,7 +65,7 @@ class Apply extends Controller
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus],
                 'to'       => $owner['email'] ?? '',
                 'name'     => $owner['first_name'] ?? '',
-                'subject'  => 'BSU-IACUC: Protocol Status Updated',
+                'subject'  => 'Protocol Status Updated',
             ]
         );
     }
@@ -284,7 +284,7 @@ class Apply extends Controller
                 'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title],
                 'to'       => $submitter['email'] ?? '',
                 'name'     => $submitter['first_name'] ?? '',
-                'subject'  => 'BSU-IACUC: Protocol Submitted',
+                'subject'  => 'Protocol Submitted',
             ]
         );
 
@@ -297,7 +297,7 @@ class Apply extends Controller
             [
                 'template' => 'protocol_submitted_admin',
                 'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title],
-                'subject'  => 'BSU-IACUC: New Protocol Submission',
+                'subject'  => 'New Protocol Submission',
             ]
         );
 
@@ -708,8 +708,8 @@ class Apply extends Controller
             'isAdmin'           => $actor['role'] === 'admin',
             'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
-            'latestCertVersion' => $model->getLatestVersion($protocolId, 'cert'),
-            'latestAuthVersion' => $model->getLatestVersion($protocolId, 'auth'),
+            'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
+            'latestAuthVersion' => $model->getLatestVersionAsOf($protocolId, 'auth', $version['uploaded_at']),
             'returnReason'      => $model->getLatestReturnReason($protocolId),
             'hasCertOnFile'     => $hasCertOnFile,
         ]);
@@ -1203,10 +1203,7 @@ class Apply extends Controller
             'protocol_id'    => $protocolId,
             'title'          => $protocol['research_title'],
             'status'         => $protocol['status'],
-            'is_pi'          => (bool) ($protocol['is_pi'] ?? true),
             'protocol_files' => $this->addFileUrls($model->getVersions($protocolId, 'protocol')),
-            'cert_files'     => $this->addFileUrls($model->getVersions($protocolId, 'cert')),
-            'auth_files'     => $this->addFileUrls($model->getVersions($protocolId, 'auth')),
             'return_reason'  => $model->getLatestReturnReason($protocolId),
         ]);
         exit;

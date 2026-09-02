@@ -56,6 +56,7 @@ class ProtocolModel extends Model
                      LIMIT 1) AS latest_auth_version_id
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
+                WHERE u.status != 'deactivated'
                 ORDER BY p.submitted_at DESC";
 
         $result = $this->connection->query($sql);
@@ -244,6 +245,25 @@ class ProtocolModel extends Model
         }
 
         $stmt->bind_param('i', $versionId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    public function getLatestVersionAsOf(int $protocolId, string $fileType, string $asOf): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT pv.*, d.user_id AS owner_id
+             FROM `protocol_versions` pv
+             JOIN `protocols` d ON d.id = pv.protocol_id
+             WHERE pv.protocol_id = ? AND pv.file_type = ? AND pv.uploaded_at <= ?
+             ORDER BY pv.version_number DESC
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('iss', $protocolId, $fileType, $asOf);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc() ?: null;
     }

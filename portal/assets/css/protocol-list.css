@@ -71,6 +71,10 @@
   color: var(--text-on-brand);
 }
 
+.submission-header {
+  /* gap: 1em; */
+}
+
 /* ===== Protocol cards ===== */
 .no-results {
   padding: 30px;
@@ -126,7 +130,7 @@
   min-width: 0;
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  gap: 2em;
 }
 
 .protocol-meta {
@@ -153,8 +157,8 @@
 
 .actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   flex-shrink: 0;
@@ -412,7 +416,6 @@
   color: var(--primary-text);
 }
 
-/* ===== History modal ===== */
 .history-modal-card {
   max-width: 560px;
   padding: 0;
@@ -429,10 +432,9 @@
 }
 
 .history-modal-label {
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .02em;
   color: var(--muted-text);
   margin-bottom: .2rem;
 }
@@ -482,18 +484,29 @@
   text-align: center;
 }
 
+.history-entry {
+  margin: .35rem .75rem;
+  border-radius: 10px;
+  border-bottom: 1px solid var(--divider-color-subtle);
+}
+
+.history-entry:last-child {
+  border-bottom: none;
+}
+
+.history-entry:has(.history-row--latest) {
+  background-color: var(--divider-color);
+  border-radius: 10px;
+}
+
 .history-row {
   display: grid;
   grid-template-columns: 72px 1fr auto;
   align-items: center;
-  gap: 12px;
-  padding: .75rem 1.5rem;
-  border-bottom: 1px solid var(--divider-color-subtle);
+  gap: 14px;
+  padding: .7rem 1.5rem;
+  border-radius: 10px;
   transition: background-color .12s ease;
-}
-
-.history-row:last-child {
-  border-bottom: none;
 }
 
 .history-row:hover {
@@ -501,7 +514,7 @@
 }
 
 .history-row--latest {
-  background-color: var(--hover-surface-soft);
+  background-color: transparent;
 }
 
 .history-row-meta {
@@ -518,19 +531,16 @@
   background: var(--divider-color-subtle);
   border-radius: 4px;
   padding: 2px 7px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  letter-spacing: .02em;
 }
 
 .history-latest-badge {
-  font-size: .65rem;
+  font-size: .68rem;
   font-weight: 700;
   color: var(--brand-text);
   background: var(--brand-color-light);
   border-radius: 4px;
   padding: 2px 6px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
 }
 
 .history-row-detail {
@@ -561,18 +571,49 @@
 
 .history-section-label {
   padding: .5rem 1.5rem .25rem;
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .02em;
   color: var(--muted-text);
-  border-top: 1px solid var(--divider-color-subtle);
-  margin-top: .25rem;
 }
 
-.history-section-label:first-of-type {
-  border-top: none;
-  margin-top: 0;
+.history-return-note {
+  margin: 0 1.5rem .85rem;
+  padding: .65rem .9rem .7rem 1rem;
+  border-radius: 6px;
+  background: transparent;
+  font-size: .82rem;
+}
+
+.history-return-note-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--status-warning-text);
+  line-height: 1.4;
+}
+
+.history-return-note-header svg {
+  flex-shrink: 0;
+}
+
+.history-return-date {
+  margin: .15rem 0 0 21px;
+  color: var(--muted-text);
+  font-size: .76rem;
+}
+
+.history-return-issues {
+  margin: .6rem 0 0 21px;
+  color: var(--muted-text);
+  line-height: 1.8;
+}
+
+.history-return-comment {
+  margin: .5rem 0 0 21px;
+  font-style: italic;
+  color: var(--muted-text);
 }
 
 /* ===== Responsive ===== */
@@ -687,6 +728,7 @@
   .actions {
     align-items: stretch;
     width: 100%;
+    /* flex-direction: column; */
   }
 
   .actions .button {
@@ -714,7 +756,8 @@
   }
 
   .actions {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: right;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 6px;
@@ -724,6 +767,10 @@
   .actions button {
     width: auto;
     justify-content: center;
+  }
+
+  .submission-header h1 {
+    margin-bottom: 0;
   }
 }
 
@@ -745,12 +792,6 @@
     margin-left: auto;
   }
 
-  .legend-items {
-    order: 3;
-    flex: 1 0 100%;
-    gap: 6px 12px;
-  }
-
   .legend-item {
     gap: 5px;
     font-size: 0.72em;
@@ -767,5 +808,27 @@
 
   .legend-info-panel {
     width: min(85vw, 320px);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 800px) {
+
+  .submission-header a,
+  .submission-header button {
+    font-size: .8em;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 810px) {
+  .status-filters {
+    font-size: .9em;
+  }
+}
+
+@media (max-width: 837px) {
+  .legend-items {
+    order: 3;
+    flex: 1 0 100%;
+    gap: 6px 12px;
   }
 }

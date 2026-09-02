@@ -97,7 +97,7 @@ include 'includes/header.php';
 <div class="viewer-body">
 
     <?php if ($isStaff): ?>
-        <div class="notice-bar">
+        <!-- <div class="notice-bar">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#account-icon" />
             </svg>
@@ -105,29 +105,7 @@ include 'includes/header.php';
                 Submitted by <strong><?= htmlspecialchars($submitterName, ENT_QUOTES, 'UTF-8') ?></strong>
                 <?= $isPi ? '(Principal Investigator)' : '(submitted with an authorization letter from the Principal Investigator)' ?>
             </span>
-            <div class="notice-btns">
-                <?php if ($latestCertFileUrl): ?>
-                    <button class="tool-btn"
-                        data-file-url="<?= htmlspecialchars($latestCertFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
-                        View IACUC Training Certificate
-                    </button>
-                <?php else: ?>
-                    <button class="tool-btn"
-                        data-file-url="<?= htmlspecialchars($certUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
-                        View IACUC Training Certificate
-                    </button>
-                <?php endif; ?>
-                <?php if (! $isPi && $latestAuthFileUrl): ?>
-                    <button class="tool-btn"
-                        data-file-url="<?= htmlspecialchars($latestAuthFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'Authorization Letter')">
-                        View Authorization Letter
-                    </button>
-                <?php endif; ?>
-            </div>
-        </div>
+        </div> -->
     <?php endif; ?>
 
     <?php if ($isStaff && !empty($returnReason)): ?>
@@ -239,6 +217,26 @@ include 'includes/header.php';
         <div class="viewer-topbar-right">
             <span class="page-indicator" id="pageIndicator">Loading…</span>
 
+            <button class="tool-btn"
+                data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
+                onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#review-icon" />
+                </svg>
+                Training Certificate
+            </button>
+
+            <?php if (! $isPi && $latestAuthFileUrl): ?>
+                <button class="tool-btn"
+                    data-file-url="<?= htmlspecialchars($latestAuthFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                    onclick="openFilePopup(this.dataset.fileUrl, 'Authorization Letter')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#review-icon" />
+                    </svg>
+                    Authorization Letter
+                </button>
+            <?php endif; ?>
+
             <a class="tool-btn" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#download-icon" />
@@ -252,7 +250,7 @@ include 'includes/header.php';
                     Return for Revision
                 </button>
                 <button class="tool-btn tool-btn--success" id="btnApprove"
-                    onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Finish Review', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
+                    onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
                     Finish Review
                 </button>
             <?php elseif ($canResubmit): ?>
@@ -1000,6 +998,15 @@ include 'includes/header.php';
         });
 
         async function submitReturnRevision() {
+            const ok = await confirmAction(
+                'Return this protocol for revision? The researcher will be notified and asked to resubmit.', {
+                    okText: 'Return for Revision',
+                    cancelText: 'Cancel',
+                    danger: true
+                }
+            );
+            if (!ok) return;
+
             const selectedReasons = [...document.querySelectorAll('input[name="return_reason"]:checked')].map(cb => cb.value);
             const commentText = returnComment.value.trim();
             const errBox = document.getElementById('returnRevisionError');

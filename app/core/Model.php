@@ -59,6 +59,7 @@ class Model
 
         $this->ensureColumn('users', 'phone_number', "varchar(20) DEFAULT NULL AFTER `email`");
         $this->ensureColumn('users', 'email_verified', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email`");
+        $this->ensureIndex('users', 'unique_email', "(`email`)", true);
 
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
                     `id`                     int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -231,13 +232,14 @@ class Model
         }
     }
 
-    private function ensureIndex(string $table, string $indexName, string $definition): void
+    private function ensureIndex(string $table, string $indexName, string $definition, bool $unique = false): void
     {
         $c = $this->connection;
 
         $exists = $c->query("SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'");
         if ($exists && $exists->num_rows === 0) {
-            $c->query("ALTER TABLE `$table` ADD INDEX `$indexName` $definition");
+            $keyword = $unique ? 'UNIQUE INDEX' : 'INDEX';
+            $c->query("ALTER TABLE `$table` ADD $keyword `$indexName` $definition");
         }
     }
 

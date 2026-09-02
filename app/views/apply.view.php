@@ -315,8 +315,8 @@ include "includes/scroll-top.php";
                     `<span class="status-pill status-pill-done">${checkSvgSm}On file</span>` : `<span class="status-pill status-pill-required">Required</span>`,
             },
             {
-                title: 'Authorization letter by the Principal Investigator',
-                subtitle: 'Only needed if you are not the PI of the study.',
+                title: 'Authorization letter by the Principal Investigator (PI)',
+                subtitle: 'Only needed for non-PIs. Disregard if you are the PI of this study.',
                 pill: `<span class="status-pill status-pill-muted">If applicable</span>`,
             },
         ];
