@@ -17,7 +17,15 @@
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
+  gap: 8.5em; 
 }
+
+.announcements-sections>.announcements,
+.announcements-sections>.fb-cards {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
 
 h2 {
   font-size: 1.4em;
@@ -66,4 +74,162 @@ h2 {
   .fb-pages-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.office-announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin-top: 1em;
+  min-width: 0; 
+}
+
+.office-announcement-card {
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  background: var(--card-background);
+  box-shadow: 0 1px 4px var(--shadow-color-soft);
+  padding: 1em 1.25em;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.office-announcement-title {
+  margin: 0 0 0.25em;
+  font-size: 1.05em;
+}
+
+.office-announcement-date {
+  display: block;
+  font-size: 0.75em;
+  color: var(--secondary-text);
+  margin-bottom: 0.5em;
+}
+
+.office-announcement-body {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.announcements-empty {
+  color: var(--secondary-text);
+  font-size: 0.9em;
+}
+
+
+.ann-body-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: unset;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ann-body-clamp.expanded {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  display: block;
+}
+
+.see-more-btn {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-top: 0.3em;
+  color: var(--brand-text);
+  font-size: 0.82em;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.see-more-btn:hover {
+  color: var(--brand-color-hover);
+}
+
+.office-announcement-image {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--btn-radius);
+  margin-bottom: 0.6em;
+}
+
+.announcement-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+.announcements-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.announcements-table th,
+.announcements-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--divider-color);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.announcements-table th {
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+  background: var(--divider-color-subtle);
+}
+
+.announcements-table .col-ann-title {
+  width: 18%;
+}
+
+.announcements-table .col-ann-content {
+  width: 42%;
+}
+
+.announcements-table .col-ann-image {
+  width: 12%;
+}
+
+.announcements-table .col-ann-posted {
+  width: 13%;
+  white-space: nowrap;
+}
+
+.announcements-table .col-ann-actions {
+  width: 15%;
+  white-space: nowrap;
+}
+
+.ann-image-preview-wrap {
+  margin-top: 0.5em;
+}
+
+.ann-image-preview-wrap img {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--divider-color);
+  display: block;
+}
+
+.ann-remove-image-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-top: 0.5em;
+  font-size: 0.85em;
+  color: var(--secondary-text);
 }
