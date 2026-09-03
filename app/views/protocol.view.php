@@ -273,7 +273,7 @@ include 'includes/header.php';
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414A2 2 0 019 13z" />
             </svg>
-            <span class="toolbar-hint">Click and drag on the document to add a comment.</span>
+            <span class="toolbar-hint" id="toolbarHint">Click and drag on the document to add a comment.</span>
         </div>
     <?php endif; ?>
 
@@ -611,14 +611,18 @@ include 'includes/header.php';
     }
 
     // ===== Draw listeners =====
+    // Pointer events cover mouse, touch, and pen with one set of handlers.
     function attachDrawListeners(overlay, pageNum, canvas) {
-        overlay.addEventListener('mousedown', e => {
+        overlay.addEventListener('pointerdown', e => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
             e.preventDefault();
+            overlay.setPointerCapture(e.pointerId);
             const rect = overlay.getBoundingClientRect();
             const ghost = document.createElement('div');
             ghost.className = 'annot-ghost';
             overlay.appendChild(ghost);
             dragState = {
+                pointerId: e.pointerId,
                 pageNum,
                 startX: e.clientX - rect.left,
                 startY: e.clientY - rect.top,
@@ -627,8 +631,9 @@ include 'includes/header.php';
             };
         });
 
-        overlay.addEventListener('mousemove', e => {
-            if (!dragState || dragState.pageNum !== pageNum) return;
+        overlay.addEventListener('pointermove', e => {
+            if (!dragState || dragState.pageNum !== pageNum || dragState.pointerId !== e.pointerId) return;
+            e.preventDefault();
             const rect = overlay.getBoundingClientRect();
             const curX = e.clientX - rect.left;
             const curY = e.clientY - rect.top;
@@ -639,8 +644,8 @@ include 'includes/header.php';
             g.style.height = Math.abs(curY - dragState.startY) + 'px';
         });
 
-        overlay.addEventListener('mouseup', e => {
-            if (!dragState || dragState.pageNum !== pageNum) return;
+        overlay.addEventListener('pointerup', e => {
+            if (!dragState || dragState.pageNum !== pageNum || dragState.pointerId !== e.pointerId) return;
             const rect = overlay.getBoundingClientRect();
             const curX = e.clientX - rect.left;
             const curY = e.clientY - rect.top;
@@ -663,6 +668,12 @@ include 'includes/header.php';
             };
             dragState = null;
             openCommentDialog();
+        });
+
+        overlay.addEventListener('pointercancel', e => {
+            if (!dragState || dragState.pointerId !== e.pointerId) return;
+            dragState.ghost?.remove();
+            dragState = null;
         });
     }
 
@@ -887,6 +898,16 @@ include 'includes/header.php';
     // the tap position instead of just scrolling/highlighting the sidebar.
     const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
     const annotPopup = document.getElementById('annotPopup');
+
+    function updateToolbarHint() {
+        const hint = document.getElementById('toolbarHint');
+        if (!hint) return;
+        hint.textContent = MOBILE_MQ.matches ?
+            'Tap and drag on the document to add a comment.' :
+            'Click and drag on the document to add a comment.';
+    }
+    updateToolbarHint();
+    MOBILE_MQ.addEventListener('change', updateToolbarHint);
 
     function handleAnnotBoxClick(e, annotId) {
         highlightSidebarItem(annotId);
