@@ -45,6 +45,107 @@ class Apply extends Controller
         }
     }
 
+    private function actorDisplayName(array $actor): string
+    {
+        $user = (new UserModel())->getUser($actor['id']);
+        $full = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        return $full !== '' ? $full : $actor['name'];
+    }
+
+    private function roleLabel(string $role): string
+    {
+        return match ($role) {
+            'admin'    => 'Admin',
+            'reviewer' => 'Reviewer',
+            default    => 'Researcher',
+        };
+    }
+
+    private function notifyProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        if (!$owner) {
+            return;
+        }
+
+        $roleLabel = $this->roleLabel($actor['role']);
+
+        Notifier::send(
+            (int) $protocol['user_id'],
+            'protocol_renamed',
+            'Protocol Renamed',
+            "\"$oldTitle\" was renamed to \"$newTitle\" by $roleLabel - {$actor['name']}.",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'protocol_renamed',
+                'vars'     => [
+                    'first_name' => $owner['first_name'] ?? '',
+                    'old_title'  => $oldTitle,
+                    'new_title'  => $newTitle,
+                    'role_label' => $roleLabel,
+                    'actor_name' => $actor['name'],
+                ],
+                'to'      => $owner['email'] ?? '',
+                'name'    => $owner['first_name'] ?? '',
+                'subject' => 'Protocol Renamed',
+            ]
+        );
+    }
+
+    private function notifyDeletionRequested(array $protocol, string $reason, array $actor): void
+    {
+        $roleLabel = $this->roleLabel($actor['role']);
+        $title     = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::sendToRole(
+            'reviewer',
+            'protocol_deletion_requested',
+            'Deletion Requested',
+            "$roleLabel {$actor['name']} requested deletion of \"$title\". Reason: $reason",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'protocol_deletion_requested',
+                'vars'     => [
+                    'title'      => $title,
+                    'role_label' => $roleLabel,
+                    'actor_name' => $actor['name'],
+                    'reason'     => $reason,
+                ],
+                'subject' => 'Protocol Deletion Requested',
+            ]
+        );
+    }
+
+    private function notifyProtocolDeleted(array $protocol, string $reason, array $actor): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        if (!$owner) {
+            return;
+        }
+
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::send(
+            (int) $protocol['user_id'],
+            'protocol_deleted',
+            'Protocol Deleted',
+            "Your protocol \"$title\" was deleted by {$actor['name']}. Reason: $reason",
+            'submissions',
+            [
+                'template' => 'protocol_deleted',
+                'vars'     => [
+                    'first_name' => $owner['first_name'] ?? '',
+                    'title'      => $title,
+                    'actor_name' => $actor['name'],
+                    'reason'     => $reason,
+                ],
+                'to'      => $owner['email'] ?? '',
+                'name'    => $owner['first_name'] ?? '',
+                'subject' => 'Protocol Deleted',
+            ]
+        );
+    }
+
     private function notifyStatusChange(array $protocol, string $newStatus): void
     {
         $owner = (new UserModel())->getUser((int) $protocol['user_id']);
@@ -59,7 +160,7 @@ class Apply extends Controller
             'protocol_status_changed',
             'Protocol Status Updated',
             "Your protocol \"$title\" is now: $newStatus.",
-            'submissions',
+            'apply/viewer/' . $protocol['protocol_id'],
             [
                 'template' => 'protocol_status_changed',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus],
@@ -278,7 +379,7 @@ class Apply extends Controller
             'protocol_submitted',
             'Protocol Submitted',
             "Your protocol \"$title\" has been submitted and is now under review.",
-            'submissions',
+            'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted',
                 'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title],
@@ -293,7 +394,7 @@ class Apply extends Controller
             'new_submission_admin',
             'New Protocol Submitted',
             ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . " submitted \"$title\".",
-            'admin/records',
+            'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted_admin',
                 'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title],
@@ -697,6 +798,19 @@ class Apply extends Controller
         $userModel     = new UserModel();
         $hasCertOnFile = $isStaff ? false : $userModel->hasCert($actor['id']);
 
+        $isOwner            = (int) $protocol['user_id'] === $actor['id'];
+        $statusKeyForAccess = strtolower($protocol['status']);
+        $canRename          = ($isOwner || $isStaff)
+            && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
+        $canRequestDeletion = ($isOwner && !$isStaff) || $actor['role'] === 'admin';
+        $canDelete          = $actor['role'] === 'reviewer';
+        $deletionRequested  = !empty($protocol['deletion_requested_at']);
+        $showTitleChangeBanner = !empty($protocol['previous_title'])
+            && (int) ($protocol['title_changed_by'] ?? 0) !== $actor['id'];
+
+        $titleHistory = $model->getTitleHistory($protocolId);
+        $titleHistory = count($titleHistory) > 1 ? $titleHistory : [];
+
         $this->view('protocol', [
             'protocol'          => $protocol,
             'version'           => $version,
@@ -712,7 +826,16 @@ class Apply extends Controller
             'latestAuthVersion' => $model->getLatestVersionAsOf($protocolId, 'auth', $version['uploaded_at']),
             'returnReason'      => $model->getLatestReturnReason($protocolId),
             'hasCertOnFile'     => $hasCertOnFile,
+            'canRename'         => $canRename,
+            'canRequestDeletion' => $canRequestDeletion,
+            'canDelete'         => $canDelete,
+            'deletionRequested' => $deletionRequested,
+            'showTitleChangeBanner' => $showTitleChangeBanner,
+            'titleHistory'      => $titleHistory,
+            'flashSuccess'      => $_SESSION['flash_success'] ?? '',
+            'flashError'        => $_SESSION['flash_error'] ?? '',
         ]);
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
     // ===== FILE SERVER  (GET /apply/file/{versionId}) =====
@@ -927,6 +1050,164 @@ class Apply extends Controller
                 'Endorsed'       => 'Protocol marked as endorsed.',
             ];
             $_SESSION['flash_success'] = $flashMessages[$newStatus] ?? 'Protocol status updated.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== RENAME  (POST /apply/rename) =====
+
+    public function rename(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $newTitle   = trim($body['title'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+        if ($newTitle === '') {
+            $this->jsonError(422, 'Please enter a research title.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        $isOwner       = (int) $protocol['user_id'] === $actor['id'];
+        $isStaff       = in_array($actor['role'], ['admin', 'reviewer']);
+
+        if (!$isOwner && !$isStaff) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (!in_array(strtolower($protocol['status']), ['under review', 'needs revision'], true)) {
+            $this->jsonError(422, 'This protocol can only be renamed while it is under review or needs revision.');
+        }
+
+        $oldTitle = $model->renameProtocol($protocolId, $newTitle, $actor['id'], $actor['name'], $actor['role']);
+
+        if ($oldTitle === false) {
+            $this->jsonError(422, 'Could not rename the protocol. Please choose a different title.');
+        }
+
+        $model->logAudit('protocol_renamed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Renamed from \"$oldTitle\" to \"$newTitle\"");
+
+        if ($isStaff && !$isOwner) {
+            $this->notifyProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
+        }
+
+        $_SESSION['flash_success'] = 'Protocol renamed.';
+
+        echo json_encode(['ok' => true, 'title' => $newTitle]);
+        exit;
+    }
+
+    // ===== REQUEST DELETION  (POST /apply/request_deletion) =====
+
+    public function request_deletion(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if (!in_array($actor['role'], ['researcher', 'admin'], true)) {
+            $this->jsonError(403, 'Reviewers delete protocols directly. Use the Delete button instead.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $reason     = trim($body['reason'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+        if ($reason === '') {
+            $this->jsonError(422, 'Please provide a reason for the deletion request.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+
+        $isOwner = (int) $protocol['user_id'] === $actor['id'];
+        if ($actor['role'] === 'researcher' && !$isOwner) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (!empty($protocol['deletion_requested_at'])) {
+            $this->jsonError(422, 'A deletion request has already been made for this protocol.');
+        }
+
+        $ok = $model->requestDeletion($protocolId, $actor['id'], $actor['name'], $actor['role'], $reason);
+
+        if ($ok) {
+            $model->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
+            $this->notifyDeletionRequested($protocol, $reason, $actor);
+            $_SESSION['flash_success'] = 'Deletion request sent to the reviewer.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== DELETE  (POST /apply/delete) — reviewer only, any status =====
+
+    public function delete(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer access only.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $reason     = trim($body['reason'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+        if ($reason === '') {
+            $this->jsonError(422, 'Please provide a reason for deleting this protocol.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+
+        $ok = $model->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
+
+        if ($ok) {
+            $model->logAudit('protocol_deleted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Deleted. Reason: $reason");
+            $this->notifyProtocolDeleted($protocol, $reason, $actor);
+            $_SESSION['flash_success'] = 'Protocol deleted.';
         }
 
         echo json_encode(['ok' => $ok]);
@@ -1213,12 +1494,21 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
+        $files = $this->addFileUrls($model->getVersions($protocolId, 'protocol'));
+        $files = array_map(function ($v) use ($model, $protocolId, $protocol) {
+            $v['title_at_version'] = $model->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
+            return $v;
+        }, $files);
+
+        $titleHistory = $model->getTitleHistory($protocolId);
+
         echo json_encode([
             'protocol_id'    => $protocolId,
             'title'          => $protocol['research_title'],
             'status'         => $protocol['status'],
-            'protocol_files' => $this->addFileUrls($model->getVersions($protocolId, 'protocol')),
+            'protocol_files' => $files,
             'return_reason'  => $model->getLatestReturnReason($protocolId),
+            'title_history'  => count($titleHistory) > 1 ? $titleHistory : [],
         ]);
         exit;
     }

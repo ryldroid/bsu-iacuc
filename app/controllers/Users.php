@@ -17,7 +17,7 @@ class Users extends Controller
       'first_name'   => ucfirst(mb_strtolower(trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $post['first_name'] ?? '')))),
       'last_name'    => trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $post['last_name'] ?? '')),
       'email'        => filter_var(trim($post['email'] ?? ''), FILTER_SANITIZE_EMAIL),
-      'phone_number' => trim(preg_replace('/[^0-9+]/', '', $post['phone_number'] ?? '')),
+      'phone_number' => trim($post['phone_number'] ?? ''),
       'password'     => $post['password'] ?? '',
       'confirm_pass' => $post['confirm_password'] ?? '',
       'role'         => $post['role'] ?? '',
@@ -61,8 +61,12 @@ class Users extends Controller
 
     if (empty($phone_number)) {
       $errors[] = 'Phone number is required.';
-    } elseif (!preg_match('/^\+63\d{9,10}$/', $phone_number)) {
-      $errors[] = 'Enter a valid Philippine phone number (e.g., +63xxxxxxxxxx).';
+    } else {
+      if (preg_match('/[a-zA-Z]/', $phone_number)) {
+        $errors[] = 'Phone number cannot contain letters. Please enter numbers only.';
+      } elseif (!preg_match('/^\+63\d{9,10}$/', $phone_number)) {
+        $errors[] = 'Enter a valid Philippine phone number (e.g., +639171234567)';
+      }
     }
 
     if ($password_required || !empty($password) || !empty($confirm_pass)) {

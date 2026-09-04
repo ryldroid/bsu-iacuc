@@ -108,7 +108,19 @@ include "includes/scroll-top.php";
                             </svg>
                         </summary>
                         <div class="faq-answer">
-                            Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.
+                            Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review. An assurance form is also required for non-Principal Investigators.
+                        </div>
+                    </details>
+
+                    <details class="faq-cont">
+                        <summary class="faq-question">
+                            When working in groups, should each member apply for an IACUC protocol review?
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#chev-down-icon" />
+                            </svg>
+                        </summary>
+                        <div class="faq-answer">
+                            No, only one member of the group must submit the IACUC protocol at a time, either the Principal Investigator (PI) or an authorized member with a signed assurance form by the PI.
                         </div>
                     </details>
 

@@ -323,11 +323,15 @@ include "includes/scroll-top.php";
 
         const process = [
             `Attach requirements if applicable. <br>
-         <span class="process-note">
-           Your training certificate is required unless you have already submitted one previously.
-           If you are not the Principal Investigator, attach an authorization letter.
-         </span>`,
-            `Download the official IACUC protocol form, fill it in, then upload it in the next step.`,
+                <span class="process-note">
+                Your training certificate is required unless you have already submitted one previously.
+                If you are not the Principal Investigator, attach an authorization letter.
+                </span>`,
+            `Download the official IACUC protocol form, fill it in, then upload it in the next step. <br>
+                <span class="process-note">
+                For groups, only the Principal Investigator or an authorized member must apply for protocol review. 
+                Multiple submissions will be rejected and returned.
+                </span>`,
             `Submit your completed form. You will be notified via email on updates on your protocol.`,
         ];
 

@@ -11,8 +11,17 @@
 /** @var array|null $latestCertVersion */
 /** @var array|null $latestAuthVersion */
 /** @var bool   $hasCertOnFile */
+/** @var bool   $canRename */
+/** @var bool   $canRequestDeletion */
+/** @var bool   $canDelete */
+/** @var bool   $deletionRequested */
+/** @var bool   $showTitleChangeBanner */
+/** @var string $flashSuccess */
+/** @var string $flashError */
 
 $title = htmlspecialchars($protocol['research_title'] ?? 'Protocol', ENT_QUOTES, 'UTF-8');
+
+$roleLabels = ['researcher' => 'Researcher', 'admin' => 'Admin', 'reviewer' => 'Reviewer'];
 
 $statusLabels = [
     'under review'   => 'Under Review',
@@ -96,6 +105,24 @@ include 'includes/header.php';
 
 <div class="viewer-body">
 
+    <?php if (!empty($flashSuccess)): ?>
+        <div class="return-reason-bar viewer-flash-success" id="viewerFlashSuccess">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#check-icon" />
+            </svg>
+            <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($flashError)): ?>
+        <div class="return-reason-bar viewer-flash-error" id="viewerFlashError">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#info-icon" />
+            </svg>
+            <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
     <?php if ($isStaff): ?>
         <!-- <div class="notice-bar">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -127,6 +154,38 @@ include 'includes/header.php';
         </div>
     <?php endif; ?>
 
+    <?php if ($showTitleChangeBanner): ?>
+        <div class="return-reason-bar title-change-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#edit-icon" />
+            </svg>
+            The research title has been changed from “<?= htmlspecialchars($protocol['previous_title'], ENT_QUOTES, 'UTF-8') ?>” by
+            <?= htmlspecialchars($roleLabels[$protocol['title_changed_by_role']] ?? ucfirst((string) $protocol['title_changed_by_role']), ENT_QUOTES, 'UTF-8') ?>
+            - <?= htmlspecialchars($protocol['title_changed_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+        <div class="return-reason-bar deletion-request-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#trash-icon" />
+            </svg>
+            Deletion requested by
+            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>:
+            <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
+        </div>
+    <?php elseif (!$isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+        <div class="return-reason-bar deletion-request-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#trash-icon" />
+            </svg>
+            A deletion request is pending for this protocol (requested by
+            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The reviewer has been notified.
+        </div>
+    <?php endif; ?>
+
     <!-- ===== Top bar ===== -->
     <div class="viewer-topbar">
         <div class="viewer-topbar-left">
@@ -152,6 +211,29 @@ include 'includes/header.php';
             </a>
 
             <span class="viewer-title"><?= $title ?></span>
+
+            <?php if (!empty($titleHistory)): ?>
+                <div class="title-history-switcher" id="titleHistorySwitcher">
+                    <button type="button" class="title-history-trigger" id="titleHistoryTrigger"
+                        aria-haspopup="true" aria-expanded="false" aria-label="Show rename history">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m6 9 6 6 6-6" />
+                        </svg>
+                    </button>
+                    <div class="title-history-menu" id="titleHistoryMenu">
+                        <div class="title-history-menu-label">Renamed from</div>
+                        <?php foreach ($titleHistory as $h): ?>
+                            <div class="title-history-item">
+                                <div class="title-history-item-title"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></div>
+                                <div class="title-history-item-meta">
+                                    <?= htmlspecialchars($h['changed_by_name'] ? ($roleLabels[$h['changed_by_role']] ?? ucfirst((string) $h['changed_by_role'])) . ' - ' . $h['changed_by_name'] : 'Initial title', ENT_QUOTES, 'UTF-8') ?>
+                                    &middot; <?= htmlspecialchars(date('M j, Y g:i A', strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
@@ -217,50 +299,90 @@ include 'includes/header.php';
         <div class="viewer-topbar-right">
             <span class="page-indicator" id="pageIndicator">Loading…</span>
 
-            <button class="tool-btn"
-                data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
-                onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#review-icon" />
-                </svg>
-                Training Certificate
-            </button>
-
-            <?php if (! $isPi && $latestAuthFileUrl): ?>
-                <button class="tool-btn"
-                    data-file-url="<?= htmlspecialchars($latestAuthFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                    onclick="openFilePopup(this.dataset.fileUrl, 'Authorization Letter')">
+            <div class="viewer-view-actions">
+                <button class="tool-btn tool-btn--ghost"
+                    data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
+                    onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
                     <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#review-icon" />
                     </svg>
-                    Authorization Letter
+                    Training Certificate
                 </button>
+
+                <?php if (! $isPi && $latestAuthFileUrl): ?>
+                    <button class="tool-btn tool-btn--ghost"
+                        data-file-url="<?= htmlspecialchars($latestAuthFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="openFilePopup(this.dataset.fileUrl, 'Authorization Letter')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Authorization Letter
+                    </button>
+                <?php endif; ?>
+
+                <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#download-icon" />
+                    </svg>
+                    Download
+                </a>
+            </div>
+
+            <?php if ($canRename || $canDelete || $canRequestDeletion): ?>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+
+                <div class="viewer-doc-actions">
+                    <?php if ($canRename): ?>
+                        <button class="tool-btn tool-btn--info" id="btnRename" type="button" onclick="openRenameModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#edit-icon" />
+                            </svg>
+                            Rename
+                        </button>
+                    <?php endif; ?>
+
+                    <?php if ($canDelete): ?>
+                        <button class="tool-btn tool-btn--danger" id="btnDelete" type="button" onclick="openDeleteModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#trash-icon" />
+                            </svg>
+                            Delete
+                        </button>
+                    <?php elseif ($canRequestDeletion): ?>
+                        <button class="tool-btn tool-btn--danger" id="btnRequestDeletion" type="button"
+                            onclick="openDeleteModal()" <?= $deletionRequested ? 'disabled' : '' ?>>
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#trash-icon" />
+                            </svg>
+                            <?= $deletionRequested ? 'Deletion Requested' : 'Request Deletion' ?>
+                        </button>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
 
-            <a class="tool-btn" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#download-icon" />
-                </svg>
-                Download
-            </a>
+            <?php if ($canReview || $canResubmit): ?>
+                <span class="toolbar-divider" aria-hidden="true"></span>
 
-            <?php if ($canReview): ?>
-                <button class="tool-btn tool-btn--warn" id="btnNeedsRevision"
-                    onclick="openReturnModal()">
-                    Return for Revision
-                </button>
-                <button class="tool-btn tool-btn--success" id="btnApprove"
-                    onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
-                    Finish Review
-                </button>
-            <?php elseif ($canResubmit): ?>
-                <button class="tool-btn tool-btn--success" id="btnResubmit"
-                    onclick="openReuploadModal()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    Re-submit Protocol
-                </button>
+                <div class="viewer-review-actions">
+                    <?php if ($canReview): ?>
+                        <button class="tool-btn tool-btn--warn" id="btnNeedsRevision"
+                            onclick="openReturnModal()">
+                            Return for Revision
+                        </button>
+                        <button class="tool-btn tool-btn--success" id="btnApprove"
+                            onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
+                            Finish Review
+                        </button>
+                    <?php elseif ($canResubmit): ?>
+                        <button class="tool-btn tool-btn--success" id="btnResubmit"
+                            onclick="openReuploadModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            Re-submit Protocol
+                        </button>
+                    <?php endif; ?>
+                </div>
             <?php elseif ($isCompleted && $isLatestVersion): ?>
                 <span class="ver-badge ver-badge--green">✓ Approved</span>
             <?php endif; ?>
@@ -440,6 +562,86 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if ($canRename): ?>
+    <!-- ===== Rename protocol modal ===== -->
+    <div class="modal-backdrop" id="renameModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label">Rename Protocol</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="tool-btn close-modal" onclick="closeRenameModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <label class="return-comment-label" for="renameTitleInput">New research title</label>
+                <input type="text" id="renameTitleInput" class="return-comment-textarea rename-title-input" maxlength="255"
+                    value="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>">
+
+                <div id="renameError" class="error-messages" hidden></div>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeRenameModal()">Cancel</button>
+                    <button class="tool-btn tool-btn--success" type="button" id="renameSubmitBtn" onclick="submitRename()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#edit-icon" />
+                        </svg>
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ($canDelete || $canRequestDeletion): ?>
+    <!-- ===== Delete / request deletion modal ===== -->
+    <div class="modal-backdrop" id="deleteModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label"><?= $canDelete ? 'Delete Protocol' : 'Request Deletion' ?></p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="tool-btn close-modal" onclick="closeDeleteModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">
+                    <?= $canDelete
+                        ? 'This will delete the protocol and notify the researcher. Please explain why.'
+                        : 'The reviewer will be notified of your request along with the reason below.' ?>
+                </p>
+
+                <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional">(required)</span></label>
+                <textarea id="deleteReasonText" class="return-comment-textarea"
+                    placeholder="Explain why this protocol should be deleted..."
+                    rows="4" maxlength="1000"></textarea>
+                <p class="return-char-count"><span id="deleteCharCount">0</span> / 1000</p>
+
+                <div id="deleteError" class="error-messages" hidden></div>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeDeleteModal()">Cancel</button>
+                    <button class="tool-btn tool-btn--danger" type="button" id="deleteSubmitBtn" onclick="submitDelete()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#trash-icon" />
+                        </svg>
+                        <?= $canDelete ? 'Delete' : 'Send Request' ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- ===== File popup modal ===== -->
 <div class="modal-backdrop" id="filePopupBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;">
     <div class="modal-card file-popup-card">
@@ -507,10 +709,50 @@ include 'includes/header.php';
     const CAN_RESUBMIT = <?= $canResubmit ? 'true' : 'false' ?>;
     const RESUBMIT_DOCS = <?= json_encode($resubmitDocs) ?>;
 
+    // ===== Auto-dismiss viewer flash messages =====
+    (function() {
+        function dismissFlash(elementId, delayMs) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            setTimeout(() => {
+                el.style.transition = 'opacity 0.4s ease';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 420);
+            }, delayMs);
+        }
+        dismissFlash('viewerFlashSuccess', 4000);
+        dismissFlash('viewerFlashError', 7000);
+    })();
+
     // ===== Version switcher dropdown =====
     const versionTrigger = document.getElementById('versionSwitcherTrigger');
     const versionMenu = document.getElementById('versionDropdownMenu');
     const versionSwitcher = document.getElementById('versionSwitcher');
+
+    // ===== Title rename-history dropdown =====
+    const titleHistoryTrigger = document.getElementById('titleHistoryTrigger');
+    const titleHistoryMenu = document.getElementById('titleHistoryMenu');
+    const titleHistorySwitcher = document.getElementById('titleHistorySwitcher');
+
+    titleHistoryTrigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = titleHistoryMenu.classList.toggle('open');
+        titleHistoryTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (titleHistorySwitcher && !titleHistorySwitcher.contains(e.target)) {
+            titleHistoryMenu?.classList.remove('open');
+            titleHistoryTrigger?.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            titleHistoryMenu?.classList.remove('open');
+            titleHistoryTrigger?.setAttribute('aria-expanded', 'false');
+        }
+    });
 
     versionTrigger?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1035,6 +1277,156 @@ include 'includes/header.php';
             alert('Could not reach the server and the action could not be queued. Please check your connection.');
         }
     }
+
+    <?php if ($canRename): ?>
+        // ===== Rename modal =====
+        const RENAME_API = <?= json_encode(ROOT . '/apply/rename') ?>;
+        const renameBackdrop = document.getElementById('renameModalBackdrop');
+        const renameTitleInput = document.getElementById('renameTitleInput');
+
+        function openRenameModal() {
+            document.getElementById('renameError').hidden = true;
+            renameBackdrop.classList.add('open');
+            renameTitleInput.focus();
+            renameTitleInput.select();
+        }
+
+        function closeRenameModal() {
+            renameBackdrop.classList.remove('open');
+        }
+
+        renameBackdrop.addEventListener('click', e => {
+            if (e.target === renameBackdrop) closeRenameModal();
+        });
+
+        async function submitRename() {
+            const newTitle = renameTitleInput.value.trim();
+            const errBox = document.getElementById('renameError');
+            const submitBtn = document.getElementById('renameSubmitBtn');
+
+            errBox.hidden = true;
+
+            if (!newTitle) {
+                errBox.textContent = 'Please enter a research title.';
+                errBox.hidden = false;
+                return;
+            }
+
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch(RENAME_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        protocol_id: PROTOCOL_ID,
+                        title: newTitle
+                    })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    window.location.reload();
+                } else {
+                    errBox.textContent = data.error ?? 'Could not rename this protocol.';
+                    errBox.hidden = false;
+                    submitBtn.disabled = false;
+                }
+            } catch {
+                errBox.textContent = 'Network error. Please try again.';
+                errBox.hidden = false;
+                submitBtn.disabled = false;
+            }
+        }
+    <?php endif; ?>
+
+    <?php if ($canDelete || $canRequestDeletion): ?>
+        // ===== Delete / request deletion modal =====
+        const DELETE_API = <?= json_encode(ROOT . ($canDelete ? '/apply/delete' : '/apply/request_deletion')) ?>;
+        const deleteBackdrop = document.getElementById('deleteModalBackdrop');
+        const deleteReasonText = document.getElementById('deleteReasonText');
+        const deleteCharCount = document.getElementById('deleteCharCount');
+
+        function openDeleteModal() {
+            deleteReasonText.value = '';
+            deleteCharCount.textContent = '0';
+            document.getElementById('deleteError').hidden = true;
+            deleteBackdrop.classList.add('open');
+        }
+
+        function closeDeleteModal() {
+            deleteBackdrop.classList.remove('open');
+        }
+
+        deleteBackdrop.addEventListener('click', e => {
+            if (e.target === deleteBackdrop) closeDeleteModal();
+        });
+
+        deleteReasonText.addEventListener('input', () => {
+            deleteCharCount.textContent = deleteReasonText.value.length;
+        });
+
+        async function submitDelete() {
+            const reason = deleteReasonText.value.trim();
+            const errBox = document.getElementById('deleteError');
+            const submitBtn = document.getElementById('deleteSubmitBtn');
+
+            errBox.hidden = true;
+
+            if (!reason) {
+                errBox.textContent = 'A reason is required.';
+                errBox.hidden = false;
+                return;
+            }
+
+            const confirmMessage = <?= $canDelete
+                                        ? json_encode('Delete this protocol? The researcher will be notified with your reason. This cannot be undone.')
+                                        : json_encode('Send a deletion request to the reviewer with this reason?') ?>;
+
+            const ok = await confirmAction(confirmMessage, {
+                okText: <?= $canDelete ? json_encode('Delete') : json_encode('Send Request') ?>,
+                cancelText: 'Cancel',
+                danger: <?= $canDelete ? 'true' : 'false' ?>
+            });
+            if (!ok) return;
+
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch(DELETE_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        protocol_id: PROTOCOL_ID,
+                        reason: reason
+                    })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    <?php if ($canDelete): ?>
+                        window.location.href = <?= json_encode($backUrl) ?>;
+                    <?php else: ?>
+                        window.location.reload();
+                    <?php endif; ?>
+                } else {
+                    errBox.textContent = data.error ?? 'Could not complete this action.';
+                    errBox.hidden = false;
+                    submitBtn.disabled = false;
+                }
+            } catch {
+                errBox.textContent = 'Network error. Please try again.';
+                errBox.hidden = false;
+                submitBtn.disabled = false;
+            }
+        }
+    <?php endif; ?>
 
     // ===== Mobile sidebar toggle =====
     function toggleSidebar() {

@@ -120,6 +120,33 @@ class Model
                     `is_pi`                tinyint(1)   NOT NULL DEFAULT 1
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->ensureColumn('protocols', 'previous_title', "varchar(255) DEFAULT NULL AFTER `title`");
+        $this->ensureColumn('protocols', 'title_changed_by', "int(11) DEFAULT NULL AFTER `previous_title`");
+        $this->ensureColumn('protocols', 'title_changed_by_name', "varchar(150) DEFAULT NULL AFTER `title_changed_by`");
+        $this->ensureColumn('protocols', 'title_changed_by_role', "varchar(30) DEFAULT NULL AFTER `title_changed_by_name`");
+        $this->ensureColumn('protocols', 'title_changed_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_by_role`");
+        $this->ensureColumn('protocols', 'deletion_requested_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_at`");
+        $this->ensureColumn('protocols', 'deletion_requested_by', "int(11) DEFAULT NULL AFTER `deletion_requested_at`");
+        $this->ensureColumn('protocols', 'deletion_requested_by_name', "varchar(150) DEFAULT NULL AFTER `deletion_requested_by`");
+        $this->ensureColumn('protocols', 'deletion_requested_by_role', "varchar(30) DEFAULT NULL AFTER `deletion_requested_by_name`");
+        $this->ensureColumn('protocols', 'deletion_request_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_requested_by_role`");
+        $this->ensureColumn('protocols', 'deleted_at', "timestamp NULL DEFAULT NULL AFTER `deletion_request_reason`");
+        $this->ensureColumn('protocols', 'deleted_by', "int(11) DEFAULT NULL AFTER `deleted_at`");
+        $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");
+        $this->ensureColumn('protocols', 'deletion_reason', "varchar(1000) DEFAULT NULL AFTER `deleted_by_name`");
+
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
+                    `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`     int(11)      NOT NULL,
+                    `title`           varchar(255) NOT NULL,
+                    `changed_by`      int(11)      DEFAULT NULL,
+                    `changed_by_name` varchar(150) DEFAULT NULL,
+                    `changed_by_role` varchar(30)  DEFAULT NULL,
+                    `changed_at`      timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_pth_protocol` (`protocol_id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_versions` (
                     `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`    int(11)      NOT NULL,

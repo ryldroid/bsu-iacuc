@@ -908,7 +908,16 @@ foreach ($protocols as $p) {
         <div class="history-modal-header">
             <div>
                 <p class="history-modal-label">Submission History</p>
-                <p class="history-modal-title" id="historyModalTitle"></p>
+                <div class="history-modal-title-row">
+                    <p class="history-modal-title" id="historyModalTitle"></p>
+                    <button type="button" class="rename-history-toggle" id="renameHistoryToggle" hidden
+                        aria-expanded="false" aria-controls="renameHistoryPanel" aria-label="Show rename history">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-down-icon" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="rename-history-panel" id="renameHistoryPanel" hidden></div>
             </div>
             <button class="button history-modal-close" onclick="closeHistoryModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -928,6 +937,14 @@ foreach ($protocols as $p) {
     function openHistoryModal(protocolId, title) {
         document.getElementById('historyModalTitle').textContent = title;
         document.getElementById('historyModalBody').innerHTML = '<p class="helper history-loading">Loading…</p>';
+
+        const renameToggle = document.getElementById('renameHistoryToggle');
+        const renamePanel = document.getElementById('renameHistoryPanel');
+        renameToggle.hidden = true;
+        renameToggle.setAttribute('aria-expanded', 'false');
+        renamePanel.hidden = true;
+        renamePanel.innerHTML = '';
+
         historyBackdrop.classList.add('open');
 
         fetch(ROOT_URL + '/apply/allversions/' + protocolId)
@@ -938,12 +955,57 @@ foreach ($protocols as $p) {
                         '<p class="helper history-error">' + data.error + '</p>';
                     return;
                 }
+                renderRenameHistory(data.title_history);
                 renderHistory(data);
             })
             .catch(() => {
                 document.getElementById('historyModalBody').innerHTML =
                     '<p class="helper history-offline">Submission history is not available offline. It will load once you reconnect.</p>';
             });
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        } [ch]));
+    }
+
+    function renderRenameHistory(titleHistory) {
+        const renameToggle = document.getElementById('renameHistoryToggle');
+        const renamePanel = document.getElementById('renameHistoryPanel');
+
+        if (!titleHistory || titleHistory.length === 0) {
+            renameToggle.hidden = true;
+            return;
+        }
+
+        renamePanel.innerHTML = titleHistory.map(h => {
+            const date = new Date(h.changed_at).toLocaleString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const who = h.changed_by_name ?
+                `${escapeHtml(h.changed_by_role ? h.changed_by_role.charAt(0).toUpperCase() + h.changed_by_role.slice(1) : '')} - ${escapeHtml(h.changed_by_name)}` :
+                'Initial title';
+            return `<div class="rename-history-entry">
+                <div class="rename-history-entry-title">${escapeHtml(h.title)}</div>
+                <div class="rename-history-entry-meta">${who} &middot; ${date}</div>
+            </div>`;
+        }).join('');
+
+        renameToggle.hidden = false;
+        renameToggle.onclick = () => {
+            const isOpen = renameToggle.getAttribute('aria-expanded') === 'true';
+            renameToggle.setAttribute('aria-expanded', String(!isOpen));
+            renamePanel.hidden = isOpen;
+        };
     }
 
     function closeHistoryModal() {
@@ -981,7 +1043,7 @@ foreach ($protocols as $p) {
                         ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
                     </div>
                     <div class="history-row-detail">
-                        <span class="history-filename">${v.original_name}</span>
+                        <span class="history-filename">${v.title_at_version || v.original_name}</span>
                         <span class="helper">${date}</span>
                     </div>
                     <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">

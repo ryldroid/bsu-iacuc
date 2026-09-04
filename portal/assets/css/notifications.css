@@ -63,7 +63,7 @@
   font-weight: 600;
 }
 
-.notif-mark-all {
+.notif-dropdown-header .notif-mark-all {
   background: none;
   border: none;
   box-shadow: none;
@@ -73,10 +73,11 @@
   font-size: .85em;
   font-weight: 500;
   cursor: pointer;
+  margin-left: 0;
   padding: 0;
 }
 
-.notif-mark-all:hover {
+.notif-dropdown-header .notif-mark-all:hover {
   text-decoration: underline;
 }
 

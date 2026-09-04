@@ -22,7 +22,162 @@ class ProtocolModel extends Model
             return false;
         }
 
-        return $this->connection->insert_id;
+        $protocolId = $this->connection->insert_id;
+        $this->insertTitleHistory($protocolId, $title, $userId, null, 'researcher');
+
+        return $protocolId;
+    }
+
+    // ===== RENAME =====
+
+    private function insertTitleHistory(
+        int $protocolId,
+        string $title,
+        ?int $changedBy,
+        ?string $changedByName,
+        ?string $changedByRole
+    ): void {
+        $stmt = $this->connection->prepare(
+            "INSERT INTO `protocol_title_history`
+                (protocol_id, title, changed_by, changed_by_name, changed_by_role)
+             VALUES (?, ?, ?, ?, ?)"
+        );
+        if (! $stmt) {
+            return;
+        }
+
+        $stmt->bind_param('isiss', $protocolId, $title, $changedBy, $changedByName, $changedByRole);
+        $stmt->execute();
+    }
+
+    public function renameProtocol(
+        int $protocolId,
+        string $newTitle,
+        int $actorId,
+        string $actorName,
+        string $actorRole
+    ): string | false {
+        $newTitle = mb_substr(trim($newTitle), 0, 255);
+        if ($newTitle === '') {
+            return false;
+        }
+
+        $current = $this->getById($protocolId);
+        if (! $current) {
+            return false;
+        }
+
+        $oldTitle = $current['research_title'];
+        if ($oldTitle === $newTitle) {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET title = ?, previous_title = ?, title_changed_by = ?,
+                 title_changed_by_name = ?, title_changed_by_role = ?, title_changed_at = NOW()
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('ssissi', $newTitle, $oldTitle, $actorId, $actorName, $actorRole, $protocolId);
+        if (! $stmt->execute()) {
+            return false;
+        }
+
+        $this->insertTitleHistory($protocolId, $newTitle, $actorId, $actorName, $actorRole);
+
+        return $oldTitle;
+    }
+
+    public function getTitleAsOf(int $protocolId, string $asOf): ?string
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT title FROM `protocol_title_history`
+             WHERE protocol_id = ? AND changed_at <= ?
+             ORDER BY changed_at DESC, id DESC
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('is', $protocolId, $asOf);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        return $row['title'] ?? null;
+    }
+
+    public function getTitleHistory(int $protocolId): array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT title, changed_by_name, changed_by_role, changed_at
+             FROM `protocol_title_history`
+             WHERE protocol_id = ?
+             ORDER BY changed_at DESC, id DESC"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    // ===== DELETE / REQUEST DELETION =====
+
+    public function requestDeletion(
+        int $protocolId,
+        int $actorId,
+        string $actorName,
+        string $actorRole,
+        string $reason
+    ): bool {
+        $reason = mb_substr(trim($reason), 0, 1000);
+        if ($reason === '') {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET deletion_requested_at = NOW(), deletion_requested_by = ?,
+                 deletion_requested_by_name = ?, deletion_requested_by_role = ?,
+                 deletion_request_reason = ?
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('isssi', $actorId, $actorName, $actorRole, $reason, $protocolId);
+        return $stmt->execute();
+    }
+
+    public function softDelete(
+        int $protocolId,
+        int $actorId,
+        string $actorName,
+        string $reason
+    ): bool {
+        $reason = mb_substr(trim($reason), 0, 1000);
+        if ($reason === '') {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET deleted_at = NOW(), deleted_by = ?, deleted_by_name = ?, deletion_reason = ?
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('issi', $actorId, $actorName, $reason, $protocolId);
+        return $stmt->execute();
     }
 
     public function getAll(): array
@@ -36,6 +191,14 @@ class ProtocolModel extends Model
                     p.updated_at,
                     p.user_id,
                     p.is_pi,
+                    p.previous_title,
+                    p.title_changed_by_name,
+                    p.title_changed_by_role,
+                    p.title_changed_at,
+                    p.deletion_requested_at,
+                    p.deletion_requested_by_name,
+                    p.deletion_requested_by_role,
+                    p.deletion_request_reason,
                     u.first_name,
                     u.last_name,
                     (SELECT MAX(pv.version_number)
@@ -56,7 +219,7 @@ class ProtocolModel extends Model
                      LIMIT 1) AS latest_auth_version_id
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
-                WHERE u.status != 'deactivated'
+                WHERE u.status != 'deactivated' AND p.deleted_at IS NULL
                 ORDER BY p.submitted_at DESC";
 
         $result = $this->connection->query($sql);
@@ -74,6 +237,14 @@ class ProtocolModel extends Model
                 p.submitted_at,
                 p.updated_at,
                 p.is_pi,
+                p.previous_title,
+                p.title_changed_by_name,
+                p.title_changed_by_role,
+                p.title_changed_at,
+                p.deletion_requested_at,
+                p.deletion_requested_by_name,
+                p.deletion_requested_by_role,
+                p.deletion_request_reason,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id
@@ -91,7 +262,7 @@ class ProtocolModel extends Model
                     WHERE protocol_id = p.id
                 )
              LEFT JOIN `users` u ON u.id = rr.reviewer_id
-             WHERE p.user_id = ?
+             WHERE p.user_id = ? AND p.deleted_at IS NULL
              ORDER BY p.submitted_at DESC"
         );
         if (! $stmt) {
@@ -115,11 +286,21 @@ class ProtocolModel extends Model
                 p.updated_at,
                 p.user_id,
                 p.is_pi,
+                p.previous_title,
+                p.title_changed_by,
+                p.title_changed_by_name,
+                p.title_changed_by_role,
+                p.title_changed_at,
+                p.deletion_requested_at,
+                p.deletion_requested_by,
+                p.deletion_requested_by_name,
+                p.deletion_requested_by_role,
+                p.deletion_request_reason,
                 u.first_name AS submitter_first_name,
                 u.last_name AS submitter_last_name
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
-             WHERE p.id = ? LIMIT 1"
+             WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1"
         );
         if (! $stmt) {
             return null;
