@@ -517,7 +517,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             return;
         }
 
-        renamePanel.innerHTML = titleHistory.map(h => {
+        renamePanel.innerHTML = '<div class="rename-history-panel-header">Title Name History</div>' + titleHistory.map(h => {
             const who = h.changed_by_name ?
                 `${escapeHtml(h.changed_by_role ? h.changed_by_role.charAt(0).toUpperCase() + h.changed_by_role.slice(1) : '')} - ${escapeHtml(h.changed_by_name)}` :
                 'Initial title';
@@ -648,7 +648,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         body.innerHTML = buildVersionRows(data.protocol_files, data.protocol_id, data.return_reason);
     }
 
-    // ===== Status legend info panel (hover on desktop, tap on touch) =====
+    // ===== Status legend info panel (single click to open/close) =====
     (function() {
         const wrapper = document.getElementById('legendInfoWrapper');
         const btn = document.getElementById('legendInfoBtn');
@@ -664,10 +664,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
             panel.classList.remove('open');
             btn.setAttribute('aria-expanded', 'false');
         }
-
-        wrapper.addEventListener('mouseenter', openPanel);
-        wrapper.addEventListener('mouseleave', closePanel);
-        btn.addEventListener('focus', openPanel);
 
         btn.addEventListener('click', e => {
             e.stopPropagation();

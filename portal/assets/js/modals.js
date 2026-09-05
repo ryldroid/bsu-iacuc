@@ -93,7 +93,9 @@
       activeResolve = resolve;
       modalEl.setAttribute("aria-hidden", "false");
       modalEl.classList.add("is-open");
-      (options.danger ? cancelBtn : okBtn).focus();
+      requestAnimationFrame(() => {
+        (options.danger ? cancelBtn : okBtn).focus();
+      });
     });
   };
 

@@ -58,6 +58,27 @@ main {
     margin-left: 4px;
 }
 
+.dashboard-metrics .metric-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.dashboard-metrics .metric-card-value {
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.dashboard-metrics .metric-card-label {
+    font-size: 0.95em;
+    font-weight: 500;
+    color: var(--secondary-text);
+    margin-bottom: 0;
+    letter-spacing: normal;
+}
+
 /* ===== Search toolbar ===== */
 .inbox-toolbar {
     display: flex;
@@ -227,6 +248,7 @@ main {
     border-radius: var(--btn-radius);
     font-family: var(--font-body);
     background: var(--card-background);
+    color: var(--primary-text);
     margin: 0;
 }
 
@@ -296,5 +318,17 @@ main {
 
     .metric-card-value {
         font-size: 1.1em;
+    }
+
+    .dashboard-metrics .metric-card {
+        gap: 4px;
+    }
+
+    .dashboard-metrics .metric-card-label {
+        font-size: 0.78em;
+    }
+
+    .dashboard-metrics .metric-card-value {
+        font-size: 1.15em;
     }
 }

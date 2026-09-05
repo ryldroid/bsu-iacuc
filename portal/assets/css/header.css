@@ -430,7 +430,7 @@ header nav a:hover::after {
         gap: 0;
     }
 
-    .header-auth button span:not(.chev-icon) {
+    .header-auth button span:not(.chev-icon):not(.notif-badge) {
         display: none;
     }
 

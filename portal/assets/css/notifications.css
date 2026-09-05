@@ -57,10 +57,11 @@
   align-items: center;
   justify-content: space-between;
 
-  padding: .75em 1em;
+  padding: .9em 1em;
   border-bottom: 1px solid var(--divider-color);
 
   font-weight: 600;
+  font-size: .95em;
 }
 
 .notif-dropdown-header .notif-mark-all {
@@ -87,12 +88,18 @@
 }
 
 .notif-item {
-  display: block;
-  padding: .75em 1em;
+  display: flex;
+  align-items: flex-start;
+  gap: .7em;
+
+  padding: .8em 1em;
   text-decoration: none;
   color: inherit;
-  border-bottom: 1px solid var(--divider-color);
+  border-bottom: 1px solid var(--divider-color-subtle);
   cursor: pointer;
+
+  position: relative;
+  transition: background-color .15s ease;
 }
 
 .notif-item:last-child {
@@ -100,28 +107,76 @@
 }
 
 .notif-item:hover {
-  background-color: var(--hover-surface);
+  background-color: var(--hover-surface-soft);
 }
 
 .notif-item.unread {
   background-color: var(--tint-on-brand-soft);
 }
 
+.notif-item-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-top: .1em;
+}
+
+.notif-item-icon--info {
+  background-color: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.notif-item-icon--success {
+  background-color: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.notif-item-icon--warning {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.notif-item-icon--danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .notif-item-title {
   font-weight: 600;
+  font-size: .93em;
   margin-bottom: .2em;
 }
 
 .notif-item-message {
-  font-size: .9em;
+  font-size: .87em;
   color: var(--primary-text);
   opacity: .8;
+  line-height: 1.4;
 }
 
 .notif-item-time {
   font-size: .75em;
   opacity: .6;
-  margin-top: .3em;
+  margin-top: .35em;
+}
+
+.notif-item-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: .5em;
+  border-radius: 50%;
+  background-color: var(--brand-color);
 }
 
 .notif-empty {

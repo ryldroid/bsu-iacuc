@@ -174,6 +174,20 @@ include 'includes/header.php';
             <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
             <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>:
             <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
+            <span class="deletion-request-bar-actions">
+                <button class="tool-btn tool-btn--success" type="button" onclick="openDeletionReviewModal('approve')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#check-icon" />
+                    </svg>
+                    Approve
+                </button>
+                <button class="tool-btn tool-btn--danger" type="button" onclick="openDeletionReviewModal('reject')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                    Reject
+                </button>
+            </span>
         </div>
     <?php elseif (!$isReviewer && !empty($protocol['deletion_requested_at'])): ?>
         <div class="return-reason-bar deletion-request-bar">
@@ -221,6 +235,7 @@ include 'includes/header.php';
                         </svg>
                     </button>
                     <div class="title-history-menu" id="titleHistoryMenu">
+                        <div class="title-history-menu-header">Title Name History</div>
                         <div class="title-history-menu-label">Renamed from</div>
                         <?php foreach ($titleHistory as $h): ?>
                             <div class="title-history-item">
@@ -456,9 +471,9 @@ include 'includes/header.php';
             <div class="modal-card">
                 <h2 id="commentDialogTitle">Add Comment</h2>
                 <textarea id="commentText" rows="4" placeholder="Type your comment…"></textarea>
-                <div class="modal-actions">
-                    <button class="tool-btn" onclick="cancelComment()">Cancel</button>
+                <div class="modal-actions" id="commentDialogActions">
                     <button class="tool-btn active" id="commentDialogSave" onclick="saveComment()">Save</button>
+                    <button class="tool-btn" onclick="cancelComment()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -642,6 +657,45 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+    <!-- ===== Approve / reject deletion request modal ===== -->
+    <div class="modal-backdrop" id="deletionReviewModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label" id="deletionReviewLabel">Review Deletion Request</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="tool-btn close-modal" onclick="closeDeletionReviewModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro" id="deletionReviewIntro"></p>
+
+                <div id="deletionReviewReasonWrap">
+                    <label class="return-comment-label" for="deletionReviewReasonText">Reason <span class="return-comment-optional">(required)</span></label>
+                    <textarea id="deletionReviewReasonText" class="return-comment-textarea"
+                        placeholder="Explain why this deletion request is being rejected..."
+                        rows="4" maxlength="1000"></textarea>
+                    <p class="return-char-count"><span id="deletionReviewCharCount">0</span> / 1000</p>
+                </div>
+
+                <div id="deletionReviewError" class="error-messages" hidden></div>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeDeletionReviewModal()">Cancel</button>
+                    <button class="tool-btn" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- ===== File popup modal ===== -->
 <div class="modal-backdrop" id="filePopupBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;">
     <div class="modal-card file-popup-card">
@@ -811,6 +865,7 @@ include 'includes/header.php';
                 const vp = page.getViewport({
                     scale
                 });
+                const outputScale = window.devicePixelRatio || 1;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'page-wrapper';
@@ -819,8 +874,10 @@ include 'includes/header.php';
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'pdf-canvas';
-                canvas.width = vp.width;
-                canvas.height = vp.height;
+                canvas.width = Math.floor(vp.width * outputScale);
+                canvas.height = Math.floor(vp.height * outputScale);
+                canvas.style.width = vp.width + 'px';
+                canvas.style.height = vp.height + 'px';
                 wrapper.appendChild(canvas);
 
                 const overlay = document.createElement('div');
@@ -838,7 +895,8 @@ include 'includes/header.php';
 
                 await page.render({
                     canvasContext: canvas.getContext('2d'),
-                    viewport: vp
+                    viewport: vp,
+                    transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
                 }).promise;
             }
 
@@ -1312,6 +1370,14 @@ include 'includes/header.php';
                 return;
             }
 
+            const ok = await confirmAction(
+                `Rename this protocol to "${newTitle}"?`, {
+                    okText: 'Rename',
+                    cancelText: 'Cancel'
+                }
+            );
+            if (!ok) return;
+
             submitBtn.disabled = true;
 
             try {
@@ -1428,6 +1494,111 @@ include 'includes/header.php';
         }
     <?php endif; ?>
 
+    <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+        // ===== Approve / reject deletion request modal =====
+        const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
+        const deletionReviewLabel = document.getElementById('deletionReviewLabel');
+        const deletionReviewIntro = document.getElementById('deletionReviewIntro');
+        const deletionReviewReasonWrap = document.getElementById('deletionReviewReasonWrap');
+        const deletionReviewReasonText = document.getElementById('deletionReviewReasonText');
+        const deletionReviewCharCount = document.getElementById('deletionReviewCharCount');
+        const deletionReviewSubmitBtn = document.getElementById('deletionReviewSubmitBtn');
+        let deletionReviewAction = null;
+
+        function openDeletionReviewModal(action) {
+            deletionReviewAction = action;
+            deletionReviewReasonText.value = '';
+            deletionReviewCharCount.textContent = '0';
+            document.getElementById('deletionReviewError').hidden = true;
+
+            if (action === 'approve') {
+                deletionReviewLabel.textContent = 'Approve Deletion Request';
+                deletionReviewIntro.textContent = 'This will permanently delete the protocol and notify the researcher. This cannot be undone.';
+                deletionReviewReasonWrap.style.display = 'none';
+                deletionReviewSubmitBtn.textContent = 'Approve & Delete';
+                deletionReviewSubmitBtn.className = 'tool-btn tool-btn--success';
+            } else {
+                deletionReviewLabel.textContent = 'Reject Deletion Request';
+                deletionReviewIntro.textContent = 'The researcher will be notified that their deletion request was rejected, along with your explanation below.';
+                deletionReviewReasonWrap.style.display = '';
+                deletionReviewSubmitBtn.textContent = 'Reject Request';
+                deletionReviewSubmitBtn.className = 'tool-btn tool-btn--danger';
+            }
+
+            deletionReviewBackdrop.classList.add('open');
+        }
+
+        function closeDeletionReviewModal() {
+            deletionReviewBackdrop.classList.remove('open');
+        }
+
+        deletionReviewBackdrop.addEventListener('click', e => {
+            if (e.target === deletionReviewBackdrop) closeDeletionReviewModal();
+        });
+
+        deletionReviewReasonText.addEventListener('input', () => {
+            deletionReviewCharCount.textContent = deletionReviewReasonText.value.length;
+        });
+
+        async function submitDeletionReview() {
+            const isApprove = deletionReviewAction === 'approve';
+            const reason = deletionReviewReasonText.value.trim();
+            const errBox = document.getElementById('deletionReviewError');
+
+            errBox.hidden = true;
+
+            if (!isApprove && !reason) {
+                errBox.textContent = 'A reason is required.';
+                errBox.hidden = false;
+                return;
+            }
+
+            const confirmMessage = isApprove ?
+                'Approve this deletion request? The protocol will be permanently deleted.' :
+                'Reject this deletion request with the explanation you provided?';
+
+            const ok = await confirmAction(confirmMessage, {
+                okText: isApprove ? 'Approve & Delete' : 'Reject Request',
+                cancelText: 'Cancel',
+                danger: isApprove
+            });
+            if (!ok) return;
+
+            deletionReviewSubmitBtn.disabled = true;
+
+            try {
+                const res = await fetch(<?= json_encode(ROOT) ?> + (isApprove ? '/apply/approve_deletion' : '/apply/reject_deletion'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        protocol_id: PROTOCOL_ID,
+                        reason: reason
+                    })
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    if (isApprove) {
+                        window.location.href = <?= json_encode($backUrl) ?>;
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    errBox.textContent = data.error ?? 'Could not complete this action.';
+                    errBox.hidden = false;
+                    deletionReviewSubmitBtn.disabled = false;
+                }
+            } catch {
+                errBox.textContent = 'Network error. Please try again.';
+                errBox.hidden = false;
+                deletionReviewSubmitBtn.disabled = false;
+            }
+        }
+    <?php endif; ?>
+
     // ===== Mobile sidebar toggle =====
     function toggleSidebar() {
         const sidebar = document.getElementById('annotSidebar');
@@ -1476,13 +1647,17 @@ include 'includes/header.php';
             });
 
             const canvas = document.createElement('canvas');
-            canvas.width = vp.width;
-            canvas.height = vp.height;
+            const outputScale = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(vp.width * outputScale);
+            canvas.height = Math.floor(vp.height * outputScale);
+            canvas.style.width = vp.width + 'px';
+            canvas.style.height = vp.height + 'px';
             filePopupPdfPages.appendChild(canvas);
 
             await page.render({
                 canvasContext: canvas.getContext('2d'),
-                viewport: vp
+                viewport: vp,
+                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
             }).promise;
         }
     }
@@ -1749,6 +1924,14 @@ include 'includes/header.php';
                     return;
                 }
             }
+
+            const ok = await confirmAction(
+                'Resubmit this protocol for review? It will be sent back to the reviewer.', {
+                    okText: 'Resubmit',
+                    cancelText: 'Cancel'
+                }
+            );
+            if (!ok) return;
 
             submitBtn.disabled = true;
             errBox.hidden = true;

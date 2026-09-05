@@ -1,5 +1,7 @@
 /* ===== UNIVERSAL ===== */
 :root {
+    color-scheme: light;
+
     --radius: 4px;
     --btn-radius: 8px;
 
@@ -93,6 +95,8 @@
 }
 
 [data-theme="dark"] {
+    color-scheme: dark;
+
     --page-background: #12181f;
     --card-background: #1c242d;
     --card-background-translucent: rgba(28, 36, 45, 0.93);

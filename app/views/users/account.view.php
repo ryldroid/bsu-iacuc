@@ -33,8 +33,6 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
             data-confirm-ok-text="Save Changes">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-            <h1>My Account</h1>
-
             <?php if (!empty($_SESSION['flash_success'])): ?>
                 <div class="success-message">
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -54,6 +52,8 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                     </ul>
                 </div>
             <?php endif; ?>
+
+            <h1>My Account</h1>
 
             <?php if (!empty($certificate)): ?>
                 <section class="certificate-section">

@@ -180,6 +180,23 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    public function rejectDeletionRequest(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET deletion_requested_at = NULL, deletion_requested_by = NULL,
+                 deletion_requested_by_name = NULL, deletion_requested_by_role = NULL,
+                 deletion_request_reason = NULL
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute();
+    }
+
     public function getAll(): array
     {
         $sql = "SELECT
@@ -216,11 +233,20 @@ class ProtocolModel extends Model
                      WHERE pv3.protocol_id = p.id
                        AND pv3.file_type = 'auth'
                      ORDER BY pv3.version_number DESC
-                     LIMIT 1) AS latest_auth_version_id
+                     LIMIT 1) AS latest_auth_version_id,
+                    GREATEST(
+                        p.updated_at,
+                        COALESCE(
+                            (SELECT MAX(pv4.uploaded_at)
+                             FROM `protocol_versions` pv4
+                             WHERE pv4.protocol_id = p.id),
+                            p.updated_at
+                        )
+                    ) AS last_activity_at
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
                 WHERE u.status != 'deactivated' AND p.deleted_at IS NULL
-                ORDER BY p.submitted_at DESC";
+                ORDER BY last_activity_at DESC, p.id DESC";
 
         $result = $this->connection->query($sql);
         return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
@@ -249,6 +275,15 @@ class ProtocolModel extends Model
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id
                    AND pv.file_type = 'protocol') AS latest_version,
+                GREATEST(
+                    p.updated_at,
+                    COALESCE(
+                        (SELECT MAX(pv4.uploaded_at)
+                         FROM `protocol_versions` pv4
+                         WHERE pv4.protocol_id = p.id),
+                        p.updated_at
+                    )
+                ) AS last_activity_at,
                 rr.wrong_cert   AS rr_wrong_cert,
                 rr.wrong_auth   AS rr_wrong_auth,
                 rr.other_reason AS rr_other_reason,
@@ -263,7 +298,7 @@ class ProtocolModel extends Model
                 )
              LEFT JOIN `users` u ON u.id = rr.reviewer_id
              WHERE p.user_id = ? AND p.deleted_at IS NULL
-             ORDER BY p.submitted_at DESC"
+             ORDER BY last_activity_at DESC, p.id DESC"
         );
         if (! $stmt) {
             return [];

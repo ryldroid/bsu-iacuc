@@ -48,6 +48,16 @@
     margin: 0;
 }
 
+/* Save comes before Cancel in the DOM (so Tab reaches it first from the
+   textarea), but stays visually on the right to match the usual layout. */
+#commentDialogActions #commentDialogSave {
+    order: 2;
+}
+
+#commentDialogActions #commentDialogSave~button {
+    order: 1;
+}
+
 /* ===== File preview popup (extends .modal-card) ===== */
 .file-popup-card {
     max-width: 1200px;

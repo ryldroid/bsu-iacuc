@@ -79,17 +79,70 @@ class Apply extends Controller
             [
                 'template' => 'protocol_renamed',
                 'vars'     => [
-                    'first_name' => $owner['first_name'] ?? '',
-                    'old_title'  => $oldTitle,
-                    'new_title'  => $newTitle,
-                    'role_label' => $roleLabel,
-                    'actor_name' => $actor['name'],
+                    'first_name'  => $owner['first_name'] ?? '',
+                    'old_title'   => $oldTitle,
+                    'new_title'   => $newTitle,
+                    'role_label'  => $roleLabel,
+                    'actor_name'  => $actor['name'],
+                    'protocol_id' => $protocol['protocol_id'],
                 ],
                 'to'      => $owner['email'] ?? '',
                 'name'    => $owner['first_name'] ?? '',
                 'subject' => 'Protocol Renamed',
             ]
         );
+    }
+
+    private function notifyStaffProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
+    {
+        $roleLabel = $this->roleLabel($actor['role']);
+
+        foreach (['admin', 'reviewer'] as $staffRole) {
+            Notifier::sendToRole(
+                $staffRole,
+                'protocol_renamed',
+                'Protocol Renamed',
+                "$roleLabel {$actor['name']} renamed \"$oldTitle\" to \"$newTitle\".",
+                'apply/viewer/' . $protocol['protocol_id'],
+                [
+                    'template' => 'protocol_renamed_staff',
+                    'vars'     => [
+                        'old_title'   => $oldTitle,
+                        'new_title'   => $newTitle,
+                        'role_label'  => $roleLabel,
+                        'actor_name'  => $actor['name'],
+                        'protocol_id' => $protocol['protocol_id'],
+                    ],
+                    'subject' => 'Protocol Renamed',
+                ]
+            );
+        }
+    }
+
+    private function notifyStaffProtocolResubmitted(array $protocol, array $actor): void
+    {
+        $title     = $protocol['research_title'] ?? 'Untitled Protocol';
+        $roleLabel = $this->roleLabel($actor['role']);
+
+        foreach (['admin', 'reviewer'] as $staffRole) {
+            Notifier::sendToRole(
+                $staffRole,
+                'protocol_resubmitted',
+                'Protocol Re-submitted',
+                "$roleLabel {$actor['name']} resubmitted \"$title\" for review.",
+                'apply/viewer/' . $protocol['protocol_id'],
+                [
+                    'template' => 'protocol_resubmitted_staff',
+                    'vars'     => [
+                        'title'       => $title,
+                        'role_label'  => $roleLabel,
+                        'actor_name'  => $actor['name'],
+                        'protocol_id' => $protocol['protocol_id'],
+                    ],
+                    'subject' => 'Protocol Re-submitted',
+                ]
+            );
+        }
     }
 
     private function notifyDeletionRequested(array $protocol, string $reason, array $actor): void
@@ -106,10 +159,11 @@ class Apply extends Controller
             [
                 'template' => 'protocol_deletion_requested',
                 'vars'     => [
-                    'title'      => $title,
-                    'role_label' => $roleLabel,
-                    'actor_name' => $actor['name'],
-                    'reason'     => $reason,
+                    'title'       => $title,
+                    'role_label'  => $roleLabel,
+                    'actor_name'  => $actor['name'],
+                    'reason'      => $reason,
+                    'protocol_id' => $protocol['protocol_id'],
                 ],
                 'subject' => 'Protocol Deletion Requested',
             ]
@@ -146,6 +200,42 @@ class Apply extends Controller
         );
     }
 
+    private function notifyDeletionRejected(array $protocol, string $rejectionReason, array $actor): void
+    {
+        $requesterId = (int) ($protocol['deletion_requested_by'] ?? 0);
+        if ($requesterId < 1) {
+            return;
+        }
+
+        $requester = (new UserModel())->getUser($requesterId);
+        if (!$requester) {
+            return;
+        }
+
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::send(
+            $requesterId,
+            'protocol_deletion_rejected',
+            'Deletion Request Rejected',
+            "Your request to delete \"$title\" was rejected by {$actor['name']}. Reason: $rejectionReason",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'protocol_deletion_rejected',
+                'vars'     => [
+                    'first_name'  => $requester['first_name'] ?? '',
+                    'title'       => $title,
+                    'actor_name'  => $actor['name'],
+                    'reason'      => $rejectionReason,
+                    'protocol_id' => $protocol['protocol_id'],
+                ],
+                'to'      => $requester['email'] ?? '',
+                'name'    => $requester['first_name'] ?? '',
+                'subject' => 'Protocol Deletion Request Rejected',
+            ]
+        );
+    }
+
     private function notifyStatusChange(array $protocol, string $newStatus): void
     {
         $owner = (new UserModel())->getUser((int) $protocol['user_id']);
@@ -163,7 +253,7 @@ class Apply extends Controller
             'apply/viewer/' . $protocol['protocol_id'],
             [
                 'template' => 'protocol_status_changed',
-                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus],
+                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus, 'protocol_id' => $protocol['protocol_id']],
                 'to'       => $owner['email'] ?? '',
                 'name'     => $owner['first_name'] ?? '',
                 'subject'  => 'Protocol Status Updated',
@@ -382,7 +472,7 @@ class Apply extends Controller
             'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted',
-                'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title],
+                'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocolId],
                 'to'       => $submitter['email'] ?? '',
                 'name'     => $submitter['first_name'] ?? '',
                 'subject'  => 'Protocol Submitted',
@@ -397,7 +487,7 @@ class Apply extends Controller
             'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted_admin',
-                'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title],
+                'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title, 'protocol_id' => $protocolId],
                 'subject'  => 'New Protocol Submission',
             ]
         );
@@ -732,6 +822,7 @@ class Apply extends Controller
 
         $model->updateStatus($protocolId, 'Under Review');
         $this->notifyStatusChange($protocol, 'Under Review');
+        $this->notifyStaffProtocolResubmitted($protocol, $actor);
         $model->logAudit('protocol_revised', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol # $protocolId resubmitted");
         $_SESSION['flash_success'] = 'Your protocol has been resubmitted and is back under review.';
 
@@ -1106,6 +1197,8 @@ class Apply extends Controller
 
         if ($isStaff && !$isOwner) {
             $this->notifyProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
+        } elseif ($isOwner) {
+            $this->notifyStaffProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
         }
 
         $_SESSION['flash_success'] = 'Protocol renamed.';
@@ -1208,6 +1301,101 @@ class Apply extends Controller
             $model->logAudit('protocol_deleted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Deleted. Reason: $reason");
             $this->notifyProtocolDeleted($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Protocol deleted.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion) — reviewer only =====
+
+    public function approve_deletion(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer access only.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (empty($protocol['deletion_requested_at'])) {
+            $this->jsonError(422, 'There is no pending deletion request for this protocol.');
+        }
+
+        $reason = trim((string) $protocol['deletion_request_reason']) ?: 'Deletion request approved.';
+        $ok     = $model->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
+
+        if ($ok) {
+            $model->logAudit('protocol_deletion_approved', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Approved deletion request. Reason: $reason");
+            $this->notifyProtocolDeleted($protocol, $reason, $actor);
+            $_SESSION['flash_success'] = 'Deletion request approved. Protocol deleted.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion) — reviewer only =====
+
+    public function reject_deletion(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer access only.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $reason     = trim($body['reason'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+        if ($reason === '') {
+            $this->jsonError(422, 'Please explain why this deletion request is being rejected.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (empty($protocol['deletion_requested_at'])) {
+            $this->jsonError(422, 'There is no pending deletion request for this protocol.');
+        }
+
+        $ok = $model->rejectDeletionRequest($protocolId);
+
+        if ($ok) {
+            $model->logAudit('protocol_deletion_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Rejected deletion request. Reason: $reason");
+            $this->notifyDeletionRejected($protocol, $reason, $actor);
+            $_SESSION['flash_success'] = 'Deletion request rejected.';
         }
 
         echo json_encode(['ok' => $ok]);

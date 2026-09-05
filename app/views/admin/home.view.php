@@ -161,25 +161,22 @@ foreach ($protocols as $p) {
         <?php endif; ?>
 
         <!-- ===== Metric cards ===== -->
-        <div class="metrics-row">
+        <div class="metrics-row dashboard-metrics">
             <div class="metric-card">
-                <div class="metric-card-label">To review</div>
-                <div class="metric-card-value">
-                    <?= $toReviewCount ?>
-                    <span class="metric-unit">unread</span>
-                </div>
+                <span class="metric-card-value"><?= $toReviewCount ?></span>
+                <span class="metric-card-label">to review</span>
             </div>
             <div class="metric-card">
-                <div class="metric-card-label">Awaiting revision</div>
-                <div class="metric-card-value"><?= $revisionCount ?></div>
+                <span class="metric-card-value"><?= $revisionCount ?></span>
+                <span class="metric-card-label">awaiting revision</span>
             </div>
             <div class="metric-card">
-                <div class="metric-card-label">Reviewed</div>
-                <div class="metric-card-value"><?= $reviewedCount ?></div>
+                <span class="metric-card-value"><?= $reviewedCount ?></span>
+                <span class="metric-card-label">reviewed</span>
             </div>
             <div class="metric-card">
-                <div class="metric-card-label">Approved this month</div>
-                <div class="metric-card-value"><?= $approvedThisMonth ?></div>
+                <span class="metric-card-value"><?= $approvedThisMonth ?></span>
+                <span class="metric-card-label">approved this month</span>
             </div>
         </div>
 
@@ -864,7 +861,7 @@ foreach ($protocols as $p) {
         dismissFlash('flashError', 7000);
     })();
 
-    // ===== Status legend info panel (hover on desktop, tap on touch) =====
+    // ===== Status legend info panel (single click to open/close) =====
     (function() {
         const wrapper = document.getElementById('legendInfoWrapper');
         const btn = document.getElementById('legendInfoBtn');
@@ -880,10 +877,6 @@ foreach ($protocols as $p) {
             panel.classList.remove('open');
             btn.setAttribute('aria-expanded', 'false');
         }
-
-        wrapper.addEventListener('mouseenter', openPanel);
-        wrapper.addEventListener('mouseleave', closePanel);
-        btn.addEventListener('focus', openPanel);
 
         btn.addEventListener('click', e => {
             e.stopPropagation();
@@ -983,7 +976,7 @@ foreach ($protocols as $p) {
             return;
         }
 
-        renamePanel.innerHTML = titleHistory.map(h => {
+        renamePanel.innerHTML = '<div class="rename-history-panel-header">Title Name History</div>' + titleHistory.map(h => {
             const date = new Date(h.changed_at).toLocaleString('en-PH', {
                 year: 'numeric',
                 month: 'short',

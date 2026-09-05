@@ -496,6 +496,15 @@
   gap: .5rem;
 }
 
+.rename-history-panel-header {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  padding-bottom: .35rem;
+  margin-bottom: .1rem;
+  border-bottom: 1px solid var(--divider-color-subtle);
+}
+
 .rename-history-entry {
   font-size: .78rem;
   line-height: 1.5;
@@ -694,13 +703,25 @@
 
     width: fit-content;
     margin: 12px 0 4px;
+    padding: 8px 14px;
 
-    box-shadow: none;
-    transition: none;
+    background: var(--card-background);
+    border: 1px solid var(--input-border);
+    border-radius: var(--btn-radius);
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
+    color: var(--primary-text);
+    font-weight: 500;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  .mobile-status-filters:hover {
+    background: var(--hover-surface-soft);
+    color: var(--primary-text);
   }
 
   .mobile-status-filters:active {
     transform: none;
+    background: var(--hover-surface);
   }
 
   .status-filters {
