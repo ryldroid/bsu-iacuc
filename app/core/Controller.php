@@ -119,7 +119,7 @@ class Controller
       }
 
       if ($expired) {
-        $_SESSION['flash_error'] = 'Your session expired due to inactivity. Please try again.';
+        $_SESSION['flash_error'] = 'Your session has expired. Please try again.';
         header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? (ROOT . '/')));
         exit;
       }

@@ -163,6 +163,10 @@ main button {
     color: var(--text-on-brand);
 }
 
+main .btn-login {
+    width: 160px;
+}
+
 main button:hover {
     color: var(--text-on-brand);
 }

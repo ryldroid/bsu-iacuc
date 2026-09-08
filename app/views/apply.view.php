@@ -591,7 +591,7 @@ include "includes/scroll-top.php";
     <div class="doc-list">
     ${docRow('protocol', {
         title: 'Protocol form (PDF)',
-        subtitle: 'Filename: Surname_ProtocolTitle.pdf · max 10 MB',
+        subtitle: 'PDF · max 10 MB',
         required: true
     })}
     </div>

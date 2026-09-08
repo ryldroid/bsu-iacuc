@@ -18,6 +18,7 @@ class Users extends Controller
       'last_name'    => trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $post['last_name'] ?? '')),
       'email'        => filter_var(trim($post['email'] ?? ''), FILTER_SANITIZE_EMAIL),
       'phone_number' => trim($post['phone_number'] ?? ''),
+      'school'       => trim(preg_replace('/[^\p{L}\p{M}\p{N}\s\-\'\.,()&]/u', '', $post['school'] ?? '')),
       'password'     => $post['password'] ?? '',
       'confirm_pass' => $post['confirm_password'] ?? '',
       'role'         => $post['role'] ?? '',
@@ -228,9 +229,16 @@ class Users extends Controller
     $this->verifyCsrfToken();
 
     extract($this->sanitizeInputs($_POST));
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number');
+    $school = trim($school ?? '');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school');
 
     $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher');
+
+    if ($school === '') {
+      $errors[] = 'Please enter your school.';
+    } elseif (mb_strlen($school) > 150) {
+      $errors[] = 'School name is too long.';
+    }
 
     if (empty($errors)) {
       if ($this->model->getUserByEmail($email)) {
@@ -251,7 +259,7 @@ class Users extends Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number);
+    $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school);
 
     if ($ok) {
       $this->sendEmailVerification([
@@ -319,6 +327,7 @@ class Users extends Controller
         'username'     => $user['username'],
         'email'        => $user['email'],
         'phone_number' => $user['phone_number'] ?? '+63',
+        'school'       => $user['school'] ?? '',
         'role'         => $user['role'],
       ],
     ]);
@@ -347,9 +356,18 @@ class Users extends Controller
       $role = in_array($role, ['admin', 'reviewer']) ? $role : $current_user['role'];
     }
 
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'role');
+    $school = trim($school ?? '');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'role');
 
     $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false);
+
+    if ($role === 'researcher') {
+      if ($school === '') {
+        $errors[] = 'Please enter your school.';
+      } elseif (mb_strlen($school) > 150) {
+        $errors[] = 'School name is too long.';
+      }
+    }
 
     if (empty($errors)) {
       $existing_email    = $this->model->getUserByEmail($email);
@@ -377,7 +395,7 @@ class Users extends Controller
       return;
     }
 
-    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'role');
+    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'role');
     if (!empty($password)) {
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
     }

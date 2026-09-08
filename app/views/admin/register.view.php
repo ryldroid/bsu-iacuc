@@ -16,12 +16,23 @@ $role = $user['role'] ?? '';
     <?php $default = "BSU-IACUC"; ?>
     <title><?= isset($title) ? "$title - $default" : $default ?></title>
 
+    <script>
+        (function() {
+            var mode = localStorage.getItem('theme') || 'auto';
+            var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var resolvedTheme = (mode === 'light' || mode === 'dark') ? mode : (systemPrefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', resolvedTheme);
+            document.documentElement.setAttribute('data-theme-mode', mode);
+        })();
+    </script>
+
     <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('admin/admin.css') ?>">
 
     <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
+    <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

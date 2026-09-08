@@ -433,6 +433,18 @@ class Apply extends Controller
         return $known[$mime] ?? "a \"$mime\" file";
     }
 
+    private function protocolDisplayFilename(string $lastName, string $title, string $ext): string
+    {
+        $lastName = trim($lastName) !== '' ? trim($lastName) : 'Applicant';
+        $title    = trim($title) !== '' ? trim($title) : 'Untitled Protocol';
+
+        $illegal   = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+        $lastName  = str_replace($illegal, '', $lastName);
+        $title     = str_replace($illegal, '', $title);
+
+        return $lastName . '_' . $title . '.' . strtolower($ext);
+    }
+
     private function saveUpload(string $inputName, string $dir, array $allowedExts, bool $required, ?string &$reason = null): array|false|null
     {
         if (empty($_FILES[$inputName]['tmp_name']) || $_FILES[$inputName]['error'] !== UPLOAD_ERR_OK) {
@@ -556,6 +568,10 @@ class Apply extends Controller
         }
         $docOriginalName = $draft['protocol_file_name'];
 
+        $submitter = $userModel->getUser($actor['id']);
+        $docExt    = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
+        $docOriginalName = $this->protocolDisplayFilename($submitter['last_name'] ?? '', $title, $docExt);
+
         $existingCert = $userModel->getCert($actor['id']);
         $certRelPath  = $draft['cert_file_path'] ?? null;
         if (!$existingCert && (!$certRelPath || !is_file($draftDirAbs . $certRelPath))) {
@@ -600,8 +616,6 @@ class Apply extends Controller
         $draftModel->clear($actor['id']);
 
         $model->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
-
-        $submitter = $userModel->getUser($actor['id']);
 
         Notifier::send(
             $actor['id'],
@@ -953,6 +967,8 @@ class Apply extends Controller
 
         if ($docUpload !== null) {
             [$docPath, $docOriginalName] = $docUpload;
+            $docExt = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
+            $docOriginalName = $this->protocolDisplayFilename($protocol['submitter_last_name'] ?? '', $protocol['research_title'] ?? '', $docExt);
             $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'protocol');
             if (!$versionId) {
                 $this->jsonError(500, 'Could not record new version.');
@@ -1110,12 +1126,12 @@ class Apply extends Controller
         }
 
         $forceDownload = isset($_GET['download']);
+        $displayName   = $version['original_name'] ?: basename($filePath);
 
-        $displayName = $version['original_name'] ?: basename($filePath);
-        if ($forceDownload && !empty($version['protocol_title'])) {
-            $ext         = pathinfo($filePath, PATHINFO_EXTENSION);
-            $safeTitle   = preg_replace('/[^\w.\-]+/', '_', trim($version['protocol_title']));
-            $displayName = $safeTitle . ($ext ? '.' . $ext : '');
+        if ($version['file_type'] === 'protocol') {
+            $owner       = (new UserModel())->getUser((int) $version['owner_id']);
+            $ext         = pathinfo($displayName, PATHINFO_EXTENSION) ?: 'pdf';
+            $displayName = $this->protocolDisplayFilename($owner['last_name'] ?? '', $version['protocol_title'] ?? '', $ext);
         }
 
         $this->streamFile($filePath, $displayName, $forceDownload);

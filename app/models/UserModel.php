@@ -116,15 +116,16 @@ class UserModel extends Model
     string $passwordHash,
     string $role = 'researcher',
     string $status = 'active',
-    ?string $phone_number = null
+    ?string $phone_number = null,
+    ?string $school = null
   ): bool {
     $stmt = $this->connection->prepare(
       "INSERT INTO `$this->table`
-      (username, first_name, last_name, email, phone_number, password, role, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      (username, first_name, last_name, email, phone_number, school, password, role, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
-    $stmt->bind_param('ssssssss', $username, $first_name, $last_name, $email, $phone_number, $passwordHash, $role, $status);
+    $stmt->bind_param('sssssssss', $username, $first_name, $last_name, $email, $phone_number, $school, $passwordHash, $role, $status);
     return $stmt->execute();
   }
 
@@ -135,24 +136,25 @@ class UserModel extends Model
     $last_name    = $input['last_name'];
     $email        = $input['email'];
     $phone_number = $input['phone_number'];
+    $school       = $input['school'] ?? null;
     $role         = $input['role'];
 
     if (!empty($input['password'])) {
       $password = $input['password'];
       $stmt = $this->connection->prepare(
         "UPDATE $this->table 
-          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, role=?, password=? 
+          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, role=?, password=? 
           WHERE id=?"
       );
 
-      $stmt->bind_param('sssssssi', $username, $first_name, $last_name, $email, $phone_number, $role, $password, $id);
+      $stmt->bind_param('ssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $role, $password, $id);
     } else {
       $stmt = $this->connection->prepare(
         "UPDATE $this->table 
-          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, role=? 
+          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, role=? 
           WHERE id=?"
       );
-      $stmt->bind_param('ssssssi', $username, $first_name, $last_name, $email, $phone_number, $role, $id);
+      $stmt->bind_param('sssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $role, $id);
     }
 
     return $stmt->execute();

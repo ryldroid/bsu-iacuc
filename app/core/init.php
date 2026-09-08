@@ -33,7 +33,7 @@ if (isset($_SESSION['last_activity'])) {
         session_regenerate_id(true);
 
         if ($hadUser) {
-            $_SESSION['flash_error'] = 'Your session expired due to inactivity. Please log in again.';
+            $_SESSION['flash_error'] = 'Your session has expired. Please log in again.';
         }
     }
 }

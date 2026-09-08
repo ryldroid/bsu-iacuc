@@ -80,6 +80,13 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="input-group">
+                <input type="text" id="school" name="school" list="school-options" placeholder=" "
+                    value="<?= htmlspecialchars($old['school'] ?? ''); ?>" required>
+                <label for="school">School</label>
+            </div>
+            <?php include __DIR__ . '/../includes/school-options.php'; ?>
+
+            <div class="input-group">
                 <input type="password" id="password" name="password" placeholder=" " required>
                 <label for="password">Create Password</label>
             </div>

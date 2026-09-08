@@ -608,7 +608,7 @@ class Admin extends Controller
             $this->redirect('admin/accounts');
         }
 
-        $this->verifyCsrfToken(true);
+        $this->verifyCsrfToken();
 
         $role = $_POST['invite_role'] ?? 'admin';
         if (!in_array($role, ['admin', 'reviewer'])) {
@@ -635,7 +635,7 @@ class Admin extends Controller
             $this->redirect('admin/accounts');
         }
 
-        $this->verifyCsrfToken(true);
+        $this->verifyCsrfToken();
 
         $id = (int) ($_POST['user_id'] ?? 0);
         if ($id > 0) {
@@ -675,7 +675,7 @@ class Admin extends Controller
             $this->redirect('admin/accounts');
         }
 
-        $this->verifyCsrfToken(true);
+        $this->verifyCsrfToken();
 
         $id = (int) ($_POST['user_id'] ?? 0);
         if ($id > 0) {

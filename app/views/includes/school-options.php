@@ -1,0 +1,19 @@
+<datalist id="school-options">
+  <option value="Benguet State University">
+  <option value="University of the Cordilleras">
+  <option value="University of Baguio">
+  <option value="Saint Louis University">
+  <option value="University of the Philippines Baguio">
+  <option value="Baguio Central University">
+  <option value="Pines City Colleges">
+  <option value="Easter College">
+  <option value="Cordillera Career Development College">
+  <option value="Abra State Institute of Science and Technology">
+  <option value="Apayao State College">
+  <option value="Kalinga State University">
+  <option value="Ifugao State University">
+  <option value="Mountain Province State Polytechnic College">
+  <option value="Philippine Science High School - Cordillera Administrative Region Campus">
+  <option value="Cordillera Regional Science High School">
+  <option value="Ifugao Provincial Science High School">
+</datalist>

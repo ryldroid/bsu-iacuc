@@ -7,6 +7,16 @@
 
   <title><?= htmlspecialchars($title ?? 'Error', ENT_QUOTES, 'UTF-8') ?></title>
 
+  <script>
+    (function() {
+      var mode = localStorage.getItem('theme') || 'auto';
+      var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var resolvedTheme = (mode === 'light' || mode === 'dark') ? mode : (systemPrefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      document.documentElement.setAttribute('data-theme-mode', mode);
+    })();
+  </script>
+
   <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
   <link rel="stylesheet" href="<?= asset_css('404.css') ?>">
 

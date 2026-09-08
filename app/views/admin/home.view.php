@@ -612,7 +612,7 @@ foreach ($protocols as $p) {
                                     <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line">
-                                    <?= $protocol['version_display'] ?> &middot; <?= $researcherName ?> &middot; <?= $submittedDate ?>
+                                    <?= $protocol['version_display'] ?> &middot; <?= $researcherName ?><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?>
                                 </p>
                             </div>
 

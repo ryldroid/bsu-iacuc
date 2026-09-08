@@ -55,7 +55,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <label for="password">Password</label>
             </div>
 
-            <button type="submit">Log In</button>
+            <button type="submit" class="btn-login">Log In</button>
 
             <p class="underlined-p">Don't have an account? <a class="underlined" href="<?= ROOT ?>/users/register">Register here</a></p>
             <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/users/forgot_password">Forgot Password</a></p>

@@ -350,6 +350,7 @@ class ProtocolModel extends Model
                     p.paid_by,
                     u.first_name,
                     u.last_name,
+                    u.school,
                     (SELECT MAX(pv.version_number)
                      FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id

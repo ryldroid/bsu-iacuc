@@ -12,7 +12,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
 
 <div class="body">
     <main class="main-content" id="main-content" tabindex="-1">
-        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
+        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating theme-toggle--staff-login'; ?>
         <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
 
         <form method="POST" action="<?= ROOT ?>/admin/login_process">
@@ -50,7 +50,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
                 <label for="password">Password</label>
             </div>
 
-            <button type="submit">Log In</button>
+            <button type="submit" class="btn-login">Log In</button>
 
             <p class="underlined-p"><a class="underlined" href="<?= ROOT ?>/admin/forgot_password">Forgot Password</a></p>
 

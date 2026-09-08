@@ -118,6 +118,15 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                 <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
             </div>
 
+            <?php if (($old['role'] ?? '') === 'researcher'): ?>
+                <div class="input-group">
+                    <input type="text" id="school" name="school" list="school-options" placeholder=" "
+                        value="<?= htmlspecialchars($old['school'] ?? ''); ?>" required>
+                    <label for="school">School <span class="required-asterisk">*</span></label>
+                </div>
+                <?php include __DIR__ . '/../includes/school-options.php'; ?>
+            <?php endif; ?>
+
             <span class="helper">Leave the password fields blank to keep your current password.</span>
 
             <div class="input-group">

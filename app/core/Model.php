@@ -87,6 +87,7 @@ class Model
 
         $this->ensureColumn('users', 'phone_number', "varchar(20) DEFAULT NULL AFTER `email`");
         $this->ensureColumn('users', 'email_verified', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email`");
+        $this->ensureColumn('users', 'school', "varchar(150) DEFAULT NULL AFTER `phone_number`");
         $this->ensureIndex('users', 'unique_email', "(`email`)", true);
 
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
