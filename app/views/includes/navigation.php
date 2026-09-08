@@ -37,6 +37,17 @@ $role = $user['role'] ?? '';
                 <?php if ($role === 'admin'): ?>
                     <!-- ADMIN ONLY -->
                     <li>
+                        <a href="<?= ROOT ?>/admin/clearances">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#clearance-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Clearance Pool</span>
+                        </div>
+                    </li>
+
+                    <li>
                         <a href="<?= ROOT ?>/admin/announcements">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#announcement-icon" />

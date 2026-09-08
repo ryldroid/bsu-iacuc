@@ -66,6 +66,16 @@ class Admin extends Controller
         ]);
     }
 
+    public function clearances(): void
+    {
+        $this->requireAdmin();
+
+        $this->view('admin/clearances', [
+            'user' => $_SESSION['user'],
+            'csrf' => $this->generateCsrfToken(),
+        ]);
+    }
+
     public function records(): void
     {
         $this->requireStaff();
@@ -696,7 +706,7 @@ class Admin extends Controller
         $this->handleResetPassword('admin/reset_password', 'admin/login');
     }
 
-    // ===== ANNOUNCEMENTS ("From Our Office" section) — add/edit/delete =====
+    // ===== ANNOUNCEMENTS ("From Our Office" section): add/edit/delete =====
     // ADDED by SPM - the view-only `announcements()`
     //  Does NOT touch the "From Our Partner Pages" Facebook section, which stays auto-updating.]
 

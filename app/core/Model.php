@@ -134,6 +134,9 @@ class Model
         $this->ensureColumn('protocols', 'deleted_by', "int(11) DEFAULT NULL AFTER `deleted_at`");
         $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");
         $this->ensureColumn('protocols', 'deletion_reason', "varchar(1000) DEFAULT NULL AFTER `deleted_by_name`");
+        $this->ensureColumn('protocols', 'payment_status', "enum('unpaid','proof_submitted','rejected','paid') NOT NULL DEFAULT 'unpaid' AFTER `deletion_reason`");
+        $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_status`");
+        $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
                     `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -160,6 +163,13 @@ class Model
                     FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
                     FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureEnumValues(
+            'protocol_versions',
+            'file_type',
+            ['protocol', 'cert', 'auth', 'clearance', 'payment_proof', 'signed_scan'],
+            'protocol'
+        );
 
         $c->query("CREATE TABLE IF NOT EXISTS `annotations` (
                 `id`          int(11)  NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -271,6 +281,35 @@ class Model
                     FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
+                    `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`  int(11)       NOT NULL,
+                    `reviewer_id`  int(11)       NOT NULL,
+                    `comment`      varchar(1000) NOT NULL DEFAULT '',
+                    `created_at`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_ppr_protocol` (`protocol_id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $c->query("CREATE TABLE IF NOT EXISTS `clearance_pool` (
+                    `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `file_path`      varchar(255) NOT NULL,
+                    `original_name`  varchar(255) NOT NULL,
+                    `uploaded_by`    int(11)      NOT NULL,
+                    `uploaded_at`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `protocol_id`    int(11)      DEFAULT NULL,
+                    `assigned_by`    int(11)      DEFAULT NULL,
+                    `assigned_at`    timestamp    NULL DEFAULT NULL,
+                    `version_id`     int(11)      DEFAULT NULL,
+                    INDEX `idx_cp_protocol` (`protocol_id`),
+                    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`),
+                    FOREIGN KEY (`assigned_by`) REFERENCES `users`(`id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('clearance_pool', 'version_id', "int(11) DEFAULT NULL AFTER `assigned_at`");
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_drafts` (
                     `id`                  int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`             int(11)      NOT NULL UNIQUE,
@@ -297,6 +336,22 @@ class Model
         $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
         if ($exists && $exists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+    }
+
+    private function ensureEnumValues(string $table, string $column, array $values, string $default): void
+    {
+        $c = $this->connection;
+
+        $result = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if (! $row) {
+            return;
+        }
+
+        $target = "enum(" . implode(',', array_map(fn($v) => "'" . $c->real_escape_string($v) . "'", $values)) . ")";
+        if ($row['Type'] !== $target) {
+            $c->query("ALTER TABLE `$table` MODIFY COLUMN `$column` $target NOT NULL DEFAULT '$default'");
         }
     }
 

@@ -96,7 +96,7 @@ $first_name    = $user['first_name'] ?? '';
 
         <section class="fb-cards" style="margin-top: 2rem;">
             <h2>From Our Partner Pages</h2>
-            <p class="announcements-subtitle">Preview only — updates automatically from Facebook, not managed here.</p>
+            <p class="announcements-subtitle">Preview only: updates automatically from Facebook, not managed here.</p>
 
             <div class="fb-pages-grid">
                 <!-- BSU Research Services FB (Bsu Ors) -->
@@ -339,11 +339,11 @@ $first_name    = $user['first_name'] ?? '';
                     return;
                 }
 
-                const imageFile = document.getElementById('add_ann_image').files[0]; 
+                const imageFile = document.getElementById('add_ann_image').files[0];
                 post('/admin/announcements_add', {
                     title,
                     body,
-                    image: imageFile 
+                    image: imageFile
                 }).then(data => {
                     if (data.ok) {
                         closeModal('addAnnouncementModal');
@@ -420,15 +420,15 @@ $first_name    = $user['first_name'] ?? '';
                     return;
                 }
 
-                const imageFile = document.getElementById('edit_ann_image').files[0]; 
-                const removeImage = document.getElementById('edit_ann_remove_image').checked; 
+                const imageFile = document.getElementById('edit_ann_image').files[0];
+                const removeImage = document.getElementById('edit_ann_remove_image').checked;
 
                 post('/admin/announcements_edit', {
                     id: document.getElementById('edit_ann_id').value,
                     title,
                     body,
-                    image: imageFile, 
-                    remove_image: removeImage ? '1' : '0' 
+                    image: imageFile,
+                    remove_image: removeImage ? '1' : '0'
                 }).then(data => {
                     if (data.ok) {
                         closeModal('editAnnouncementModal');

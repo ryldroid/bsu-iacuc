@@ -15,6 +15,18 @@
  *   POST /apply/clearance_upload       → attach clearance doc and mark Approved (admin)
  *   GET|POST /apply/annotate           → get/save/edit/delete annotations (JSON)
  *   POST /apply/status                 → update protocol status (JSON)
+ *   POST /apply/payment_proof          → researcher uploads proof of payment (JSON)
+ *   POST /apply/verify_payment         → reviewer marks a protocol paid (JSON)
+ *   POST /apply/undo_payment           → reviewer undoes a "mark as paid" (JSON)
+ *   POST /apply/reject_payment         → reviewer rejects a payment proof with a reason (JSON)
+ *   POST /apply/signed_scan_upload     → admin uploads the wet-signed scan (JSON)
+ *   POST /apply/clearance_pool_upload  → reviewer uploads a BAI clearance screenshot to the pool (JSON)
+ *   GET  /apply/clearance_pool         → list unassigned + staged clearance pool items (JSON, admin)
+ *   GET  /apply/clearance_pool_file/{id} → stream a clearance pool item
+ *   POST /apply/clearance_stage        → admin drags a screenshot onto a protocol (provisional, JSON)
+ *   POST /apply/clearance_unstage      → admin undoes a stage before confirming (JSON)
+ *   POST /apply/clearance_confirm      → admin commits all staged matches at once, marks Approved (JSON)
+ *   POST /apply/clearance_unassign     → admin detaches an already-confirmed wrong match (JSON)
  *   POST /apply/return_revision        → return for revision with reasons (JSON)
  *   GET  /apply/returnreason/{id}      → get latest return reason (JSON)
  *   POST /apply/reuploadcert           → replace researcher's stored certificate
@@ -261,6 +273,126 @@ class Apply extends Controller
         );
     }
 
+    private function notifyPaymentProofUploaded(array $protocol, array $actor): void
+    {
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::sendToRole(
+            'reviewer',
+            'payment_proof_uploaded',
+            'Payment Proof Uploaded',
+            "{$actor['name']} uploaded proof of payment for \"$title\".",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'payment_proof_uploaded',
+                'vars'     => ['title' => $title, 'actor_name' => $actor['name'], 'protocol_id' => $protocol['protocol_id']],
+                'subject'  => 'Payment Proof Uploaded',
+            ]
+        );
+    }
+
+    private function notifyPaymentVerified(array $protocol, array $actor): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        if ($owner) {
+            Notifier::send(
+                (int) $protocol['user_id'],
+                'payment_verified',
+                'Payment Verified',
+                "Your payment for \"$title\" has been verified.",
+                'apply/viewer/' . $protocol['protocol_id'],
+                [
+                    'template' => 'payment_verified',
+                    'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
+                    'to'       => $owner['email'] ?? '',
+                    'name'     => $owner['first_name'] ?? '',
+                    'subject'  => 'Payment Verified',
+                ]
+            );
+        }
+
+        Notifier::sendToRole(
+            'admin',
+            'protocol_paid',
+            'Protocol Ready for Printing',
+            "\"$title\" has been paid and is ready to print and sign.",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'protocol_paid',
+                'vars'     => ['title' => $title, 'protocol_id' => $protocol['protocol_id']],
+                'subject'  => 'Protocol Ready for Printing',
+            ]
+        );
+    }
+
+    private function notifyPaymentRejected(array $protocol, string $reason, array $actor): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        if (!$owner) {
+            return;
+        }
+
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::send(
+            (int) $protocol['user_id'],
+            'payment_proof_rejected',
+            'Payment Proof Rejected',
+            "Your payment proof for \"$title\" was rejected. Reason: $reason. Please upload a new one.",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'payment_proof_rejected',
+                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'reason' => $reason, 'protocol_id' => $protocol['protocol_id']],
+                'to'       => $owner['email'] ?? '',
+                'name'     => $owner['first_name'] ?? '',
+                'subject'  => 'Payment Proof Rejected',
+            ]
+        );
+    }
+
+    private function notifySignedScanUploaded(array $protocol, array $actor): void
+    {
+        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        if (!$owner) {
+            return;
+        }
+
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::send(
+            (int) $protocol['user_id'],
+            'signed_scan_uploaded',
+            'Signed Protocol Uploaded',
+            "The signed scan of \"$title\" has been uploaded.",
+            'apply/viewer/' . $protocol['protocol_id'],
+            [
+                'template' => 'signed_scan_uploaded',
+                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
+                'to'       => $owner['email'] ?? '',
+                'name'     => $owner['first_name'] ?? '',
+                'subject'  => 'Signed Protocol Uploaded',
+            ]
+        );
+    }
+
+    private function notifyClearancePoolUploaded(array $actor, int $count): void
+    {
+        Notifier::sendToRole(
+            'admin',
+            'clearance_pool_uploaded',
+            'New Clearance Screenshots',
+            "{$actor['name']} added $count clearance screenshot(s) for sorting.",
+            'admin/clearances',
+            [
+                'template' => 'clearance_pool_uploaded',
+                'vars'     => ['actor_name' => $actor['name'], 'count' => $count],
+                'subject'  => 'New Clearance Screenshots',
+            ]
+        );
+    }
+
     private function addFileUrls(array $versions): array
     {
         return array_map(fn($v) => $v + ['file_url' => ROOT . '/apply/file/' . (int) $v['id']], $versions);
@@ -269,6 +401,11 @@ class Apply extends Controller
     private function protocolDir(int $protocolId): string
     {
         return dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $protocolId . '/';
+    }
+
+    private function clearancePoolDir(): string
+    {
+        return dirname(__DIR__, 2) . '/storage/uploads/clearance_pool/';
     }
 
     private function draftDir(int $userId): string
@@ -352,7 +489,7 @@ class Apply extends Controller
         return move_uploaded_file($file['tmp_name'], $dest) ? [$dest, $cleanOriginal] : false;
     }
 
-    private function streamFile(string $filePath, string $displayName): void
+    private function streamFile(string $filePath, string $displayName, bool $forceDownload = false): void
     {
         $finfo    = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filePath);
@@ -367,8 +504,10 @@ class Apply extends Controller
             $this->jsonError(403, 'File type not permitted.');
         }
 
+        $disposition = $forceDownload ? 'attachment' : 'inline';
+
         header('Content-Type: ' . $mimeType);
-        header('Content-Disposition: inline; filename="' . addslashes($displayName) . '"');
+        header('Content-Disposition: ' . $disposition . '; filename="' . addslashes($displayName) . '"');
         header('Content-Length: ' . filesize($filePath));
         header('Cache-Control: private, no-store');
         header('X-Content-Type-Options: nosniff');
@@ -915,6 +1054,10 @@ class Apply extends Controller
             'backUrl'           => $backUrl,
             'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
             'latestAuthVersion' => $model->getLatestVersionAsOf($protocolId, 'auth', $version['uploaded_at']),
+            'latestPaymentProofVersion' => $model->getLatestVersion($protocolId, 'payment_proof'),
+            'latestSignedScanVersion'   => $model->getLatestVersion($protocolId, 'signed_scan'),
+            'latestClearanceVersion'    => $model->getLatestVersion($protocolId, 'clearance'),
+            'paymentRejection'  => $model->getLatestPaymentRejection($protocolId),
             'returnReason'      => $model->getLatestReturnReason($protocolId),
             'hasCertOnFile'     => $hasCertOnFile,
             'canRename'         => $canRename,
@@ -966,7 +1109,83 @@ class Apply extends Controller
             exit;
         }
 
-        $this->streamFile($filePath, $version['original_name'] ?: basename($filePath));
+        $forceDownload = isset($_GET['download']);
+
+        $displayName = $version['original_name'] ?: basename($filePath);
+        if ($forceDownload && !empty($version['protocol_title'])) {
+            $ext         = pathinfo($filePath, PATHINFO_EXTENSION);
+            $safeTitle   = preg_replace('/[^\w.\-]+/', '_', trim($version['protocol_title']));
+            $displayName = $safeTitle . ($ext ? '.' . $ext : '');
+        }
+
+        $this->streamFile($filePath, $displayName, $forceDownload);
+    }
+
+    // ===== DOWNLOAD ALL PAID  (GET /apply/download_all_paid) =====
+    // Zips the latest protocol PDF for every Reviewed + paid protocol, for
+    // batch printing.
+
+    public function download_all_paid(): void
+    {
+        $this->requireLogin();
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            http_response_code(403);
+            echo 'Admin only.';
+            exit;
+        }
+
+        if (!class_exists('ZipArchive')) {
+            http_response_code(500);
+            echo 'The PHP zip extension is not available on this server.';
+            exit;
+        }
+
+        $rows = (new ProtocolModel())->getReviewedPaidWithLatestFile();
+        $rows = array_filter($rows, fn($r) => !empty($r['file_path']));
+
+        if (empty($rows)) {
+            http_response_code(404);
+            echo 'No paid, reviewed protocols to download.';
+            exit;
+        }
+
+        $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
+        $zipPath = tempnam(sys_get_temp_dir(), 'reviewed_paid_') . '.zip';
+
+        $zip = new ZipArchive();
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $usedNames = [];
+        foreach ($rows as $row) {
+            $absPath = $baseDir . $row['file_path'];
+            if (!file_exists($absPath)) {
+                continue;
+            }
+
+            $ext       = pathinfo($absPath, PATHINFO_EXTENSION);
+            $safeTitle = preg_replace('/[^\w.\-]+/', '_', trim($row['research_title'] ?: $row['reference_no'] ?: ('protocol_' . $row['id'])));
+            $entryName = $safeTitle . '.' . $ext;
+
+            $suffix = 1;
+            while (in_array($entryName, $usedNames, true)) {
+                $entryName = $safeTitle . '_' . (++$suffix) . '.' . $ext;
+            }
+            $usedNames[] = $entryName;
+
+            $zip->addFile($absPath, $entryName);
+        }
+        $zip->close();
+
+        (new ProtocolModel())->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed & paid protocol(s) downloaded as ZIP');
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="reviewed_paid_protocols.zip"');
+        header('Content-Length: ' . filesize($zipPath));
+        readfile($zipPath);
+        unlink($zipPath);
+        exit;
     }
 
     // ===== ANNOTATION API  (GET|POST /apply/annotate) =====
@@ -1115,7 +1334,11 @@ class Apply extends Controller
 
         $allowedTransitions = [
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
-            'admin'    => ['reviewed'     => ['Endorsed']],
+            'admin'    => [
+                'reviewed' => ['Endorsed'],
+                'endorsed' => ['Reviewed', 'Approved'],
+                'approved' => ['Endorsed'],
+            ],
         ];
 
         $allowedTargets = $allowedTransitions[$actor['role']][strtolower($protocol['status'])] ?? [];
@@ -1123,13 +1346,30 @@ class Apply extends Controller
             $this->jsonError(422, "That status change isn't allowed from the protocol's current state.");
         }
 
+        $isRevert = ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
+            || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
+
+        if ($newStatus === 'Endorsed' && !$isRevert) {
+            if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
+                $this->jsonError(422, 'This protocol must be marked as paid before it can be endorsed.');
+            }
+            if (!$model->getLatestVersion($protocolId, 'signed_scan')) {
+                $this->jsonError(422, 'A signed scan must be uploaded before this protocol can be endorsed.');
+            }
+        }
+
+        if ($newStatus === 'Approved' && !$model->getLatestVersion($protocolId, 'clearance')) {
+            $this->jsonError(422, 'A clearance document must be attached before this protocol can be approved.');
+        }
+
         $ok = $model->updateStatus($protocolId, $newStatus);
 
         if ($ok) {
-            $model->logAudit('status_updated', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
+            $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
+            $model->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
             $this->notifyStatusChange($protocol, $newStatus);
 
-            if ($newStatus === 'Reviewed') {
+            if ($newStatus === 'Reviewed' && !$isRevert) {
                 require_once dirname(__DIR__) . '/models/RecordModel.php';
                 $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
                 (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi);
@@ -1137,13 +1377,251 @@ class Apply extends Controller
 
             $flashMessages = [
                 'Needs Revision' => 'Protocol returned for revision. The researcher will be notified to make changes.',
-                'Reviewed'       => 'Review finished. Protocol details have been added to the records.',
-                'Endorsed'       => 'Protocol marked as endorsed.',
+                'Reviewed'       => $isRevert ? 'Endorsement reverted. Protocol is back to Reviewed.' : 'Review finished. Protocol details have been added to the records.',
+                'Endorsed'       => $isRevert ? 'Approval reverted. Protocol is back to Endorsed.' : 'Protocol marked as endorsed.',
+                'Approved'       => 'Protocol marked as approved.',
             ];
             $_SESSION['flash_success'] = $flashMessages[$newStatus] ?? 'Protocol status updated.';
         }
 
         echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== PAYMENT PROOF  (POST /apply/payment_proof) =====
+
+    public function payment_proof(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Researcher only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if ((int) $protocol['user_id'] !== $actor['id']) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (strtolower($protocol['status']) !== 'reviewed') {
+            $this->jsonError(422, 'Payment proof can only be submitted once a protocol has been reviewed.');
+        }
+
+        $reason = null;
+        $upload = $this->saveUpload('payment_proof_file', $this->protocolDir($protocolId), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Upload failed. Please attach a photo or PDF of your proof of payment (max 10 MB).');
+        }
+        [$path, $originalName] = $upload;
+
+        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'payment_proof');
+        if (!$versionId) {
+            $this->jsonError(500, 'Could not record the payment proof. Please try again.');
+        }
+
+        $model->submitPaymentProof($protocolId);
+        $model->logAudit('payment_proof_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment proof uploaded');
+        $this->notifyPaymentProofUploaded($protocol, $actor);
+
+        $_SESSION['flash_success'] = 'Proof of payment submitted. A reviewer will verify it shortly.';
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // ===== VERIFY PAYMENT  (POST /apply/verify_payment) =====
+
+    public function verify_payment(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (($protocol['payment_status'] ?? 'unpaid') !== 'proof_submitted') {
+            $this->jsonError(422, 'This protocol has no pending payment proof to verify.');
+        }
+
+        $ok = $model->markPaid($protocolId, $actor['id']);
+        if ($ok) {
+            $model->logAudit('payment_verified', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment marked as paid');
+            $this->notifyPaymentVerified($protocol, $actor);
+            $_SESSION['flash_success'] = 'Payment marked as paid.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== UNDO PAYMENT  (POST /apply/undo_payment) =====
+
+    public function undo_payment(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
+            $this->jsonError(422, 'This protocol is not currently marked as paid.');
+        }
+        if (strtolower($protocol['status']) !== 'reviewed') {
+            $this->jsonError(422, "Payment can't be unmarked once the protocol has moved past this stage.");
+        }
+
+        $ok = $model->undoMarkPaid($protocolId);
+        if ($ok) {
+            $model->logAudit('payment_unmarked', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment mark undone');
+            $_SESSION['flash_success'] = 'Payment mark undone. The protocol is back to "proof submitted".';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== REJECT PAYMENT PROOF  (POST /apply/reject_payment) =====
+
+    public function reject_payment(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $comment    = trim($body['comment'] ?? '');
+
+        if ($protocolId < 1 || $comment === '') {
+            $this->jsonError(400, 'Please explain why the payment proof is being rejected.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (($protocol['payment_status'] ?? 'unpaid') !== 'proof_submitted') {
+            $this->jsonError(422, 'This protocol has no pending payment proof to reject.');
+        }
+
+        $ok = $model->rejectPaymentProof($protocolId, $actor['id'], $comment);
+        if ($ok) {
+            $model->logAudit('payment_proof_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Payment proof rejected: $comment");
+            $this->notifyPaymentRejected($protocol, $comment, $actor);
+            $_SESSION['flash_success'] = 'Payment proof rejected. The researcher has been notified to re-upload.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== SIGNED SCAN UPLOAD  (POST /apply/signed_scan_upload) =====
+
+    public function signed_scan_upload(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (strtolower($protocol['status']) !== 'reviewed') {
+            $this->jsonError(422, 'Only reviewed protocols can have a signed scan uploaded.');
+        }
+        if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
+            $this->jsonError(422, 'This protocol must be marked as paid before the signed scan can be uploaded.');
+        }
+
+        $reason = null;
+        $upload = $this->saveUpload('signed_scan_file', $this->protocolDir($protocolId), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the scanned, signed protocol (PDF or image, max 10 MB).');
+        }
+        [$path, $originalName] = $upload;
+
+        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'signed_scan');
+        if (!$versionId) {
+            $this->jsonError(500, 'Could not record the signed scan. Please try again.');
+        }
+
+        $model->logAudit('signed_scan_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Signed scan uploaded');
+        $this->notifySignedScanUploaded($protocol, $actor);
+
+        $_SESSION['flash_success'] = 'Signed scan uploaded. This protocol can now be marked as endorsed.';
+        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -1261,7 +1739,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== DELETE  (POST /apply/delete) — reviewer only, any status =====
+    // ===== DELETE  (POST /apply/delete): reviewer only, any status =====
 
     public function delete(): void
     {
@@ -1307,7 +1785,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion) — reviewer only =====
+    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion): reviewer only =====
 
     public function approve_deletion(): void
     {
@@ -1353,7 +1831,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion) — reviewer only =====
+    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion): reviewer only =====
 
     public function reject_deletion(): void
     {
@@ -1429,7 +1907,7 @@ class Apply extends Controller
             $this->jsonError(404, 'Protocol not found.');
         }
         if (strtolower($protocol['status']) !== 'endorsed') {
-            $this->jsonError(422, 'Only endorsed protocols can be marked approved.');
+            $this->jsonError(422, 'Only endorsed protocols can receive a clearance.');
         }
 
         $docReason = null;
@@ -1444,10 +1922,8 @@ class Apply extends Controller
             $this->jsonError(500, 'Could not record the clearance file. Please try again.');
         }
 
-        $model->updateStatus($protocolId, 'Approved');
-        $this->notifyStatusChange($protocol, 'Approved');
-        $model->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance uploaded for protocol # $protocolId; marked Approved");
-        $_SESSION['flash_success'] = 'Clearance uploaded. The protocol has been marked as Approved.';
+        $model->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance uploaded');
+        $_SESSION['flash_success'] = 'Clearance uploaded. You can now mark this protocol as Approved.';
 
         echo json_encode(['success' => true]);
         exit;
@@ -1488,6 +1964,324 @@ class Apply extends Controller
         }
 
         $this->redirect('apply/file/' . (int) $version['id']);
+    }
+
+    // ===== CLEARANCE POOL UPLOAD  (POST /apply/clearance_pool_upload) =====
+
+    public function clearance_pool_upload(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewer only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $files = $_FILES['clearance_screenshots'] ?? null;
+        if (!$files || empty($files['name'][0])) {
+            $this->jsonError(400, 'Please attach at least one screenshot.');
+        }
+
+        $model     = new ProtocolModel();
+        $dir       = $this->clearancePoolDir();
+        $inserted  = 0;
+        $failures  = [];
+
+        foreach ($files['name'] as $i => $name) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $single = [
+                'name'     => $files['name'][$i],
+                'type'     => $files['type'][$i],
+                'tmp_name' => $files['tmp_name'][$i],
+                'error'    => $files['error'][$i],
+                'size'     => $files['size'][$i],
+            ];
+            $_FILES['__clearance_pool_single'] = $single;
+
+            $reason = null;
+            $upload = $this->saveUpload('__clearance_pool_single', $dir, ['jpg', 'jpeg', 'png'], required: true, reason: $reason);
+            if ($upload === false) {
+                $failures[] = $name . ($reason ? " ($reason)" : '');
+                continue;
+            }
+            [$path, $originalName] = $upload;
+
+            if ($model->insertClearancePoolItem($path, $originalName, $actor['id']) !== false) {
+                $inserted++;
+            }
+        }
+        unset($_FILES['__clearance_pool_single']);
+
+        if ($inserted > 0) {
+            $model->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "$inserted screenshot(s) uploaded");
+            $this->notifyClearancePoolUploaded($actor, $inserted);
+        }
+
+        $_SESSION['flash_success'] = $inserted . ' clearance screenshot(s) uploaded for the admins to view' . ($failures ? '; some files were skipped.' : '.');
+        echo json_encode(['success' => $inserted > 0, 'inserted' => $inserted, 'failures' => $failures]);
+        exit;
+    }
+
+    // ===== CLEARANCE POOL LIST  (GET /apply/clearance_pool) =====
+
+    public function clearance_pool(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $model      = new ProtocolModel();
+        $unassigned = array_map(
+            fn($item) => $item + ['file_url' => ROOT . '/apply/clearance_pool_file/' . (int) $item['id']],
+            $model->getUnassignedClearancePool()
+        );
+        $staged = array_map(
+            fn($item) => $item + ['file_url' => ROOT . '/apply/clearance_pool_file/' . (int) $item['id']],
+            $model->getStagedClearanceItems()
+        );
+
+        echo json_encode([
+            'unassigned' => $unassigned,
+            'staged' => $staged,
+            'confirmed' => $model->getConfirmedClearanceItems(),
+            'endorsed_protocols' => $model->getEndorsedProtocols(),
+        ]);
+        exit;
+    }
+
+    // ===== CLEARANCE POOL FILE  (GET /apply/clearance_pool_file/{id}) =====
+
+    public function clearance_pool_file(int $poolId = 0): void
+    {
+        $this->requireLogin();
+
+        $actor = $this->actor();
+        if (!in_array($actor['role'], ['admin', 'reviewer'])) {
+            http_response_code(403);
+            echo 'Access denied.';
+            exit;
+        }
+
+        $model = new ProtocolModel();
+        $item  = $model->getClearancePoolItem($poolId);
+
+        if (!$item || !file_exists($item['file_path'])) {
+            http_response_code(404);
+            echo 'File not found.';
+            exit;
+        }
+
+        $this->streamFile($item['file_path'], $item['original_name']);
+    }
+
+    // ===== CLEARANCE STAGE  (POST /apply/clearance_stage) =====
+    // Drags a pool screenshot onto a protocol card. Nothing is committed yet:
+    // this only marks a provisional match, reversible via clearance_unstage.
+
+    public function clearance_stage(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $poolId     = (int) ($body['pool_id'] ?? 0);
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+
+        if ($poolId < 1 || $protocolId < 1) {
+            $this->jsonError(400, 'Invalid parameters.');
+        }
+
+        $model    = new ProtocolModel();
+        $item     = $model->getClearancePoolItem($poolId);
+        $protocol = $model->getById($protocolId);
+
+        if (!$item || $item['protocol_id'] !== null) {
+            $this->jsonError(422, 'That screenshot is no longer available.');
+        }
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (strtolower($protocol['status']) !== 'endorsed') {
+            $this->jsonError(422, 'Only endorsed protocols can receive a clearance.');
+        }
+
+        $ok = $model->stageClearancePoolItem($poolId, $protocolId, $actor['id']);
+        if (!$ok) {
+            $this->jsonError(422, 'That screenshot was just matched by someone else.');
+        }
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // ===== CLEARANCE UNSTAGE  (POST /apply/clearance_unstage) =====
+    // Drags a screenshot back off a protocol card, before confirming.
+
+    public function clearance_unstage(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $poolId = (int) ($body['pool_id'] ?? 0);
+        if ($poolId < 1) {
+            $this->jsonError(400, 'Missing pool_id.');
+        }
+
+        $ok = (new ProtocolModel())->unstageClearancePoolItem($poolId);
+        if (!$ok) {
+            $this->jsonError(422, 'That screenshot has already been confirmed: use "detach" instead.');
+        }
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // ===== CLEARANCE CONFIRM  (POST /apply/clearance_confirm) =====
+    // Commits every currently-staged match in one batch: moves each file,
+    // records the clearance version, and marks each protocol Approved.
+
+    public function clearance_confirm(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $model  = new ProtocolModel();
+        $staged = $model->getStagedClearanceItems();
+
+        if (empty($staged)) {
+            $this->jsonError(422, 'Nothing is staged to confirm.');
+        }
+
+        $confirmed = 0;
+        $failures  = [];
+
+        foreach ($staged as $item) {
+            $protocolId = (int) $item['protocol_id'];
+
+            if (strtolower($item['protocol_status']) !== 'endorsed') {
+                $failures[] = $item['protocol_title'] . ' is no longer Endorsed: skipped.';
+                continue;
+            }
+
+            $dir = $this->protocolDir($protocolId);
+            if (!is_dir($dir)) {
+                mkdir($dir, 0750, true);
+            }
+            $ext      = strtolower(pathinfo($item['file_path'], PATHINFO_EXTENSION));
+            $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
+            $dest     = $dir . $safeName;
+
+            if (!rename($item['file_path'], $dest)) {
+                $failures[] = $item['protocol_title'] . ': could not move the file.';
+                continue;
+            }
+
+            $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $dest), $item['original_name'], $actor['id'], 'clearance');
+            if (!$versionId || !$model->confirmClearancePoolItem((int) $item['id'], $versionId)) {
+                $failures[] = $item['protocol_title'] . ': could not record the clearance file.';
+                continue;
+            }
+
+            $protocol = $model->getById($protocolId);
+            $model->updateStatus($protocolId, 'Approved');
+            $this->notifyStatusChange($protocol, 'Approved');
+            $model->logAudit('clearance_confirmed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #{$item['id']} confirmed; marked Approved");
+            $confirmed++;
+        }
+
+        $_SESSION['flash_success'] = "$confirmed protocol(s) approved." . ($failures ? ' Some items need another look.' : '');
+        echo json_encode(['confirmed' => $confirmed, 'failures' => $failures]);
+        exit;
+    }
+
+    // ===== CLEARANCE UNASSIGN  (POST /apply/clearance_unassign) =====
+    // Detaches an already-confirmed clearance from the wrong protocol: reverts
+    // that protocol to Endorsed, deletes the specific clearance version, and
+    // puts the screenshot back in the unassigned pool.
+
+    public function clearance_unassign(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $poolId = (int) ($body['pool_id'] ?? 0);
+        if ($poolId < 1) {
+            $this->jsonError(400, 'Missing pool_id.');
+        }
+
+        $model = new ProtocolModel();
+        $item  = $model->getClearancePoolItem($poolId);
+
+        if (!$item || $item['protocol_id'] === null) {
+            $this->jsonError(422, 'That screenshot is not currently assigned.');
+        }
+        if (empty($item['version_id'])) {
+            $this->jsonError(422, 'That screenshot hasn\'t been confirmed yet: use "unstage" instead.');
+        }
+
+        $protocolId = (int) $item['protocol_id'];
+        $protocol   = $model->getById($protocolId);
+
+        if ($protocol && strtolower($protocol['status']) === 'approved') {
+            $model->updateStatus($protocolId, 'Endorsed');
+            $this->notifyStatusChange($protocol, 'Endorsed');
+        }
+
+        if (!empty($item['version_id'])) {
+            $model->deleteVersion((int) $item['version_id']);
+        }
+
+        $model->unassignClearancePoolItem($poolId);
+        $model->logAudit('clearance_unassigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #$poolId detached; reverted to Endorsed");
+        $_SESSION['flash_success'] = 'Clearance detached and returned to the pool.';
+
+        echo json_encode(['success' => true]);
+        exit;
     }
 
     // ===== RETURN FOR REVISION WITH REASONS  (POST /apply/return_revision) =====
@@ -1695,6 +2489,9 @@ class Apply extends Controller
             'title'          => $protocol['research_title'],
             'status'         => $protocol['status'],
             'protocol_files' => $files,
+            'payment_proof_files' => $this->addFileUrls($model->getVersions($protocolId, 'payment_proof')),
+            'signed_scan_files'   => $this->addFileUrls($model->getVersions($protocolId, 'signed_scan')),
+            'clearance_files'     => $this->addFileUrls($model->getVersions($protocolId, 'clearance')),
             'return_reason'  => $model->getLatestReturnReason($protocolId),
             'title_history'  => count($titleHistory) > 1 ? $titleHistory : [],
         ]);

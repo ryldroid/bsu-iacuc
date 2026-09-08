@@ -419,7 +419,7 @@
   color: #fff;
 }
 
-/* View-only buttons (reference material, download) — muted, no fill,
+/* View-only buttons (reference material, download): muted, no fill,
    so they read as "look at something" rather than "change something" */
 .tool-btn--ghost {
   background: transparent;
@@ -433,7 +433,7 @@
   color: #e2e8f0;
 }
 
-/* Benign document action (rename) — filled but neutral, distinct from
+/* Benign document action (rename): filled but neutral, distinct from
    the ghost view buttons and from the danger/warn/success actions.
    Colors are saturated enough at rest to read on touch devices, which
    never see the :hover state. */
@@ -1088,7 +1088,12 @@
 
 .file-popup-frame img {
   max-width: 100%;
-  max-height: 100%;
+  /* percentage max-height can't reliably resolve here since this frame's
+     own height comes from flex-grow rather than a fixed value — cap
+     against the viewport directly instead so it always shrinks to fit. */
+  max-height: 82vh;
+  min-height: 0;
+  min-width: 0;
   object-fit: contain;
   margin: auto;
 }
@@ -1101,6 +1106,10 @@
 
   .file-popup-frame {
     min-height: 50vh;
+  }
+
+  .file-popup-frame img {
+    max-height: 65vh;
   }
 
   .file-popup-pdf-pages {

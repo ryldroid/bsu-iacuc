@@ -91,6 +91,7 @@
   display: flex;
   align-items: flex-start;
   gap: .7em;
+  font-family: var(--font-body);
 
   padding: .8em 1em;
   text-decoration: none;

@@ -197,6 +197,135 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    // ===== PAYMENT =====
+
+    public function submitPaymentProof(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols` SET payment_status = 'proof_submitted' WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute();
+    }
+
+    public function markPaid(int $protocolId, int $verifiedBy): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET payment_status = 'paid', paid_at = NOW(), paid_by = ?
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('ii', $verifiedBy, $protocolId);
+        return $stmt->execute();
+    }
+
+    public function undoMarkPaid(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET payment_status = 'proof_submitted', paid_at = NULL, paid_by = NULL
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute();
+    }
+
+    public function rejectPaymentProof(int $protocolId, int $reviewerId, string $comment): bool
+    {
+        $comment = mb_substr(trim($comment), 0, 1000);
+        if ($comment === '') {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "INSERT INTO `payment_proof_rejections` (protocol_id, reviewer_id, comment) VALUES (?, ?, ?)"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('iis', $protocolId, $reviewerId, $comment);
+        if (! $stmt->execute()) {
+            return false;
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols` SET payment_status = 'rejected' WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute();
+    }
+
+    public function getLatestPaymentRejection(int $protocolId): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT r.comment, r.created_at, u.first_name, u.last_name
+             FROM `payment_proof_rejections` r
+             JOIN `users` u ON u.id = r.reviewer_id
+             WHERE r.protocol_id = ?
+             ORDER BY r.created_at DESC
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    public function getEndorsedProtocols(): array
+    {
+        $sql = "SELECT
+                    p.id AS protocol_id, p.reference_no, p.title AS research_title,
+                    u.first_name, u.last_name,
+                    (SELECT pv.id FROM `protocol_versions` pv
+                     WHERE pv.protocol_id = p.id AND pv.file_type = 'clearance'
+                     ORDER BY pv.version_number DESC LIMIT 1) AS latest_clearance_version_id
+                FROM `protocols` p
+                JOIN `users` u ON u.id = p.user_id
+                WHERE p.status = 'Endorsed'
+                ORDER BY p.reference_no ASC";
+
+        $result = $this->connection->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
+    public function getReviewedPaidWithLatestFile(): array
+    {
+        $sql = "SELECT
+                    p.id, p.reference_no, p.title AS research_title,
+                    (SELECT pv.file_path
+                     FROM `protocol_versions` pv
+                     WHERE pv.protocol_id = p.id
+                       AND pv.file_type = 'protocol'
+                     ORDER BY pv.version_number DESC
+                     LIMIT 1) AS file_path
+                FROM `protocols` p
+                WHERE p.status = 'Reviewed' AND p.payment_status = 'paid'
+                ORDER BY p.reference_no ASC";
+
+        $result = $this->connection->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
     public function getAll(): array
     {
         $sql = "SELECT
@@ -216,12 +345,21 @@ class ProtocolModel extends Model
                     p.deletion_requested_by_name,
                     p.deletion_requested_by_role,
                     p.deletion_request_reason,
+                    p.payment_status,
+                    p.paid_at,
+                    p.paid_by,
                     u.first_name,
                     u.last_name,
                     (SELECT MAX(pv.version_number)
                      FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id
                        AND pv.file_type = 'protocol') AS latest_version,
+                    (SELECT pv1.id
+                     FROM `protocol_versions` pv1
+                     WHERE pv1.protocol_id = p.id
+                       AND pv1.file_type = 'protocol'
+                     ORDER BY pv1.version_number DESC
+                     LIMIT 1) AS latest_protocol_version_id,
                     (SELECT pv2.id
                      FROM `protocol_versions` pv2
                      WHERE pv2.protocol_id = p.id
@@ -234,6 +372,24 @@ class ProtocolModel extends Model
                        AND pv3.file_type = 'auth'
                      ORDER BY pv3.version_number DESC
                      LIMIT 1) AS latest_auth_version_id,
+                    (SELECT pv5.id
+                     FROM `protocol_versions` pv5
+                     WHERE pv5.protocol_id = p.id
+                       AND pv5.file_type = 'payment_proof'
+                     ORDER BY pv5.version_number DESC
+                     LIMIT 1) AS latest_payment_proof_version_id,
+                    (SELECT pv6.id
+                     FROM `protocol_versions` pv6
+                     WHERE pv6.protocol_id = p.id
+                       AND pv6.file_type = 'signed_scan'
+                     ORDER BY pv6.version_number DESC
+                     LIMIT 1) AS latest_signed_scan_version_id,
+                    (SELECT pv7.id
+                     FROM `protocol_versions` pv7
+                     WHERE pv7.protocol_id = p.id
+                       AND pv7.file_type = 'clearance'
+                     ORDER BY pv7.version_number DESC
+                     LIMIT 1) AS latest_clearance_version_id,
                     GREATEST(
                         p.updated_at,
                         COALESCE(
@@ -271,10 +427,24 @@ class ProtocolModel extends Model
                 p.deletion_requested_by_name,
                 p.deletion_requested_by_role,
                 p.deletion_request_reason,
+                p.payment_status,
+                p.paid_at,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id
                    AND pv.file_type = 'protocol') AS latest_version,
+                (SELECT pv5.id
+                 FROM `protocol_versions` pv5
+                 WHERE pv5.protocol_id = p.id
+                   AND pv5.file_type = 'payment_proof'
+                 ORDER BY pv5.version_number DESC
+                 LIMIT 1) AS latest_payment_proof_version_id,
+                (SELECT pv6.id
+                 FROM `protocol_versions` pv6
+                 WHERE pv6.protocol_id = p.id
+                   AND pv6.file_type = 'signed_scan'
+                 ORDER BY pv6.version_number DESC
+                 LIMIT 1) AS latest_signed_scan_version_id,
                 GREATEST(
                     p.updated_at,
                     COALESCE(
@@ -289,7 +459,8 @@ class ProtocolModel extends Model
                 rr.other_reason AS rr_other_reason,
                 rr.comment      AS rr_comment,
                 rr.created_at   AS rr_created_at,
-                CONCAT(u.first_name, ' ', u.last_name) AS rr_reviewer_name
+                CONCAT(u.first_name, ' ', u.last_name) AS rr_reviewer_name,
+                ppr.comment     AS payment_rejection_comment
              FROM `protocols` p
              LEFT JOIN `protocol_return_reasons` rr
                 ON rr.id = (
@@ -297,6 +468,11 @@ class ProtocolModel extends Model
                     WHERE protocol_id = p.id
                 )
              LEFT JOIN `users` u ON u.id = rr.reviewer_id
+             LEFT JOIN `payment_proof_rejections` ppr
+                ON ppr.id = (
+                    SELECT MAX(id) FROM `payment_proof_rejections`
+                    WHERE protocol_id = p.id
+                )
              WHERE p.user_id = ? AND p.deleted_at IS NULL
              ORDER BY last_activity_at DESC, p.id DESC"
         );
@@ -331,6 +507,9 @@ class ProtocolModel extends Model
                 p.deletion_requested_by_name,
                 p.deletion_requested_by_role,
                 p.deletion_request_reason,
+                p.payment_status,
+                p.paid_at,
+                p.paid_by,
                 u.first_name AS submitter_first_name,
                 u.last_name AS submitter_last_name
              FROM `protocols` p
@@ -451,7 +630,7 @@ class ProtocolModel extends Model
     public function getVersionById(int $versionId): ?array
     {
         $stmt = $this->connection->prepare(
-            "SELECT pv.*, p.user_id AS owner_id, p.status AS protocol_status
+            "SELECT pv.*, p.user_id AS owner_id, p.status AS protocol_status, p.title AS protocol_title
              FROM `protocol_versions` pv
              JOIN `protocols` p ON p.id = pv.protocol_id
              WHERE pv.id = ? LIMIT 1"
@@ -622,5 +801,182 @@ class ProtocolModel extends Model
         $stmt->bind_param('i', $protocolId);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    // ===== CLEARANCE POOL =====
+
+    public function insertClearancePoolItem(string $filePath, string $originalName, int $uploadedBy): int | false
+    {
+        $stmt = $this->connection->prepare(
+            "INSERT INTO `clearance_pool` (file_path, original_name, uploaded_by) VALUES (?, ?, ?)"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('ssi', $filePath, $originalName, $uploadedBy);
+        if (! $stmt->execute()) {
+            return false;
+        }
+
+        return $this->connection->insert_id;
+    }
+
+    public function getUnassignedClearancePool(): array
+    {
+        $sql = "SELECT
+                    cp.id, cp.file_path, cp.original_name, cp.uploaded_at,
+                    u.first_name, u.last_name
+                FROM `clearance_pool` cp
+                JOIN `users` u ON u.id = cp.uploaded_by
+                WHERE cp.protocol_id IS NULL
+                ORDER BY cp.uploaded_at ASC";
+
+        $result = $this->connection->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
+    public function getClearancePoolItem(int $id): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT * FROM `clearance_pool` WHERE id = ? LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    public function getClearancePoolItemForProtocol(int $protocolId): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT * FROM `clearance_pool` WHERE protocol_id = ? LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    public function stageClearancePoolItem(int $poolId, int $protocolId, int $assignedBy): bool
+    {
+        // A protocol card only ever holds one image: bump whatever is
+        // currently staged there back to the unsorted pool first.
+        $swap = $this->connection->prepare(
+            "UPDATE `clearance_pool`
+             SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL
+             WHERE protocol_id = ? AND version_id IS NULL AND id != ?"
+        );
+        if ($swap) {
+            $swap->bind_param('ii', $protocolId, $poolId);
+            $swap->execute();
+        }
+
+        $stmt = $this->connection->prepare(
+            "UPDATE `clearance_pool`
+             SET protocol_id = ?, assigned_by = ?, assigned_at = NOW()
+             WHERE id = ? AND protocol_id IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('iii', $protocolId, $assignedBy, $poolId);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
+    public function unstageClearancePoolItem(int $poolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `clearance_pool`
+             SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL
+             WHERE id = ? AND version_id IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $poolId);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
+    public function confirmClearancePoolItem(int $poolId, int $versionId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `clearance_pool`
+             SET version_id = ?
+             WHERE id = ? AND protocol_id IS NOT NULL AND version_id IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('ii', $versionId, $poolId);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
+    public function getStagedClearanceItems(): array
+    {
+        $sql = "SELECT
+                    cp.id, cp.file_path, cp.original_name, cp.protocol_id,
+                    p.title AS protocol_title, p.reference_no, p.status AS protocol_status,
+                    u.first_name, u.last_name
+                FROM `clearance_pool` cp
+                JOIN `protocols` p ON p.id = cp.protocol_id
+                JOIN `users` u ON u.id = cp.uploaded_by
+                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NULL
+                ORDER BY cp.assigned_at ASC";
+
+        $result = $this->connection->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
+    public function getConfirmedClearanceItems(int $limit = 20): array
+    {
+        $sql = "SELECT
+                    cp.id, cp.original_name, cp.protocol_id, cp.assigned_at,
+                    p.title AS protocol_title, p.reference_no
+                FROM `clearance_pool` cp
+                JOIN `protocols` p ON p.id = cp.protocol_id
+                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NOT NULL
+                ORDER BY cp.assigned_at DESC
+                LIMIT " . (int) $limit;
+
+        $result = $this->connection->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
+    public function unassignClearancePoolItem(int $poolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `clearance_pool`
+             SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL, version_id = NULL
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $poolId);
+        return $stmt->execute();
+    }
+
+    public function deleteVersion(int $versionId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "DELETE FROM `protocol_versions` WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $versionId);
+        return $stmt->execute();
     }
 }

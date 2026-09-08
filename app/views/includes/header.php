@@ -96,6 +96,7 @@ $hideHeader     = $hideHeader     ?? false;
               <li><a href="<?= ROOT ?>/admin/home">Dashboard</a></li>
               <li><a href="<?= ROOT ?>/admin/records">Records</a></li>
               <?php if ($role === 'admin'): ?>
+                <li><a href="<?= ROOT ?>/admin/clearances">Clearance Pool</a></li>
                 <li><a href="<?= ROOT ?>/admin/announcements">Announcements</a></li>
                 <li><a href="<?= ROOT ?>/admin/accounts">Manage Accounts</a></li>
               <?php endif; ?>

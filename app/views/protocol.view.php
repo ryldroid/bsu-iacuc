@@ -10,6 +10,7 @@
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
 /** @var array|null $latestAuthVersion */
+/** @var array|null $latestPaymentProofVersion */
 /** @var bool   $hasCertOnFile */
 /** @var bool   $canRename */
 /** @var bool   $canRequestDeletion */
@@ -38,6 +39,10 @@ $isLatestVersion = $isLatestVersion ?? true;
 $canReview = $isReviewer && $statusKey === 'under review' && $isLatestVersion;
 
 $canResubmit = !$isStaff && $isLatestVersion && $statusKey === 'needs revision';
+
+$paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
+$canConfirmPayment = !$isStaff && $isLatestVersion && $statusKey === 'reviewed'
+    && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 
 $rrWrongCert          = !empty($returnReason['wrong_cert']);
 $rrWrongAuth          = !empty($returnReason['wrong_auth']);
@@ -78,6 +83,8 @@ $authRequired      = !$isPi && $rrWrongAuth;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
 $latestAuthFileUrl = ! empty($latestAuthVersion['id']) ? ROOT . '/apply/file/' . (int) $latestAuthVersion['id'] : null;
+$latestPaymentProofFileUrl = ! empty($latestPaymentProofVersion['id']) ? ROOT . '/apply/file/' . (int) $latestPaymentProofVersion['id'] : null;
+$latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
 $resubmitDocs      = [
@@ -335,6 +342,19 @@ include 'includes/header.php';
                     </button>
                 <?php endif; ?>
 
+                <?php if ($latestPaymentProofFileUrl):
+                    $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
+                ?>
+                    <button class="tool-btn tool-btn--ghost"
+                        data-file-url="<?= htmlspecialchars($latestPaymentProofFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="openFilePopup(this.dataset.fileUrl, 'Proof of Payment', <?= $offerPaymentResubmit ? 'true' : 'false' ?>)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Payment Proof
+                    </button>
+                <?php endif; ?>
+
                 <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#download-icon" />
@@ -375,7 +395,7 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <?php if ($canReview || $canResubmit): ?>
+            <?php if ($canReview || $canResubmit || $canConfirmPayment): ?>
                 <span class="toolbar-divider" aria-hidden="true"></span>
 
                 <div class="viewer-review-actions">
@@ -385,7 +405,7 @@ include 'includes/header.php';
                             Return for Revision
                         </button>
                         <button class="tool-btn tool-btn--success" id="btnApprove"
-                            onclick="confirmAction('Finish your review? This will send the protocol to the IACUC admin for endorsement.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
+                            onclick="confirmAction('Finish your review? The protocol will be marked as reviewed.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
                             Finish Review
                         </button>
                     <?php elseif ($canResubmit): ?>
@@ -396,10 +416,28 @@ include 'includes/header.php';
                             </svg>
                             Re-submit Protocol
                         </button>
+                    <?php elseif ($canConfirmPayment): ?>
+                        <button class="tool-btn tool-btn--success" id="btnConfirmPayment" type="button"
+                            onclick="openPaymentModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            Confirm Payment
+                        </button>
                     <?php endif; ?>
                 </div>
             <?php elseif ($isCompleted && $isLatestVersion): ?>
-                <span class="ver-badge ver-badge--green">✓ Approved</span>
+                <?php if ($latestClearanceFileUrl): ?>
+                    <a class="tool-btn tool-btn--success" href="<?= htmlspecialchars($latestClearanceFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        download="<?= htmlspecialchars($latestClearanceVersion['original_name'] ?? 'clearance', ENT_QUOTES, 'UTF-8') ?>">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#download-icon" />
+                        </svg>
+                        Download Clearance
+                    </a>
+                <?php else: ?>
+                    <span class="ver-badge ver-badge--green">✓ Approved</span>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -657,6 +695,49 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if ($canConfirmPayment): ?>
+    <!-- ===== Confirm Payment modal ===== -->
+    <div class="modal-backdrop" id="paymentModalBackdrop">
+        <div class="modal-card">
+            <h2>Confirm Payment</h2>
+
+            <p class="modal-notice">
+                The BAI Animal Research Permit requires a Php 100.00 fee. Pay in person at CCARD, or email your reviewer to arrange payment.
+                Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
+            </p>
+
+            <div id="paymentModalError" class="alert error-messages" hidden></div>
+
+            <div class="modal-file-row">
+                <div class="modal-file-info">
+                    <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
+                    <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+                </div>
+                <label class="modal-file-picker">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    <span id="paymentFilePickerLabel">Upload</span>
+                    <input type="file" id="payment_proof_file" name="payment_proof_file"
+                        accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
+                        onchange="handlePaymentFileChange(this)">
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button class="button" type="button" onclick="closePaymentModal()">Cancel</button>
+                <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
+                    onclick="submitPaymentProof()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Submit Proof of Payment
+                </button>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
     <!-- ===== Approve / reject deletion request modal ===== -->
     <div class="modal-backdrop" id="deletionReviewModalBackdrop">
@@ -713,6 +794,17 @@ include 'includes/header.php';
             <img id="filePopupImg" alt="">
             <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
         </div>
+        <?php if ($canConfirmPayment): ?>
+            <div class="file-popup-footer" id="filePopupResubmitFooter" hidden>
+                <p class="helper file-popup-footer-note">This payment proof was rejected.</p>
+                <button class="tool-btn tool-btn--success" type="button" onclick="closeFilePopup(); openPaymentModal();">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Resubmit Proof of Payment
+                </button>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 <style>
@@ -1494,6 +1586,97 @@ include 'includes/header.php';
         }
     <?php endif; ?>
 
+    <?php if ($canConfirmPayment): ?>
+        // ===== Confirm Payment modal =====
+        const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
+        const paymentModal = document.getElementById('paymentModalBackdrop');
+
+        function openPaymentModal() {
+            document.getElementById('payment_proof_file').value = '';
+            resetPaymentFilePicker();
+            document.getElementById('paymentModalError').hidden = true;
+            paymentModal.classList.add('open');
+        }
+
+        function closePaymentModal() {
+            paymentModal.classList.remove('open');
+        }
+
+        paymentModal.addEventListener('click', e => {
+            if (e.target === paymentModal) closePaymentModal();
+        });
+
+        function resetPaymentFilePicker() {
+            document.getElementById('paymentFilePickerLabel').textContent = 'Upload';
+            const subtitle = document.getElementById('paymentFileSubtitle');
+            subtitle.textContent = 'PDF or image · max 10 MB';
+            subtitle.classList.remove('done');
+        }
+
+        function handlePaymentFileChange(input) {
+            const subtitle = document.getElementById('paymentFileSubtitle');
+            if (input.files.length) {
+                document.getElementById('paymentFilePickerLabel').textContent = 'Replace';
+                subtitle.textContent = input.files[0].name;
+                subtitle.classList.add('done');
+            } else {
+                resetPaymentFilePicker();
+            }
+        }
+
+        async function submitPaymentProof() {
+            const fileInput = document.getElementById('payment_proof_file');
+            const errBox = document.getElementById('paymentModalError');
+            const btn = document.getElementById('paymentModalSubmitBtn');
+
+            if (!fileInput.files.length) {
+                errBox.textContent = 'Please select a file.';
+                errBox.hidden = false;
+                return;
+            }
+
+            errBox.hidden = true;
+
+            const ok = await confirmAction(
+                'Submit this as your proof of payment? Make sure the file clearly shows the receipt or payment before continuing.', {
+                    okText: 'Submit Proof',
+                    cancelText: 'Cancel'
+                }
+            );
+            if (!ok) return;
+
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('protocol_id', PROTOCOL_ID);
+            formData.append('payment_proof_file', fileInput.files[0]);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            try {
+                const res = await fetch(PAYMENT_PROOF_API, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    errBox.textContent = data.error ?? 'Upload failed. Please try again.';
+                    errBox.hidden = false;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                errBox.textContent = 'Network error. Please try again.';
+                errBox.hidden = false;
+                btn.disabled = false;
+            }
+        }
+    <?php endif; ?>
+
     <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
         // ===== Approve / reject deletion request modal =====
         const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
@@ -1662,10 +1845,13 @@ include 'includes/header.php';
         }
     }
 
-    async function openFilePopup(fileUrl, title) {
+    async function openFilePopup(fileUrl, title, showResubmit) {
         document.getElementById('filePopupTitle').textContent = title;
         filePopupBackdrop.classList.add('open');
         filePopupFrame.scrollTop = 0;
+
+        const resubmitFooter = document.getElementById('filePopupResubmitFooter');
+        if (resubmitFooter) resubmitFooter.hidden = !showResubmit;
 
         filePopupMessage.textContent = 'Loading…';
         showFilePopupState('message');
@@ -1708,6 +1894,8 @@ include 'includes/header.php';
             URL.revokeObjectURL(filePopupObjectUrl);
             filePopupObjectUrl = null;
         }
+        const resubmitFooter = document.getElementById('filePopupResubmitFooter');
+        if (resubmitFooter) resubmitFooter.hidden = true;
     }
 
     filePopupBackdrop.addEventListener('click', e => {

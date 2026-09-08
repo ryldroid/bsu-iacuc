@@ -3,6 +3,7 @@
 /** @var array $protocols */
 /** @var array $statuses  */
 /** @var bool  $hasCertOnFile */
+/** @var string $csrf */
 
 $title = 'My Protocols';
 
@@ -35,7 +36,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. No action needed. Pending endorsement to DA-CARFU and the BAI Central Office.',
+        'desc'  => 'The reviewer has finished their assessment. Please confirm your payment of the BAI Animal Research Permit fee to proceed to endorsement.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -200,6 +201,15 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
                     $isApproved    = strtolower($protocol['status']) === 'approved';
+                    $isReviewedStatus = strtolower($protocol['status']) === 'reviewed';
+                    $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
+                    $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
+                    $paymentLabels = [
+                        'unpaid'          => 'Unpaid',
+                        'proof_submitted' => 'Proof Submitted',
+                        'rejected'        => 'Proof Rejected',
+                        'paid'            => 'Paid',
+                    ];
                     $versionNum    = $protocol['latest_version'] ? 'v' . (int) $protocol['latest_version'] : 'v1';
                     $protocolIdInt = (int) $protocol['protocol_id'];
                 ?>
@@ -213,10 +223,22 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             <div class="protocol-meta">
                                 <p class="research-title">
                                     <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?php if (in_array($statusKey, ['reviewed', 'endorsed', 'approved'], true)): ?>
+                                        <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line" title="Version no. (number of rounds submitted) and the submission date">
                                     <?= $versionNum ?> &middot; <?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?>
                                 </p>
+
+                                <?php if ($paymentStatus === 'rejected' && !empty($protocol['payment_rejection_comment'])): ?>
+                                    <div class="return-reason-inline">
+                                        <p class="return-reason-by">Your payment proof was rejected:</p>
+                                        <p class="return-reason-comment"><?= htmlspecialchars($protocol['payment_rejection_comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                                    </div>
+                                <?php endif; ?>
 
                                 <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
                                     <div class="return-reason-inline">
@@ -255,6 +277,15 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         </svg>
                                         Download Clearance
                                     </a>
+                                <?php elseif ($canConfirmPayment): ?>
+                                    <button class="button button--primary"
+                                        data-protocol-id="<?= $protocolIdInt ?>"
+                                        onclick="openPaymentModal(+this.dataset.protocolId)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#upload-icon" />
+                                        </svg>
+                                        Confirm Payment
+                                    </button>
                                 <?php endif; ?>
 
                                 <div class="actions-secondary">
@@ -326,6 +357,133 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
     </div>
 </div>
+
+<!-- Confirm Payment modal -->
+<div class="modal-backdrop" id="paymentModalBackdrop">
+    <div class="modal-card">
+        <h2>Confirm Payment</h2>
+
+        <p class="modal-notice">
+            The BAI Animal Research Permit requires a Php 100.00 fee. Pay in person at CCARD, or email your reviewer to arrange payment.
+            Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
+        </p>
+
+        <div id="paymentModalError" class="alert error-messages" hidden></div>
+
+        <div class="modal-file-row">
+            <div class="modal-file-info">
+                <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
+                <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+            </div>
+            <label class="modal-file-picker">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+                <span id="paymentFilePickerLabel">Upload</span>
+                <input type="file" id="payment_proof_file" name="payment_proof_file"
+                    accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
+                    onchange="handlePaymentFileChange(this)">
+            </label>
+        </div>
+
+        <div class="modal-actions">
+            <button class="button" type="button" onclick="closePaymentModal()">Cancel</button>
+            <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
+                onclick="submitPaymentProof()">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+                Submit Proof of Payment
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
+    const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
+
+    const paymentModal = document.getElementById('paymentModalBackdrop');
+    let currentPaymentProtocolId = null;
+
+    function openPaymentModal(protocolId) {
+        currentPaymentProtocolId = protocolId;
+        document.getElementById('payment_proof_file').value = '';
+        resetPaymentFilePicker();
+        document.getElementById('paymentModalError').hidden = true;
+        paymentModal.classList.add('open');
+    }
+
+    function closePaymentModal() {
+        paymentModal.classList.remove('open');
+        currentPaymentProtocolId = null;
+    }
+
+    paymentModal.addEventListener('click', e => {
+        if (e.target === paymentModal) closePaymentModal();
+    });
+
+    function resetPaymentFilePicker() {
+        document.getElementById('paymentFilePickerLabel').textContent = 'Upload';
+        const subtitle = document.getElementById('paymentFileSubtitle');
+        subtitle.textContent = 'PDF or image · max 10 MB';
+        subtitle.classList.remove('done');
+    }
+
+    function handlePaymentFileChange(input) {
+        const subtitle = document.getElementById('paymentFileSubtitle');
+        if (input.files.length) {
+            document.getElementById('paymentFilePickerLabel').textContent = 'Replace';
+            subtitle.textContent = input.files[0].name;
+            subtitle.classList.add('done');
+        } else {
+            resetPaymentFilePicker();
+        }
+    }
+
+    async function submitPaymentProof() {
+        const fileInput = document.getElementById('payment_proof_file');
+        const errBox = document.getElementById('paymentModalError');
+        const btn = document.getElementById('paymentModalSubmitBtn');
+
+        if (!fileInput.files.length) {
+            errBox.textContent = 'Please select a file.';
+            errBox.hidden = false;
+            return;
+        }
+
+        btn.disabled = true;
+        errBox.hidden = true;
+
+        const formData = new FormData();
+        formData.append('protocol_id', currentPaymentProtocolId);
+        formData.append('payment_proof_file', fileInput.files[0]);
+        formData.append('csrf_token', CSRF_TOKEN);
+
+        try {
+            const res = await fetch(PAYMENT_PROOF_API, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.reload();
+            } else {
+                errBox.textContent = data.error ?? 'Upload failed. Please try again.';
+                errBox.hidden = false;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            errBox.textContent = 'Network error. Please try again.';
+            errBox.hidden = false;
+            btn.disabled = false;
+        }
+    }
+</script>
 
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
@@ -637,15 +795,51 @@ function statusIconSvg(string $iconId, int $size = 14): string
         return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
     }
 
+    function buildSimpleFileSection(files, label) {
+        if (!files || files.length === 0) return '';
+        const rows = files.map((v, index) => {
+            const isLatest = index === 0;
+            const dateString = formatDate(v.uploaded_at);
+            const who = v.first_name ? `${escapeHtml(v.first_name)} ${escapeHtml(v.last_name || '')}` : '';
+
+            return `
+                <div class="history-entry">
+                    <div class="history-row${isLatest ? ' history-row--latest' : ''}">
+                        <div class="history-row-meta">
+                            <span class="history-ver">v${v.version_number}</span>
+                            ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
+                        </div>
+                        <div class="history-row-detail">
+                            <span class="history-filename">${escapeHtml(v.original_name)}</span>
+                            <span class="helper">${who ? who + ' &middot; ' : ''}${dateString}</span>
+                        </div>
+                        <button type="button" class="button history-open-btn"
+                            onclick="openFilePopup('${v.file_url}', '${escapeHtml(label)}')">
+                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon" />
+                            </svg>
+                            Open
+                        </button>
+                    </div>
+                </div>`;
+        }).join('');
+
+        return `<div class="history-section-label">${escapeHtml(label)}</div>${rows}`;
+    }
+
     function renderHistory(data) {
         const body = document.getElementById('historyModalBody');
 
-        if (!data.protocol_files || data.protocol_files.length === 0) {
-            body.innerHTML = '<p class="helper" style="padding:1.5rem">No submission history found.</p>';
-            return;
-        }
+        const sections = [
+            buildVersionRows(data.protocol_files, data.protocol_id, data.return_reason),
+            buildSimpleFileSection(data.payment_proof_files, 'Proof of Payment'),
+            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan'),
+            buildSimpleFileSection(data.clearance_files, 'Clearance'),
+        ].filter(Boolean);
 
-        body.innerHTML = buildVersionRows(data.protocol_files, data.protocol_id, data.return_reason);
+        body.innerHTML = sections.length ?
+            sections.join('') :
+            '<p class="helper" style="padding:1.5rem">No submission history found.</p>';
     }
 
     // ===== Status legend info panel (single click to open/close) =====

@@ -140,6 +140,24 @@ foreach ($protocols as $p) {
                     &#x2715;
                 </button>
             </div>
+
+            <?php if (($user['role'] ?? '') === 'reviewer'): ?>
+                <button class="row-btn row-btn-primary" id="uploadClearanceBtn" type="button" hidden
+                    onclick="openClearanceScreenshotModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Upload Clearance Screenshots
+                </button>
+            <?php elseif (($user['role'] ?? '') === 'admin'): ?>
+                <a class="row-btn row-btn-primary" id="downloadAllPaidBtn" hidden
+                    href="<?= ROOT ?>/apply/download_all_paid" title="Download the latest protocol PDF for every reviewed, paid protocol">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#download-icon" />
+                    </svg>
+                    Download All Paid
+                </a>
+            <?php endif; ?>
         </div>
 
         <!-- ===== Flash messages ===== -->
@@ -288,6 +306,14 @@ foreach ($protocols as $p) {
                     'upload'   => '#upload-icon',
                     'download' => '#download-icon',
                     'back'     => '#back-icon',
+                    'reject'   => '#close-icon',
+                    'undo'     => '#back-icon',
+                ];
+                $paymentLabels = [
+                    'unpaid'         => 'Unpaid',
+                    'proof_submitted' => 'Proof Submitted',
+                    'rejected'       => 'Proof Rejected',
+                    'paid'           => 'Paid',
                 ];
                 ?>
 
@@ -298,6 +324,8 @@ foreach ($protocols as $p) {
                     $filterSlug     = $protocol['filter_slug'];
                     $statusLower    = strtolower($protocol['status']);
                     $protocolId     = (int) $protocol['protocol_id'];
+                    $paymentStatus  = $protocol['payment_status'] ?? 'unpaid';
+                    $hasSignedScan  = !empty($protocol['latest_signed_scan_version_id']);
                     $researcherName = htmlspecialchars(
                         $protocol['first_name'] . ' ' . $protocol['last_name'],
                         ENT_QUOTES,
@@ -329,6 +357,68 @@ foreach ($protocols as $p) {
                                         'icon' => 'history'
                                     ]
                                 ];
+                                break;
+
+                            case 'reviewed':
+                                switch ($paymentStatus) {
+                                    case 'proof_submitted':
+                                        $actions = [
+                                            [
+                                                'label' => 'Review Payment',
+                                                'action' => 'review-payment',
+                                                'icon' => 'review',
+                                                'primary' => true
+                                            ],
+                                            [
+                                                'label' => 'View',
+                                                'action' => 'view',
+                                                'icon' => 'review'
+                                            ],
+                                            [
+                                                'label' => 'Show History',
+                                                'action' => 'show-history',
+                                                'icon' => 'history'
+                                            ]
+                                        ];
+                                        break;
+
+                                    case 'paid':
+                                        $actions = [
+                                            [
+                                                'label' => 'View',
+                                                'action' => 'view',
+                                                'icon' => 'review',
+                                                'primary' => true
+                                            ],
+                                            [
+                                                'label' => 'Undo "Mark as Paid"',
+                                                'action' => 'undo-payment',
+                                                'icon' => 'undo'
+                                            ],
+                                            [
+                                                'label' => 'Show History',
+                                                'action' => 'show-history',
+                                                'icon' => 'history'
+                                            ]
+                                        ];
+                                        break;
+
+                                    default:
+                                        // unpaid / rejected: waiting on the researcher
+                                        $actions = [
+                                            [
+                                                'label' => 'View',
+                                                'action' => 'view',
+                                                'icon' => 'review',
+                                                'primary' => true
+                                            ],
+                                            [
+                                                'label' => 'Show History',
+                                                'action' => 'show-history',
+                                                'icon' => 'history'
+                                            ]
+                                        ];
+                                }
                                 break;
 
                             case 'approved':
@@ -372,31 +462,72 @@ foreach ($protocols as $p) {
                         switch ($statusLower) {
 
                             case 'reviewed':
-                                $actions = [
-                                    [
-                                        'label' => 'Mark as Endorsed',
-                                        'action' => 'mark-endorsed',
-                                        'icon' => 'check',
-                                        'primary' => true
-                                    ],
-                                    [
-                                        'label' => 'View',
-                                        'action' => 'view',
-                                        'icon' => 'review'
-                                    ],
-                                    [
-                                        'label' => 'Show History',
-                                        'action' => 'show-history',
-                                        'icon' => 'history'
-                                    ]
-                                ];
+                                if ($paymentStatus !== 'paid') {
+                                    $actions = [
+                                        [
+                                            'label' => 'View',
+                                            'action' => 'view',
+                                            'icon' => 'review',
+                                            'primary' => true
+                                        ],
+                                        [
+                                            'label' => 'Show History',
+                                            'action' => 'show-history',
+                                            'icon' => 'history'
+                                        ]
+                                    ];
+                                } elseif (!$hasSignedScan) {
+                                    $actions = [
+                                        [
+                                            'label' => 'Upload Signed Scan',
+                                            'action' => 'upload-signed-scan',
+                                            'icon' => 'upload',
+                                            'primary' => true
+                                        ],
+                                        [
+                                            'label' => 'View',
+                                            'action' => 'view',
+                                            'icon' => 'review'
+                                        ],
+                                        [
+                                            'label' => 'Show History',
+                                            'action' => 'show-history',
+                                            'icon' => 'history'
+                                        ]
+                                    ];
+                                } else {
+                                    $actions = [
+                                        [
+                                            'label' => 'Mark as Endorsed',
+                                            'action' => 'mark-endorsed',
+                                            'icon' => 'check',
+                                            'primary' => true
+                                        ],
+                                        [
+                                            'label' => 'View',
+                                            'action' => 'view',
+                                            'icon' => 'review'
+                                        ],
+                                        [
+                                            'label' => 'Show History',
+                                            'action' => 'show-history',
+                                            'icon' => 'history'
+                                        ]
+                                    ];
+                                }
                                 break;
 
                             case 'endorsed':
+                                $hasClearance = !empty($protocol['latest_clearance_version_id']);
                                 $actions = [
-                                    [
-                                        'label' => 'Upload Clearance and Mark as Approved',
-                                        'action' => 'upload-clearance',
+                                    $hasClearance ? [
+                                        'label' => 'Mark as Approved',
+                                        'action' => 'mark-approved',
+                                        'icon' => 'check',
+                                        'primary' => true
+                                    ] : [
+                                        'label' => 'Go to Clearance Pool',
+                                        'href' => ROOT . '/admin/clearances',
                                         'icon' => 'upload',
                                         'primary' => true
                                     ],
@@ -409,6 +540,11 @@ foreach ($protocols as $p) {
                                         'label' => 'Show History',
                                         'action' => 'show-history',
                                         'icon' => 'history'
+                                    ],
+                                    [
+                                        'label' => 'Revert to Reviewed',
+                                        'action' => 'revert-endorsed',
+                                        'icon' => 'undo'
                                     ]
                                 ];
                                 break;
@@ -430,6 +566,11 @@ foreach ($protocols as $p) {
                                         'label' => 'Show History',
                                         'action' => 'show-history',
                                         'icon' => 'history'
+                                    ],
+                                    [
+                                        'label' => 'Revert to Endorsed',
+                                        'action' => 'revert-approved',
+                                        'icon' => 'undo'
                                     ]
                                 ];
                                 break;
@@ -462,23 +603,50 @@ foreach ($protocols as $p) {
 
                         <div class="protocol-body">
                             <div class="protocol-meta">
-                                <p class="research-title"><?= $title ?></p>
+                                <p class="research-title">
+                                    <?= $title ?>
+                                    <?php if (in_array($statusLower, ['reviewed', 'endorsed', 'approved'], true)): ?>
+                                        <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </p>
                                 <p class="protocol-meta-line">
                                     <?= $protocol['version_display'] ?> &middot; <?= $researcherName ?> &middot; <?= $submittedDate ?>
                                 </p>
                             </div>
 
                             <div class="actions">
+                                <?php if ($userRole === 'admin' && $statusLower === 'reviewed' && !empty($protocol['latest_protocol_version_id'])): ?>
+                                    <a class="quick-download-btn"
+                                        href="<?= ROOT ?>/apply/file/<?= (int) $protocol['latest_protocol_version_id'] ?>?download=1"
+                                        title="Download protocol PDF" aria-label="Download protocol PDF">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#download-icon"></use>
+                                        </svg>
+                                    </a>
+                                <?php endif; ?>
                                 <?php foreach ($actions as $action): ?>
                                     <?php if (!empty($action['primary'])): ?>
-                                        <button class="button button--primary" data-action="<?= $action['action'] ?>">
-                                            <?php if (!empty($action['icon'])): ?>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                    <use href="<?= $iconMap[$action['icon']] ?>"></use>
-                                                </svg>
-                                            <?php endif; ?>
-                                            <?= htmlspecialchars($action['label']) ?>
-                                        </button>
+                                        <?php if (!empty($action['href'])): ?>
+                                            <a class="button button--primary" href="<?= htmlspecialchars($action['href'], ENT_QUOTES, 'UTF-8') ?>">
+                                                <?php if (!empty($action['icon'])): ?>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                        <use href="<?= $iconMap[$action['icon']] ?>"></use>
+                                                    </svg>
+                                                <?php endif; ?>
+                                                <?= htmlspecialchars($action['label']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <button class="button button--primary" data-action="<?= $action['action'] ?>">
+                                                <?php if (!empty($action['icon'])): ?>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                        <use href="<?= $iconMap[$action['icon']] ?>"></use>
+                                                    </svg>
+                                                <?php endif; ?>
+                                                <?= htmlspecialchars($action['label']) ?>
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
 
@@ -530,11 +698,15 @@ foreach ($protocols as $p) {
     const USER_ROLE = <?= json_encode($user['role'] ?? '') ?>;
     const CSRF_TOKEN = <?= json_encode($csrf) ?>;
     const STATUS_API = ROOT_URL + '/apply/status';
-    const CLEARANCE_UPLOAD_API = ROOT_URL + '/apply/clearance_upload';
+    const VERIFY_PAYMENT_API = ROOT_URL + '/apply/verify_payment';
+    const UNDO_PAYMENT_API = ROOT_URL + '/apply/undo_payment';
+    const REJECT_PAYMENT_API = ROOT_URL + '/apply/reject_payment';
+    const SIGNED_SCAN_UPLOAD_API = ROOT_URL + '/apply/signed_scan_upload';
     const CLEARANCE_VIEW_URL = ROOT_URL + '/apply/clearance/';
 
     // ===== Status metadata (mirrors My Protocols) =====
     const statusMeta = <?= json_encode($statusMeta) ?>;
+    const ENDORSED_COUNT = <?= (int) $endorsedCount ?>;
 
     // ===== DOM refs =====
     const protocolsList = document.getElementById('protocolsList');
@@ -547,6 +719,8 @@ foreach ($protocols as $p) {
     const paginationInfo = document.getElementById('paginationInfo');
     const paginationBtns = document.getElementById('paginationButtons');
     const rowsPerPageSel = document.getElementById('rowsPerPageSelect');
+    const uploadClearanceBtn = document.getElementById('uploadClearanceBtn');
+    const downloadAllPaidBtn = document.getElementById('downloadAllPaidBtn');
 
     const allRows = protocolsList ? [...protocolsList.querySelectorAll('.protocol')] : [];
 
@@ -554,6 +728,18 @@ foreach ($protocols as $p) {
     let searchQuery = '';
     let currentPage = 1;
     let rowsPerPage = 10;
+
+    // ===== Only show "Upload Clearance Screenshots" while viewing the Endorsed tab, and only if there's an endorsed protocol =====
+    function updateUploadClearanceBtnVisibility() {
+        if (!uploadClearanceBtn) return;
+        uploadClearanceBtn.hidden = !(activeFilter === 'endorsed' && ENDORSED_COUNT > 0);
+    }
+
+    // ===== Only show "Download All Paid" while viewing the Reviewed tab =====
+    function updateDownloadAllPaidBtnVisibility() {
+        if (!downloadAllPaidBtn) return;
+        downloadAllPaidBtn.hidden = activeFilter !== 'reviewed';
+    }
 
     function hexToRgba(hex, alpha) {
         const h = hex.replace('#', '');
@@ -612,6 +798,8 @@ foreach ($protocols as $p) {
             const url = new URL(window.location);
             url.searchParams.set('status', activeFilter);
             history.replaceState(null, '', url);
+            updateUploadClearanceBtnVisibility();
+            updateDownloadAllPaidBtnVisibility();
             renderTable();
         });
     });
@@ -658,6 +846,8 @@ foreach ($protocols as $p) {
             history.replaceState(null, '', url);
         }
         updateStatusGuide(activeFilter);
+        updateUploadClearanceBtnVisibility();
+        updateDownloadAllPaidBtnVisibility();
     })();
 
     // ===== Main render =====
@@ -805,17 +995,98 @@ foreach ($protocols as $p) {
                 break;
 
             case 'mark-endorsed':
-                confirmAction('Mark this protocol as endorsed? It will move forward for final clearance.', {
+                confirmAction('Mark this protocol as endorsed? Double-check that payment is verified and the signed scan is correct before proceeding.', {
                     okText: 'Mark as Endorsed',
                     cancelText: 'Cancel'
                 }).then(ok => ok && submitStatusChange(protocolId, 'Endorsed'));
                 break;
 
-            case 'upload-clearance':
-                openClearanceModal(protocolId, protocol?.research_title ?? '');
+            case 'revert-endorsed':
+                confirmAction('Revert this protocol back to Reviewed? Use this if "Mark as Endorsed" was clicked by mistake.', {
+                    okText: 'Revert',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitStatusChange(protocolId, 'Reviewed'));
+                break;
+
+            case 'mark-approved':
+                confirmAction('Mark this protocol as approved? Double-check that the attached clearance is correct before proceeding.', {
+                    okText: 'Mark as Approved',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitStatusChange(protocolId, 'Approved'));
+                break;
+
+            case 'revert-approved':
+                confirmAction('Revert this protocol back to Endorsed? Use this if "Mark as Approved" was clicked by mistake.', {
+                    okText: 'Revert',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitStatusChange(protocolId, 'Endorsed'));
+                break;
+
+            case 'upload-signed-scan':
+                openSignedScanModal(protocolId, protocol?.research_title ?? '');
+                break;
+
+            case 'undo-payment':
+                confirmAction('Undo this "Mark as Paid"? The protocol will go back to "Proof Submitted".', {
+                    okText: 'Undo',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitPaymentUndo(protocolId));
+                break;
+
+            case 'review-payment':
+                openReviewPaymentModal(protocolId, protocol?.research_title ?? '');
                 break;
         }
     });
+
+    // ===== Payment API calls =====
+    async function submitPaymentVerify(protocolId) {
+        try {
+            const res = await fetch(VERIFY_PAYMENT_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    protocol_id: protocolId
+                }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.error ?? 'Could not mark as paid.'));
+                document.getElementById('reviewPaymentApproveBtn')?.removeAttribute('disabled');
+            }
+        } catch (err) {
+            alert('Network error. Please try again.');
+            document.getElementById('reviewPaymentApproveBtn')?.removeAttribute('disabled');
+        }
+    }
+
+    async function submitPaymentUndo(protocolId) {
+        try {
+            const res = await fetch(UNDO_PAYMENT_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    protocol_id: protocolId
+                }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.error ?? 'Could not undo payment mark.'));
+            }
+        } catch (err) {
+            alert('Network error. Please try again.');
+        }
+    }
 
     // ===== Status change API call =====
     async function submitStatusChange(protocolId, newStatus) {
@@ -1050,15 +1321,54 @@ foreach ($protocols as $p) {
         return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
     }
 
+    function buildSimpleFileSection(files, label) {
+        if (!files || files.length === 0) return '';
+        const rows = files.map((v, i) => {
+            const date = new Date(v.uploaded_at).toLocaleString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const isLatest = i === 0;
+            const who = v.first_name ? `${escapeHtml(v.first_name)} ${escapeHtml(v.last_name || '')}` : '';
+
+            return `
+                <div class="history-row${isLatest ? ' history-row--latest' : ''}">
+                    <div class="history-row-meta">
+                        <span class="history-ver">v${v.version_number}</span>
+                        ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
+                    </div>
+                    <div class="history-row-detail">
+                        <span class="history-filename">${escapeHtml(v.original_name)}</span>
+                        <span class="helper">${who ? who + ' &middot; ' : ''}${date}</span>
+                    </div>
+                    <button type="button" class="button history-open-btn"
+                        onclick="openFilePopup('${v.file_url}', '${escapeHtml(label)}')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </button>
+                </div>`;
+        }).join('');
+        return `<div class="history-section-label">${escapeHtml(label)}</div>${rows}`;
+    }
+
     function renderHistory(data) {
         const body = document.getElementById('historyModalBody');
 
-        if (!data.protocol_files || data.protocol_files.length === 0) {
-            body.innerHTML = '<p class="helper">No submission history found.</p>';
-            return;
-        }
+        const sections = [
+            buildHistorySection(data.protocol_files, data.protocol_id),
+            buildSimpleFileSection(data.payment_proof_files, 'Proof of Payment'),
+            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan'),
+            buildSimpleFileSection(data.clearance_files, 'Clearance'),
+        ].filter(Boolean);
 
-        body.innerHTML = buildHistorySection(data.protocol_files, data.protocol_id);
+        body.innerHTML = sections.length ?
+            sections.join('') :
+            '<p class="helper">No submission history found.</p>';
     }
 </script>
 
@@ -1098,57 +1408,87 @@ foreach ($protocols as $p) {
     });
 </script>
 
-<!-- ===== Upload Clearance modal (admin only) ===== -->
-<div class="modal-backdrop" id="clearanceModalBackdrop">
-    <div class="modal-card clearance-modal-card">
-        <h2>Upload Clearance</h2>
-        <p id="clearanceSubtitle" class="helper clearance-modal-subtitle"></p>
+<!-- ===== Upload Signed Scan modal (admin only) ===== -->
+<div class="modal-backdrop" id="signedScanModalBackdrop">
+    <div class="modal-card">
+        <h2>Upload Signed Scan</h2>
+        <p id="signedScanSubtitle" class="modal-subtitle"></p>
 
-        <div id="clearanceError" class="alert error-messages clearance-modal-error" hidden></div>
+        <div id="signedScanError" class="alert error-messages" hidden></div>
 
-        <label for="clearance_file">Clearance document (PDF)</label>
-        <input type="file" id="clearance_file" name="clearance_file"
-            accept=".pdf,application/pdf" required>
-        <p class="helper clearance-modal-hint">PDF only &middot; max 10 MB</p>
-
-        <div class="modal-actions">
-            <button class="button" type="button" onclick="closeClearanceModal()">Cancel</button>
-            <button class="button btn-apply" type="button" id="clearanceSubmitBtn"
-                onclick="submitClearanceUpload()">
+        <div class="modal-file-row">
+            <div class="modal-file-info">
+                <div class="modal-file-title">Signed protocol (scan or photo) <span class="required-asterisk">*</span></div>
+                <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF or image &middot; max 10 MB</div>
+            </div>
+            <label class="modal-file-picker">
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#upload-icon" />
                 </svg>
-                Upload &amp; Mark as Approved
+                <span id="signedScanFilePickerLabel">Upload</span>
+                <input type="file" id="signed_scan_file" name="signed_scan_file"
+                    accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
+                    onchange="handleSignedScanFileChange(this)">
+            </label>
+        </div>
+
+        <div class="modal-actions">
+            <button class="button" type="button" onclick="closeSignedScanModal()">Cancel</button>
+            <button class="button btn-apply" type="button" id="signedScanSubmitBtn"
+                onclick="submitSignedScanUpload()">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+                Upload Signed Scan
             </button>
         </div>
     </div>
 </div>
 
 <script>
-    const clearanceModal = document.getElementById('clearanceModalBackdrop');
-    let currentClearanceProtocolId = null;
+    const signedScanModal = document.getElementById('signedScanModalBackdrop');
+    let currentSignedScanProtocolId = null;
 
-    function openClearanceModal(protocolId, title) {
-        currentClearanceProtocolId = protocolId;
-        document.getElementById('clearanceSubtitle').textContent = title;
-        document.getElementById('clearance_file').value = '';
-        document.getElementById('clearanceError').hidden = true;
-        clearanceModal.classList.add('open');
+    function openSignedScanModal(protocolId, title) {
+        currentSignedScanProtocolId = protocolId;
+        document.getElementById('signedScanSubtitle').textContent = title;
+        document.getElementById('signed_scan_file').value = '';
+        resetSignedScanFilePicker();
+        document.getElementById('signedScanError').hidden = true;
+        signedScanModal.classList.add('open');
     }
 
-    function closeClearanceModal() {
-        clearanceModal.classList.remove('open');
-        currentClearanceProtocolId = null;
+    function closeSignedScanModal() {
+        signedScanModal.classList.remove('open');
+        currentSignedScanProtocolId = null;
     }
 
-    clearanceModal.addEventListener('click', e => {
-        if (e.target === clearanceModal) closeClearanceModal();
+    signedScanModal.addEventListener('click', e => {
+        if (e.target === signedScanModal) closeSignedScanModal();
     });
 
-    async function submitClearanceUpload() {
-        const fileInput = document.getElementById('clearance_file');
-        const errBox = document.getElementById('clearanceError');
-        const btn = document.getElementById('clearanceSubmitBtn');
+    function resetSignedScanFilePicker() {
+        document.getElementById('signedScanFilePickerLabel').textContent = 'Upload';
+        const subtitle = document.getElementById('signedScanFileSubtitle');
+        subtitle.textContent = 'PDF or image · max 10 MB';
+        subtitle.classList.remove('done');
+    }
+
+    function handleSignedScanFileChange(input) {
+        const subtitle = document.getElementById('signedScanFileSubtitle');
+        if (input.files.length) {
+            document.getElementById('signedScanFilePickerLabel').textContent = 'Replace';
+            subtitle.textContent = input.files[0].name;
+            subtitle.classList.add('done');
+        } else {
+            resetSignedScanFilePicker();
+        }
+    }
+
+    async function submitSignedScanUpload() {
+        const fileInput = document.getElementById('signed_scan_file');
+        const errBox = document.getElementById('signedScanError');
+        const btn = document.getElementById('signedScanSubmitBtn');
 
         if (!fileInput.files.length) {
             errBox.textContent = 'Please select a file.';
@@ -1160,12 +1500,12 @@ foreach ($protocols as $p) {
         errBox.hidden = true;
 
         const formData = new FormData();
-        formData.append('protocol_id', currentClearanceProtocolId);
-        formData.append('clearance_file', fileInput.files[0]);
+        formData.append('protocol_id', currentSignedScanProtocolId);
+        formData.append('signed_scan_file', fileInput.files[0]);
         formData.append('csrf_token', CSRF_TOKEN);
 
         try {
-            const res = await fetch(CLEARANCE_UPLOAD_API, {
+            const res = await fetch(SIGNED_SCAN_UPLOAD_API, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-Token': CSRF_TOKEN
@@ -1178,6 +1518,396 @@ foreach ($protocols as $p) {
                 window.location.reload();
             } else {
                 errBox.textContent = data.error ?? 'Upload failed. Please try again.';
+                errBox.hidden = false;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            errBox.textContent = 'Network error. Please try again.';
+            errBox.hidden = false;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+<!-- ===== Review Payment modal (reviewer only) — shows the proof image, then Approve / Reject ===== -->
+<div class="modal-backdrop" id="reviewPaymentModalBackdrop">
+    <div class="modal-card file-popup-card review-payment-card">
+        <div class="file-popup-header">
+            <span class="file-popup-title" id="reviewPaymentTitle"></span>
+            <button class="button file-popup-close" type="button" onclick="closeReviewPaymentModal()" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+                Close
+            </button>
+        </div>
+
+        <div class="review-payment-image-frame" id="reviewPaymentImageFrame">
+            <p class="helper">Loading proof of payment&hellip;</p>
+        </div>
+
+        <div class="review-payment-footer">
+            <!-- Step 1: approve or start a rejection -->
+            <div class="modal-actions review-payment-primary-actions" id="reviewPaymentActions">
+                <button class="button confirm-modal-ok-danger" type="button" onclick="showRejectPaymentReason()">
+                    Reject
+                </button>
+                <button class="button btn-apply" type="button" id="reviewPaymentApproveBtn"
+                    onclick="approveReviewedPayment()">
+                    Approve Payment
+                </button>
+            </div>
+
+            <!-- Step 2: rejection reason, shown only after clicking Reject -->
+            <div id="reviewPaymentRejectPanel" hidden>
+                <label for="reject_payment_comment">Reason (the researcher will see this)</label>
+                <textarea id="reject_payment_comment" rows="3" placeholder="e.g. the amount doesn't match, or the receipt is unreadable" required></textarea>
+                <div id="rejectPaymentError" class="alert error-messages clearance-modal-error" hidden></div>
+                <div class="modal-actions">
+                    <button class="button" type="button" onclick="hideRejectPaymentReason()">Back</button>
+                    <button class="button confirm-modal-ok-danger" type="button" id="rejectPaymentSubmitBtn"
+                        onclick="submitRejectPayment()">
+                        Confirm Rejection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const reviewPaymentModal = document.getElementById('reviewPaymentModalBackdrop');
+    let currentReviewPaymentProtocolId = null;
+
+    function openReviewPaymentModal(protocolId, title) {
+        currentReviewPaymentProtocolId = protocolId;
+        document.getElementById('reviewPaymentTitle').textContent = title;
+        resetReviewPaymentModal();
+        reviewPaymentModal.classList.add('open');
+        loadPaymentProofImage(protocolId);
+    }
+
+    function closeReviewPaymentModal() {
+        reviewPaymentModal.classList.remove('open');
+        currentReviewPaymentProtocolId = null;
+    }
+
+    function resetReviewPaymentModal() {
+        document.getElementById('reviewPaymentImageFrame').innerHTML =
+            '<p class="helper">Loading proof of payment&hellip;</p>';
+        document.getElementById('reviewPaymentActions').hidden = false;
+        document.getElementById('reviewPaymentRejectPanel').hidden = true;
+        document.getElementById('reject_payment_comment').value = '';
+        document.getElementById('rejectPaymentError').hidden = true;
+        document.getElementById('rejectPaymentSubmitBtn').disabled = false;
+        document.getElementById('reviewPaymentApproveBtn').disabled = false;
+    }
+
+    reviewPaymentModal.addEventListener('click', e => {
+        if (e.target === reviewPaymentModal) closeReviewPaymentModal();
+    });
+
+    async function loadPaymentProofImage(protocolId) {
+        const frame = document.getElementById('reviewPaymentImageFrame');
+        try {
+            const res = await fetch(ROOT_URL + '/apply/allversions/' + protocolId);
+            const data = await res.json();
+            const latest = data?.payment_proof_files?.[0];
+
+            if (!latest) {
+                frame.innerHTML = '<p class="helper">No proof of payment file was found for this protocol.</p>';
+                return;
+            }
+
+            frame.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = latest.file_url;
+            img.alt = 'Proof of payment';
+            img.onerror = () => {
+                frame.innerHTML = '<p class="helper">Could not load the proof of payment image.</p>';
+            };
+            frame.appendChild(img);
+        } catch (err) {
+            frame.innerHTML = '<p class="helper">Network error while loading the proof of payment.</p>';
+        }
+    }
+
+    function showRejectPaymentReason() {
+        document.getElementById('reviewPaymentActions').hidden = true;
+        document.getElementById('reviewPaymentRejectPanel').hidden = false;
+        document.getElementById('reject_payment_comment').focus();
+    }
+
+    function hideRejectPaymentReason() {
+        document.getElementById('reviewPaymentRejectPanel').hidden = true;
+        document.getElementById('reviewPaymentActions').hidden = false;
+    }
+
+    function approveReviewedPayment() {
+        confirmAction('Mark this protocol as paid? Make sure the proof of payment shown checks out.', {
+            okText: 'Mark as Paid',
+            cancelText: 'Cancel'
+        }).then(ok => {
+            if (!ok) return;
+            const btn = document.getElementById('reviewPaymentApproveBtn');
+            btn.disabled = true;
+            submitPaymentVerify(currentReviewPaymentProtocolId);
+        });
+    }
+
+    async function submitRejectPayment() {
+        const comment = document.getElementById('reject_payment_comment').value.trim();
+        const errBox = document.getElementById('rejectPaymentError');
+        const btn = document.getElementById('rejectPaymentSubmitBtn');
+
+        if (!comment) {
+            errBox.textContent = 'Please explain why this proof is being rejected.';
+            errBox.hidden = false;
+            return;
+        }
+
+        errBox.hidden = true;
+
+        const ok = await confirmAction(
+            'Reject this payment proof? The researcher will be notified and asked to resubmit.', {
+                okText: 'Reject Proof',
+                cancelText: 'Cancel',
+                danger: true
+            }
+        );
+        if (!ok) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(REJECT_PAYMENT_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    protocol_id: currentReviewPaymentProtocolId,
+                    comment
+                }),
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                errBox.textContent = data.error ?? 'Could not reject. Please try again.';
+                errBox.hidden = false;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            errBox.textContent = 'Network error. Please try again.';
+            errBox.hidden = false;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+<!-- ===== Upload Clearance Screenshots modal (reviewer only) ===== -->
+<div class="modal-backdrop" id="clearanceScreenshotModalBackdrop">
+    <div class="modal-card">
+        <h2>Upload Clearance Screenshots</h2>
+        <p class="modal-notice">These will go into the shared pool for admins to sort and attach.</p>
+
+        <div id="clearanceScreenshotError" class="alert error-messages" hidden></div>
+
+        <div class="modal-file-row">
+            <div class="modal-file-info">
+                <div class="modal-file-title">Screenshots <span class="required-asterisk">*</span></div>
+                <div class="modal-file-subtitle" id="clearanceScreenshotFileSubtitle">Image, you can select several at once &middot; max 10 MB each</div>
+            </div>
+            <label class="modal-file-picker">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+                <span id="clearanceScreenshotFilePickerLabel">Upload</span>
+                <input type="file" id="clearance_screenshots" name="clearance_screenshots[]" multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png" required
+                    onchange="handleClearanceScreenshotFileChange(this)">
+            </label>
+        </div>
+
+        <input type="file" id="clearance_screenshots_add" multiple
+            accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
+
+        <div class="modal-file-previews" id="clearanceScreenshotPreviews" hidden></div>
+
+        <div class="modal-actions">
+            <button class="button" type="button" onclick="closeClearanceScreenshotModal()">Cancel</button>
+            <button class="button btn-apply" type="button" id="clearanceScreenshotSubmitBtn"
+                onclick="submitClearanceScreenshots()">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+                Upload
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CLEARANCE_POOL_UPLOAD_API = ROOT_URL + '/apply/clearance_pool_upload';
+    const clearanceScreenshotModal = document.getElementById('clearanceScreenshotModalBackdrop');
+    let clearanceScreenshotPreviewUrls = [];
+
+    function openClearanceScreenshotModal() {
+        document.getElementById('clearance_screenshots').value = '';
+        resetClearanceScreenshotFilePicker();
+        clearClearanceScreenshotPreviews();
+        document.getElementById('clearanceScreenshotError').hidden = true;
+        clearanceScreenshotModal.classList.add('open');
+    }
+
+    function closeClearanceScreenshotModal() {
+        clearanceScreenshotModal.classList.remove('open');
+        clearClearanceScreenshotPreviews();
+    }
+
+    clearanceScreenshotModal.addEventListener('click', e => {
+        if (e.target === clearanceScreenshotModal) closeClearanceScreenshotModal();
+    });
+
+    function resetClearanceScreenshotFilePicker() {
+        document.getElementById('clearanceScreenshotFilePickerLabel').textContent = 'Upload';
+        const subtitle = document.getElementById('clearanceScreenshotFileSubtitle');
+        subtitle.textContent = 'Image, you can select several at once · max 10 MB each';
+        subtitle.classList.remove('done');
+    }
+
+    function handleClearanceScreenshotFileChange(input) {
+        const subtitle = document.getElementById('clearanceScreenshotFileSubtitle');
+        if (input.files.length) {
+            document.getElementById('clearanceScreenshotFilePickerLabel').textContent = 'Replace';
+            subtitle.textContent = input.files.length === 1 ?
+                input.files[0].name :
+                input.files.length + ' files selected';
+            subtitle.classList.add('done');
+        } else {
+            resetClearanceScreenshotFilePicker();
+        }
+        renderClearanceScreenshotPreviews(input.files);
+    }
+
+    function clearClearanceScreenshotPreviews() {
+        clearanceScreenshotPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+        clearanceScreenshotPreviewUrls = [];
+        const container = document.getElementById('clearanceScreenshotPreviews');
+        container.innerHTML = '';
+        container.hidden = true;
+    }
+
+    function renderClearanceScreenshotPreviews(fileList) {
+        clearanceScreenshotPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+        clearanceScreenshotPreviewUrls = [];
+
+        const container = document.getElementById('clearanceScreenshotPreviews');
+        container.innerHTML = '';
+
+        if (!fileList.length) {
+            container.hidden = true;
+            return;
+        }
+        container.hidden = false;
+
+        [...fileList].forEach((file, index) => {
+            const url = URL.createObjectURL(file);
+            clearanceScreenshotPreviewUrls.push(url);
+
+            const card = document.createElement('div');
+            card.className = 'modal-file-preview-card';
+
+            const img = document.createElement('img');
+            img.className = 'modal-file-preview-img';
+            img.src = url;
+            img.alt = file.name;
+
+            const name = document.createElement('span');
+            name.className = 'modal-file-preview-name';
+            name.textContent = file.name;
+            name.title = file.name;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'modal-file-preview-remove';
+            removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
+            removeBtn.textContent = '\u00d7';
+            removeBtn.addEventListener('click', () => removeClearanceScreenshotFile(index));
+
+            card.append(img, name, removeBtn);
+            container.appendChild(card);
+        });
+
+        const addTile = document.createElement('button');
+        addTile.type = 'button';
+        addTile.className = 'modal-file-preview-add';
+        addTile.setAttribute('aria-label', 'Add more screenshots');
+        addTile.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#add-icon"></use></svg>';
+        addTile.addEventListener('click', () => document.getElementById('clearance_screenshots_add').click());
+        container.appendChild(addTile);
+    }
+
+    function removeClearanceScreenshotFile(index) {
+        const input = document.getElementById('clearance_screenshots');
+        const dataTransfer = new DataTransfer();
+        [...input.files].forEach((file, i) => {
+            if (i !== index) dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+        handleClearanceScreenshotFileChange(input);
+    }
+
+    document.getElementById('clearance_screenshots_add').addEventListener('change', function() {
+        if (!this.files.length) return;
+
+        const mainInput = document.getElementById('clearance_screenshots');
+        const dataTransfer = new DataTransfer();
+        [...mainInput.files].forEach(file => dataTransfer.items.add(file));
+        [...this.files].forEach(file => dataTransfer.items.add(file));
+        mainInput.files = dataTransfer.files;
+
+        this.value = '';
+        handleClearanceScreenshotFileChange(mainInput);
+    });
+
+    async function submitClearanceScreenshots() {
+        const fileInput = document.getElementById('clearance_screenshots');
+        const errBox = document.getElementById('clearanceScreenshotError');
+        const btn = document.getElementById('clearanceScreenshotSubmitBtn');
+
+        if (!fileInput.files.length) {
+            errBox.textContent = 'Please select at least one file.';
+            errBox.hidden = false;
+            return;
+        }
+
+        btn.disabled = true;
+        errBox.hidden = true;
+
+        const formData = new FormData();
+        for (const file of fileInput.files) {
+            formData.append('clearance_screenshots[]', file);
+        }
+        formData.append('csrf_token', CSRF_TOKEN);
+
+        try {
+            const res = await fetch(CLEARANCE_POOL_UPLOAD_API, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.reload();
+            } else {
+                errBox.textContent = (data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.');
                 errBox.hidden = false;
                 btn.disabled = false;
             }

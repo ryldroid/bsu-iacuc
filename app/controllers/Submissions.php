@@ -33,6 +33,7 @@ class Submissions extends Controller
             'protocols'     => $protocols,
             'statuses'      => $statuses,
             'hasCertOnFile' => $hasCertOnFile,
+            'csrf'          => $this->generateCsrfToken(),
         ]);
     }
 }

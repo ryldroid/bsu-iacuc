@@ -130,9 +130,32 @@
 
 .file-popup-frame img {
     max-width: 100%;
-    max-height: 100%;
+    /* percentage max-height can't reliably resolve here since this frame's
+       own height comes from flex-grow rather than a fixed value — cap
+       against the viewport directly instead so it always shrinks to fit. */
+    max-height: 82vh;
+    min-height: 0;
+    min-width: 0;
     object-fit: contain;
     margin: auto;
+}
+
+.file-popup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--divider-color-subtle);
+    border-top: 1px solid var(--divider-color);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.file-popup-footer-note {
+    margin: 0;
+    color: var(--danger-color);
+    font-weight: 500;
 }
 
 @media (max-width: 768px) {
@@ -144,6 +167,192 @@
     .file-popup-frame {
         min-height: 50vh;
     }
+
+    .file-popup-frame img {
+        max-height: 65vh;
+    }
+
+    .file-popup-footer {
+        justify-content: center;
+    }
+
+    .file-popup-footer-note {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ===== Modal notice/subtitle text (Confirm Payment, Upload Clearance, etc.) ===== */
+.modal-notice {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--secondary-text);
+    margin-top: 8px;
+}
+
+.modal-subtitle {
+    font-size: 0.85rem;
+    color: var(--secondary-text);
+    margin-top: 2px;
+}
+
+/* ===== Modal file-upload row: a labeled file picker inside a modal,
+   matching the upload-button convention used on the application page ===== */
+.modal-file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 1.25rem;
+}
+
+.modal-file-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.modal-file-title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--primary-text);
+}
+
+.modal-file-subtitle {
+    font-size: .8rem;
+    color: var(--secondary-text);
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.modal-file-subtitle.done {
+    color: var(--status-success-text);
+    font-weight: 500;
+}
+
+.modal-file-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    background: var(--card-background);
+    border: 1.5px solid var(--brand-text);
+    color: var(--brand-text);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.modal-file-picker:hover {
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+}
+
+.modal-file-picker svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.modal-file-picker input[type="file"] {
+    display: none;
+}
+
+/* ===== Selected-file image previews (Upload Clearance Screenshots, etc.) ===== */
+.modal-file-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.modal-file-previews[hidden] {
+    display: none;
+}
+
+.modal-file-preview-card {
+    position: relative;
+    width: 84px;
+}
+
+.modal-file-preview-img {
+    display: block;
+    width: 84px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--input-border);
+    background: var(--hover-surface-soft);
+}
+
+.modal-file-preview-name {
+    display: block;
+    margin-top: 4px;
+    font-size: .68rem;
+    color: var(--secondary-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modal-file-preview-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--danger-color);
+    color: #fff;
+    font-size: .85rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
+}
+
+.modal-file-preview-remove:hover {
+    background: var(--danger-color-hover);
+}
+
+.modal-file-preview-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 84px;
+    height: 84px;
+    margin: 0;
+    padding: 0;
+    border: 1.5px dashed var(--brand-text);
+    border-radius: 8px;
+    background: none;
+    color: var(--brand-text);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.modal-file-preview-add:hover {
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+}
+
+.modal-file-preview-add svg {
+    width: 20px;
+    height: 20px;
 }
 
 .confirm-modal-overlay {
@@ -243,4 +452,91 @@
 .confirm-modal-ok-danger:hover,
 .confirm-modal-ok-danger:focus-visible {
     background: var(--danger-color-hover);
+}
+
+/* ===== Review Payment modal (extends .file-popup-card) ===== */
+.review-payment-card {
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+}
+
+.review-payment-image-frame {
+    flex: 1;
+    min-height: 0;
+    /* the image never needs to exceed this, no matter how large the
+       original upload is — keeps the whole modal on-screen */
+    max-height: 60vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--divider-color-subtle);
+    padding: 1rem;
+}
+
+.review-payment-image-frame img {
+    max-width: 100%;
+    max-height: 58vh;
+    min-height: 0;
+    min-width: 0;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+    border-radius: 6px;
+}
+
+.review-payment-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--divider-color);
+    flex-shrink: 0;
+}
+
+.review-payment-footer label {
+    display: block;
+    margin-bottom: .35rem;
+}
+
+.review-payment-footer textarea {
+    width: 100%;
+}
+
+.review-payment-footer .modal-actions {
+    margin-top: 1rem;
+}
+
+.review-payment-primary-actions {
+    justify-content: stretch;
+}
+
+.review-payment-primary-actions button {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 0.95em;
+}
+
+.review-payment-footer .confirm-modal-ok-danger {
+    color: var(--text-on-brand);
+}
+
+@media (max-width: 768px) {
+    .review-payment-card {
+        width: 98vw;
+    }
+
+    .review-payment-image-frame,
+    .review-payment-image-frame img {
+        max-height: 45vh;
+    }
+
+    .review-payment-footer .modal-actions {
+        flex-wrap: wrap;
+    }
+
+    .review-payment-footer .modal-actions button {
+        flex: 1 1 auto;
+    }
 }

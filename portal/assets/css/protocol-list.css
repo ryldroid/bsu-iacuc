@@ -148,6 +148,37 @@
   margin-bottom: 6px;
 }
 
+.payment-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68em;
+  font-weight: 600;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.payment-badge--unpaid {
+  background: var(--danger-color-hover, #8f1d17);
+  color: #fff;
+}
+
+.payment-badge--proof_submitted {
+  background: var(--warning-text, #b45309);
+  color: #fff;
+}
+
+.payment-badge--rejected {
+  background: var(--danger-color, #b91c1c);
+  color: #fff;
+}
+
+.payment-badge--paid {
+  background: var(--success-background, #b8d7b8);
+  color: var(--success-text, #062b04);
+}
+
 .protocol-meta-line {
   font-size: 0.72em;
   color: var(--muted-text);
@@ -466,6 +497,10 @@
   color: var(--muted-text);
   cursor: pointer;
   border-radius: 4px;
+}
+
+.rename-history-toggle[hidden] {
+  display: none;
 }
 
 .rename-history-toggle:hover {
