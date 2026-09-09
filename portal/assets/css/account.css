@@ -49,6 +49,10 @@ main form {
     align-items: center;
 }
 
+.main-content--pinned-nav h1 {
+    margin-top: 44px;
+}
+
 .form-actions {
     width: fit-content;
     padding: 20px 60px;

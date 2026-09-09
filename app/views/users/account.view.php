@@ -12,8 +12,8 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
 <div class="body">
-    <main class="main-content wide" id="main-content" tabindex="-1">
-        <a class="btn-back button" id="account-back" href="<?= ROOT ?>/<?= $is_staff ? 'admin/home' : 'home' ?>">
+    <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
+        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_staff ? 'admin/home' : 'home' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>

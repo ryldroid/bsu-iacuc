@@ -1388,7 +1388,8 @@ class Apply extends Controller
             if ($newStatus === 'Reviewed' && !$isRevert) {
                 require_once dirname(__DIR__) . '/models/RecordModel.php';
                 $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi);
+                $school = $protocol['submitter_school'] ?? '';
+                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school);
             }
 
             $flashMessages = [

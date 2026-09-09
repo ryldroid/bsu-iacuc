@@ -13,8 +13,6 @@ class Admin extends Controller
         $this->model = new UserModel();
     }
 
-    // ===== ACCESS CONTROL =====
-
     private function requireAdmin(bool $ajax = false): void
     {
         $this->requireStaff($ajax);
@@ -46,8 +44,6 @@ class Admin extends Controller
         echo json_encode(['ok' => false, 'message' => $message]);
         exit;
     }
-
-    // ===== ADMIN PAGES =====
 
     public function home(): void
     {
@@ -86,12 +82,13 @@ class Admin extends Controller
         $animalType     = trim($_GET['animal'] ?? '');
         $gender         = trim($_GET['gender'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
+        $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
         $total      = $model->count($search, $school, $animalType, $gender, $researcherType);
-        $records    = $model->getAll($search, $school, $animalType, $gender, $researcherType, $perPage, $offset);
+        $records    = $model->getAll($search, $school, $animalType, $gender, $researcherType, $sort, $perPage, $offset);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('admin/records', [
@@ -107,17 +104,17 @@ class Admin extends Controller
             'animalType'      => $animalType,
             'gender'          => $gender,
             'researcherType'  => $researcherType,
+            'sort'            => $sort,
             'schools'         => $model->distinctValues('school'),
             'animalTypes'     => $model->distinctValues('animal_type'),
             'genders'         => $model->distinctValues('gender'),
             'researcherTypes' => $model->distinctValues('researcher_type'),
+            'stats'           => $model->stats(),
             'flash_success'   => $_SESSION['flash_success'] ?? '',
             'flash_error'     => $_SESSION['flash_error']   ?? '',
         ]);
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
-
-    // ===== Records AJAX: add =====
 
     public function records_add(): void
     {
@@ -136,9 +133,8 @@ class Admin extends Controller
             $this->jsonError(422, 'That IPN already exists.');
         }
 
-        $d                 = $this->sanitizeRecordPost();
-        $d['reference_no'] = $ref;
-        $ok                = $model->insert($d);
+        $d      = $this->sanitizeRecordPost();
+        $ok     = $model->insert($d);
 
         if ($ok) {
             $actor = $this->actor();
@@ -148,8 +144,6 @@ class Admin extends Controller
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record added.' : 'Insert failed.']);
         exit;
     }
-
-    // ===== Records AJAX: get (for edit modal) =====
 
     public function records_get(): void
     {
@@ -167,8 +161,6 @@ class Admin extends Controller
         );
         exit;
     }
-
-    // ===== Records AJAX: edit =====
 
     public function records_edit(): void
     {
@@ -198,8 +190,6 @@ class Admin extends Controller
         exit;
     }
 
-    // ===== Records AJAX: delete =====
-
     public function records_delete(): void
     {
         $this->requireAdmin(true);
@@ -225,30 +215,216 @@ class Admin extends Controller
         exit;
     }
 
+    public function records_export(): void
+    {
+        $this->requireStaff();
+
+        $model          = new RecordModel();
+        $search         = trim($_GET['search'] ?? '');
+        $school         = trim($_GET['school'] ?? '');
+        $animalType     = trim($_GET['animal'] ?? '');
+        $gender         = trim($_GET['gender'] ?? '');
+        $researcherType = trim($_GET['rtype']  ?? '');
+        $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
+
+        $records = $model->getAll($search, $school, $animalType, $gender, $researcherType, $sort, 1000000, 0);
+        $stats   = $model->stats($search, $school, $animalType, $gender, $researcherType);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        $statsSheet = $spreadsheet->getActiveSheet();
+        $statsSheet->setTitle('Statistics');
+        $this->writeStatisticsSheet($statsSheet, $stats, [
+            'Search'          => $search,
+            'School'          => $school,
+            'Animal Type'     => $animalType,
+            'Sex'             => $gender,
+            'Researcher Type' => $researcherType,
+        ]);
+
+        $recordsSheet = $spreadsheet->createSheet();
+        $recordsSheet->setTitle('Records');
+
+        $headers = [
+            'IPN',
+            'Title of Research',
+            'School',
+            'Animal Type',
+            'Count',
+            'Researcher',
+            'Sex',
+            'Researcher Type',
+            'Research Adviser',
+            'Veterinarian',
+            'Duration',
+            'Date Released',
+            'Received By',
+        ];
+        $recordsSheet->fromArray($headers, null, 'A1');
+
+        $row = 2;
+        foreach ($records as $r) {
+            $recordsSheet->fromArray([
+                $r['reference_no'],
+                $r['title_of_research'],
+                $r['school'] ?? '',
+                $r['animal_type'] ?? '',
+                $r['animal_count'] ?? '',
+                $r['principal_investigator'] ?? '',
+                $r['gender'] ?? '',
+                $r['researcher_type'] ?? '',
+                $r['research_adviser'] ?? '',
+                $r['veterinarian'] ?? '',
+                $this->formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
+                $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '',
+                $r['received_by'] ?? '',
+            ], null, "A$row");
+            $row++;
+        }
+
+        foreach (range('A', 'M') as $column) {
+            $recordsSheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $actor = $this->actor();
+        $model->logAudit('records_exported', $actor['id'], $actor['name'], $actor['role'], 'records', null, 'Exported records to Excel');
+
+        $filename = 'iacuc-records-' . date('Y-m-d_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+
+    private function writeStatisticsSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $stats, array $filters): void
+    {
+        $row = 1;
+        $sheet->setCellValue("A$row", 'BSU-IACUC Records — Statistics Summary');
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
+        $row++;
+
+        $sheet->setCellValue("A$row", 'Generated: ' . date('F j, Y g:i A'));
+        $row++;
+
+        $activeFilters = array_filter($filters, fn($v) => $v !== '');
+        $filterText    = $activeFilters
+            ? implode('; ', array_map(fn($k, $v) => "$k: $v", array_keys($activeFilters), $activeFilters))
+            : 'None';
+        $sheet->setCellValue("A$row", "Filters applied: $filterText");
+        $row += 2;
+
+        $sheet->setCellValue("A$row", 'Summary');
+        $sheet->getStyle("A$row")->getFont()->setBold(true);
+        $row++;
+
+        foreach (
+            [
+                ['Total Records', $stats['total']],
+                ['Processed This Month', $stats['processed_this_month']],
+                ['Processed This Quarter', $stats['processed_this_quarter']],
+                ['Total Animals Recorded', $stats['total_animals']],
+                ['Average Animals per Protocol', $stats['avg_animals_per_protocol']],
+                ['Distinct Schools', $stats['distinct_schools']],
+                ['Distinct Researchers', $stats['distinct_researchers']],
+                ['Distinct Research Advisers', $stats['distinct_advisers']],
+                ['Ongoing Studies', $stats['ongoing_studies']],
+                ['Completed Studies', $stats['completed_studies']],
+            ] as [$label, $value]
+        ) {
+            $sheet->setCellValue("A$row", $label);
+            $sheet->setCellValue("B$row", $value);
+            $row++;
+        }
+        $row++;
+
+        $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Type', $stats['animal_breakdown'], 'Animal Type');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Records by School', $stats['school_breakdown'], 'School');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Sex', $stats['sex_breakdown'], 'Sex');
+
+        $sheet->setCellValue("A$row", 'Records Processed by Month (This Quarter)');
+        $sheet->getStyle("A$row")->getFont()->setBold(true);
+        $row++;
+        $sheet->fromArray(['Month', 'Count'], null, "A$row");
+        $sheet->getStyle("A$row:B$row")->getFont()->setBold(true);
+        $row++;
+        foreach ($stats['monthly_trend'] as $entry) {
+            $sheet->fromArray([$entry['month'], $entry['total']], null, "A$row");
+            $row++;
+        }
+
+        foreach (['A', 'B', 'C'] as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+    }
+
+    private function writeBreakdownTable(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $row, string $title, array $breakdown, string $labelHeader): int
+    {
+        $sheet->setCellValue("A$row", $title);
+        $sheet->getStyle("A$row")->getFont()->setBold(true);
+        $row++;
+
+        if (! $breakdown) {
+            $sheet->setCellValue("A$row", 'No data.');
+            return $row + 2;
+        }
+
+        $sheet->fromArray([$labelHeader, 'Count', '% of Total'], null, "A$row");
+        $sheet->getStyle("A$row:C$row")->getFont()->setBold(true);
+        $row++;
+
+        $grandTotal = array_sum(array_column($breakdown, 'total'));
+        foreach ($breakdown as $entry) {
+            $pct = $grandTotal > 0 ? round(($entry['total'] / $grandTotal) * 100, 1) : 0;
+            $sheet->fromArray([$entry['label'], (int) $entry['total'], "$pct%"], null, "A$row");
+            $row++;
+        }
+
+        return $row + 1;
+    }
+
+    private function formatDurationRange(?string $start, ?string $end): string
+    {
+        if ($start && $end) {
+            return date('M j, Y', strtotime($start)) . ' – ' . date('M j, Y', strtotime($end));
+        }
+        if ($start) {
+            return 'From ' . date('M j, Y', strtotime($start));
+        }
+        if ($end) {
+            return 'Until ' . date('M j, Y', strtotime($end));
+        }
+        return '';
+    }
+
     private function sanitizeRecordPost(): array
     {
         $str = fn(string $k) => trim($_POST[$k] ?? '');
         return [
-            'title_of_research'      => $str('title_of_research'),
-            'school'                 => $str('school'),
-            'animal_type'            => $str('animal_type'),
-            'animal_count'           => $str('animal_count'),
-            'principal_investigator' => $str('principal_investigator'),
-            'gender'                 => $str('gender'),
-            'researcher_type'        => $str('researcher_type'),
-            'research_adviser'       => $str('research_adviser'),
-            'veterinarian'           => $str('veterinarian'),
-            'research_duration'      => $str('research_duration'),
-            'date_released'          => $str('date_released'),
-            'received_by'            => $str('received_by'),
+            'reference_no'            => $str('reference_no'),
+            'title_of_research'       => $str('title_of_research'),
+            'school'                  => $str('school'),
+            'animal_type'             => $str('animal_type'),
+            'animal_count'            => $str('animal_count'),
+            'principal_investigator'  => $str('principal_investigator'),
+            'gender'                  => $str('gender'),
+            'researcher_type'         => $str('researcher_type'),
+            'research_adviser'        => $str('research_adviser'),
+            'veterinarian'            => $str('veterinarian'),
+            'research_duration_start' => $str('research_duration_start'),
+            'research_duration_end'   => $str('research_duration_end'),
+            'date_released'           => $str('date_released'),
+            'received_by'             => $str('received_by'),
         ];
     }
 
-    // ===== OTHER PAGES =====
-
-    // [MODIFIED by SPM - this method already existed; now also loads
-    //  the announcements list and passes the user's role so the view can
-    //  decide whether to show Add/Edit/Delete buttons (admin only).
     public function announcements(): void
     {
         $this->requireAdmin();
@@ -263,7 +439,6 @@ class Admin extends Controller
             'announcements' => $model->getAll(),
         ]);
     }
-    // END MODIFIED
 
     public function accounts(): void
     {
@@ -285,8 +460,6 @@ class Admin extends Controller
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ]);
     }
-
-    // ===== AUDIT LOGS =====
 
     public function downloadAuditLogs(): void
     {
@@ -377,8 +550,6 @@ class Admin extends Controller
         return ($parsed && $parsed->format('Y-m-d') === $date) ? $date : null;
     }
 
-    // ===== LOG IN =====
-
     public function login(): void
     {
         if ($this->isLoggedIn()) {
@@ -465,8 +636,6 @@ class Admin extends Controller
         $this->redirect('admin/home');
     }
 
-    // ===== LOG OUT =====
-
     public function logout(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -480,8 +649,6 @@ class Admin extends Controller
         session_start();
         $this->redirect('admin/login');
     }
-
-    // ===== REGISTRATION (token-gated) =====
 
     private function getValidInvite(string $token): array
     {
@@ -625,8 +792,6 @@ class Admin extends Controller
         ]);
     }
 
-    // ===== APPROVE / REJECT =====
-
     public function approve(): void
     {
         $this->requireAdmin();
@@ -694,8 +859,6 @@ class Admin extends Controller
         $this->redirect('admin/accounts');
     }
 
-    // ===== FORGOT / RESET PASSWORD =====
-
     public function forgot_password(): void
     {
         $this->handleForgotPassword('admin/forgot_password', 'admin/reset_password', 'admin/login');
@@ -706,16 +869,11 @@ class Admin extends Controller
         $this->handleResetPassword('admin/reset_password', 'admin/login');
     }
 
-    // ===== ANNOUNCEMENTS ("From Our Office" section): add/edit/delete =====
-    // ADDED by SPM - the view-only `announcements()`
-    //  Does NOT touch the "From Our Partner Pages" Facebook section, which stays auto-updating.]
-
     private function announcementImageDir(): string
     {
         return dirname(__DIR__, 2) . '/portal/assets/uploads/announcements/';
     }
 
-    // Validates and saves an uploaded image 
     private function saveAnnouncementImage(string $inputName, ?string &$reason = null): string|false|null
     {
         if (empty($_FILES[$inputName]['tmp_name']) || $_FILES[$inputName]['error'] !== UPLOAD_ERR_OK) {
@@ -794,13 +952,11 @@ class Admin extends Controller
             $this->jsonError(422, 'Announcement content is required.');
         }
 
-        // [ADDED by SPM - optional image upload]
         $imageReason = null;
         $imageName   = $this->saveAnnouncementImage('image', $imageReason);
         if ($imageName === false) {
             $this->jsonError(422, $imageReason ?: 'Image upload failed.');
         }
-        // END ADDED
 
         $actor = $this->actor();
         $ok    = $model->insert($title, $body, $imageName, $actor['id'] ?: null);
@@ -808,7 +964,7 @@ class Admin extends Controller
         if ($ok) {
             $model->logAudit('announcement_added', $actor['id'], $actor['name'], $actor['role'], 'announcement', null, "Announcement added: $title");
         } elseif ($imageName) {
-            // insert failed after the image was already written to disk - clean it up
+
             $this->deleteAnnouncementImage($imageName);
         }
 
@@ -860,7 +1016,6 @@ class Admin extends Controller
             $this->jsonError(422, 'Announcement content is required.');
         }
 
-        // [ADDED by SPM - optional image replace/remove on edit.
         $imageReason = null;
         $newImage    = $this->saveAnnouncementImage('image', $imageReason);
         if ($newImage === false) {
@@ -878,7 +1033,6 @@ class Admin extends Controller
         } else {
             $imageToSave = 'KEEP';
         }
-        // END ADDED
 
         $ok = $model->update($id, $title, $body, $imageToSave);
 
@@ -906,9 +1060,7 @@ class Admin extends Controller
             $this->jsonError(400, 'No announcement id given.');
         }
 
-        // ADDED by SPM- clean up the image file (if any) along with the row
         $existing = $model->getById($id);
-        // END ADDED
 
         $ok = $model->delete($id);
 
@@ -923,5 +1075,4 @@ class Admin extends Controller
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement deleted.' : 'Delete failed.']);
         exit;
     }
-    // END ADDED
 }

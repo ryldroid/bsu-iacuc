@@ -235,10 +235,14 @@ header nav a:hover::after {
     cursor: pointer;
     transition: background-color 0.2s ease;
     white-space: nowrap;
+
+    margin: 0;
 }
 
 .theme-toggle:hover {
-    background-color: var(--tint-on-brand);
+    /* background-color: var(--tint-on-brand); */
+    background-color: rgb(255 255 255 / 0.12);
+    /* background-color: red; */
 }
 
 .theme-toggle:active {
@@ -272,7 +276,7 @@ header nav a:hover::after {
 
     border-radius: var(--radius);
     width: max-content;
-    min-width: 140px;
+    min-width: 120px;
     max-width: min(200px, calc(100vw - 32px));
 
     display: none;
@@ -303,6 +307,8 @@ header nav a:hover::after {
     font-family: inherit;
     text-align: left;
     cursor: pointer;
+
+    margin: 0;
 }
 
 #theme-menu button:hover {
@@ -316,8 +322,10 @@ header nav a:hover::after {
 
 .theme-menu-check {
     margin-left: auto;
+    margin-right: -0.3em;
     flex-shrink: 0;
     visibility: hidden;
+    /* width: 20px; */
 }
 
 #theme-menu button[aria-checked="true"] .theme-menu-check {
@@ -329,7 +337,8 @@ header nav a:hover::after {
 }
 
 .theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
-    background-color: var(--hover-surface);
+    /* background-color: var(--hover-surface); */
+    background-color: rgb(255 255 255 / 0.32);
 }
 
 .theme-toggle-wrapper.theme-toggle--card .theme-toggle:active {
@@ -337,7 +346,7 @@ header nav a:hover::after {
 }
 
 .theme-toggle-wrapper.theme-toggle--floating {
-    position: absolute;
+    position: fixed;
     top: 16px;
     right: 16px;
     margin-right: 0;
@@ -347,10 +356,11 @@ header nav a:hover::after {
     width: auto;
     gap: .3em;
     padding: 0 8px;
+    color: var(--text-on-image);
 }
 
 .theme-toggle-wrapper.theme-toggle--floating .theme-toggle-label {
-    display: none;
+    /* display: none; */
 }
 
 .theme-toggle-wrapper.theme-toggle--staff-login+form h1 {

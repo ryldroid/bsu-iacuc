@@ -108,6 +108,9 @@ class Model
                     `received_by`            varchar(255) DEFAULT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->ensureColumn('records', 'research_duration_start', "date DEFAULT NULL AFTER `research_duration`");
+        $this->ensureColumn('records', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
                     `id`                   int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `reference_no`         varchar(30)  DEFAULT NULL UNIQUE,

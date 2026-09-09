@@ -612,7 +612,7 @@
 
 .history-row {
   display: grid;
-  grid-template-columns: 72px 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 14px;
   padding: .7rem 1.5rem;

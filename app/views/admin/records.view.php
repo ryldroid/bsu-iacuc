@@ -1,24 +1,5 @@
 <?php
 
-/** @var array  $user            */
-/** @var string $csrf            */
-/** @var array  $records         */
-/** @var int    $total           */
-/** @var int    $page            */
-/** @var int    $totalPages      */
-/** @var int    $perPage         */
-/** @var string $search          */
-/** @var string $school          */
-/** @var string $animalType      */
-/** @var string $gender          */
-/** @var string $researcherType  */
-/** @var array  $schools         */
-/** @var array  $animalTypes     */
-/** @var array  $genders         */
-/** @var array  $researcherTypes */
-/** @var string $flash_success   */
-/** @var string $flash_error     */
-
 $title = 'Records';
 include dirname(__DIR__) . '/includes/header.php';
 include dirname(__DIR__) . '/includes/scroll-top.php';
@@ -36,17 +17,85 @@ $school          = $school          ?? '';
 $animalType      = $animalType      ?? '';
 $gender          = $gender          ?? '';
 $researcherType  = $researcherType  ?? '';
+$sort            = $sort            ?? 'newest';
 $schools         = $schools         ?? [];
 $animalTypes     = $animalTypes     ?? [];
 $genders         = $genders         ?? [];
 $researcherTypes = $researcherTypes ?? [];
+$stats           = $stats           ?? [
+    'total' => 0,
+    'processed_this_month' => 0,
+    'processed_this_quarter' => 0,
+    'total_animals' => 0,
+    'animal_breakdown' => [],
+    'school_breakdown' => [],
+    'researcher_type_breakdown' => [],
+    'sex_breakdown' => [],
+    'incomplete_count' => 0,
+    'distinct_schools' => 0,
+    'distinct_researchers' => 0,
+    'distinct_advisers' => 0,
+    'protocols_with_count' => 0,
+    'avg_animals_per_protocol' => 0,
+    'ongoing_studies' => 0,
+    'completed_studies' => 0,
+    'monthly_trend' => [],
+];
 $flash_success   = $flash_success   ?? '';
 $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $gender !== '' || $researcherType !== '';
+$showActions = $role === 'admin';
+$colCount    = $showActions ? 14 : 13;
 
-function pageUrl(int $p, string $search, string $school, string $animalType, string $gender, string $researcherType): string
+$pieColors = ['#2f6f4e', '#5b9c78', '#8bc4a3', '#c9a227', '#b5651d', '#6d597a', '#457b9d', '#9d9d9d'];
+
+function pieChartSlices(array $breakdown, array $colors, int $topN = 6): array
+{
+    if (! $breakdown) return [];
+    $top   = array_slice($breakdown, 0, $topN);
+    $rest  = array_slice($breakdown, $topN);
+    $otherTotal = array_sum(array_column($rest, 'total'));
+    if ($otherTotal > 0) {
+        $top[] = ['label' => 'Other', 'total' => $otherTotal];
+    }
+    $grandTotal = array_sum(array_column($top, 'total'));
+    $cursor = 0;
+    $slices = [];
+    foreach ($top as $i => $row) {
+        $pct   = $grandTotal > 0 ? ($row['total'] / $grandTotal) * 100 : 0;
+        $start = $cursor;
+        $end   = $cursor + $pct;
+        $slices[] = [
+            'label' => $row['label'],
+            'total' => (int) $row['total'],
+            'pct'   => $pct,
+            'color' => $colors[$i % count($colors)],
+            'start' => $start,
+            'end'   => $end,
+        ];
+        $cursor = $end;
+    }
+    return $slices;
+}
+
+function pieGradient(array $slices): string
+{
+    return $slices
+        ? implode(', ', array_map(fn($s) => "{$s['color']} {$s['start']}% {$s['end']}%", $slices))
+        : 'var(--divider-color) 0% 100%';
+}
+
+$animalSlices      = pieChartSlices($stats['animal_breakdown'], $pieColors);
+$schoolSlices      = pieChartSlices($stats['school_breakdown'], $pieColors);
+$sexSlices         = pieChartSlices($stats['sex_breakdown'], $pieColors);
+$researcherSlices  = pieChartSlices($stats['researcher_type_breakdown'], $pieColors);
+
+$monthlyTrend = $stats['monthly_trend'] ?? [];
+$trendMax     = $monthlyTrend ? max(array_column($monthlyTrend, 'total')) : 0;
+
+function pageUrl(int $p, string $search, string $school, string $animalType, string $gender, string $researcherType, string $sort): string
 {
     return '?' . http_build_query(array_filter([
         'page'   => $p,
@@ -55,7 +104,22 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         'animal' => $animalType,
         'gender' => $gender,
         'rtype'  => $researcherType,
+        'sort'   => $sort !== 'newest' ? $sort : '',
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)));
+}
+
+function formatDurationRange(?string $start, ?string $end): string
+{
+    if ($start && $end) {
+        return date('M j, Y', strtotime($start)) . ' – ' . date('M j, Y', strtotime($end));
+    }
+    if ($start) {
+        return 'From ' . date('M j, Y', strtotime($start));
+    }
+    if ($end) {
+        return 'Until ' . date('M j, Y', strtotime($end));
+    }
+    return '';
 }
 ?>
 
@@ -101,6 +165,21 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 <button type="button" class="inbox-search-clear <?= $search ? 'visible' : '' ?>" id="clearSearch" aria-label="Clear search">✕</button>
             </div>
 
+            <a class="row-btn records-export-btn"
+                href="<?= ROOT ?>/admin/records_export?<?= http_build_query(array_filter([
+                                                            'search' => $search,
+                                                            'school' => $school,
+                                                            'animal' => $animalType,
+                                                            'gender' => $gender,
+                                                            'rtype'  => $researcherType,
+                                                            'sort'   => $sort !== 'newest' ? $sort : '',
+                                                        ])) ?>">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#download-icon">
+                </svg>
+                Download Stats as Excel
+            </a>
+
             <?php if ($role === 'admin'): ?>
                 <button class="row-btn row-btn-primary" id="addRecordBtn" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -111,25 +190,168 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
             <?php endif; ?>
         </div>
 
-        <!-- ===== Metric cards ===== -->
-        <div class="metrics-row records-metrics">
-            <div class="metric-card">
-                <div class="metric-card-label">Total Records</div>
-                <div class="metric-card-value"><?= $total ?></div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-card-label">Showing</div>
-                <div class="metric-card-value">
-                    <?= min($perPage, max(0, $total - $offset)) ?>
-                    <span class="metric-unit">of <?= $total ?></span>
+        <!-- ===== Statistics (collapsible) ===== -->
+        <div class="records-stats-section">
+            <button type="button" class="records-stats-toggle" id="recordsStatsToggle"
+                aria-expanded="true" aria-controls="recordsStatsPanel">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#chev-down-icon"></use>
+                </svg>
+                <span>Statistics</span>
+            </button>
+
+            <div class="records-stats-panel" id="recordsStatsPanel">
+
+                <!-- ===== Metric cards ===== -->
+                <div class="metrics-row records-metrics">
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#protocols-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Total Records</div>
+                            <div class="metric-card-value"><?= number_format($stats['total']) ?></div>
+                        </div>
+                    </div>
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#clock-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Processed This Month</div>
+                            <div class="metric-card-value"><?= number_format($stats['processed_this_month']) ?></div>
+                        </div>
+                    </div>
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#beaker-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Total Animals Used</div>
+                            <div class="metric-card-value"><?= number_format($stats['total_animals']) ?></div>
+                        </div>
+                    </div>
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#beaker-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Average Animals per Protocol</div>
+                            <div class="metric-card-value"><?= number_format($stats['avg_animals_per_protocol'], 1) ?></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-card-label">Page</div>
-                <div class="metric-card-value">
-                    <?= $page ?>
-                    <span class="metric-unit">/ <?= max(1, $totalPages) ?></span>
+
+                <!-- ===== Breakdown charts ===== -->
+                <div class="records-charts-grid">
+                    <div class="metric-card records-pie-card">
+                        <div class="metric-card-label">Animals Used by Type</div>
+                        <?php if ($animalSlices): ?>
+                            <div class="records-pie-body">
+                                <div class="records-pie-chart" style="background: conic-gradient(<?= pieGradient($animalSlices) ?>);"></div>
+                                <ul class="records-pie-legend">
+                                    <?php foreach ($animalSlices as $s): ?>
+                                        <li>
+                                            <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
+                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <div class="records-pie-empty">No animal data yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="metric-card records-pie-card">
+                        <div class="metric-card-label">Records by School</div>
+                        <?php if ($schoolSlices): ?>
+                            <div class="records-pie-body">
+                                <div class="records-pie-chart" style="background: conic-gradient(<?= pieGradient($schoolSlices) ?>);"></div>
+                                <ul class="records-pie-legend">
+                                    <?php foreach ($schoolSlices as $s): ?>
+                                        <li>
+                                            <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
+                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <div class="records-pie-empty">No school data yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="metric-card records-pie-card">
+                        <div class="metric-card-label">Records by Researcher Type</div>
+                        <?php if ($researcherSlices): ?>
+                            <div class="records-pie-body">
+                                <div class="records-pie-chart" style="background: conic-gradient(<?= pieGradient($researcherSlices) ?>);"></div>
+                                <ul class="records-pie-legend">
+                                    <?php foreach ($researcherSlices as $s): ?>
+                                        <li>
+                                            <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
+                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <div class="records-pie-empty">No researcher type data yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="metric-card records-pie-card">
+                        <div class="metric-card-label">Records by Sex</div>
+                        <?php if ($sexSlices): ?>
+                            <div class="records-pie-body">
+                                <div class="records-pie-chart" style="background: conic-gradient(<?= pieGradient($sexSlices) ?>);"></div>
+                                <ul class="records-pie-legend">
+                                    <?php foreach ($sexSlices as $s): ?>
+                                        <li>
+                                            <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
+                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <div class="records-pie-empty">No sex data yet.</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="metric-card records-trend-card">
+                        <div class="metric-card-label">Records Processed This Quarter</div>
+                        <?php if ($monthlyTrend): ?>
+                            <div class="records-trend-chart">
+                                <?php foreach ($monthlyTrend as $m): ?>
+                                    <div class="records-trend-col">
+                                        <div class="records-trend-bar-track">
+                                            <div class="records-trend-bar-fill" style="--trend-pct: <?= $trendMax > 0 ? round(($m['total'] / $trendMax) * 100) : 0 ?>%"></div>
+                                        </div>
+                                        <div class="records-trend-count"><?= number_format($m['total']) ?></div>
+                                        <div class="records-trend-month"><?= htmlspecialchars($m['month']) ?></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="records-pie-empty">No data for this quarter yet.</div>
+                        <?php endif; ?>
+                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -160,7 +382,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 </select>
 
                 <select name="gender" class="records-filter-select" aria-label="Filter by gender" onchange="this.form.submit()">
-                    <option value="">All Genders</option>
+                    <option value="">All Sexes</option>
                     <?php foreach ($genders as $g): ?>
                         <option value="<?= htmlspecialchars($g, ENT_QUOTES) ?>" <?= $gender === $g ? 'selected' : '' ?>><?= htmlspecialchars($g) ?></option>
                     <?php endforeach; ?>
@@ -172,6 +394,15 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                         <option value="<?= htmlspecialchars($r, ENT_QUOTES) ?>" <?= $researcherType === $r ? 'selected' : '' ?>><?= htmlspecialchars($r) ?></option>
                     <?php endforeach; ?>
                 </select>
+
+                <div class="records-sort-group">
+                    <p>Sort by: </p>
+                    <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
+                        <?php foreach (RecordModel::SORT_OPTIONS as $key => $opt): ?>
+                            <option value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($opt['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
 
             <input type="hidden" name="page" value="1">
@@ -180,14 +411,12 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         <!-- ===== Table ===== -->
         <div class="protocol-table-wrap records-table-wrap">
             <div class="protocol-table-scroll">
-                <table class="protocol-table records-table">
+                <table class="protocol-table records-table <?= $showActions ? '' : 'no-actions-col' ?>">
                     <thead>
                         <tr>
                             <!-- ACTION BUTTONS column -->
-                            <?php if ($role === 'admin'): ?>
+                            <?php if ($showActions): ?>
                                 <th class="col-actions">Actions</th>
-                            <?php elseif ($role === 'reviewer'): ?>
-                                <th class="col-actions"></th>
                             <?php endif; ?>
                             <th class="col-ref">IPN</th>
                             <th class="col-title">Title of Research</th>
@@ -195,7 +424,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                             <th class="col-animal">Animal Type</th>
                             <th class="col-count">Count</th>
                             <th class="col-pi">Researcher</th>
-                            <th class="col-gender">Gender</th>
+                            <th class="col-gender">Sex</th>
                             <th class="col-rtype">Researcher Type</th>
                             <th class="col-adviser">Research Adviser</th>
                             <th class="col-vet">Veterinarian</th>
@@ -207,7 +436,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                     <tbody>
                         <?php if (count($records) === 0): ?>
                             <tr>
-                                <td colspan="14">
+                                <td colspan="<?= $colCount ?>">
                                     <div class="inbox-no-results">
                                         <?php if ($hasFilters): ?>
                                             No records match your search or filters.
@@ -221,8 +450,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                             <?php foreach ($records as $i => $r): ?>
                                 <tr>
                                     <!-- ACTION BUTTONS -->
-                                    <td class="actions-cell">
-                                        <?php if ($role === 'admin'): ?>
+                                    <?php if ($showActions): ?>
+                                        <td class="actions-cell">
                                             <div class="row-actions">
                                                 <button type="button" class="row-btn edit-record-btn"
                                                     data-id="<?= (int)$r['id'] ?>"
@@ -242,8 +471,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                                     Delete
                                                 </button>
                                             </div>
-                                        <?php endif; ?>
-                                    </td>
+                                        </td>
+                                    <?php endif; ?>
                                     <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no']) ?></td>
                                     <td>
                                         <div class="protocol-title-cell">
@@ -258,7 +487,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                     <td class="date-cell"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['research_duration'] ?? '') ?></td>
+                                    <td class="date-cell"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?></td>
                                     <td class="date-cell"><?= $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '' ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                 </tr>
@@ -277,8 +506,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 </div>
                 <div class="pagination-buttons">
                     <?php if ($page > 1): ?>
-                        <a href="<?= pageUrl(1, $search, $school, $animalType, $gender, $researcherType) ?>" class="pagination-btn" title="First">«</a>
-                        <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $gender, $researcherType) ?>" class="pagination-btn" title="Previous">‹</a>
+                        <a href="<?= pageUrl(1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="First">«</a>
+                        <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Previous">‹</a>
                     <?php else: ?>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">«</span>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">‹</span>
@@ -290,15 +519,15 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                     if ($start > 1) echo '<span class="pagination-ellipsis">…</span>';
                     for ($i = $start; $i <= $end; $i++):
                     ?>
-                        <a href="<?= pageUrl($i, $search, $school, $animalType, $gender, $researcherType) ?>"
+                        <a href="<?= pageUrl($i, $search, $school, $animalType, $gender, $researcherType, $sort) ?>"
                             class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
                     <?php endfor;
                     if ($end < $totalPages) echo '<span class="pagination-ellipsis">…</span>';
                     ?>
 
                     <?php if ($page < $totalPages): ?>
-                        <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $gender, $researcherType) ?>" class="pagination-btn" title="Next">›</a>
-                        <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $gender, $researcherType) ?>" class="pagination-btn" title="Last">»</a>
+                        <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Next">›</a>
+                        <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Last">»</a>
                     <?php else: ?>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">›</span>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">»</span>
@@ -309,6 +538,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
 
     </main>
 </div>
+
+<?php include dirname(__DIR__) . '/includes/animal-type-options.php'; ?>
 
 <!-- ===== ADD RECORD MODAL ===== -->
 <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
@@ -338,19 +569,18 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 </div>
                 <div class="records-form-group">
                     <label for="add_animal_type">Animal Type</label>
-                    <input type="text" id="add_animal_type" name="animal_type" placeholder="e.g. Mice, Rats">
+                    <input type="text" id="add_animal_type" name="animal_type" list="animal-type-options" placeholder="e.g. Mice, Rats">
                 </div>
                 <div class="records-form-group">
                     <label for="add_animal_count">Animal Count</label>
                     <input type="number" id="add_animal_count" name="animal_count" min="0" placeholder="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_gender">Gender</label>
+                    <label for="add_gender">Sex</label>
                     <select id="add_gender" name="gender">
                         <option value="">— select —</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Mixed</option>
                     </select>
                 </div>
                 <div class="records-form-group">
@@ -371,9 +601,13 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                     <label for="add_veterinarian">Veterinarian</label>
                     <input type="text" id="add_veterinarian" name="veterinarian" placeholder="Full name">
                 </div>
-                <div class="records-form-group">
-                    <label for="add_research_duration">Research Duration</label>
-                    <input type="text" id="add_research_duration" name="research_duration" placeholder="e.g. 6 months">
+                <div class="records-form-group records-form-full">
+                    <label for="add_research_duration_start">Research Duration</label>
+                    <div class="records-date-range">
+                        <input type="date" id="add_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
+                        <span class="records-date-range-sep">to</span>
+                        <input type="date" id="add_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
+                    </div>
                 </div>
                 <div class="records-form-group">
                     <label for="add_date_released">Date Released</label>
@@ -421,19 +655,18 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 </div>
                 <div class="records-form-group">
                     <label for="edit_animal_type">Animal Type</label>
-                    <input type="text" id="edit_animal_type" name="animal_type">
+                    <input type="text" id="edit_animal_type" name="animal_type" list="animal-type-options">
                 </div>
                 <div class="records-form-group">
                     <label for="edit_animal_count">Animal Count</label>
                     <input type="number" id="edit_animal_count" name="animal_count" min="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_gender">Gender</label>
+                    <label for="edit_gender">Sex</label>
                     <select id="edit_gender" name="gender">
                         <option value="">— select —</option>
                         <option>Male</option>
                         <option>Female</option>
-                        <option>Mixed</option>
                     </select>
                 </div>
                 <div class="records-form-group">
@@ -454,9 +687,13 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                     <label for="edit_veterinarian">Veterinarian</label>
                     <input type="text" id="edit_veterinarian" name="veterinarian">
                 </div>
-                <div class="records-form-group">
-                    <label for="edit_research_duration">Research Duration</label>
-                    <input type="text" id="edit_research_duration" name="research_duration">
+                <div class="records-form-group records-form-full">
+                    <label for="edit_research_duration_start">Research Duration</label>
+                    <div class="records-date-range">
+                        <input type="date" id="edit_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
+                        <span class="records-date-range-sep">to</span>
+                        <input type="date" id="edit_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
+                    </div>
                 </div>
                 <div class="records-form-group">
                     <label for="edit_date_released">Date Released</label>
@@ -500,6 +737,17 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 if (e.target === backdrop) closeModal(backdrop.id);
             });
         });
+
+        // ===== Statistics collapse toggle =====
+        const statsToggle = document.getElementById('recordsStatsToggle');
+        const statsPanel = document.getElementById('recordsStatsPanel');
+        if (statsToggle && statsPanel) {
+            statsToggle.addEventListener('click', () => {
+                const isOpen = statsToggle.getAttribute('aria-expanded') === 'true';
+                statsToggle.setAttribute('aria-expanded', String(!isOpen));
+                statsPanel.hidden = isOpen;
+            });
+        }
 
         // ===== Search clear =====
         const searchInput = document.getElementById('recordSearch');
@@ -577,7 +825,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                     researcher_type: document.getElementById('add_researcher_type').value,
                     research_adviser: document.getElementById('add_research_adviser').value,
                     veterinarian: document.getElementById('add_veterinarian').value,
-                    research_duration: document.getElementById('add_research_duration').value,
+                    research_duration_start: document.getElementById('add_research_duration_start').value,
+                    research_duration_end: document.getElementById('add_research_duration_end').value,
                     date_released: document.getElementById('add_date_released').value,
                     received_by: document.getElementById('add_received_by').value,
                 }).then(data => {
@@ -616,7 +865,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                         document.getElementById('edit_researcher_type').value = d.researcher_type ?? '';
                         document.getElementById('edit_research_adviser').value = d.research_adviser ?? '';
                         document.getElementById('edit_veterinarian').value = d.veterinarian ?? '';
-                        document.getElementById('edit_research_duration').value = d.research_duration ?? '';
+                        document.getElementById('edit_research_duration_start').value = d.research_duration_start ?? '';
+                        document.getElementById('edit_research_duration_end').value = d.research_duration_end ?? '';
                         document.getElementById('edit_date_released').value = d.date_released ?? '';
                         document.getElementById('edit_received_by').value = d.received_by ?? '';
                         openModal('editModal');
@@ -639,7 +889,8 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 researcher_type: document.getElementById('edit_researcher_type').value,
                 research_adviser: document.getElementById('edit_research_adviser').value,
                 veterinarian: document.getElementById('edit_veterinarian').value,
-                research_duration: document.getElementById('edit_research_duration').value,
+                research_duration_start: document.getElementById('edit_research_duration_start').value,
+                research_duration_end: document.getElementById('edit_research_duration_end').value,
                 date_released: document.getElementById('edit_date_released').value,
                 received_by: document.getElementById('edit_received_by').value,
             }).then(data => {

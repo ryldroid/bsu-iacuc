@@ -512,7 +512,8 @@ class ProtocolModel extends Model
                 p.paid_at,
                 p.paid_by,
                 u.first_name AS submitter_first_name,
-                u.last_name AS submitter_last_name
+                u.last_name AS submitter_last_name,
+                u.school AS submitter_school
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1"

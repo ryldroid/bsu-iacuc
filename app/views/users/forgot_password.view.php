@@ -17,8 +17,8 @@ include dirname(__DIR__) . '/includes/header.php';
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
 <div class="body">
-    <main class="main-content" id="main-content" tabindex="-1">
-        <a class="btn-back button" id="account-back" href="<?= ROOT ?>/<?= str_contains($route, 'admin') ? 'admin/login' : 'users/login' ?>">
+    <main class="main-content main-content--pinned-nav" id="main-content" tabindex="-1">
+        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= str_contains($route, 'admin') ? 'admin/login' : 'users/login' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>

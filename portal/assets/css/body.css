@@ -262,6 +262,24 @@ main button {
     gap: .4em;
 }
 
+.btn-back.btn-back--pinned {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    margin-left: 0;
+    height: 34px;
+    padding: 0 12px;
+    color: var(--text-on-image);
+}
+
+.btn-back.btn-back--pinned svg {
+    stroke: var(--text-on-image);
+}
+
+.btn-back.btn-back--pinned:hover {
+    background-color: rgb(255 255 255 / 0.32);
+}
+
 .btn-back:hover {
     background-color: var(--brand-color-active);
 }
