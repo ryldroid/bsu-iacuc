@@ -612,7 +612,7 @@ foreach ($protocols as $p) {
                                     <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line">
-                                    <?= $protocol['version_display'] ?> &middot; <?= $researcherName ?><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?>
+                                    <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?>
                                 </p>
                             </div>
 
@@ -1370,6 +1370,122 @@ foreach ($protocols as $p) {
             sections.join('') :
             '<p class="helper">No submission history found.</p>';
     }
+</script>
+
+<!-- ===== Researcher details modal ===== -->
+<div class="modal-backdrop" id="researcherModalBackdrop">
+    <div class="modal-card history-modal-card researcher-modal-card">
+        <div class="history-modal-header">
+            <div>
+                <p class="history-modal-label">Researcher</p>
+                <p class="history-modal-title" id="researcherModalName"></p>
+            </div>
+            <button class="button history-modal-close" onclick="closeResearcherModal()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
+        </div>
+        <div id="researcherModalBody" class="history-modal-body researcher-modal-body">
+            <p class="helper history-loading">Loading&hellip;</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const researcherBackdrop = document.getElementById('researcherModalBackdrop');
+
+    function openResearcherModal(userId, fallbackName) {
+        document.getElementById('researcherModalName').textContent = fallbackName || '';
+        document.getElementById('researcherModalBody').innerHTML = '<p class="helper history-loading">Loading…</p>';
+        researcherBackdrop.classList.add('open');
+
+        if (!userId) {
+            document.getElementById('researcherModalBody').innerHTML =
+                '<p class="helper history-error">No account information available for this researcher.</p>';
+            return;
+        }
+
+        fetch(ROOT_URL + '/admin/researcher_details?id=' + encodeURIComponent(userId))
+            .then(r => r.json())
+            .then(data => {
+                if (!data.ok) {
+                    document.getElementById('researcherModalBody').innerHTML =
+                        '<p class="helper history-error">' + escapeHtml(data.message || 'Could not load researcher details.') + '</p>';
+                    return;
+                }
+                renderResearcherDetails(data.data);
+            })
+            .catch(() => {
+                document.getElementById('researcherModalBody').innerHTML =
+                    '<p class="helper history-offline">Researcher details are not available offline. It will load once you reconnect.</p>';
+            });
+    }
+
+    function renderResearcherDetails(d) {
+        document.getElementById('researcherModalName').textContent = (d.first_name + ' ' + d.last_name).trim();
+
+        const joined = d.created_at ?
+            new Date(d.created_at).toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }) :
+            '—';
+
+        const rows = [
+            ['Username', d.username],
+            ['Email', d.email],
+            ['Phone', d.phone_number || '—'],
+            ['School', d.school || '—'],
+            ['Role', d.role ? d.role.charAt(0).toUpperCase() + d.role.slice(1) : '—'],
+            ['Account status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : '—'],
+            ['Joined', joined],
+        ].map(([label, value]) => `
+            <div class="researcher-detail-row">
+                <span class="researcher-detail-label">${escapeHtml(label)}</span>
+                <span class="researcher-detail-value">${escapeHtml(value)}</span>
+            </div>
+        `).join('');
+
+        const protocolsHtml = (d.protocols && d.protocols.length) ?
+            d.protocols.map(p => `
+                <li class="researcher-protocol-item">
+                    <span class="researcher-protocol-title">${escapeHtml(p.research_title)}</span>
+                    <span class="researcher-protocol-meta">
+                        ${escapeHtml(p.reference_no || '')} &middot; ${escapeHtml(p.status)}
+                        ${p.submitted_at ? ' &middot; ' + new Date(p.submitted_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+                    </span>
+                </li>
+            `).join('') :
+            '<li class="researcher-protocol-item researcher-protocol-empty">No protocols submitted yet.</li>';
+
+        document.getElementById('researcherModalBody').innerHTML = `
+            <div class="researcher-detail-rows">${rows}</div>
+            <div class="researcher-protocol-section">
+                <p class="researcher-protocol-heading">Protocols (${d.protocol_count})</p>
+                <ul class="researcher-protocol-list">${protocolsHtml}</ul>
+            </div>
+        `;
+    }
+
+    function closeResearcherModal() {
+        researcherBackdrop.classList.remove('open');
+    }
+
+    researcherBackdrop.addEventListener('click', e => {
+        if (e.target === researcherBackdrop) closeResearcherModal();
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeResearcherModal();
+    });
+
+    document.querySelectorAll('.researcher-name-link').forEach(btn => {
+        btn.addEventListener('click', () => {
+            openResearcherModal(btn.dataset.userId, btn.dataset.researcherName);
+        });
+    });
 </script>
 
 <!-- ===== File popup modal (cert / auth letter / protocol versions) ===== -->

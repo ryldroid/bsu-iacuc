@@ -62,6 +62,46 @@ class Admin extends Controller
         ]);
     }
 
+    public function researcher_details(): void
+    {
+        $this->requireStaff(true);
+        header('Content-Type: application/json');
+
+        $id   = (int) ($_GET['id'] ?? 0);
+        $user = $id > 0 ? $this->model->getUser($id) : null;
+
+        if (! $user) {
+            echo json_encode(['ok' => false, 'message' => 'Researcher not found.']);
+            exit;
+        }
+
+        $protocolModel = new ProtocolModel();
+        $protocols     = $protocolModel->getByUser($id);
+
+        echo json_encode([
+            'ok'   => true,
+            'data' => [
+                'first_name'     => $user['first_name'],
+                'last_name'      => $user['last_name'],
+                'username'       => $user['username'],
+                'email'          => $user['email'],
+                'phone_number'   => $user['phone_number'] ?? '',
+                'school'         => $user['school'] ?? '',
+                'role'           => $user['role'],
+                'status'         => $user['status'],
+                'created_at'     => $user['created_at'],
+                'protocol_count' => count($protocols),
+                'protocols'      => array_map(fn($p) => [
+                    'reference_no'   => $p['reference_no'],
+                    'research_title' => $p['research_title'],
+                    'status'         => $p['status'],
+                    'submitted_at'   => $p['submitted_at'],
+                ], array_slice($protocols, 0, 5)),
+            ],
+        ]);
+        exit;
+    }
+
     public function clearances(): void
     {
         $this->requireAdmin();
