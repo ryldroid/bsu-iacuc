@@ -53,8 +53,10 @@ $hideHeader     = $hideHeader     ?? false;
     <script>
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
+      const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
+    <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
   <?php endif; ?>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -304,6 +304,24 @@ class Users extends Controller
     $this->redirect('home');
   }
 
+  // ===== SESSION PING  (POST /users/ping) =====
+  // Called by the idle-session-warning prompt when the user confirms they're
+  // still there. init.php already refreshes $_SESSION['last_activity'] on
+  // every request, so simply reaching this method (past requireLogin) is
+  // enough to extend the session; this just gives the client a reliable
+  // JSON response to confirm the extension actually happened.
+
+  public function ping(): void
+  {
+    $this->requireLogin();
+    header('Content-Type: application/json');
+    $this->requirePostMethod();
+    $this->verifyCsrfHeader();
+
+    echo json_encode(['ok' => true]);
+    exit;
+  }
+
   // ===== MANAGE ACCOUNT =====
 
   public function account()
