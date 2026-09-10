@@ -2016,7 +2016,7 @@ include 'includes/header.php';
             const ext = file.name.split('.').pop().toLowerCase();
             if (key === 'protocol') {
                 if (file.type !== 'application/pdf' || ext !== 'pdf') {
-                    return 'Only PDF files are accepted for the protocol form.';
+                    return 'Only PDF files are accepted for the IACUC protocol form.';
                 }
             } else if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
                 return 'Only PDF, JPG, or PNG files are accepted.';

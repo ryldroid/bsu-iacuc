@@ -564,7 +564,7 @@ class Apply extends Controller
 
         $docRelPath = $draft['protocol_file_path'] ?? null;
         if (!$docRelPath || !is_file($draftDirAbs . $docRelPath)) {
-            $this->jsonError(422, 'Please upload your completed protocol form.');
+            $this->jsonError(422, 'Please upload your completed IACUC protocol form.');
         }
         $docOriginalName = $draft['protocol_file_name'];
 

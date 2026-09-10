@@ -57,8 +57,21 @@ $role = $user['role'] ?? '';
                             <span>Announcements</span>
                         </div>
                     </li>
-
                 <?php endif; ?>
+
+                <?php if ($role === 'reviewer'): ?>
+                    <li>
+                        <a href="<?= ROOT ?>/announcements">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#announcement-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Announcements</span>
+                        </div>
+                    </li>
+                <?php endif; ?>
+
 
                 <?php if (in_array($role, ['admin', 'reviewer'])): ?>
                     <li>

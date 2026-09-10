@@ -532,14 +532,14 @@ include "includes/scroll-top.php";
 
         return `
     <div class="page-tag">Step 4 of 5</div>
-    <div class="page-title">Download protocol form</div>
+    <div class="page-title">Download IACUC protocol form</div>
 
     <p class="step-intro-text">
         Download and complete the official BSU-IACUC protocol form in either format below, then upload
         the finished PDF in the next step.
     </p>
 
-    <div class="section-label">Official protocol form</div>
+    <div class="section-label">Official IACUC protocol form</div>
     <div class="doc-list">
     ${formats.map(f => `
     <div class="doc-row">
@@ -587,10 +587,10 @@ include "includes/scroll-top.php";
     </div>
     <p class="helper field-hint">Make sure this title matches the Protocol Title on your form exactly.</p>
 
-    <div class="section-label">Completed protocol form</div>
+    <div class="section-label">Completed IACUC protocol form</div>
     <div class="doc-list">
     ${docRow('protocol', {
-        title: 'Protocol form (PDF)',
+        title: 'IACUC protocol form (PDF)',
         subtitle: 'PDF · max 10 MB',
         required: true
     })}
@@ -725,13 +725,13 @@ include "includes/scroll-top.php";
 
         if (key === 'protocol') {
             if (file.type !== 'application/pdf') {
-                alert('Only PDF files are accepted for the protocol form.');
+                alert('Only PDF files are accepted for the IACUC protocol form.');
                 event.target.value = '';
                 return;
             }
             const ext = file.name.split('.').pop().toLowerCase();
             if (ext !== 'pdf') {
-                alert('Only PDF files are accepted for the protocol form.');
+                alert('Only PDF files are accepted for the IACUC protocol form.');
                 event.target.value = '';
                 return;
             }
@@ -841,7 +841,7 @@ include "includes/scroll-top.php";
         }
 
         if (!state.protocolName) {
-            errBox.textContent = 'Please upload your completed protocol form.';
+            errBox.textContent = 'Please upload your completed IACUC protocol form.';
             errBox.style.display = 'flex';
             return;
         }

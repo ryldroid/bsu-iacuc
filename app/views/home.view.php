@@ -34,7 +34,7 @@ include "includes/scroll-top.php";
                             The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate University and National and International policies and regulations. The IACUC, under the Office of the Research and Extension (R and E) specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).
                         </p>
                         <p>
-                            Animal Use Protocols must be reviewed by the IACUC and endorse for issuance of Animal Research permit by the Bureau of Animal Industry (BAI).
+                            IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research permit by the Bureau of Animal Industry (BAI).
                         </p>
                         <p>
                             The IACUC reviews and endorses animal research protocols in line with
@@ -195,9 +195,9 @@ include "includes/scroll-top.php";
                         </div>
                     </details>
 
-                    <details class="faq-cont">
+                    <!-- <details class="faq-cont">
                         <summary class="faq-question">
-                            Can I let someone else fill out my Animal Use Protocol?
+                            Can I let someone else fill out my IACUC Protocol Form?
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#chev-down-icon" />
                             </svg>
@@ -205,7 +205,8 @@ include "includes/scroll-top.php";
                         <div class="faq-answer">
                             We encourage Principal Investigators (PIs) to write and submit each IACUC protocol form; however, a staff member may fill out a protocol form with the permission of the PI. The individual listed as PI must sign the assurance form indicating full responsibility for the protocol. The assurance form is downloadable in the application process.
                         </div>
-                    </details>
+                    </details> -->
+
                     <details class="faq-cont">
                         <summary class="faq-question">
                             What if I amend my IACUC protocol to add/change procedures / personnel / animals?
