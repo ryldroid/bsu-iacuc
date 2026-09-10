@@ -119,10 +119,11 @@ class Model
                     `user_id`              int(11)      DEFAULT NULL,
                     `status`               varchar(30)  NOT NULL DEFAULT 'Under Review',
                     `submitted_at`         timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-                    `cert_path`            varchar(255) DEFAULT NULL,
-                    `auth_path`            varchar(255) DEFAULT NULL,
-                    `is_pi`                tinyint(1)   NOT NULL DEFAULT 1
+                    `cert_path`            varchar(255) DEFAULT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->dropColumn('protocols', 'is_pi');
+        $this->dropColumn('protocols', 'auth_path');
 
         $this->ensureColumn('protocols', 'previous_title', "varchar(255) DEFAULT NULL AFTER `title`");
         $this->ensureColumn('protocols', 'title_changed_by', "int(11) DEFAULT NULL AFTER `previous_title`");
@@ -160,7 +161,7 @@ class Model
                     `version_number` int(11)      NOT NULL DEFAULT 1,
                     `file_path`      varchar(255) NOT NULL,
                     `original_name`  varchar(255) NOT NULL,
-                    `file_type`      enum('protocol','cert','auth','clearance') NOT NULL DEFAULT 'protocol',
+                    `file_type`      enum('protocol','cert','clearance') NOT NULL DEFAULT 'protocol',
                     `uploaded_by`    int(11)      NOT NULL,
                     `uploaded_at`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
                     UNIQUE KEY `unique_version` (`protocol_id`, `version_number`, `file_type`),
@@ -168,10 +169,12 @@ class Model
                     FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->purgeAuthVersions();
+
         $this->ensureEnumValues(
             'protocol_versions',
             'file_type',
-            ['protocol', 'cert', 'auth', 'clearance', 'payment_proof', 'signed_scan'],
+            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan'],
             'protocol'
         );
 
@@ -227,6 +230,8 @@ class Model
 
         $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
 
+        $this->dropColumn('protocol_return_reasons', 'wrong_auth');
+
         $c->query("CREATE TABLE IF NOT EXISTS `login_attempts` (
                     `id`           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `identifier`   VARCHAR(255) NOT NULL,
@@ -276,7 +281,6 @@ class Model
                     `protocol_id`  int(11)       NOT NULL,
                     `reviewer_id`  int(11)       NOT NULL,
                     `wrong_cert`   tinyint(1)    NOT NULL DEFAULT 0,
-                    `wrong_auth`   tinyint(1)    NOT NULL DEFAULT 0,
                     `other_reason` tinyint(1)    NOT NULL DEFAULT 0,
                     `comment`      varchar(1000) NOT NULL DEFAULT '',
                     `created_at`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
@@ -320,17 +324,18 @@ class Model
                     `step`                tinyint(4)   NOT NULL DEFAULT 0,
                     `agreed_terms`        tinyint(1)   NOT NULL DEFAULT 0,
                     `agreed_privacy`      tinyint(1)   NOT NULL DEFAULT 0,
-                    `is_pi`               tinyint(1)   DEFAULT NULL,
                     `title`               varchar(255) NOT NULL DEFAULT '',
                     `protocol_file_path`  varchar(255) DEFAULT NULL,
                     `protocol_file_name`  varchar(255) DEFAULT NULL,
                     `cert_file_path`      varchar(255) DEFAULT NULL,
                     `cert_file_name`      varchar(255) DEFAULT NULL,
-                    `auth_file_path`      varchar(255) DEFAULT NULL,
-                    `auth_file_name`      varchar(255) DEFAULT NULL,
                     `updated_at`          timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->dropColumn('protocol_drafts', 'is_pi');
+        $this->dropColumn('protocol_drafts', 'auth_file_path');
+        $this->dropColumn('protocol_drafts', 'auth_file_name');
     }
 
     private function ensureColumn(string $table, string $column, string $definition): void
@@ -340,6 +345,41 @@ class Model
         $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
         if ($exists && $exists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+    }
+
+    private function purgeAuthVersions(): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `protocol_versions` LIKE 'file_type'");
+        if (! $exists || $exists->num_rows === 0) {
+            return;
+        }
+
+        $result = $c->query("SELECT id, file_path FROM `protocol_versions` WHERE file_type = 'auth'");
+        if (! $result || $result->num_rows === 0) {
+            return;
+        }
+
+        $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
+        while ($row = $result->fetch_assoc()) {
+            $abs = $baseDir . $row['file_path'];
+            if (is_file($abs)) {
+                @unlink($abs);
+            }
+        }
+
+        $c->query("DELETE FROM `protocol_versions` WHERE file_type = 'auth'");
+    }
+
+    private function dropColumn(string $table, string $column): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        if ($exists && $exists->num_rows > 0) {
+            $c->query("ALTER TABLE `$table` DROP COLUMN `$column`");
         }
     }
 

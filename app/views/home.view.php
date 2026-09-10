@@ -108,7 +108,7 @@ include "includes/scroll-top.php";
                             </svg>
                         </summary>
                         <div class="faq-answer">
-                            Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review. An assurance form is also required for non-Principal Investigators.
+                            Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.
                         </div>
                     </details>
 
@@ -120,7 +120,7 @@ include "includes/scroll-top.php";
                             </svg>
                         </summary>
                         <div class="faq-answer">
-                            No, only one member of the group must submit the IACUC protocol at a time, either the Principal Investigator (PI) or an authorized member with a signed assurance form by the PI.
+                            No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.
                         </div>
                     </details>
 
@@ -194,18 +194,6 @@ include "includes/scroll-top.php";
                             There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Permit, to be paid upon submission of the reviewed IACUC protocol.
                         </div>
                     </details>
-
-                    <!-- <details class="faq-cont">
-                        <summary class="faq-question">
-                            Can I let someone else fill out my IACUC Protocol Form?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            We encourage Principal Investigators (PIs) to write and submit each IACUC protocol form; however, a staff member may fill out a protocol form with the permission of the PI. The individual listed as PI must sign the assurance form indicating full responsibility for the protocol. The assurance form is downloadable in the application process.
-                        </div>
-                    </details> -->
 
                     <details class="faq-cont">
                         <summary class="faq-question">

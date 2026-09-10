@@ -197,7 +197,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $returnIssues   = [];
                     if ($needsRevision) {
                         if (!empty($protocol['rr_wrong_cert']))  $returnIssues[] = 'Wrong / invalid training certificate';
-                        if (!empty($protocol['rr_wrong_auth']))  $returnIssues[] = 'Wrong / invalid authorization letter';
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
                     $isApproved    = strtolower($protocol['status']) === 'approved';
@@ -747,7 +746,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
     function buildReturnNote(reason) {
         const issueLabels = [];
         if (reason.wrong_cert) issueLabels.push('Wrong / invalid training certificate');
-        if (reason.wrong_auth) issueLabels.push('Wrong / invalid authorization letter');
         if (reason.other_reason) issueLabels.push('Other');
 
         return `<div class="history-return-note">

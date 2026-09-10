@@ -27,29 +27,26 @@ class DraftModel extends Model
     int $step,
     bool $agreedTerms,
     bool $agreedPrivacy,
-    ?bool $isPi,
     string $title
   ): bool {
     $title       = mb_substr(trim($title), 0, 255);
     $agreedT     = $agreedTerms ? 1 : 0;
     $agreedP     = $agreedPrivacy ? 1 : 0;
-    $isPiVal     = $isPi === null ? null : ($isPi ? 1 : 0);
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, is_pi, title)
-             VALUES (?, ?, ?, ?, ?, ?)
+      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, title)
+             VALUES (?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 step = VALUES(step),
                 agreed_terms = VALUES(agreed_terms),
                 agreed_privacy = VALUES(agreed_privacy),
-                is_pi = VALUES(is_pi),
                 title = VALUES(title)"
     );
     if (! $stmt) {
       return false;
     }
 
-    $stmt->bind_param('iiiiis', $userId, $step, $agreedT, $agreedP, $isPiVal, $title);
+    $stmt->bind_param('iiiis', $userId, $step, $agreedT, $agreedP, $title);
     return $stmt->execute();
   }
 
@@ -57,7 +54,7 @@ class DraftModel extends Model
 
   public function saveFile(int $userId, string $key, string $path, string $originalName): bool
   {
-    if (! in_array($key, ['protocol', 'cert', 'auth'], true)) {
+    if (! in_array($key, ['protocol', 'cert'], true)) {
       return false;
     }
 
@@ -83,7 +80,7 @@ class DraftModel extends Model
 
   public function removeFile(int $userId, string $key): bool
   {
-    if (! in_array($key, ['protocol', 'cert', 'auth'], true)) {
+    if (! in_array($key, ['protocol', 'cert'], true)) {
       return false;
     }
 

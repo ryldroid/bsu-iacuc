@@ -9,7 +9,6 @@
 /** @var bool   $isReviewer */
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
-/** @var array|null $latestAuthVersion */
 /** @var array|null $latestPaymentProofVersion */
 /** @var bool   $hasCertOnFile */
 /** @var bool   $canRename */
@@ -45,7 +44,6 @@ $canConfirmPayment = !$isStaff && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 
 $rrWrongCert          = !empty($returnReason['wrong_cert']);
-$rrWrongAuth          = !empty($returnReason['wrong_auth']);
 
 $fileUrl    = ROOT . '/apply/file/' . (int) $version['id'];
 $annotApi   = ROOT . '/apply/annotate';
@@ -77,12 +75,9 @@ foreach ($versions as $v) {
 }
 
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-$isPi              = ! empty($protocol['is_pi']);
 $certRequired      = $hasCertOnFile && $rrWrongCert;
-$authRequired      = !$isPi && $rrWrongAuth;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
-$latestAuthFileUrl = ! empty($latestAuthVersion['id']) ? ROOT . '/apply/file/' . (int) $latestAuthVersion['id'] : null;
 $latestPaymentProofFileUrl = ! empty($latestPaymentProofVersion['id']) ? ROOT . '/apply/file/' . (int) $latestPaymentProofVersion['id'] : null;
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
@@ -93,10 +88,7 @@ $resubmitDocs      = [
 if ($certRequired) {
     $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
 }
-if ($authRequired) {
-    $resubmitDocs[] = ['key' => 'auth', 'title' => 'Authorization letter', 'subtitle' => 'Flagged by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
-}
-$resubmitIntro = ($certRequired || $authRequired)
+$resubmitIntro = $certRequired
     ? 'Upload your revised protocol file, plus the document(s) the reviewer flagged below.'
     : 'Upload your revised protocol file below.';
 
@@ -130,23 +122,10 @@ include 'includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if ($isStaff): ?>
-        <!-- <div class="notice-bar">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#account-icon" />
-            </svg>
-            <span>
-                Submitted by <strong><?= htmlspecialchars($submitterName, ENT_QUOTES, 'UTF-8') ?></strong>
-                <?= $isPi ? '(Principal Investigator)' : '(submitted with an authorization letter from the Principal Investigator)' ?>
-            </span>
-        </div> -->
-    <?php endif; ?>
-
     <?php if ($isStaff && !empty($returnReason)): ?>
         <?php
         $rrItems = [];
         if (!empty($returnReason['wrong_cert']))   $rrItems[] = 'update IACUC training certificate';
-        if (!empty($returnReason['wrong_auth']))   $rrItems[] = 'update authorization letter';
         if (!empty($returnReason['other_reason'])) $rrItems[] = 'revise protocol';
         $rrLabel = empty($rrItems) ? 'revise protocol' : implode('; ', $rrItems);
         ?>
@@ -330,17 +309,6 @@ include 'includes/header.php';
                     </svg>
                     Training Certificate
                 </button>
-
-                <?php if (! $isPi && $latestAuthFileUrl): ?>
-                    <button class="tool-btn tool-btn--ghost"
-                        data-file-url="<?= htmlspecialchars($latestAuthFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'Authorization Letter')">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Authorization Letter
-                    </button>
-                <?php endif; ?>
 
                 <?php if ($latestPaymentProofFileUrl):
                     $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
@@ -546,10 +514,6 @@ include 'includes/header.php';
                         <span class="return-reason-label">Wrong / invalid IACUC training certificate</span>
                     </label>
 
-                    <label class="return-reason-option">
-                        <input type="checkbox" name="return_reason" value="wrong_auth" id="returnReasonWrongAuth">
-                        <span class="return-reason-label">Wrong / invalid authorization letter</span>
-                    </label>
                 </fieldset>
 
                 <label class="return-comment-label" for="returnComment">
@@ -1800,7 +1764,7 @@ include 'includes/header.php';
 
     loadPdf();
 
-    // ===== File popup (cert / auth letter) =====
+    // ===== File popup (cert / payment proof / clearance) =====
     const filePopupBackdrop = document.getElementById('filePopupBackdrop');
     const filePopupFrame = document.getElementById('filePopupFrame');
     const filePopupPdfPages = document.getElementById('filePopupPdfPages');
@@ -1998,10 +1962,6 @@ include 'includes/header.php';
             cert: {
                 path: '/apply/reuploadcert',
                 field: 'cert_file'
-            },
-            auth: {
-                path: '/apply/reuploadauth',
-                field: 'auth_file'
             }
         };
         let resubmitFiles = {};

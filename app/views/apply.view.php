@@ -46,12 +46,9 @@ include "includes/scroll-top.php";
         step: 0,
         agreedTerms: false,
         agreedPrivacy: false,
-        isPi: null,
         certAlready: false,
         certName: null,
         certSize: null,
-        authName: null,
-        authSize: null,
         protocolName: null,
         protocolSize: null,
         title: '',
@@ -78,7 +75,6 @@ include "includes/scroll-top.php";
                     step: state.step,
                     agreedTerms: state.agreedTerms,
                     agreedPrivacy: state.agreedPrivacy,
-                    isPi: state.isPi,
                     title: state.title
                 })
             });
@@ -94,10 +90,9 @@ include "includes/scroll-top.php";
             state.step = d.step;
             state.agreedTerms = d.agreedTerms;
             state.agreedPrivacy = d.agreedPrivacy;
-            state.isPi = d.isPi;
             state.title = d.title;
 
-            ['protocol', 'cert', 'auth'].forEach(key => {
+            ['protocol', 'cert'].forEach(key => {
                 const f = d[key];
                 state[key + 'Name'] = f ? f.name : null;
                 state[key + 'Size'] = f ? f.size : null;
@@ -308,28 +303,21 @@ include "includes/scroll-top.php";
         </svg>`;
 
         const requirements = [{
-                title: 'IACUC training certificate',
-                subtitle: state.certAlready ?
-                    'You have already submitted your certificate.' : 'Required for first-time submitters.',
-                pill: state.certAlready ?
-                    `<span class="status-pill status-pill-done">${checkSvgSm}On file</span>` : `<span class="status-pill status-pill-required">Required</span>`,
-            },
-            {
-                title: 'Authorization letter by the Principal Investigator (PI)',
-                subtitle: 'Only needed for non-PIs. Disregard if you are the PI of this study.',
-                pill: `<span class="status-pill status-pill-muted">If applicable</span>`,
-            },
-        ];
+            title: 'IACUC training certificate',
+            subtitle: state.certAlready ?
+                'You have already submitted your certificate.' : 'Required for first-time submitters.',
+            pill: state.certAlready ?
+                `<span class="status-pill status-pill-done">${checkSvgSm}On file</span>` : `<span class="status-pill status-pill-required">Required</span>`,
+        }, ];
 
         const process = [
-            `Attach requirements if applicable. <br>
+            `Attach requirements. <br>
                 <span class="process-note">
                 Your training certificate is required unless you have already submitted one previously.
-                If you are not the Principal Investigator, attach an authorization letter.
                 </span>`,
             `Download the official IACUC protocol form, fill it in, then upload it in the next step. <br>
                 <span class="process-note">
-                For groups, only the Principal Investigator or an authorized member must apply for protocol review. 
+                Only the Principal Investigator (PI) may submit an IACUC protocol for review.
                 Multiple submissions will be rejected and returned.
                 </span>`,
             `Submit your completed form. You will be notified via email on updates on your protocol.`,
@@ -458,28 +446,7 @@ include "includes/scroll-top.php";
                 alreadyOnFile: state.certAlready,
                 alreadyNote: 'You have already submitted your certificate.'
             }),
-            `<div class="doc-row">
-        <div class="doc-row-info">
-            <div class="doc-row-title">Are you the Principal Investigator?</div>
-        </div>
-        <div class="doc-row-action">
-            <div class="toggle-group">
-                <button type="button" class="toggle-btn ${state.isPi === true ? 'active' : ''}"
-                        onclick="setIsPi(true)">Yes</button>
-                <button type="button" class="toggle-btn ${state.isPi === false ? 'active' : ''}"
-                        onclick="setIsPi(false)">No</button>
-            </div>
-        </div>
-    </div>`,
         ];
-
-        if (state.isPi === false) {
-            rows.push(docRow('auth', {
-                title: 'Authorization letter by PI',
-                subtitle: 'PDF, JPG, or PNG · max 10 MB',
-                required: true
-            }));
-        }
 
         return `
     <div class="page-tag">Step 3 of 5</div>
@@ -684,17 +651,6 @@ include "includes/scroll-top.php";
         goTo(2);
     }
 
-    function setIsPi(val) {
-        state.isPi = val;
-        saveState();
-        if (val === true && state.authName) {
-            state.authName = null;
-            state.authSize = null;
-            removeDraftFile('auth');
-        }
-        render();
-    }
-
     function proceedFromDocs() {
         const errBox = document.getElementById('doc-error');
         const showErr = msg => {
@@ -705,14 +661,6 @@ include "includes/scroll-top.php";
 
         if (!state.certAlready && !state.certName) {
             showErr('Please upload your IACUC training certificate.');
-            return;
-        }
-        if (state.isPi === null) {
-            showErr('Please indicate if you are the Principal Investigator.');
-            return;
-        }
-        if (state.isPi === false && !state.authName) {
-            showErr('Please upload the authorization letter of the Principal Investigator.');
             return;
         }
 
@@ -766,8 +714,7 @@ include "includes/scroll-top.php";
 
         const fieldMap = {
             protocol: 'protocol_file',
-            cert: 'cert',
-            auth: 'auth'
+            cert: 'cert'
         };
         const fd = new FormData();
         fd.append('key', key);

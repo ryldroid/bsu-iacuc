@@ -4,20 +4,19 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class ProtocolModel extends Model
 {
-    public function insertProtocol(int $userId, string $title, bool $isPi = true): int | false
+    public function insertProtocol(int $userId, string $title): int | false
     {
         $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';
 
         $stmt = $this->connection->prepare(
-            "INSERT INTO `protocols` (user_id, title, status, is_pi)
-            VALUES (?, ?, 'Under Review', ?)"
+            "INSERT INTO `protocols` (user_id, title, status)
+            VALUES (?, ?, 'Under Review')"
         );
         if (! $stmt) {
             return false;
         }
 
-        $isPiInt = $isPi ? 1 : 0;
-        $stmt->bind_param('isi', $userId, $title, $isPiInt);
+        $stmt->bind_param('is', $userId, $title);
         if (! $stmt->execute()) {
             return false;
         }
@@ -336,7 +335,6 @@ class ProtocolModel extends Model
                     p.submitted_at,
                     p.updated_at,
                     p.user_id,
-                    p.is_pi,
                     p.previous_title,
                     p.title_changed_by_name,
                     p.title_changed_by_role,
@@ -367,12 +365,6 @@ class ProtocolModel extends Model
                        AND pv2.file_type = 'cert'
                      ORDER BY pv2.version_number DESC
                      LIMIT 1) AS latest_cert_version_id,
-                    (SELECT pv3.id
-                     FROM `protocol_versions` pv3
-                     WHERE pv3.protocol_id = p.id
-                       AND pv3.file_type = 'auth'
-                     ORDER BY pv3.version_number DESC
-                     LIMIT 1) AS latest_auth_version_id,
                     (SELECT pv5.id
                      FROM `protocol_versions` pv5
                      WHERE pv5.protocol_id = p.id
@@ -419,7 +411,6 @@ class ProtocolModel extends Model
                 p.status,
                 p.submitted_at,
                 p.updated_at,
-                p.is_pi,
                 p.previous_title,
                 p.title_changed_by_name,
                 p.title_changed_by_role,
@@ -456,7 +447,6 @@ class ProtocolModel extends Model
                     )
                 ) AS last_activity_at,
                 rr.wrong_cert   AS rr_wrong_cert,
-                rr.wrong_auth   AS rr_wrong_auth,
                 rr.other_reason AS rr_other_reason,
                 rr.comment      AS rr_comment,
                 rr.created_at   AS rr_created_at,
@@ -497,7 +487,6 @@ class ProtocolModel extends Model
                 p.submitted_at,
                 p.updated_at,
                 p.user_id,
-                p.is_pi,
                 p.previous_title,
                 p.title_changed_by,
                 p.title_changed_by_name,
@@ -762,20 +751,19 @@ class ProtocolModel extends Model
         string $comment
     ): bool {
         $wrongCert  = in_array('wrong_cert',  $reasons, true) ? 1 : 0;
-        $wrongAuth  = in_array('wrong_auth',  $reasons, true) ? 1 : 0;
         $otherFlag  = in_array('other',       $reasons, true) ? 1 : 0;
         $comment    = mb_substr(trim($comment), 0, 1000);
 
         $stmt = $this->connection->prepare(
             "INSERT INTO `protocol_return_reasons`
-                (protocol_id, reviewer_id, wrong_cert, wrong_auth, other_reason, comment)
-             VALUES (?, ?, ?, ?, ?, ?)"
+                (protocol_id, reviewer_id, wrong_cert, other_reason, comment)
+             VALUES (?, ?, ?, ?, ?)"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('iiiiis', $protocolId, $reviewerId, $wrongCert, $wrongAuth, $otherFlag, $comment);
+        $stmt->bind_param('iiiis', $protocolId, $reviewerId, $wrongCert, $otherFlag, $comment);
         return $stmt->execute();
     }
 
@@ -784,7 +772,6 @@ class ProtocolModel extends Model
         $stmt = $this->connection->prepare(
             "SELECT
                 r.wrong_cert,
-                r.wrong_auth,
                 r.other_reason,
                 r.comment,
                 r.created_at,

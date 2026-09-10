@@ -30,10 +30,9 @@
  *   POST /apply/return_revision        → return for revision with reasons (JSON)
  *   GET  /apply/returnreason/{id}      → get latest return reason (JSON)
  *   POST /apply/reuploadcert           → replace researcher's stored certificate
- *   POST /apply/reuploadauth           → replace authorization letter
  *   GET  /apply/draft                  → load the current user's in-progress draft (JSON)
  *   POST /apply/draftsave              → save draft step/checkboxes/title (JSON)
- *   POST /apply/draftupload            → upload a draft file (protocol/cert/auth)
+ *   POST /apply/draftupload            → upload a draft file (protocol/cert)
  *   GET  /apply/draftfile/{key}        → stream a draft file belonging to the current user
  *   POST /apply/draftremovefile        → remove a single draft file
  *   POST /apply/draftclear             → discard the current user's draft entirely
@@ -558,8 +557,6 @@ class Apply extends Controller
             $this->jsonError(422, 'Protocol title is required.');
         }
 
-        $isPi = (bool) $draft['is_pi'];
-
         $draftDirAbs = dirname(__DIR__, 2) . '/storage/uploads/drafts/';
 
         $docRelPath = $draft['protocol_file_path'] ?? null;
@@ -579,13 +576,7 @@ class Apply extends Controller
         }
         $certOriginalName = $draft['cert_file_name'];
 
-        $authRelPath = $draft['auth_file_path'] ?? null;
-        if (!$isPi && (!$authRelPath || !is_file($draftDirAbs . $authRelPath))) {
-            $this->jsonError(422, 'Please upload the Authorization Letter, or confirm that you are the Principal Investigator.');
-        }
-        $authOriginalName = $draft['auth_file_name'];
-
-        $protocolId = $model->insertProtocol($actor['id'], $title, $isPi);
+        $protocolId = $model->insertProtocol($actor['id'], $title);
         if (!$protocolId) {
             $this->jsonError(500, 'Could not create protocol record. Please try again.');
         }
@@ -605,12 +596,6 @@ class Apply extends Controller
             $relCert = $this->relPath($protocolId, $certFinal);
             $model->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
             $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
-        }
-
-        if ($authRelPath && is_file($draftDirAbs . $authRelPath)) {
-            $authFinal = $finalDir . basename($authRelPath);
-            rename($draftDirAbs . $authRelPath, $authFinal);
-            $model->insertVersion($protocolId, $this->relPath($protocolId, $authFinal), $authOriginalName, $actor['id'], 'auth');
         }
 
         $draftModel->clear($actor['id']);
@@ -696,11 +681,9 @@ class Apply extends Controller
             'step'          => (int) $row['step'],
             'agreedTerms'   => (bool) $row['agreed_terms'],
             'agreedPrivacy' => (bool) $row['agreed_privacy'],
-            'isPi'          => $row['is_pi'] === null ? null : (bool) $row['is_pi'],
             'title'         => $row['title'],
             'protocol'      => $fileInfo('protocol'),
             'cert'          => $fileInfo('cert'),
-            'auth'          => $fileInfo('auth'),
         ]);
         exit;
     }
@@ -717,14 +700,11 @@ class Apply extends Controller
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $actor = $this->actor();
 
-        $isPi = array_key_exists('isPi', $body) ? $body['isPi'] : null;
-
         $ok = (new DraftModel())->saveFields(
             $actor['id'],
             (int) ($body['step'] ?? 0),
             (bool) ($body['agreedTerms'] ?? false),
             (bool) ($body['agreedPrivacy'] ?? false),
-            $isPi === null ? null : (bool) $isPi,
             (string) ($body['title'] ?? '')
         );
 
@@ -743,7 +723,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $key   = $_POST['key'] ?? '';
 
-        $fieldMap = ['protocol' => 'protocol_file', 'cert' => 'cert', 'auth' => 'auth'];
+        $fieldMap = ['protocol' => 'protocol_file', 'cert' => 'cert'];
         if (!isset($fieldMap[$key])) {
             $this->jsonError(400, 'Invalid file key.');
         }
@@ -812,7 +792,7 @@ class Apply extends Controller
         $key  = $body['key'] ?? '';
         $actor = $this->actor();
 
-        if (!in_array($key, ['protocol', 'cert', 'auth'], true)) {
+        if (!in_array($key, ['protocol', 'cert'], true)) {
             $this->jsonError(400, 'Invalid file key.');
         }
 
@@ -844,7 +824,7 @@ class Apply extends Controller
         $row   = $model->getByUser($actor['id']);
 
         if ($row) {
-            foreach (['protocol', 'cert', 'auth'] as $key) {
+            foreach (['protocol', 'cert'] as $key) {
                 $path = $row[$key . '_file_path'] ?? null;
                 if ($path) {
                     @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
@@ -1069,7 +1049,6 @@ class Apply extends Controller
             'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
             'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
-            'latestAuthVersion' => $model->getLatestVersionAsOf($protocolId, 'auth', $version['uploaded_at']),
             'latestPaymentProofVersion' => $model->getLatestVersion($protocolId, 'payment_proof'),
             'latestSignedScanVersion'   => $model->getLatestVersion($protocolId, 'signed_scan'),
             'latestClearanceVersion'    => $model->getLatestVersion($protocolId, 'clearance'),
@@ -2324,7 +2303,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $allowedReasons  = ['wrong_cert', 'wrong_auth'];
+        $allowedReasons  = ['wrong_cert'];
         $filteredReasons = array_values(array_filter($body['reasons'] ?? [], fn($r) => in_array($r, $allowedReasons, true)));
 
         $model    = new ProtocolModel();
@@ -2424,49 +2403,6 @@ class Apply extends Controller
         $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
 
         $model->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Researcher reuploaded training certificate for protocol # $protocolId");
-
-        echo json_encode(['success' => true]);
-        exit;
-    }
-
-    // ===== REUPLOAD AUTH LETTER  (POST /apply/reuploadauth) =====
-
-    public function reuploadauth(): void
-    {
-        $this->requireLogin();
-        header('Content-Type: application/json');
-        $this->requirePostMethod();
-
-        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
-        if ($protocolId < 1) {
-            $this->jsonError(400, 'Missing protocol_id.');
-        }
-
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
-
-        if (!$protocol) {
-            $this->jsonError(404, 'Protocol not found.');
-        }
-
-        $actor = $this->actor();
-
-        if ((int) $protocol['user_id'] !== $actor['id']) {
-            $this->jsonError(403, 'Access denied.');
-        }
-        if (strtolower($protocol['status']) !== 'needs revision') {
-            $this->jsonError(422, 'Authorization letter can only be reuploaded when the protocol needs revision.');
-        }
-
-        $authReason = null;
-        $authUpload = $this->saveUpload('auth_file', $this->protocolDir($protocolId), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $authReason);
-        if ($authUpload === false) {
-            $this->jsonError(422, $authReason ?? 'Upload failed. Accepted formats: PDF, JPG, PNG (max 10 MB).');
-        }
-        [$authPath, $authOriginalName] = $authUpload;
-
-        $model->insertVersion($protocolId, $this->relPath($protocolId, $authPath), $authOriginalName, $actor['id'], 'auth');
-        $model->logAudit('auth_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Researcher reuploaded authorization letter for protocol # $protocolId");
 
         echo json_encode(['success' => true]);
         exit;
