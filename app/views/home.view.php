@@ -1,5 +1,10 @@
 <?php
 
+require_once __DIR__ . '/../models/AnnouncementModel.php';
+$homeAnnouncementModel = new AnnouncementModel();
+$homeLatestAnnouncements = array_slice($homeAnnouncementModel->getAll(), 0, 3);
+
+
 $title = "Home";
 
 include "includes/header.php";
@@ -84,12 +89,30 @@ include "includes/scroll-top.php";
                 </article>
             </div>
 
-            <!-- FAQ -->
-            <article class="faq-section">
-                <h2 class="faq-title">Frequently Asked Questions</h2>
-                <div class="faq-list">
-                    <details class="faq-cont">
-                        <summary class="faq-question">
+            <div class="faq-column">
+                <?php if (!empty($homeLatestAnnouncements)): ?>
+                    <section class="home-announcements-teaser">
+                        <div class="home-announcements-teaser-header">
+                            <h2>Latest Announcements</h2>
+                            <a href="<?= ROOT ?>/announcements" class="underlined">See all →</a>
+                        </div>
+                        <?php foreach ($homeLatestAnnouncements as $post): ?>
+                            <a href="<?= ROOT ?>/announcements#ann-<?= (int) $post['id'] ?>" class="faq-cont home-announcement-cont">
+                                <span class="faq-question">
+                                    <span class="home-announcement-teaser-title"><?= htmlspecialchars($post['title'], ENT_QUOTES) ?></span>
+                                    <time><?= htmlspecialchars($post['created_at'], ENT_QUOTES) ?></time>
+                                </span>
+                            </a>
+                        <?php endforeach; ?>
+                    </section>
+                <?php endif; ?>
+
+                <!-- FAQ -->
+                <article class="faq-section">
+                    <h2 class="faq-title">Frequently Asked Questions</h2>
+                    <div class="faq-list">
+                        <details class="faq-cont">
+                            <summary class="faq-question">
                             Who may avail?
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#chev-down-icon" />
@@ -231,13 +254,14 @@ include "includes/scroll-top.php";
                     </details> -->
                 </div>
             </article>
+            </div>
         </div>
     </main>
 </div>
 
 <script>
     // ===== SMOOTH FAQ =====
-    document.querySelectorAll('.faq-cont').forEach(details => {
+    document.querySelectorAll('.faq-list .faq-cont').forEach(details => {
         const summary = details.querySelector('.faq-question');
         const content = details.querySelector('.faq-answer');
 
