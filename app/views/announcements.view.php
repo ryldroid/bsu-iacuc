@@ -4,13 +4,10 @@ $title = 'Announcements';
 include "includes/header.php";
 include "includes/scroll-top.php";
 
-// ADDED by SPM - pull admin-managed "From Our Office" posts.
-//  Only affects the "From Our Office" section below; the Facebook
-//  "From Our Partner Pages" section further down is untouched.]
 require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
 $announcementModel = new AnnouncementModel();
 $officeAnnouncements = $announcementModel->getAll();
-// END ADDED
+
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">
@@ -34,13 +31,13 @@ $officeAnnouncements = $announcementModel->getAll();
                 <h2>From Our Office</h2>
                 <p class="announcements-subtitle">Latest updates from BSU-CCARD.</p>
 
-                <!-- ADDED by SPM - renders posts managed by admin at /admin/announcements -->
+
                 <?php if (empty($officeAnnouncements)): ?>
                     <p class="announcements-empty">No announcements yet. Check back soon.</p>
                 <?php else: ?>
                     <div class="office-announcements-list">
                         <?php foreach ($officeAnnouncements as $post): ?>
-                            <article class="office-announcement-card">
+                            <article class="office-announcement-card" id="ann-<?= (int) $post['id'] ?>">
                                 <?php if (!empty($post['image_path'])): ?>
                                     <img class="office-announcement-image"
                                         src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>"
@@ -54,7 +51,7 @@ $officeAnnouncements = $announcementModel->getAll();
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <!-- END ADDED -->
+
             </section>
 
             <section class="fb-cards">
@@ -113,7 +110,6 @@ $officeAnnouncements = $announcementModel->getAll();
 
 <?php include "includes/footer.php"; ?>
 
-<!-- ADDED by SPM - "See more" toggle for long office announcements. -->
 <script>
     document.querySelectorAll('.office-announcement-card .see-more-btn').forEach(btn => {
         const clamp = btn.previousElementSibling;
@@ -129,4 +125,3 @@ $officeAnnouncements = $announcementModel->getAll();
         });
     });
 </script>
-<!-- END ADDED -->
