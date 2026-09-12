@@ -1,5 +1,4 @@
 <?php
-// ADDED by SPM - full rebuild of the Manage Announcements admin page.
 
 /** @var array  $user          */
 /** @var string $role          */
@@ -87,8 +86,6 @@ $first_name    = $user['first_name'] ?? '';
             <?php endif; ?>
         </div>
 
-        <!-- ADDED by SPM - read-only preview of "From Our Partner Pages" so admin
-             can see it here for reference.  -->
         <div id="fb-root"></div>
         <script async defer crossorigin="anonymous"
             src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0&appId=1366404755375168">
@@ -143,7 +140,6 @@ $first_name    = $user['first_name'] ?? '';
                 </section>
             </div>
         </section>
-        <!-- END ADDED -->
 
     </main>
 </div>
@@ -166,7 +162,6 @@ $first_name    = $user['first_name'] ?? '';
                     <label for="add_ann_body">Content</label>
                     <textarea id="add_ann_body" name="body" rows="5"></textarea>
                 </div>
-                <!-- ADDED by SPM - optional image upload for the announcement -->
                 <div class="records-form-group records-form-full">
                     <label for="add_ann_image">Image (optional)</label>
                     <input type="file" id="add_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -174,7 +169,6 @@ $first_name    = $user['first_name'] ?? '';
                         <img id="add_ann_image_preview" src="" alt="Selected image preview">
                     </div>
                 </div>
-                <!-- END ADDED -->
             </div>
         </div>
         <div class="records-modal-footer">
@@ -203,7 +197,6 @@ $first_name    = $user['first_name'] ?? '';
                     <label for="edit_ann_body">Content</label>
                     <textarea id="edit_ann_body" name="body" rows="5"></textarea>
                 </div>
-                <!-- ADDED by SPM - replace/remove the announcement's image -->
                 <div class="records-form-group records-form-full">
                     <label for="edit_ann_image">Replace image (optional)</label>
                     <input type="file" id="edit_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -212,10 +205,10 @@ $first_name    = $user['first_name'] ?? '';
                     </div>
                     <div class="ann-remove-image-row" id="edit_ann_remove_row" hidden>
                         <input type="checkbox" id="edit_ann_remove_image">
-                        <label for="edit_ann_remove_image" style="margin:0; text-transform:none; letter-spacing:normal; font-weight:400;">Remove current image</label>
+                        <label for="edit_ann_remove_image">Remove current image</label>
                     </div>
                 </div>
-                <!-- END ADDED -->
+
             </div>
         </div>
         <div class="records-modal-footer">
@@ -251,7 +244,7 @@ $first_name    = $user['first_name'] ?? '';
             const fd = new FormData();
             Object.entries(body).forEach(([k, v]) => {
                 if (v === undefined || v === null) return;
-                fd.append(k, v); // works for strings AND File objects
+                fd.append(k, v); 
             });
             return fetch(ROOT + url, {
                     method: 'POST',
@@ -275,7 +268,6 @@ $first_name    = $user['first_name'] ?? '';
             }
         }
 
-        // ADDED by SPM- shows a live preview of the chosen file before upload
         function wireImagePreview(inputId, wrapId, imgId) {
             const input = document.getElementById(inputId);
             if (!input) return;
@@ -297,7 +289,14 @@ $first_name    = $user['first_name'] ?? '';
         }
         wireImagePreview('add_ann_image', 'add_ann_image_preview_wrap', 'add_ann_image_preview');
         wireImagePreview('edit_ann_image', 'edit_ann_image_preview_wrap', 'edit_ann_image_preview');
-        // END ADDED
+
+        const removeImageCheckbox = document.getElementById('edit_ann_remove_image');
+        if (removeImageCheckbox) {
+            removeImageCheckbox.addEventListener('change', () => {
+                const previewWrap = document.getElementById('edit_ann_image_preview_wrap');
+                previewWrap.style.opacity = removeImageCheckbox.checked ? '0.35' : '1';
+            });
+        }
 
         // ===== ADD =====
         const addBtn = document.getElementById('addAnnouncementBtn');
@@ -378,6 +377,7 @@ $first_name    = $user['first_name'] ?? '';
                         const removeRow = document.getElementById('edit_ann_remove_row');
                         const removeCheckbox = document.getElementById('edit_ann_remove_image');
                         removeCheckbox.checked = false;
+                        previewWrap.style.opacity = ''; 
                         if (data.data.image_path) {
                             preview.src = ROOT + '/assets/uploads/announcements/' + encodeURIComponent(data.data.image_path);
                             previewWrap.hidden = false;
@@ -445,7 +445,7 @@ $first_name    = $user['first_name'] ?? '';
         document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const title = btn.dataset.title || '#' + btn.dataset.id;
-                // confirmAction() is a global helper from portal/assets/js/modals.js
+
                 const confirmed = await confirmAction(
                     'Delete "' + title + '"? This cannot be undone.', {
                         okText: 'Delete',
@@ -468,11 +468,10 @@ $first_name    = $user['first_name'] ?? '';
             });
         });
 
-        // ADDED by SPM - "See more" toggle for long announcement text in the table
+
         document.querySelectorAll('.see-more-btn').forEach(btn => {
             const clamp = btn.previousElementSibling;
             if (!clamp) return;
-            // Only show the toggle if the text actually overflows 3 lines
             requestAnimationFrame(() => {
                 if (clamp.scrollHeight <= clamp.clientHeight + 2) {
                     btn.hidden = true;
@@ -483,7 +482,7 @@ $first_name    = $user['first_name'] ?? '';
                 btn.textContent = expanded ? 'See less' : 'See more';
             });
         });
-        // END ADDED
+
 
         // ===== sessionStorage flash (after reload) =====
         const pendingFlash = sessionStorage.getItem('announcements_flash');
@@ -500,4 +499,3 @@ $first_name    = $user['first_name'] ?? '';
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
-<!-- END ADDED -->
