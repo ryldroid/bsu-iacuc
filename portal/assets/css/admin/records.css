@@ -170,6 +170,7 @@
 .records-stats-toggle:hover {
   background: var(--divider-color-subtle);
   border-color: var(--brand-color-hover);
+  color: var(--brand-text);
 }
 
 .records-stats-toggle svg {
@@ -504,14 +505,14 @@
 
 .records-table thead .col-ref {
   position: sticky;
-  left: 140px;
+  left: 110px;
   z-index: 2;
   background: var(--divider-color-subtle);
 }
 
 .records-table .records-ref {
   position: sticky;
-  left: 140px;
+  left: 110px;
   z-index: 1;
   font-family: monospace;
 
@@ -521,7 +522,11 @@
 
   box-shadow: 2px 0 4px -2px var(--shadow-color-soft);
 
-  background: var(--brand-surface-tint);
+  /* Two background layers so the tint is always painted over an opaque
+     base, instead of `--brand-surface-tint` (which is semi-transparent)
+     letting the scrolled Title column bleed through this pinned cell. */
+  background-color: var(--card-background);
+  background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
   color: var(--brand-text);
 }
 
@@ -531,7 +536,8 @@
 }
 
 .records-table tbody tr:nth-child(even) .records-ref {
-  background: var(--brand-surface-tint);
+  background-color: var(--divider-color-subtle);
+  background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
 }
 
 .records-table .protocol-title-cell {

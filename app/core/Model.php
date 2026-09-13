@@ -88,6 +88,7 @@ class Model
         $this->ensureColumn('users', 'phone_number', "varchar(20) DEFAULT NULL AFTER `email`");
         $this->ensureColumn('users', 'email_verified', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email`");
         $this->ensureColumn('users', 'school', "varchar(150) DEFAULT NULL AFTER `phone_number`");
+        $this->ensureColumn('users', 'sex', "varchar(20) DEFAULT NULL AFTER `phone_number`");
         $this->ensureIndex('users', 'unique_email', "(`email`)", true);
 
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
@@ -110,6 +111,11 @@ class Model
 
         $this->ensureColumn('records', 'research_duration_start', "date DEFAULT NULL AFTER `research_duration`");
         $this->ensureColumn('records', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
+        $this->ensureColumn('records', 'user_id', "int(11) DEFAULT NULL AFTER `id`");
+        $this->ensureIndex('records', 'idx_records_user_id', "(`user_id`)");
+        $this->ensureColumn('records', 'protocol_id', "int(11) DEFAULT NULL AFTER `user_id`");
+        $this->ensureIndex('records', 'idx_records_protocol_id', "(`protocol_id`)");
+        $this->backfillRecordProtocolLinks();
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
                     `id`                   int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -130,6 +136,7 @@ class Model
         $this->ensureColumn('protocols', 'title_changed_by_name', "varchar(150) DEFAULT NULL AFTER `title_changed_by`");
         $this->ensureColumn('protocols', 'title_changed_by_role', "varchar(30) DEFAULT NULL AFTER `title_changed_by_name`");
         $this->ensureColumn('protocols', 'title_changed_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_by_role`");
+        $this->ensureColumn('protocols', 'title_change_seen_by', "int(11) DEFAULT NULL AFTER `title_changed_at`");
         $this->ensureColumn('protocols', 'deletion_requested_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_at`");
         $this->ensureColumn('protocols', 'deletion_requested_by', "int(11) DEFAULT NULL AFTER `deletion_requested_at`");
         $this->ensureColumn('protocols', 'deletion_requested_by_name', "varchar(150) DEFAULT NULL AFTER `deletion_requested_by`");
@@ -140,7 +147,8 @@ class Model
         $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");
         $this->ensureColumn('protocols', 'deletion_reason', "varchar(1000) DEFAULT NULL AFTER `deleted_by_name`");
         $this->ensureColumn('protocols', 'payment_status', "enum('unpaid','proof_submitted','rejected','paid') NOT NULL DEFAULT 'unpaid' AFTER `deletion_reason`");
-        $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_status`");
+        $this->ensureColumn('protocols', 'payment_method', "enum('in_person','online') DEFAULT NULL AFTER `payment_status`");
+        $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
@@ -289,6 +297,12 @@ class Model
                     FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // Ties a return reason to the protocol version that was under review when
+        // it was returned, so the note only surfaces for that specific version.
+        $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
+        $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
+        $this->backfillReturnReasonVersions();
+
         $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
@@ -346,6 +360,47 @@ class Model
         if ($exists && $exists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
         }
+    }
+
+    // One-time backfill for records created before `records.protocol_id`
+    // existed: links a record to its originating protocol by matching on an
+    // exact, unambiguous title match (only when title is unique on both
+    // sides, so no guessy links). Records/protocols created after this
+    // point are linked directly at creation time, so this only ever
+    // matters for old data.
+    private function backfillRecordProtocolLinks(): void
+    {
+        $this->connection->query(
+            "UPDATE `records` r
+             JOIN `protocols` p ON p.title = r.title_of_research
+             SET r.protocol_id = p.id
+             WHERE r.protocol_id IS NULL
+               AND (SELECT COUNT(*) FROM `protocols` p2 WHERE p2.title = r.title_of_research) = 1
+               AND (SELECT COUNT(*) FROM `records` r2 WHERE r2.title_of_research = r.title_of_research) = 1"
+        );
+    }
+
+    // One-time backfill for return reasons created before `version_id` existed:
+    // links each one to whichever protocol version was current as of the
+    // reason's created_at (the version that was actually under review when
+    // the reviewer returned it), mirroring getLatestVersionAsOf()'s logic.
+    private function backfillReturnReasonVersions(): void
+    {
+        $this->connection->query(
+            "UPDATE `protocol_return_reasons` r
+             JOIN `protocol_versions` pv
+                ON pv.protocol_id = r.protocol_id
+               AND pv.file_type = 'protocol'
+               AND pv.uploaded_at = (
+                    SELECT MAX(pv2.uploaded_at)
+                    FROM `protocol_versions` pv2
+                    WHERE pv2.protocol_id = r.protocol_id
+                      AND pv2.file_type = 'protocol'
+                      AND pv2.uploaded_at <= r.created_at
+               )
+             SET r.version_id = pv.id
+             WHERE r.version_id IS NULL"
+        );
     }
 
     private function purgeAuthVersions(): void

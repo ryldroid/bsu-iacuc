@@ -2,8 +2,6 @@
 
 const themeToggleButton = document.querySelector("#theme-toggle");
 const themeMenu = document.querySelector("#theme-menu");
-const themeCurrentLabel = document.querySelector("#theme-toggle-current");
-const MODE_LABELS = { light: "Light", dark: "Dark", auto: "Auto" };
 
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -23,8 +21,6 @@ function applyMode(mode) {
   const resolvedTheme = resolveTheme(mode);
   document.documentElement.setAttribute("data-theme", resolvedTheme);
   document.documentElement.setAttribute("data-theme-mode", mode);
-
-  if (themeCurrentLabel) themeCurrentLabel.textContent = MODE_LABELS[mode];
 
   if (themeMenu) {
     themeMenu.querySelectorAll("button[data-mode]").forEach((item) => {

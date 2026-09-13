@@ -40,8 +40,10 @@ $canReview = $isReviewer && $statusKey === 'under review' && $isLatestVersion;
 $canResubmit = !$isStaff && $isLatestVersion && $statusKey === 'needs revision';
 
 $paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
+$paymentMethod     = $protocol['payment_method'] ?? null;
 $canConfirmPayment = !$isStaff && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
+$isBsuResearcher   = stripos(trim($protocol['submitter_school'] ?? ''), 'Benguet State University') !== false;
 
 $rrWrongCert          = !empty($returnReason['wrong_cert']);
 
@@ -79,6 +81,7 @@ $certRequired      = $hasCertOnFile && $rrWrongCert;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
 $latestPaymentProofFileUrl = ! empty($latestPaymentProofVersion['id']) ? ROOT . '/apply/file/' . (int) $latestPaymentProofVersion['id'] : null;
+$latestSignedScanFileUrl   = ! empty($latestSignedScanVersion['id']) ? ROOT . '/apply/file/' . (int) $latestSignedScanVersion['id'] : null;
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
@@ -98,7 +101,7 @@ include 'includes/header.php';
 <!-- PDF.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
-<?php if ($canResubmit): ?>
+<?php if ($canResubmit || $canConfirmPayment): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <?php endif; ?>
 
@@ -122,60 +125,7 @@ include 'includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if ($isStaff && !empty($returnReason)): ?>
-        <?php
-        $rrItems = [];
-        if (!empty($returnReason['wrong_cert']))   $rrItems[] = 'update IACUC training certificate';
-        if (!empty($returnReason['other_reason'])) $rrItems[] = 'revise protocol';
-        $rrLabel = empty($rrItems) ? 'revise protocol' : implode('; ', $rrItems);
-        ?>
-        <div class="return-reason-bar">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#info-icon" />
-            </svg>
-            Previously returned to: <?= htmlspecialchars($rrLabel, ENT_QUOTES, 'UTF-8') ?>
-            <?php if (!empty($returnReason['comment'])): ?>
-                <span class="return-reason-bar-comment">"<?= htmlspecialchars($returnReason['comment'], ENT_QUOTES, 'UTF-8') ?>"</span>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($showTitleChangeBanner): ?>
-        <div class="return-reason-bar title-change-bar">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#edit-icon" />
-            </svg>
-            The research title has been changed from “<?= htmlspecialchars($protocol['previous_title'], ENT_QUOTES, 'UTF-8') ?>” by
-            <?= htmlspecialchars($roleLabels[$protocol['title_changed_by_role']] ?? ucfirst((string) $protocol['title_changed_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            - <?= htmlspecialchars($protocol['title_changed_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
-        <div class="return-reason-bar deletion-request-bar">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#trash-icon" />
-            </svg>
-            Deletion requested by
-            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>:
-            <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
-            <span class="deletion-request-bar-actions">
-                <button class="tool-btn tool-btn--success" type="button" onclick="openDeletionReviewModal('approve')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#check-icon" />
-                    </svg>
-                    Approve
-                </button>
-                <button class="tool-btn tool-btn--danger" type="button" onclick="openDeletionReviewModal('reject')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                    Reject
-                </button>
-            </span>
-        </div>
-    <?php elseif (!$isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+    <?php if (!$isReviewer && !empty($protocol['deletion_requested_at'])): ?>
         <div class="return-reason-bar deletion-request-bar">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#trash-icon" />
@@ -214,8 +164,8 @@ include 'includes/header.php';
 
             <?php if (!empty($titleHistory)): ?>
                 <div class="title-history-switcher" id="titleHistorySwitcher">
-                    <button type="button" class="title-history-trigger" id="titleHistoryTrigger"
-                        aria-haspopup="true" aria-expanded="false" aria-label="Show rename history">
+                    <button type="button" class="title-history-trigger<?= $showTitleChangeBanner ? ' has-update' : '' ?>" id="titleHistoryTrigger"
+                        aria-haspopup="true" aria-expanded="false" aria-label="Show rename history<?= $showTitleChangeBanner ? ' (title recently changed)' : '' ?>">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="m6 9 6 6 6-6" />
                         </svg>
@@ -298,6 +248,16 @@ include 'includes/header.php';
         </div>
 
         <div class="viewer-topbar-right">
+            <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+                <button class="tool-btn tool-btn--urgent" type="button" onclick="openDeletionReviewModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#alert-triangle-icon" />
+                    </svg>
+                    Deletion Requested: Review
+                </button>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+            <?php endif; ?>
+
             <span class="page-indicator" id="pageIndicator">Loading…</span>
 
             <div class="viewer-view-actions">
@@ -320,6 +280,17 @@ include 'includes/header.php';
                             <use href="#review-icon" />
                         </svg>
                         Payment Proof
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($latestSignedScanFileUrl): ?>
+                    <button class="tool-btn tool-btn--ghost"
+                        data-file-url="<?= htmlspecialchars($latestSignedScanFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="openFilePopup(this.dataset.fileUrl, 'Signed Scan')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Signed Scan
                     </button>
                 <?php endif; ?>
 
@@ -373,7 +344,7 @@ include 'includes/header.php';
                             Return for Revision
                         </button>
                         <button class="tool-btn tool-btn--success" id="btnApprove"
-                            onclick="confirmAction('Finish your review? The protocol will be marked as reviewed.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus('Reviewed'))">
+                            onclick="confirmAction('Finish your review? The protocol will be marked as reviewed.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus(this, 'Reviewed'))">
                             Finish Review
                         </button>
                     <?php elseif ($canResubmit): ?>
@@ -438,6 +409,26 @@ include 'includes/header.php';
                 </svg>
             </button>
             <div class="annot-sidebar-inner">
+                <?php if (!$isStaff && !empty($reviewerNote)): ?>
+                    <?php
+                    $rnItems = [];
+                    if (!empty($reviewerNote['wrong_cert']))   $rnItems[] = 'update your IACUC training certificate';
+                    if (!empty($reviewerNote['other_reason'])) $rnItems[] = 'revise your protocol';
+                    $rnLabel = empty($rnItems) ? 'revise your protocol' : implode(' and ', $rnItems);
+                    $rnReviewerName = trim(($reviewerNote['first_name'] ?? '') . ' ' . ($reviewerNote['last_name'] ?? ''));
+                    ?>
+                    <?php if (!empty($reviewerNote['comment'])): ?>
+                        <div class="sidebar-reviewer-note">
+                            <div class="sidebar-reviewer-note-header">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#info-icon" />
+                                </svg>
+                                Note from reviewer:
+                            </div>
+                            <p class="sidebar-reviewer-note-comment"><?= htmlspecialchars($reviewerNote['comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <h3>Comments</h3>
                 <div id="annotList">
                     <p class="annot-empty">Loading…</p>
@@ -665,27 +656,56 @@ include 'includes/header.php';
         <div class="modal-card">
             <h2>Confirm Payment</h2>
 
-            <p class="modal-notice">
-                The BAI Animal Research Permit requires a Php 100.00 fee. Pay in person at CCARD, or email your reviewer to arrange payment.
-                Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
-            </p>
+            <p class="modal-notice">The BAI Animal Research Clearance requires a Php 100.00 fee.</p>
 
             <div id="paymentModalError" class="alert error-messages" hidden></div>
 
-            <div class="modal-file-row">
-                <div class="modal-file-info">
-                    <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
-                    <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+            <?php if (!$isBsuResearcher): ?>
+                <div class="consent-list">
+                    <label class="consent-item">
+                        <input type="radio" class="consent-checkbox" name="payment_method" value="in_person"
+                            checked onchange="handlePaymentMethodChange()">
+                        <span>Pay in person at CCARD</span>
+                    </label>
+                    <label class="consent-item">
+                        <input type="radio" class="consent-checkbox" name="payment_method" value="online"
+                            onchange="handlePaymentMethodChange()">
+                        <span>Pay online</span>
+                    </label>
                 </div>
-                <label class="modal-file-picker">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    <span id="paymentFilePickerLabel">Upload</span>
-                    <input type="file" id="payment_proof_file" name="payment_proof_file"
-                        accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
-                        onchange="handlePaymentFileChange(this)">
-                </label>
+            <?php endif; ?>
+
+            <div id="paymentInPersonPanel">
+                <p class="modal-notice">Pay the fee in person at the BSU-CCARD office. Once paid, check the box below to confirm.</p>
+                <div class="consent-list">
+                    <label class="consent-item">
+                        <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
+                        <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="paymentOnlinePanel" hidden>
+                <p class="modal-notice">
+                    <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank">Contact the CCARD Director</a>
+                    to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
+                </p>
+
+                <div class="modal-file-row">
+                    <div class="modal-file-info">
+                        <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
+                        <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+                    </div>
+                    <label class="modal-file-picker">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        <span id="paymentFilePickerLabel">Upload</span>
+                        <input type="file" id="payment_proof_file" name="payment_proof_file"
+                            accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                            onchange="handlePaymentFileChange(this)">
+                    </label>
+                </div>
             </div>
 
             <div class="modal-actions">
@@ -695,7 +715,7 @@ include 'includes/header.php';
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#upload-icon" />
                     </svg>
-                    Submit Proof of Payment
+                    <span id="paymentModalSubmitLabel">Confirm Payment</span>
                 </button>
             </div>
         </div>
@@ -708,7 +728,7 @@ include 'includes/header.php';
         <div class="modal-card panel-modal-card">
             <div class="panel-modal-header">
                 <div>
-                    <p class="panel-modal-label" id="deletionReviewLabel">Review Deletion Request</p>
+                    <p class="panel-modal-label" id="deletionReviewLabel">Deletion Requested</p>
                     <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
                 <button class="tool-btn close-modal" onclick="closeDeletionReviewModal()" aria-label="Close">
@@ -718,23 +738,47 @@ include 'includes/header.php';
                 </button>
             </div>
             <div class="panel-modal-body">
-                <p class="panel-modal-intro" id="deletionReviewIntro"></p>
+                <p class="panel-modal-intro" id="deletionReviewRequestInfo">
+                    Deletion requested by
+                    <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
+                    <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>:
+                    <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
+                </p>
 
-                <div id="deletionReviewReasonWrap">
-                    <label class="return-comment-label" for="deletionReviewReasonText">Reason <span class="return-comment-optional">(required)</span></label>
-                    <textarea id="deletionReviewReasonText" class="return-comment-textarea"
-                        placeholder="Explain why this deletion request is being rejected..."
-                        rows="4" maxlength="1000"></textarea>
-                    <p class="return-char-count"><span id="deletionReviewCharCount">0</span> / 1000</p>
+                <div id="deletionReviewChoiceActions" class="panel-modal-actions">
+                    <button class="tool-btn tool-btn--success" type="button" onclick="selectDeletionAction('approve')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-icon" />
+                        </svg>
+                        Approve
+                    </button>
+                    <button class="tool-btn tool-btn--danger" type="button" onclick="selectDeletionAction('reject')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#close-icon" />
+                        </svg>
+                        Reject
+                    </button>
                 </div>
 
-                <div id="deletionReviewError" class="error-messages" hidden></div>
+                <div id="deletionReviewActionPanel" hidden>
+                    <p class="panel-modal-intro" id="deletionReviewIntro"></p>
 
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeDeletionReviewModal()">Cancel</button>
-                    <button class="tool-btn" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
-                        Confirm
-                    </button>
+                    <div id="deletionReviewReasonWrap">
+                        <label class="return-comment-label" for="deletionReviewReasonText">Reason <span class="return-comment-optional">(required)</span></label>
+                        <textarea id="deletionReviewReasonText" class="return-comment-textarea"
+                            placeholder="Explain why this deletion request is being rejected..."
+                            rows="4" maxlength="1000"></textarea>
+                        <p class="return-char-count"><span id="deletionReviewCharCount">0</span> / 1000</p>
+                    </div>
+
+                    <div id="deletionReviewError" class="error-messages" hidden></div>
+
+                    <div class="panel-modal-actions">
+                        <button class="tool-btn" type="button" onclick="backToDeletionChoice()">Back</button>
+                        <button class="tool-btn" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
+                            Confirm
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -760,12 +804,12 @@ include 'includes/header.php';
         </div>
         <?php if ($canConfirmPayment): ?>
             <div class="file-popup-footer" id="filePopupResubmitFooter" hidden>
-                <p class="helper file-popup-footer-note">This payment proof was rejected.</p>
+                <p class="helper file-popup-footer-note">This payment was rejected.</p>
                 <button class="tool-btn tool-btn--success" type="button" onclick="closeFilePopup(); openPaymentModal();">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#upload-icon" />
                     </svg>
-                    Resubmit Proof of Payment
+                    Resubmit Payment
                 </button>
             </div>
         <?php endif; ?>
@@ -848,6 +892,20 @@ include 'includes/header.php';
         e.stopPropagation();
         const isOpen = titleHistoryMenu.classList.toggle('open');
         titleHistoryTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+        if (isOpen && titleHistoryTrigger.classList.contains('has-update')) {
+            titleHistoryTrigger.classList.remove('has-update');
+            fetch(ROOT_URL + '/apply/mark_title_seen', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    protocol_id: PROTOCOL_ID
+                })
+            }).catch(() => {});
+        }
     });
 
     document.addEventListener('click', (e) => {
@@ -1368,7 +1426,8 @@ include 'includes/header.php';
     }
 
     // ===== Status update =====
-    async function updateStatus(newStatus) {
+    async function updateStatus(btn, newStatus) {
+        setButtonBusy(btn, true);
         try {
             const res = await fetch(STATUS_API, {
                 method: 'POST',
@@ -1384,10 +1443,14 @@ include 'includes/header.php';
             const data = await res.json();
             if (data.ok) {
                 window.location.href = <?= json_encode($backUrl) ?>;
-            } else if (data.queued) {} else {
+            } else if (data.queued) {
+                setButtonBusy(btn, false);
+            } else {
+                setButtonBusy(btn, false);
                 alert('Error: ' + (data.error ?? 'unknown error'));
             }
         } catch (err) {
+            setButtonBusy(btn, false);
             alert('Could not reach the server and the action could not be queued. Please check your connection.');
         }
     }
@@ -1434,7 +1497,7 @@ include 'includes/header.php';
             );
             if (!ok) return;
 
-            submitBtn.disabled = true;
+            setButtonBusy(submitBtn, true, 'Renaming...');
 
             try {
                 const res = await fetch(RENAME_API, {
@@ -1455,12 +1518,12 @@ include 'includes/header.php';
                 } else {
                     errBox.textContent = data.error ?? 'Could not rename this protocol.';
                     errBox.hidden = false;
-                    submitBtn.disabled = false;
+                    setButtonBusy(submitBtn, false);
                 }
             } catch {
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;
-                submitBtn.disabled = false;
+                setButtonBusy(submitBtn, false);
             }
         }
     <?php endif; ?>
@@ -1515,7 +1578,7 @@ include 'includes/header.php';
             });
             if (!ok) return;
 
-            submitBtn.disabled = true;
+            setButtonBusy(submitBtn, true, <?= $canDelete ? json_encode('Deleting...') : json_encode('Sending...') ?>);
 
             try {
                 const res = await fetch(DELETE_API, {
@@ -1540,12 +1603,12 @@ include 'includes/header.php';
                 } else {
                     errBox.textContent = data.error ?? 'Could not complete this action.';
                     errBox.hidden = false;
-                    submitBtn.disabled = false;
+                    setButtonBusy(submitBtn, false);
                 }
             } catch {
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;
-                submitBtn.disabled = false;
+                setButtonBusy(submitBtn, false);
             }
         }
     <?php endif; ?>
@@ -1553,12 +1616,33 @@ include 'includes/header.php';
     <?php if ($canConfirmPayment): ?>
         // ===== Confirm Payment modal =====
         const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
+        const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
         const paymentModal = document.getElementById('paymentModalBackdrop');
 
-        function openPaymentModal() {
-            document.getElementById('payment_proof_file').value = '';
-            resetPaymentFilePicker();
+        function getSelectedPaymentMethod() {
+            if (IS_BSU_RESEARCHER) return 'in_person';
+            const checked = document.querySelector('input[name="payment_method"]:checked');
+            return checked ? checked.value : 'in_person';
+        }
+
+        function handlePaymentMethodChange() {
+            const method = getSelectedPaymentMethod();
+            document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
+            document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
+            document.getElementById('paymentModalSubmitLabel').textContent =
+                method === 'in_person' ? 'Confirm Payment' : 'Submit Proof of Payment';
             document.getElementById('paymentModalError').hidden = true;
+        }
+
+        function openPaymentModal() {
+            const fileInput = document.getElementById('payment_proof_file');
+            fileInput.value = '';
+            resetPaymentFilePicker();
+            document.getElementById('confirm_in_person_paid').checked = false;
+            if (!IS_BSU_RESEARCHER) {
+                document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
+            }
+            handlePaymentMethodChange();
             paymentModal.classList.add('open');
         }
 
@@ -1589,32 +1673,45 @@ include 'includes/header.php';
         }
 
         async function submitPaymentProof() {
-            const fileInput = document.getElementById('payment_proof_file');
             const errBox = document.getElementById('paymentModalError');
             const btn = document.getElementById('paymentModalSubmitBtn');
+            const method = getSelectedPaymentMethod();
 
-            if (!fileInput.files.length) {
-                errBox.textContent = 'Please select a file.';
-                errBox.hidden = false;
-                return;
+            const formData = new FormData();
+            formData.append('protocol_id', PROTOCOL_ID);
+            formData.append('payment_method', method);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            let confirmMessage;
+
+            if (method === 'in_person') {
+                if (!document.getElementById('confirm_in_person_paid').checked) {
+                    errBox.textContent = 'Please confirm that you have paid in person.';
+                    errBox.hidden = false;
+                    return;
+                }
+                formData.append('confirm_in_person', '1');
+                confirmMessage = 'Confirm that you have paid the Php 100.00 fee in person? An admin will verify this.';
+            } else {
+                const fileInput = document.getElementById('payment_proof_file');
+                if (!fileInput.files.length) {
+                    errBox.textContent = 'Please select a file.';
+                    errBox.hidden = false;
+                    return;
+                }
+                formData.append('payment_proof_file', fileInput.files[0]);
+                confirmMessage = 'Submit this as your proof of payment? Make sure the file clearly shows the receipt or payment before continuing.';
             }
 
             errBox.hidden = true;
 
-            const ok = await confirmAction(
-                'Submit this as your proof of payment? Make sure the file clearly shows the receipt or payment before continuing.', {
-                    okText: 'Submit Proof',
-                    cancelText: 'Cancel'
-                }
-            );
+            const ok = await confirmAction(confirmMessage, {
+                okText: method === 'in_person' ? 'Confirm Payment' : 'Submit Proof',
+                cancelText: 'Cancel'
+            });
             if (!ok) return;
 
-            btn.disabled = true;
-
-            const formData = new FormData();
-            formData.append('protocol_id', PROTOCOL_ID);
-            formData.append('payment_proof_file', fileInput.files[0]);
-            formData.append('csrf_token', CSRF_TOKEN);
+            setButtonBusy(btn, true, 'Submitting...');
 
             try {
                 const res = await fetch(PAYMENT_PROOF_API, {
@@ -1629,14 +1726,14 @@ include 'includes/header.php';
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    errBox.textContent = data.error ?? 'Upload failed. Please try again.';
+                    errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
                     errBox.hidden = false;
-                    btn.disabled = false;
+                    setButtonBusy(btn, false);
                 }
             } catch (err) {
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;
-                btn.disabled = false;
+                setButtonBusy(btn, false);
             }
         }
     <?php endif; ?>
@@ -1645,6 +1742,8 @@ include 'includes/header.php';
         // ===== Approve / reject deletion request modal =====
         const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
         const deletionReviewLabel = document.getElementById('deletionReviewLabel');
+        const deletionReviewChoiceActions = document.getElementById('deletionReviewChoiceActions');
+        const deletionReviewActionPanel = document.getElementById('deletionReviewActionPanel');
         const deletionReviewIntro = document.getElementById('deletionReviewIntro');
         const deletionReviewReasonWrap = document.getElementById('deletionReviewReasonWrap');
         const deletionReviewReasonText = document.getElementById('deletionReviewReasonText');
@@ -1652,11 +1751,21 @@ include 'includes/header.php';
         const deletionReviewSubmitBtn = document.getElementById('deletionReviewSubmitBtn');
         let deletionReviewAction = null;
 
-        function openDeletionReviewModal(action) {
-            deletionReviewAction = action;
+        function openDeletionReviewModal() {
+            deletionReviewAction = null;
+            deletionReviewLabel.textContent = 'Deletion Requested';
+            deletionReviewChoiceActions.hidden = false;
+            deletionReviewActionPanel.hidden = true;
             deletionReviewReasonText.value = '';
             deletionReviewCharCount.textContent = '0';
             document.getElementById('deletionReviewError').hidden = true;
+            deletionReviewBackdrop.classList.add('open');
+        }
+
+        function selectDeletionAction(action) {
+            deletionReviewAction = action;
+            deletionReviewChoiceActions.hidden = true;
+            deletionReviewActionPanel.hidden = false;
 
             if (action === 'approve') {
                 deletionReviewLabel.textContent = 'Approve Deletion Request';
@@ -1671,8 +1780,14 @@ include 'includes/header.php';
                 deletionReviewSubmitBtn.textContent = 'Reject Request';
                 deletionReviewSubmitBtn.className = 'tool-btn tool-btn--danger';
             }
+        }
 
-            deletionReviewBackdrop.classList.add('open');
+        function backToDeletionChoice() {
+            deletionReviewAction = null;
+            deletionReviewLabel.textContent = 'Deletion Requested';
+            deletionReviewChoiceActions.hidden = false;
+            deletionReviewActionPanel.hidden = true;
+            document.getElementById('deletionReviewError').hidden = true;
         }
 
         function closeDeletionReviewModal() {
@@ -1711,7 +1826,7 @@ include 'includes/header.php';
             });
             if (!ok) return;
 
-            deletionReviewSubmitBtn.disabled = true;
+            setButtonBusy(deletionReviewSubmitBtn, true, isApprove ? 'Deleting...' : 'Rejecting...');
 
             try {
                 const res = await fetch(<?= json_encode(ROOT) ?> + (isApprove ? '/apply/approve_deletion' : '/apply/reject_deletion'), {
@@ -1745,6 +1860,16 @@ include 'includes/header.php';
             }
         }
     <?php endif; ?>
+
+        // ===== Auto-open from notification/email links =====
+        (function handleAutoOpenFromLink() {
+            const openTarget = new URLSearchParams(window.location.search).get('open');
+            if (openTarget === 'deletion_request' && typeof openDeletionReviewModal === 'function') {
+                openDeletionReviewModal();
+            } else if (openTarget === 'signed_scan') {
+                <?= $latestSignedScanFileUrl ? 'openFilePopup(' . json_encode($latestSignedScanFileUrl) . ', ' . json_encode('Signed Scan') . ');' : '' ?>
+            }
+        })();
 
     // ===== Mobile sidebar toggle =====
     function toggleSidebar() {
@@ -1919,7 +2044,7 @@ include 'includes/header.php';
             const submitBtn = document.getElementById('returnRevisionSubmitBtn');
 
             errBox.hidden = true;
-            submitBtn.disabled = true;
+            setButtonBusy(submitBtn, true, 'Returning...');
 
             try {
                 const res = await fetch(RETURN_REVISION_API, {
@@ -1941,12 +2066,12 @@ include 'includes/header.php';
                 } else {
                     errBox.textContent = data.error ?? 'Could not return protocol. Please try again.';
                     errBox.hidden = false;
-                    submitBtn.disabled = false;
+                    setButtonBusy(submitBtn, false);
                 }
             } catch {
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;
-                submitBtn.disabled = false;
+                setButtonBusy(submitBtn, false);
             }
         }
     <?php endif; ?>
@@ -2081,7 +2206,7 @@ include 'includes/header.php';
             );
             if (!ok) return;
 
-            submitBtn.disabled = true;
+            setButtonBusy(submitBtn, true, 'Resubmitting...');
             errBox.hidden = true;
 
             try {
@@ -2104,11 +2229,11 @@ include 'includes/header.php';
                 const protocolResult = await uploadProtocolFile(path, field, resubmitFiles.protocol);
                 if (!protocolResult.success) throw new Error(protocolResult.error ?? 'Upload failed. Please try again.');
 
-                window.location.reload();
+                window.location.href = ROOT_URL + '/submissions?status=under-review';
             } catch (err) {
                 errBox.textContent = err.message || 'Network error. Please try again.';
                 errBox.hidden = false;
-                submitBtn.disabled = false;
+                setButtonBusy(submitBtn, false);
             }
         }
     <?php endif; ?>

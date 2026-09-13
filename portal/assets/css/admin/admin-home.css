@@ -50,6 +50,104 @@ main {
     display: none;
 }
 
+/* ===== Bulk actions bar: buttons that act on every protocol in the current tab, not just one row ===== */
+.bulk-actions-bar {
+    margin: 14px 0 0;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    /* background: var(--brand-surface-faint); */
+    border: 1px dashed var(--brand-color);
+    border-radius: var(--btn-radius);
+}
+
+.bulk-actions-bar[hidden] {
+    display: none;
+}
+
+.bulk-actions-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .85em;
+    font-weight: 600;
+    color: var(--brand-text);
+}
+
+.bulk-actions-bar .row-btn {
+    margin: 0;
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: .85em;
+    font-weight: 600;
+    font-family: var(--font-body);
+    white-space: nowrap;
+    text-decoration: none;
+    border-radius: var(--btn-radius);
+
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
+}
+
+.bulk-actions-bar .row-btn:hover {
+    background: var(--brand-color-hover);
+    color: var(--text-on-brand);
+    box-shadow: 0 2px 6px var(--shadow-color-soft);
+}
+
+.bulk-actions-bar .row-btn[hidden] {
+    display: none;
+}
+
+.bulk-actions-bar .row-btn-outline {
+    background: var(--card-background);
+    color: var(--brand-text);
+    border: 1px solid var(--divider-color);
+    box-shadow: none;
+}
+
+.bulk-actions-bar .row-btn-outline:hover {
+    background: var(--divider-color-subtle);
+    color: var(--brand-text);
+    border-color: var(--brand-color-hover);
+    box-shadow: none;
+}
+
+.bulk-actions-bar .row-btn-primary[disabled] {
+    background: var(--muted-text);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.bulk-actions-bar .row-btn-primary[disabled]:hover {
+    background: var(--muted-text);
+    box-shadow: none;
+}
+
+.bulk-select-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.bulk-select-controls[hidden] {
+    display: none;
+}
+
+.bulk-select-count {
+    font-size: .85em;
+    font-weight: 600;
+    color: var(--muted-text);
+}
+
 /* ===== Per-protocol quick download button ===== */
 .quick-download-btn {
     display: inline-flex;
@@ -318,7 +416,7 @@ main {
     font-size: 0.8em;
     font-weight: 600;
     color: var(--muted-text);
-    text-transform: uppercase;
+    /* text-transform: uppercase; */
     letter-spacing: 0.05em;
     margin-bottom: 0.4rem;
     margin-top: 1rem;

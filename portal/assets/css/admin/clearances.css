@@ -1,6 +1,6 @@
 .clearance-board {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 540px 1fr;
   gap: 24px;
   align-items: start;
   margin-top: 16px;
@@ -151,6 +151,51 @@
   line-height: 1.3;
 }
 
+.clearance-protocol-card.no-ipn {
+  opacity: 0.85;
+}
+
+.clearance-protocol-ipn {
+  font-size: 0.72em;
+  color: var(--muted-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.clearance-protocol-ipn em {
+  font-style: normal;
+  color: var(--status-danger-text);
+}
+
+.clearance-ipn-link {
+  font-size: 0.95em;
+  color: var(--brand-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.clearance-ipn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+.clearance-ipn-field label {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--primary-text);
+}
+
+.clearance-ipn-field input {
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
 .clearance-drop-zone {
   flex: 1;
   border-radius: 4px;
@@ -186,12 +231,14 @@
   cursor: pointer;
   padding: 0;
   z-index: 1;
+  margin-top: 7px;
+  margin-right: 7px;
 }
 
 .clearance-zoom-btn {
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 4px;
+  left: 4px;
   width: 22px;
   height: 22px;
   display: flex;
@@ -203,24 +250,34 @@
   color: #fff;
   cursor: pointer;
   padding: 0;
+  margin-top: 0;
 }
 
-.clearance-select-hint {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin: 8px 0 0;
-  font-style: normal;
-}
-
-.clearance-link-btn {
-  background: none;
+.clearance-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   border: none;
-  padding: 0;
-  color: var(--brand-text);
-  text-decoration: underline;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
   cursor: pointer;
-  font: inherit;
+  padding: 0;
+  margin-top: 0;
+  transition: background-color 0.15s;
+}
+
+.clearance-delete-btn:hover {
+  background: var(--danger-color);
+}
+
+.clearance-modal-warning {
+  color: var(--status-danger-text);
 }
 
 @media (max-width: 480px) {
@@ -233,7 +290,8 @@
   }
 
   .clearance-unstage-btn,
-  .clearance-zoom-btn {
+  .clearance-zoom-btn,
+  .clearance-delete-btn {
     width: 26px;
     height: 26px;
   }
@@ -325,4 +383,9 @@
   line-height: 30px;
   cursor: pointer;
   padding: 0;
+}
+
+.clearance-tray .helper {
+  font-size: .8em;
+  font-style: normal;
 }

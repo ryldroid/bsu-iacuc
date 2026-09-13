@@ -77,10 +77,16 @@
     font-size: .8rem;
     font-weight: 600;
     color: var(--muted-text);
-    text-transform: uppercase;
+    /* text-transform: uppercase; */
     letter-spacing: .05em;
     margin-bottom: .4rem;
     /* margin-top: 1rem; */
+}
+
+.modal-card .consent-list .consent-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
 }
 
 .modal-card input[type="file"] {

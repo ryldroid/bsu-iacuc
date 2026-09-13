@@ -81,11 +81,32 @@ document.querySelectorAll("header nav a, aside nav a").forEach((link) => {
 
 // ===== VERIFY EMAIL BANNER =====
 
+const verifyBanner = document.getElementById("verifyEmailBanner");
+const PINNED_BASE_OFFSET = 16;
+
+function syncPinnedOffset() {
+  if (!verifyBanner || !verifyBanner.isConnected) {
+    document.documentElement.style.removeProperty("--pinned-top-offset");
+    return;
+  }
+  const offset = verifyBanner.offsetHeight + PINNED_BASE_OFFSET;
+  document.documentElement.style.setProperty(
+    "--pinned-top-offset",
+    `${offset}px`,
+  );
+}
+
 document
   .getElementById("verifyEmailBannerClose")
   ?.addEventListener("click", () => {
     document.getElementById("verifyEmailBanner")?.remove();
+    syncPinnedOffset();
   });
+
+if (verifyBanner) {
+  syncPinnedOffset();
+  window.addEventListener("resize", syncPinnedOffset);
+}
 
 function updateNavbar(e) {
   if (!sidebar || !mobileMenu) return;

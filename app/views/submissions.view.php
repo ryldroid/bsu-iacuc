@@ -3,6 +3,7 @@
 /** @var array $protocols */
 /** @var array $statuses  */
 /** @var bool  $hasCertOnFile */
+/** @var bool  $isBsu */
 /** @var string $csrf */
 
 $title = 'My Protocols';
@@ -24,31 +25,31 @@ $statusMeta = [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => 'Being reviewed by the IACUC reviewer. No action needed. You will be notified if changes are required or once a decision is made.',
+        'desc'  => 'Being reviewed by the IACUC reviewer. No action needed. You will be notified for every action required.',
     ],
     'needs-revision' => [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => 'The reviewer found an issue and sent it back. Review the comments and re-submit your protocol to upload your revised file.',
+        'desc'  => 'The reviewer found an issue and sent it back. Revise your protocol following the comments and re-submit your file.',
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. Please confirm your payment of the BAI Animal Research Permit fee to proceed to endorsement.',
+        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your Animal Research Clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture – Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => 'Your protocol has been endorsed. No action needed. Please wait as BAI processes your animal research permit.',
+        'desc'  => 'Your protocol has been endorsed to DA-CARFU. No action needed. Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.',
     ],
     'approved' => [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! Click "Download Clearance" to get your official IACUC clearance certificate.',
+        'desc'  => 'Congratulations, your protocol has been approved! You may now download your Animal Research Clearance. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
     ],
 ];
 
@@ -62,11 +63,16 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('application.css') ?>">
+<script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
+<script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
 
 <div class="body">
     <?php include 'includes/navigation.php'; ?>
 
     <main class="main-content" id="main-content" tabindex="-1">
+        <?php include 'includes/update-banner.php'; ?>
+
         <div class="submission-header">
             <h1>My Protocols</h1>
 
@@ -104,28 +110,40 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <?php endif; ?>
 
         <!-- Status filter bar -->
-        <div class="filter-wrapper">
-            <div class="mobile-status-filters button">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#filter-icon" />
-                </svg>
-                Status: <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
+        <div class="dashboard-filter-row">
+            <div class="filter-wrapper">
+                <div class="mobile-status-filters button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#filter-icon" />
+                    </svg>
+                    Status: <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
+                </div>
+
+                <div class="status-filters">
+                    <button class="status-card active" data-status="all" data-label="All">
+                        <p>All <span class="status-count"><?= $totalProtocolCount ?></span></p>
+                    </button>
+                    <?php foreach ($statuses as $status):
+                        $statusSlug  = strtolower(str_replace(' ', '-', $status));
+                        $statusCount = $countsByStatusSlug[$statusSlug] ?? 0;
+                    ?>
+                        <button class="status-card"
+                            data-status="<?= htmlspecialchars($statusSlug, ENT_QUOTES, 'UTF-8') ?>"
+                            data-label="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">
+                            <p><?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?> <span class="status-count"><?= $statusCount ?></span></p>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
-            <div class="status-filters">
-                <button class="status-card active" data-status="all" data-label="All">
-                    <p>All <span class="status-count"><?= $totalProtocolCount ?></span></p>
-                </button>
-                <?php foreach ($statuses as $status):
-                    $statusSlug  = strtolower(str_replace(' ', '-', $status));
-                    $statusCount = $countsByStatusSlug[$statusSlug] ?? 0;
-                ?>
-                    <button class="status-card"
-                        data-status="<?= htmlspecialchars($statusSlug, ENT_QUOTES, 'UTF-8') ?>"
-                        data-label="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">
-                        <p><?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?> <span class="status-count"><?= $statusCount ?></span></p>
-                    </button>
-                <?php endforeach; ?>
+            <div class="dashboard-sort-group">
+                <p>Sort by: </p>
+                <select id="submissionsSortSelect" class="dashboard-sort-select" data-sort-target=".protocols-list" aria-label="Sort protocols">
+                    <option value="newest">Newest Submitted</option>
+                    <option value="oldest">Oldest Submitted</option>
+                    <option value="title_asc">Title (A–Z)</option>
+                    <option value="title_desc">Title (Z–A)</option>
+                </select>
             </div>
         </div>
 
@@ -205,14 +223,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
                     $paymentLabels = [
                         'unpaid'          => 'Unpaid',
-                        'proof_submitted' => 'Proof Submitted',
-                        'rejected'        => 'Proof Rejected',
+                        'proof_submitted' => 'Awaiting Confirmation',
+                        'rejected'        => 'Payment Rejected',
                         'paid'            => 'Paid',
                     ];
                     $versionNum    = $protocol['latest_version'] ? 'v' . (int) $protocol['latest_version'] : 'v1';
                     $protocolIdInt = (int) $protocol['protocol_id'];
+                    $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
-                    <div class="protocol" data-status="<?= $statusKey ?>">
+                    <div class="protocol" data-status="<?= $statusKey ?>"
+                        data-submitted="<?= htmlspecialchars($submittedIso, ENT_QUOTES, 'UTF-8') ?>"
+                        data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
                         <span class="protocol-status-icon" style="background:<?= $statusMeta[$statusKey]['color'] ?? 'var(--muted-text)' ?>">
                             <?= statusIconSvg($statusMeta[$statusKey]['icon'] ?? 'check-circle-icon', 19) ?>
@@ -234,7 +255,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
                                 <?php if ($paymentStatus === 'rejected' && !empty($protocol['payment_rejection_comment'])): ?>
                                     <div class="return-reason-inline">
-                                        <p class="return-reason-by">Your payment proof was rejected:</p>
+                                        <p class="return-reason-by">Your payment was rejected:</p>
                                         <p class="return-reason-comment"><?= htmlspecialchars($protocol['payment_rejection_comment'], ENT_QUOTES, 'UTF-8') ?></p>
                                     </div>
                                 <?php endif; ?>
@@ -283,7 +304,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#upload-icon" />
                                         </svg>
-                                        Confirm Payment
+                                        View Payment Options
                                     </button>
                                 <?php endif; ?>
 
@@ -316,7 +337,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <div class="modal-backdrop" id="historyModalBackdrop">
     <div class="modal-card history-modal-card">
         <div class="history-modal-header">
-            <div>
+            <div class="history-modal-title-wrapper">
                 <p class="history-modal-label">Submission History</p>
                 <div class="history-modal-title-row">
                     <p class="history-modal-title" id="historyModalTitle"></p>
@@ -360,29 +381,58 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <!-- Confirm Payment modal -->
 <div class="modal-backdrop" id="paymentModalBackdrop">
     <div class="modal-card">
-        <h2>Confirm Payment</h2>
+        <h2>Payment</h2>
 
-        <p class="modal-notice">
-            The BAI Animal Research Permit requires a Php 100.00 fee. Pay in person at CCARD, or email your reviewer to arrange payment.
-            Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
-        </p>
+        <p class="modal-notice">The Bureau of Animal Industry processes Animal Research Clearances for a Php 100.00 fee.</p>
 
         <div id="paymentModalError" class="alert error-messages" hidden></div>
 
-        <div class="modal-file-row">
-            <div class="modal-file-info">
-                <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
-                <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+        <?php if (!$isBsu): ?>
+            <div class="consent-list">
+                <label class="consent-item">
+                    <input type="radio" class="consent-radio" name="payment_method" value="in_person"
+                        checked onchange="handlePaymentMethodChange()">
+                    <span>Pay in person at CCARD</span>
+                </label>
+                <label class="consent-item">
+                    <input type="radio" class="consent-radio" name="payment_method" value="online"
+                        onchange="handlePaymentMethodChange()">
+                    <span>Pay online</span>
+                </label>
             </div>
-            <label class="modal-file-picker">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#upload-icon" />
-                </svg>
-                <span id="paymentFilePickerLabel">Upload</span>
-                <input type="file" id="payment_proof_file" name="payment_proof_file"
-                    accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
-                    onchange="handlePaymentFileChange(this)">
-            </label>
+        <?php endif; ?>
+
+        <div id="paymentInPersonPanel">
+            <p class="modal-notice">Pay the fee in person at the BSU-CCARD office. Once paid, check the box below to confirm.</p>
+            <div class="consent-list">
+                <label class="consent-item">
+                    <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
+                    <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
+                </label>
+            </div>
+        </div>
+
+        <div id="paymentOnlinePanel" hidden>
+            <p class="modal-notice">
+                <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank">Contact the CCARD Director</a>
+                to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
+            </p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-info">
+                    <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
+                    <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+                </div>
+                <label class="modal-file-picker">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    <span id="paymentFilePickerLabel">Upload</span>
+                    <input type="file" id="payment_proof_file" name="payment_proof_file"
+                        accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                        onchange="handlePaymentFileChange(this)">
+                </label>
+            </div>
         </div>
 
         <div class="modal-actions">
@@ -392,7 +442,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#upload-icon" />
                 </svg>
-                Submit Proof of Payment
+                <span id="paymentModalSubmitLabel">Confirm Payment</span>
             </button>
         </div>
     </div>
@@ -401,15 +451,36 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <script>
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
     const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
+    const IS_BSU = <?= $isBsu ? 'true' : 'false' ?>;
 
     const paymentModal = document.getElementById('paymentModalBackdrop');
     let currentPaymentProtocolId = null;
+
+    function getSelectedPaymentMethod() {
+        if (IS_BSU) return 'in_person';
+        const checked = document.querySelector('input[name="payment_method"]:checked');
+        return checked ? checked.value : 'in_person';
+    }
+
+    function handlePaymentMethodChange() {
+        const method = getSelectedPaymentMethod();
+        document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
+        document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
+        document.getElementById('paymentModalSubmitLabel').textContent =
+            method === 'in_person' ? 'Confirm Payment' : 'Submit Proof of Payment';
+        document.getElementById('paymentModalError').hidden = true;
+    }
 
     function openPaymentModal(protocolId) {
         currentPaymentProtocolId = protocolId;
         document.getElementById('payment_proof_file').value = '';
         resetPaymentFilePicker();
+        document.getElementById('confirm_in_person_paid').checked = false;
+        if (!IS_BSU) {
+            document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
+        }
         document.getElementById('paymentModalError').hidden = true;
+        handlePaymentMethodChange();
         paymentModal.classList.add('open');
     }
 
@@ -441,23 +512,34 @@ function statusIconSvg(string $iconId, int $size = 14): string
     }
 
     async function submitPaymentProof() {
-        const fileInput = document.getElementById('payment_proof_file');
         const errBox = document.getElementById('paymentModalError');
         const btn = document.getElementById('paymentModalSubmitBtn');
+        const method = getSelectedPaymentMethod();
 
-        if (!fileInput.files.length) {
-            errBox.textContent = 'Please select a file.';
-            errBox.hidden = false;
-            return;
+        const formData = new FormData();
+        formData.append('protocol_id', currentPaymentProtocolId);
+        formData.append('payment_method', method);
+        formData.append('csrf_token', CSRF_TOKEN);
+
+        if (method === 'in_person') {
+            if (!document.getElementById('confirm_in_person_paid').checked) {
+                errBox.textContent = 'Please confirm that you have paid in person.';
+                errBox.hidden = false;
+                return;
+            }
+            formData.append('confirm_in_person', '1');
+        } else {
+            const fileInput = document.getElementById('payment_proof_file');
+            if (!fileInput.files.length) {
+                errBox.textContent = 'Please select a file.';
+                errBox.hidden = false;
+                return;
+            }
+            formData.append('payment_proof_file', fileInput.files[0]);
         }
 
         btn.disabled = true;
         errBox.hidden = true;
-
-        const formData = new FormData();
-        formData.append('protocol_id', currentPaymentProtocolId);
-        formData.append('payment_proof_file', fileInput.files[0]);
-        formData.append('csrf_token', CSRF_TOKEN);
 
         try {
             const res = await fetch(PAYMENT_PROOF_API, {
@@ -472,7 +554,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             if (data.success) {
                 window.location.reload();
             } else {
-                errBox.textContent = data.error ?? 'Upload failed. Please try again.';
+                errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
                 errBox.hidden = false;
                 btn.disabled = false;
             }
@@ -491,7 +573,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
     const protocolCards = document.querySelectorAll('.protocol');
     const mobileFilter = document.querySelector('.mobile-status-filters');
     const statusFilters = document.querySelector('.status-filters');
+    const sortSelect = document.getElementById('submissionsSortSelect');
     let currentFilter = 'all';
+
+    // ===== Sort by =====
+    sortSelect?.addEventListener('change', () => {
+        const container = document.querySelector(sortSelect.dataset.sortTarget);
+        if (!container) return;
+        [...container.querySelectorAll('.protocol')]
+        .sort(protocolSortComparator(sortSelect.value))
+            .forEach(card => container.appendChild(card));
+    });
 
     function hexToRgba(hex, alpha) {
         const h = hex.replace('#', '');
@@ -636,7 +728,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
     const historyBackdrop = document.getElementById('historyModalBackdrop');
 
     function openHistoryModal(protocolId, title) {
-        document.getElementById('historyModalTitle').textContent = title;
+        const titleEl = document.getElementById('historyModalTitle');
+        titleEl.textContent = title;
         document.getElementById('historyModalBody').innerHTML = '<p class="helper history-loading">Loading&hellip;</p>';
 
         const renameToggle = document.getElementById('renameHistoryToggle');
@@ -767,16 +860,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
         const rows = versions.map((v, index) => {
             const isLatest = index === 0;
             const dateString = formatDate(v.uploaded_at);
+            const fileName = escapeHtml(v.title_at_version || v.original_name);
 
             return `
                 <div class="history-entry">
                     <div class="history-row${isLatest ? ' history-row--latest' : ''}">
                         <div class="history-row-meta">
-                            <span class="history-ver">v${v.version_number}</span>
+                            <span class="history-ver" title="Version no. (number of rounds submitted)">v${v.version_number}</span>
                             ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
                         </div>
                         <div class="history-row-detail">
-                            <span class="history-filename">${escapeHtml(v.title_at_version || v.original_name)}</span>
+                            <span class="history-filename" title="${fileName}">${fileName}</span>
                             <span class="helper">${dateString}</span>
                         </div>
                         <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
@@ -799,16 +893,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
             const isLatest = index === 0;
             const dateString = formatDate(v.uploaded_at);
             const who = v.first_name ? `${escapeHtml(v.first_name)} ${escapeHtml(v.last_name || '')}` : '';
+            const fileName = escapeHtml(v.original_name);
 
             return `
                 <div class="history-entry">
                     <div class="history-row${isLatest ? ' history-row--latest' : ''}">
                         <div class="history-row-meta">
-                            <span class="history-ver">v${v.version_number}</span>
+                            <span class="history-ver" title="Version no. (number of times this file was uploaded)">v${v.version_number}</span>
                             ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
                         </div>
                         <div class="history-row-detail">
-                            <span class="history-filename">${escapeHtml(v.original_name)}</span>
+                            <span class="history-filename" title="${fileName}">${fileName}</span>
                             <span class="helper">${who ? who + ' &middot; ' : ''}${dateString}</span>
                         </div>
                         <button type="button" class="button history-open-btn"

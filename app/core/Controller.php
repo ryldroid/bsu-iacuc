@@ -263,6 +263,8 @@ class Controller
       return;
     }
 
+    $userModel->logAudit('password_reset', (int) $reset['user_id'], '', '', 'user', (int) $reset['user_id'], 'Password reset via email link');
+
     $userModel->markResetUsed($token);
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';

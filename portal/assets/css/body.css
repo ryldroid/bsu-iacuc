@@ -117,7 +117,7 @@
     --heading-shadow: rgba(255, 255, 255, 0.45);
 
     --brand-surface-tint: rgba(30, 41, 36, 0.75);
-    --brand-text: #6fcf6a;
+    --brand-text: #408c3c;
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);
@@ -264,12 +264,14 @@ main button {
 
 .btn-back.btn-back--pinned {
     position: fixed;
-    top: 16px;
+    top: var(--pinned-top-offset, 16px);
     left: 16px;
     margin-left: 0;
     height: 34px;
     padding: 0 12px;
     color: var(--text-on-image);
+    z-index: 1010;
+    transition: top .2s ease;
 }
 
 .btn-back.btn-back--pinned svg {
@@ -447,6 +449,54 @@ main a.underlined:hover {
     color: var(--secondary-text);
 }
 
+/* ===== DASHBOARD SORT (researcher / admin / reviewer dashboards) ===== */
+.dashboard-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.dashboard-sort-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-sort-group p {
+    font-size: .78em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--muted-text);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.dashboard-sort-select {
+    padding: 7px 10px;
+    font-size: 0.85em;
+    font-family: var(--font-body);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    background: var(--card-background);
+    color: var(--secondary-text);
+    cursor: pointer;
+    margin: 0;
+    height: auto;
+    transition: border-color 150ms ease;
+}
+
+.dashboard-sort-select:hover {
+    border-color: var(--brand-color-hover);
+}
+
+.dashboard-sort-select:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
 @media (max-width: 768px) {
     html {
         font-size: 16px;
@@ -463,5 +513,13 @@ main a.underlined:hover {
 
     .status-card.active {
         transform: none;
+    }
+
+    .dashboard-sort-group {
+        width: 100%;
+    }
+
+    .dashboard-sort-group .dashboard-sort-select {
+        flex: 1 1 auto;
     }
 }

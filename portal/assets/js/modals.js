@@ -99,6 +99,28 @@
     });
   };
 
+  window.setButtonBusy = function (btn, busy, busyText) {
+    if (!btn) return;
+
+    if (busy) {
+      if (btn.dataset.originalHtml === undefined) {
+        btn.dataset.originalHtml = btn.innerHTML;
+      }
+      btn.disabled = true;
+      btn.classList.add("btn-busy");
+      btn.innerHTML =
+        '<span class="btn-busy-spinner"></span>' +
+        (busyText || "Processing...");
+    } else {
+      btn.disabled = false;
+      btn.classList.remove("btn-busy");
+      if (btn.dataset.originalHtml !== undefined) {
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      }
+    }
+  };
+
   function bindAutoConfirm() {
     document.addEventListener("click", async (e) => {
       const link = e.target.closest("a[data-confirm-message]");
@@ -123,6 +145,7 @@
           danger: btn.dataset.confirmDanger === "true",
         });
         if (ok) {
+          setButtonBusy(btn, true);
           btn.dispatchEvent(
             new CustomEvent("confirm:accepted", { bubbles: true }),
           );

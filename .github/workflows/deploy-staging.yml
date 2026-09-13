@@ -3,7 +3,7 @@ name: Deploy Staging to InfinityFree
 on:
   push:
     branches:
-      - feature/cross-device-progress
+      - features-cleanup
 
 jobs:
   deploy:

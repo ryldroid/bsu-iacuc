@@ -453,14 +453,6 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php if ($showActions): ?>
                                         <td class="actions-cell">
                                             <div class="row-actions">
-                                                <button type="button" class="row-btn edit-record-btn"
-                                                    data-id="<?= (int)$r['id'] ?>"
-                                                    aria-label="Edit record">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                        <use href="#edit-icon">
-                                                    </svg>
-                                                    Update
-                                                </button>
                                                 <button type="button" class="row-btn delete-record-btn"
                                                     data-id="<?= (int)$r['id'] ?>"
                                                     data-title="<?= htmlspecialchars(mb_substr($r['title_of_research'], 0, 60), ENT_QUOTES) ?>"
@@ -468,7 +460,14 @@ function formatDurationRange(?string $start, ?string $end): string
                                                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                         <use href="#trash-icon">
                                                     </svg>
-                                                    Delete
+                                                </button>
+
+                                                <button type="button" class="row-btn edit-record-btn"
+                                                    data-id="<?= (int)$r['id'] ?>"
+                                                    aria-label="Edit record">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                        <use href="#edit-icon">
+                                                    </svg>
                                                 </button>
                                             </div>
                                         </td>
@@ -487,7 +486,12 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <td class="date-cell"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?></td>
+                                    <td class="date-cell">
+                                        <?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?>
+                                        <?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?>
+                                            <span class="records-expired-tag">Expired</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="date-cell"><?= $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '' ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                 </tr>
@@ -608,6 +612,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         <span class="records-date-range-sep">to</span>
                         <input type="date" id="add_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
                     </div>
+                    <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
                 </div>
                 <div class="records-form-group">
                     <label for="add_date_released">Date Released</label>
@@ -694,6 +699,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         <span class="records-date-range-sep">to</span>
                         <input type="date" id="edit_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
                     </div>
+                    <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
                 </div>
                 <div class="records-form-group">
                     <label for="edit_date_released">Date Released</label>
@@ -917,6 +923,8 @@ function formatDurationRange(?string $start, ?string $end): string
                 );
                 if (!confirmed) return;
 
+                setButtonBusy(btn, true, 'Deleting...');
+
                 post('/admin/records_delete', {
                         id: btn.dataset.id
                     })
@@ -925,9 +933,13 @@ function formatDurationRange(?string $start, ?string $end): string
                             sessionStorage.setItem('records_flash', 'Record deleted.');
                             location.reload();
                         } else {
+                            setButtonBusy(btn, false);
                             alert(data.message || 'Delete failed.');
                         }
-                    }).catch(() => alert('Network error. Please try again.'));
+                    }).catch(() => {
+                        setButtonBusy(btn, false);
+                        alert('Network error. Please try again.');
+                    });
             });
         });
 

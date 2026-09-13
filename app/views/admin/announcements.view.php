@@ -70,7 +70,7 @@ $first_name    = $user['first_name'] ?? '';
                                     <?php if (!empty($a['image_path'])): ?>
                                         <img class="announcement-thumb" src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($a['image_path']) ?>" alt="">
                                     <?php else: ?>
-                                        &mdash;
+                                        :
                                     <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($a['created_at'], ENT_QUOTES) ?></td>
@@ -327,17 +327,15 @@ $first_name    = $user['first_name'] ?? '';
                     return;
                 }
 
-                closeModal('addAnnouncementModal');
                 const confirmed = await confirmAction(
                     'Post this announcement? It will immediately be visible on the public Announcements page.', {
                         okText: 'Post',
                         cancelText: 'Cancel'
                     }
                 );
-                if (!confirmed) {
-                    openModal('addAnnouncementModal');
-                    return;
-                }
+                if (!confirmed) return;
+
+                setButtonBusy(addSave, true, 'Posting...');
 
                 const imageFile = document.getElementById('add_ann_image').files[0];
                 post('/admin/announcements_add', {
@@ -350,9 +348,13 @@ $first_name    = $user['first_name'] ?? '';
                         sessionStorage.setItem('announcements_flash', 'Announcement added.');
                         location.reload();
                     } else {
+                        setButtonBusy(addSave, false);
                         showErr('addAnnouncementError', data.message || 'Add failed.');
                     }
-                }).catch(() => showErr('addAnnouncementError', 'Network error. Please try again.'));
+                }).catch(() => {
+                    setButtonBusy(addSave, false);
+                    showErr('addAnnouncementError', 'Network error. Please try again.');
+                });
             });
         }
 
@@ -420,6 +422,8 @@ $first_name    = $user['first_name'] ?? '';
                     return;
                 }
 
+                setButtonBusy(editSave, true, 'Saving...');
+
                 const imageFile = document.getElementById('edit_ann_image').files[0];
                 const removeImage = document.getElementById('edit_ann_remove_image').checked;
 
@@ -435,9 +439,13 @@ $first_name    = $user['first_name'] ?? '';
                         sessionStorage.setItem('announcements_flash', 'Announcement updated.');
                         location.reload();
                     } else {
+                        setButtonBusy(editSave, false);
                         showErr('editAnnouncementError', data.message || 'Update failed.');
                     }
-                }).catch(() => showErr('editAnnouncementError', 'Network error. Please try again.'));
+                }).catch(() => {
+                    setButtonBusy(editSave, false);
+                    showErr('editAnnouncementError', 'Network error. Please try again.');
+                });
             });
         }
 
@@ -445,7 +453,6 @@ $first_name    = $user['first_name'] ?? '';
         document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const title = btn.dataset.title || '#' + btn.dataset.id;
-                // confirmAction() is a global helper from portal/assets/js/modals.js
                 const confirmed = await confirmAction(
                     'Delete "' + title + '"? This cannot be undone.', {
                         okText: 'Delete',
@@ -455,6 +462,8 @@ $first_name    = $user['first_name'] ?? '';
                 );
                 if (!confirmed) return;
 
+                setButtonBusy(btn, true, 'Deleting...');
+
                 post('/admin/announcements_delete', {
                     id: btn.dataset.id
                 }).then(data => {
@@ -462,9 +471,13 @@ $first_name    = $user['first_name'] ?? '';
                         sessionStorage.setItem('announcements_flash', 'Announcement deleted.');
                         location.reload();
                     } else {
+                        setButtonBusy(btn, false);
                         alert(data.message || 'Delete failed.');
                     }
-                }).catch(() => alert('Network error. Please try again.'));
+                }).catch(() => {
+                    setButtonBusy(btn, false);
+                    alert('Network error. Please try again.');
+                });
             });
         });
 

@@ -22,7 +22,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>
-            Back to Login
+            Back
         </a>
 
         <form method="POST" action="<?= ROOT ?>/<?= $route ?>">

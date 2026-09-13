@@ -54,6 +54,9 @@ main form {
 }
 
 .form-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     width: fit-content;
     padding: 20px 60px;
     margin: 40px auto 0;
@@ -187,10 +190,13 @@ main button:hover {
     background-color: var(--page-background);
     color: green;
     border: 1px solid green;
+    margin-right: 25.4px;
+
 }
 
-#account-back {
-    width: 135px;
+.account-deactivation-note {
+    font-size: .9em;
+    font-style: normal;
 }
 
 .btn-red {
@@ -221,6 +227,7 @@ main button:hover {
     font-size: .9em;
     visibility: hidden;
     width: 300px;
+    max-width: min(300px, calc(100vw - 40px));
     background-color: var(--tooltip-background);
     color: var(--tooltip-text);
     text-align: center;
@@ -363,7 +370,7 @@ main button:hover {
 }
 
 .logout-form {
-    display: block;
+    display: flex;
 }
 
 .certificate-section {
@@ -424,6 +431,11 @@ main button:hover {
         border-radius: 6px;
     }
 
+    .btn-back.btn-back--pinned,
+    .theme-toggle-wrapper.theme-toggle--floating .theme-toggle {
+        background-color: var(--backdrop-color);
+    }
+
     form .helper {
         text-align: center;
     }
@@ -474,5 +486,17 @@ main button:hover {
 
     .form-actions {
         padding: 20px 24px;
+    }
+
+    .info-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+        width: min(280px, calc(100vw - 40px));
+        max-width: none;
+        box-shadow: 0 4px 16px var(--shadow-color);
+        z-index: 500;
     }
 }

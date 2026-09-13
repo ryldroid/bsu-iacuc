@@ -34,7 +34,7 @@ include "includes/scroll-top.php";
                             The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate University and National and International policies and regulations. The IACUC, under the Office of the Research and Extension (R and E) specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).
                         </p>
                         <p>
-                            IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research permit by the Bureau of Animal Industry (BAI).
+                            IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research Clearance by the Bureau of Animal Industry (BAI).
                         </p>
                         <p>
                             The IACUC reviews and endorses animal research protocols in line with
@@ -191,7 +191,7 @@ include "includes/scroll-top.php";
                             </svg>
                         </summary>
                         <div class="faq-answer">
-                            There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Permit, to be paid upon submission of the reviewed IACUC protocol.
+                            There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Clearance, to be paid upon submission of the reviewed IACUC protocol.
                         </div>
                     </details>
 
