@@ -17,6 +17,9 @@ class Model
                 $this->fatalError('Could not connect to the database. Please try again later.');
             }
 
+            $conn->set_charset('utf8mb4');
+  
+
             $conn->query("SET time_zone = '+08:00'");
 
             if (! $conn->query("CREATE DATABASE IF NOT EXISTS `" . DBNAME . "`
