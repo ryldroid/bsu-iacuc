@@ -293,7 +293,7 @@ include "includes/scroll-top.php";
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#alert-triangle-icon" />
         </svg>
-        <span><span class="bold">All uploads will be thoroughly examined.</span> Make sure documents are legible, complete, and accurate before submitting.</span>
+        <span><span class="bold">Uploads will be thoroughly examined.</span> Make sure documents are legible, accurate, and complete before submitting.</span>
     </div>`;
 
     // ===== STEP 0 :  Requirements & Process =====
@@ -487,12 +487,12 @@ include "includes/scroll-top.php";
 
         const formats = [{
                 title: 'Word document (.DOCX)',
-                subtitle: 'Convert to PDF once complete.',
+                subtitle: 'Convert to PDF once complete',
                 url: formDocxUrl,
             },
             {
                 title: 'Fillable PDF',
-                subtitle: 'Fill in directly and save as PDF.',
+                subtitle: 'Fill in directly from your desktop web browser',
                 url: formPdfUrl,
             },
         ];
@@ -502,8 +502,7 @@ include "includes/scroll-top.php";
     <div class="page-title">Download IACUC protocol form</div>
 
     <p class="step-intro-text">
-        Download and complete the official BSU-IACUC protocol form in either format below, then upload
-        the finished PDF in the next step.
+        Download and complete the official BSU-IACUC protocol form in either format below. Submissions must be in PDF format, so if choosing the DOCX file, convert to PDF to upload. 
     </p>
 
     <div class="section-label">Official IACUC protocol form</div>
@@ -554,10 +553,9 @@ include "includes/scroll-top.php";
     </div>
     <p class="helper field-hint">Make sure this title matches the Protocol Title on your form exactly.</p>
 
-    <div class="section-label">Completed IACUC protocol form</div>
     <div class="doc-list">
     ${docRow('protocol', {
-        title: 'IACUC protocol form (PDF)',
+        title: 'Completed IACUC protocol form',
         subtitle: 'PDF · max 10 MB',
         required: true
     })}

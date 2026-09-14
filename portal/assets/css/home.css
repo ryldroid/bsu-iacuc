@@ -272,3 +272,49 @@ h2 {
     padding: 10px 15px;
     border-radius: 50%;
 }
+
+.faq-column {
+  width: 100%;
+}
+
+.home-announcements-teaser {
+  margin-bottom: 24px;
+}
+
+.home-announcements-teaser-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin-bottom: 14px;
+}
+
+.home-announcements-teaser-header h2 {
+  margin: 0;
+}
+
+.home-announcement-cont {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.home-announcement-teaser-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-announcement-cont time {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+@media (max-width: 1200px) {
+  .faq-column {
+    width: 100%;
+    margin-top: 0;
+  }
+}

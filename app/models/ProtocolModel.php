@@ -74,7 +74,8 @@ class ProtocolModel extends Model
         $stmt = $this->connection->prepare(
             "UPDATE `protocols`
              SET title = ?, previous_title = ?, title_changed_by = ?,
-                 title_changed_by_name = ?, title_changed_by_role = ?, title_changed_at = NOW()
+                 title_changed_by_name = ?, title_changed_by_role = ?, title_changed_at = NOW(),
+                 title_change_seen_by = NULL
              WHERE id = ?"
         );
         if (! $stmt) {
@@ -89,6 +90,22 @@ class ProtocolModel extends Model
         $this->insertTitleHistory($protocolId, $newTitle, $actorId, $actorName, $actorRole);
 
         return $oldTitle;
+    }
+
+    // Dismisses the title-change red dot for whichever user just opened the
+    // rename-history dropdown. Reset to NULL again on the next rename so a
+    // fresh change always shows the dot again, even to the same user.
+    public function markTitleChangeSeen(int $protocolId, int $userId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols` SET title_change_seen_by = ? WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('ii', $userId, $protocolId);
+        return $stmt->execute();
     }
 
     public function getTitleAsOf(int $protocolId, string $asOf): ?string
@@ -198,16 +215,16 @@ class ProtocolModel extends Model
 
     // ===== PAYMENT =====
 
-    public function submitPaymentProof(int $protocolId): bool
+    public function submitPaymentProof(int $protocolId, string $method): bool
     {
         $stmt = $this->connection->prepare(
-            "UPDATE `protocols` SET payment_status = 'proof_submitted' WHERE id = ?"
+            "UPDATE `protocols` SET payment_status = 'proof_submitted', payment_method = ? WHERE id = ?"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('i', $protocolId);
+        $stmt->bind_param('si', $method, $protocolId);
         return $stmt->execute();
     }
 
@@ -344,6 +361,7 @@ class ProtocolModel extends Model
                     p.deletion_requested_by_role,
                     p.deletion_request_reason,
                     p.payment_status,
+                    p.payment_method,
                     p.paid_at,
                     p.paid_by,
                     u.first_name,
@@ -420,6 +438,7 @@ class ProtocolModel extends Model
                 p.deletion_requested_by_role,
                 p.deletion_request_reason,
                 p.payment_status,
+                p.payment_method,
                 p.paid_at,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
@@ -476,6 +495,36 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
+    public function getLatestActivityTimestamp(?int $userId = null): ?string
+    {
+        $sql = "SELECT MAX(GREATEST(
+                    p.updated_at,
+                    COALESCE(
+                        (SELECT MAX(pv.uploaded_at) FROM `protocol_versions` pv WHERE pv.protocol_id = p.id),
+                        p.updated_at
+                    )
+                )) AS latest
+                FROM `protocols` p";
+
+        if ($userId === null) {
+            $sql .= " JOIN `users` u ON u.id = p.user_id WHERE u.status != 'deactivated' AND p.deleted_at IS NULL";
+        } else {
+            $sql .= " WHERE p.user_id = ? AND p.deleted_at IS NULL";
+        }
+
+        $stmt = $this->connection->prepare($sql);
+        if (! $stmt) {
+            return null;
+        }
+
+        if ($userId !== null) {
+            $stmt->bind_param('i', $userId);
+        }
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        return $row['latest'] ?? null;
+    }
+
     public function getById(int $id): ?array
     {
         $stmt = $this->connection->prepare(
@@ -492,17 +541,20 @@ class ProtocolModel extends Model
                 p.title_changed_by_name,
                 p.title_changed_by_role,
                 p.title_changed_at,
+                p.title_change_seen_by,
                 p.deletion_requested_at,
                 p.deletion_requested_by,
                 p.deletion_requested_by_name,
                 p.deletion_requested_by_role,
                 p.deletion_request_reason,
                 p.payment_status,
+                p.payment_method,
                 p.paid_at,
                 p.paid_by,
                 u.first_name AS submitter_first_name,
                 u.last_name AS submitter_last_name,
-                u.school AS submitter_school
+                u.school AS submitter_school,
+                u.sex AS submitter_sex
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1"
@@ -531,6 +583,27 @@ class ProtocolModel extends Model
         }
 
         $stmt->bind_param('si', $status, $protocolId);
+        return $stmt->execute();
+    }
+
+    public function referenceNoExists(string $refNo): bool
+    {
+        $stmt = $this->connection->prepare("SELECT 1 FROM `protocols` WHERE reference_no = ?");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $refNo);
+        $stmt->execute();
+        return (bool) $stmt->get_result()->fetch_row();
+    }
+
+    public function setReferenceNo(int $protocolId, string $refNo): bool
+    {
+        $stmt = $this->connection->prepare("UPDATE `protocols` SET reference_no = ? WHERE id = ?");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('si', $refNo, $protocolId);
         return $stmt->execute();
     }
 
@@ -621,7 +694,7 @@ class ProtocolModel extends Model
     public function getVersionById(int $versionId): ?array
     {
         $stmt = $this->connection->prepare(
-            "SELECT pv.*, p.user_id AS owner_id, p.status AS protocol_status, p.title AS protocol_title
+            "SELECT pv.*, p.user_id AS owner_id, p.status AS protocol_status, p.title AS protocol_title, p.reference_no
              FROM `protocol_versions` pv
              JOIN `protocols` p ON p.id = pv.protocol_id
              WHERE pv.id = ? LIMIT 1"
@@ -748,7 +821,8 @@ class ProtocolModel extends Model
         int $protocolId,
         int $reviewerId,
         array $reasons,
-        string $comment
+        string $comment,
+        ?int $versionId = null
     ): bool {
         $wrongCert  = in_array('wrong_cert',  $reasons, true) ? 1 : 0;
         $otherFlag  = in_array('other',       $reasons, true) ? 1 : 0;
@@ -756,14 +830,14 @@ class ProtocolModel extends Model
 
         $stmt = $this->connection->prepare(
             "INSERT INTO `protocol_return_reasons`
-                (protocol_id, reviewer_id, wrong_cert, other_reason, comment)
-             VALUES (?, ?, ?, ?, ?)"
+                (protocol_id, reviewer_id, wrong_cert, other_reason, comment, version_id)
+             VALUES (?, ?, ?, ?, ?, ?)"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('iiiis', $protocolId, $reviewerId, $wrongCert, $otherFlag, $comment);
+        $stmt->bind_param('iiiisi', $protocolId, $reviewerId, $wrongCert, $otherFlag, $comment, $versionId);
         return $stmt->execute();
     }
 
@@ -788,6 +862,37 @@ class ProtocolModel extends Model
         }
 
         $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    // Return reason tied to one specific protocol version, so the researcher
+    // only sees the reviewer's note while looking at the version it was made on.
+    public function getReturnReasonForVersion(int $versionId): ?array
+    {
+        if ($versionId < 1) {
+            return null;
+        }
+
+        $stmt = $this->connection->prepare(
+            "SELECT
+                r.wrong_cert,
+                r.other_reason,
+                r.comment,
+                r.created_at,
+                u.first_name,
+                u.last_name
+             FROM `protocol_return_reasons` r
+             JOIN `users` u ON u.id = r.reviewer_id
+             WHERE r.version_id = ?
+             ORDER BY r.created_at DESC
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $versionId);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
@@ -895,6 +1000,19 @@ class ProtocolModel extends Model
         return $stmt->execute() && $stmt->affected_rows > 0;
     }
 
+    public function deleteClearancePoolItem(int $id): bool
+    {
+        $stmt = $this->connection->prepare(
+            "DELETE FROM `clearance_pool` WHERE id = ? AND protocol_id IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $id);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
     public function confirmClearancePoolItem(int $poolId, int $versionId): bool
     {
         $stmt = $this->connection->prepare(
@@ -967,5 +1085,112 @@ class ProtocolModel extends Model
 
         $stmt->bind_param('i', $versionId);
         return $stmt->execute();
+    }
+
+    // ===== ACCOUNT DELETION (hard purge) =====
+
+    /**
+     * Permanently removes every protocol belonging to a user, their uploaded
+     * files on disk, and all related child rows (versions, title history,
+     * payment rejections, annotations, return reasons). Used when a user
+     * deletes their account, as opposed to the reversible soft-delete used
+     * elsewhere (deleted_at).
+     */
+    public function purgeAllForUser(int $userId): bool
+    {
+        $stmt = $this->connection->prepare("SELECT id FROM `protocols` WHERE user_id = ?");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $protocolIds = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
+
+        if (empty($protocolIds)) {
+            return true;
+        }
+
+        $storageBase = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
+
+        foreach ($protocolIds as $protocolId) {
+            $dir = $storageBase . $protocolId . '/';
+            if (is_dir($dir)) {
+                $this->rrmdir($dir);
+            }
+        }
+
+        $placeholders = implode(',', array_fill(0, count($protocolIds), '?'));
+        $types        = str_repeat('i', count($protocolIds));
+
+        $childTables = [
+            'protocol_versions',
+            'protocol_title_history',
+            'payment_proof_rejections',
+            'annotations',
+            'protocol_return_reasons',
+        ];
+        foreach ($childTables as $table) {
+            $stmt = $this->connection->prepare("DELETE FROM `$table` WHERE protocol_id IN ($placeholders)");
+            if ($stmt) {
+                $stmt->bind_param($types, ...$protocolIds);
+                $stmt->execute();
+            }
+        }
+
+        // Clearance pool screenshots are a shared pool; just detach rather than delete the pool item itself.
+        $stmt = $this->connection->prepare("UPDATE `clearance_pool` SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL, version_id = NULL WHERE protocol_id IN ($placeholders)");
+        if ($stmt) {
+            $stmt->bind_param($types, ...$protocolIds);
+            $stmt->execute();
+        }
+
+        $stmt = $this->connection->prepare("DELETE FROM `protocols` WHERE id IN ($placeholders)");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param($types, ...$protocolIds);
+        return $stmt->execute();
+    }
+
+    /**
+     * True if the user currently has any protocol that isn't finished
+     * processing yet (i.e. anything short of Approved, and not soft-deleted).
+     * Used to decide whether an expired clearance can trigger auto-deactivation.
+     */
+    public function hasActiveProtocols(int $userId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT 1 FROM `protocols`
+             WHERE user_id = ? AND deleted_at IS NULL AND status != 'Approved'
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return true; // fail safe: assume active so we never deactivate on a query error
+        }
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        return (bool) $stmt->get_result()->fetch_row();
+    }
+
+    private function rrmdir(string $dir): void
+    {
+        $items = @scandir($dir);
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . $item;
+            if (is_dir($path)) {
+                $this->rrmdir($path);
+            } else {
+                @unlink($path);
+            }
+        }
+
+        @rmdir($dir);
     }
 }

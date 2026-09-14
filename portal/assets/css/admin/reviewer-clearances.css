@@ -1,0 +1,24 @@
+.clearance-upload-card {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  max-width: 640px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
+}
+
+.clearance-upload-card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--brand-text);
+}
+
+.clearance-upload-card .modal-notice {
+  margin-bottom: 0;
+}
+
+#clearance_screenshots_add {
+  display: none;
+}

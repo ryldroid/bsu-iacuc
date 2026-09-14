@@ -407,7 +407,7 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
-  public function insertFromProtocol(string $refNo, string $title, string $pi, string $school = ''): bool
+  public function insertFromProtocol(string $refNo, string $title, string $pi, string $school = '', ?int $userId = null, ?int $protocolId = null, ?string $sex = null): bool
   {
     if ($refNo !== '' && $this->refExists($refNo)) {
       return false;
@@ -416,11 +416,28 @@ class RecordModel extends Model
     $refNoOrNull = $refNo !== '' ? $refNo : null;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school)
-             VALUES (?, ?, ?, ?)"
+      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, gender, user_id, protocol_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     if (! $stmt) return false;
-    $stmt->bind_param('ssss', $refNoOrNull, $title, $pi, $school);
+    $stmt->bind_param('sssssii', $refNoOrNull, $title, $pi, $school, $sex, $userId, $protocolId);
+    return $stmt->execute();
+  }
+
+  public function getByProtocolId(int $protocolId): ?array
+  {
+    $stmt = $this->connection->prepare("SELECT * FROM `records` WHERE protocol_id = ?");
+    if (! $stmt) return null;
+    $stmt->bind_param('i', $protocolId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc() ?: null;
+  }
+
+  public function setReferenceNoByProtocolId(int $protocolId, string $refNo): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE `records` SET reference_no = ? WHERE protocol_id = ?");
+    if (! $stmt) return false;
+    $stmt->bind_param('si', $refNo, $protocolId);
     return $stmt->execute();
   }
 
@@ -479,5 +496,65 @@ class RecordModel extends Model
     if (! $stmt) return false;
     $stmt->bind_param('i', $id);
     return $stmt->execute();
+  }
+
+  // ===== AUTOMATIC DEACTIVATION ON CLEARANCE EXPIRY =====
+
+  /**
+   * Users with at least one expired, linked clearance record who haven't
+   * already been checked. Deduped by user_id.
+   */
+  public function getUsersWithExpiredClearances(): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT DISTINCT r.user_id
+       FROM `records` r
+       JOIN `users` u ON u.id = r.user_id
+       WHERE r.user_id IS NOT NULL
+         AND r.research_duration_end IS NOT NULL
+         AND r.research_duration_end < CURDATE()
+         AND u.status = 'active'"
+    );
+    if (! $stmt) return [];
+    $stmt->execute();
+    return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
+  }
+
+  /**
+   * Runs the auto-deactivation sweep: for every user with an expired,
+   * linked clearance and no protocols still being processed, deactivate
+   * their account (info/files/certificate are kept; see UserModel::deactivateUser).
+   * Cheap to call on every admin page load:  it's a couple of indexed
+   * queries and only does work when there's something to deactivate.
+   */
+  public function runExpiryDeactivationSweep(): int
+  {
+    require_once dirname(__DIR__) . '/models/ProtocolModel.php';
+    require_once dirname(__DIR__) . '/models/UserModel.php';
+
+    $protocolModel = new ProtocolModel();
+    $userModel     = new UserModel();
+
+    $deactivated = 0;
+    foreach ($this->getUsersWithExpiredClearances() as $userId) {
+      $userId = (int) $userId;
+      if ($protocolModel->hasActiveProtocols($userId)) {
+        continue;
+      }
+      if ($userModel->deactivateUser($userId)) {
+        $userModel->logAudit(
+          'account_deactivated',
+          null,
+          'System',
+          'system',
+          'user',
+          $userId,
+          'Auto-deactivated: animal research clearance expired with no protocols pending'
+        );
+        $deactivated++;
+      }
+    }
+
+    return $deactivated;
   }
 }

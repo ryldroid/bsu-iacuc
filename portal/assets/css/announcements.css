@@ -227,10 +227,34 @@ h2 {
 }
 
 .ann-remove-image-row {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.4em;
   margin-top: 0.5em;
   font-size: 0.85em;
   color: var(--secondary-text);
+}
+
+.ann-remove-image-row:not([hidden]) {
+  display: flex;
+}
+
+
+.ann-remove-image-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--divider-color-strong);
+  accent-color: var(--brand-color);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ann-remove-image-row label {
+  font-size: 1em;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--secondary-text);
+  margin: 0;
 }

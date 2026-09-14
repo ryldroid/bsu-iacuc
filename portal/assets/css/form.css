@@ -51,6 +51,37 @@
   width: 100%;
 }
 
+.input-group select {
+  width: 100%;
+  margin-bottom: 0;
+  padding: 12px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--input-border);
+  background-color: var(--card-background);
+  color: var(--primary-text);
+  box-shadow: 0 1px 4px var(--shadow-color-soft);
+  font-size: .9em;
+  outline: none;
+
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.input-group select:focus-visible {
+  border-color: var(--brand-text);
+  box-shadow: 0 0 0 3px var(--focus-ring-tint), 0 1px 4px var(--shadow-color-soft);
+}
+
+/* Selects always show a value (never an empty placeholder state like text
+   inputs do), so their label stays permanently in the "raised" position
+   instead of floating on focus/fill like the input labels above. */
+.input-group:has(select) label {
+  top: 0;
+  font-size: .7em;
+  color: var(--brand-text);
+  background: var(--card-background);
+  padding: 0 5px;
+}
+
 .helper+.label-group,
 .helper+.input-group {
   margin: 1.2em 0;
@@ -61,7 +92,11 @@
     width: 90%;
   }
 
-  .input-group input#first_name {
+  .input-group #first_name {
     margin-bottom: 1.4em;
+  }
+
+  .input-group #first_name_label {
+    top: 35%;
   }
 }

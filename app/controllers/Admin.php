@@ -49,17 +49,34 @@ class Admin extends Controller
     {
         $this->requireStaff();
 
+        (new RecordModel())->runExpiryDeactivationSweep();
+
         $model     = new ProtocolModel();
         $protocols = $model->getAll();
 
         $statuses = ['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'];
 
+        $activityTimestamps = array_column($protocols, 'last_activity_at');
+        $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
+
         $this->view('admin/home', [
-            'user'      => $_SESSION['user'],
-            'csrf'      => $this->generateCsrfToken(),
-            'protocols' => $protocols,
-            'statuses'  => $statuses,
+            'user'            => $_SESSION['user'],
+            'csrf'            => $this->generateCsrfToken(),
+            'protocols'       => $protocols,
+            'statuses'        => $statuses,
+            'updatesEndpoint' => 'admin/checkupdates',
+            'updatesBaseline' => $updatesBaseline,
         ]);
+    }
+
+    public function checkupdates(): void
+    {
+        $this->requireStaff(true);
+        header('Content-Type: application/json');
+
+        $model = new ProtocolModel();
+        echo json_encode(['latest' => $model->getLatestActivityTimestamp()]);
+        exit;
     }
 
     public function researcher_details(): void
@@ -112,11 +129,26 @@ class Admin extends Controller
         ]);
     }
 
+    public function reviewer_clearances(): void
+    {
+        $this->requireStaff();
+        if ($_SESSION['user']['role'] !== 'reviewer') {
+            $this->redirect('admin/home');
+        }
+
+        $this->view('admin/reviewer-clearances', [
+            'user' => $_SESSION['user'],
+            'csrf' => $this->generateCsrfToken(),
+        ]);
+    }
+
     public function records(): void
     {
         $this->requireStaff();
 
-        $model          = new RecordModel();
+        $model = new RecordModel();
+        $model->runExpiryDeactivationSweep();
+
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
         $animalType     = trim($_GET['animal'] ?? '');
@@ -222,8 +254,15 @@ class Admin extends Controller
 
         if ($ok) {
             $actor = $this->actor();
-            $ref   = $d['reference_no'] !== '' ? $d['reference_no'] : "#$id";
+            $ref   = $d['reference_no'] !== '' ? "IPN {$d['reference_no']}" : ($d['title_of_research'] !== '' ? $d['title_of_research'] : "record #$id");
             $model->logAudit('record_edited', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record edited: $ref");
+
+            // Keep the linked protocol's IPN in sync, so the Clearance page
+            // (which reads reference_no off the protocol) matches this record.
+            $record = $model->getById($id);
+            if ($record && !empty($record['protocol_id']) && $d['reference_no'] !== '') {
+                (new ProtocolModel())->setReferenceNo((int) $record['protocol_id'], $d['reference_no']);
+            }
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record updated.' : 'Update failed.']);
@@ -244,11 +283,13 @@ class Admin extends Controller
             $this->jsonError(400, 'No record id given.');
         }
 
-        $ok = $model->delete($id);
+        $record = $model->getById($id);
+        $ok     = $model->delete($id);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('record_deleted', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record deleted: #$id");
+            $ref   = $record && $record['reference_no'] !== '' ? "IPN {$record['reference_no']}" : ($record['title_of_research'] ?? "record #$id");
+            $model->logAudit('record_deleted', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record deleted: $ref");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record deleted.' : 'Delete failed.']);
@@ -346,7 +387,7 @@ class Admin extends Controller
     private function writeStatisticsSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $stats, array $filters): void
     {
         $row = 1;
-        $sheet->setCellValue("A$row", 'BSU-IACUC Records — Statistics Summary');
+        $sheet->setCellValue("A$row", 'BSU-IACUC Records:  Statistics Summary');
         $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
         $row++;
 
@@ -533,25 +574,26 @@ class Admin extends Controller
         $sheet       = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Audit Logs');
 
-        $headers = ['Timestamp', 'Username', 'Role', 'Action', 'Target Type', 'Target ID', 'Details', 'IP Address'];
+        $headers = ['Timestamp', 'Username', 'Role', 'Action', 'Target', 'Details', 'IP Address'];
         $sheet->fromArray($headers, null, 'A1');
+
+        $targetNameCache = [];
 
         $row = 2;
         foreach ($logs as $log) {
             $sheet->fromArray([
                 $log['created_at'],
                 $log['username'],
-                $log['role'],
-                $log['action'],
-                $log['target_type'],
-                $log['target_id'],
+                ucfirst($log['role']),
+                $this->humanizeAuditAction($log['action']),
+                $this->resolveAuditTargetName($log['target_type'], $log['target_id'], $targetNameCache),
                 $log['details'],
                 $log['ip_address'],
             ], null, "A$row");
             $row++;
         }
 
-        foreach (range('A', 'H') as $column) {
+        foreach (range('A', 'G') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -590,6 +632,77 @@ class Admin extends Controller
         return ($parsed && $parsed->format('Y-m-d') === $date) ? $date : null;
     }
 
+    private function humanizeAuditAction(string $action): string
+    {
+        return ucwords(str_replace('_', ' ', $action));
+    }
+
+    private function resolveAuditTargetName(?string $targetType, ?int $targetId, array &$cache): string
+    {
+        if (empty($targetType)) {
+            return '';
+        }
+
+        $typeLabel = ucwords(str_replace('_', ' ', $targetType));
+
+        if ($targetId === null) {
+            return $typeLabel;
+        }
+
+        $cacheKey = "$targetType:$targetId";
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $lookupSupported = in_array($targetType, ['user', 'protocol', 'record', 'announcement'], true);
+
+        $name = match ($targetType) {
+            'user' => $this->userDisplayName($targetId),
+            'protocol' => $this->protocolDisplayName($targetId),
+            'record' => $this->recordDisplayName((new RecordModel())->getById($targetId)),
+            'announcement' => $this->announcementDisplayName($targetId),
+            default => null,
+        };
+
+        if ($name !== null && $name !== '') {
+            $result = "$typeLabel: $name";
+        } elseif ($lookupSupported) {
+            $result = "$typeLabel #$targetId (no longer exists)";
+        } else {
+            $result = "$typeLabel #$targetId";
+        }
+
+        $cache[$cacheKey] = $result;
+        return $result;
+    }
+
+    private function recordDisplayName(?array $record): ?string
+    {
+        if (!$record) {
+            return null;
+        }
+        return $record['reference_no'] !== '' ? "IPN {$record['reference_no']}" : ($record['title_of_research'] ?? null);
+    }
+
+    private function announcementDisplayName(int $id): ?string
+    {
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+        $announcement = (new AnnouncementModel())->getById($id);
+        return $announcement['title'] ?? null;
+    }
+
+    private function userDisplayName(int $id): ?string
+    {
+        $user = $this->model->getUser($id);
+        return $user['username'] ?? null;
+    }
+
+    private function protocolDisplayName(int $id): ?string
+    {
+        $protocol = (new ProtocolModel())->getById($id);
+        return $protocol['research_title'] ?? null;
+    }
+
     public function login(): void
     {
         if ($this->isLoggedIn()) {
@@ -623,6 +736,7 @@ class Admin extends Controller
             $this->model->countRecentAttempts($ip, $WINDOW) >= $MAX_ATTEMPTS
             || $this->model->countRecentAttempts($input, $WINDOW) >= $MAX_ATTEMPTS
         ) {
+            $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
             $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
             $this->redirect('admin/login');
         }
@@ -732,11 +846,16 @@ class Admin extends Controller
         $first_name   = ucfirst(mb_strtolower(trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $_POST['first_name'] ?? ''))));
         $last_name    = trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $_POST['last_name'] ?? ''));
         $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+        $sex          = in_array($_POST['sex'] ?? '', ['Male', 'Female'], true) ? $_POST['sex'] : '';
         $password     = $_POST['password'] ?? '';
         $confirm_pass = $_POST['confirm_password'] ?? '';
 
-        $old    = compact('username', 'first_name', 'last_name', 'email', 'role');
+        $old    = compact('username', 'first_name', 'last_name', 'email', 'sex', 'role');
         $errors = [];
+
+        if (empty($sex)) {
+            $errors[] = 'Please select your sex.';
+        }
 
         if (empty($username) || strlen($username) < 3 || strlen($username) > 50) {
             $errors[] = 'Username must be 3-50 characters (letters, numbers, _ or -).';
@@ -782,7 +901,7 @@ class Admin extends Controller
             return;
         }
 
-        $ok = $this->model->insertUser($username, $first_name, $last_name, $email, password_hash($password, PASSWORD_DEFAULT), $role, 'pending');
+        $ok = $this->model->insertUser($username, $first_name, $last_name, $email, password_hash($password, PASSWORD_DEFAULT), $role, 'pending', null, null, $sex);
 
         if ($ok) {
             $newUserId = $this->model->connection->insert_id;
@@ -824,6 +943,9 @@ class Admin extends Controller
 
         $token = $this->model->createInviteToken($role, 48);
 
+        $actor = $this->actor();
+        $this->model->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
+
         $this->view('admin/accounts', [
             'user'        => $_SESSION['user'],
             'csrf'        => $this->generateCsrfToken(),
@@ -856,7 +978,7 @@ class Admin extends Controller
                     'account_verified',
                     'Account Verified',
                     'Your account has been verified. You can now log in.',
-                    'users/login',
+                    'users/account',
                     [
                         'template' => 'application_approved',
                         'vars'     => ['first_name' => $applicant['first_name']],

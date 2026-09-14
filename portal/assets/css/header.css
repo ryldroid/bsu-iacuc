@@ -161,15 +161,18 @@ header nav a:hover::after {
     gap: 0;
 
     position: fixed;
-    top: 52px;
+    top: 0;
     right: -100%;
     z-index: 999;
 
     height: 100vh;
-    width: 200px;
+    width: 240px;
+    padding-top: 52px;
+    box-sizing: border-box;
 
     background-color: var(--card-background-translucent);
-    box-shadow: -4px 0 12px var(--shadow-color-soft);
+    box-shadow: -4px 0 20px var(--shadow-color-soft);
+    border-left: 3px solid var(--brand-text);
     color: var(--primary-text);
     backdrop-filter: blur(10px);
 
@@ -198,14 +201,32 @@ header nav a:hover::after {
 }
 
 .nav-sidebar a {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: .9em;
     width: 100%;
-    padding: 20px 16px;
+    padding: 16px 20px;
+    box-sizing: border-box;
+    color: var(--secondary-text);
+    font-weight: 500;
     text-decoration: none;
+    transition: background-color .15s ease, color .15s ease;
 }
 
-.nav-sidebar li:hover {
+.nav-sidebar a svg {
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+}
+
+.nav-sidebar li:hover a {
     background-color: var(--hover-surface);
+    color: var(--primary-text);
+}
+
+.nav-sidebar a.active-link {
+    color: var(--brand-text);
+    font-weight: 600;
 }
 
 .header-auth .mobile-menu {
@@ -256,14 +277,9 @@ header nav a:hover::after {
     display: none;
 }
 
-[data-theme-mode="light"] .theme-toggle-icon-sun,
-[data-theme-mode="dark"] .theme-toggle-icon-moon,
-[data-theme-mode="auto"] .theme-toggle-icon-auto {
+[data-theme="light"] .theme-toggle-icon-sun,
+[data-theme="dark"] .theme-toggle-icon-moon {
     display: block;
-}
-
-.theme-toggle-label {
-    font-size: .85em;
 }
 
 #theme-menu {
@@ -289,6 +305,14 @@ header nav a:hover::after {
 #theme-menu.active {
     display: flex;
     flex-direction: column;
+}
+
+.theme-menu-header {
+    padding: .65em 1em .4em;
+    font-size: .78em;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--secondary-text);
 }
 
 #theme-menu button {
@@ -337,19 +361,19 @@ header nav a:hover::after {
 }
 
 .theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
-    /* background-color: var(--hover-surface); */
     background-color: rgb(255 255 255 / 0.32);
 }
 
 .theme-toggle-wrapper.theme-toggle--card .theme-toggle:active {
-    background-color: var(--hover-surface);
+    transform: translateY(2px);
 }
 
 .theme-toggle-wrapper.theme-toggle--floating {
     position: fixed;
-    top: 16px;
+    top: var(--pinned-top-offset, 16px);
     right: 16px;
     margin-right: 0;
+    transition: top .2s ease;
 }
 
 .theme-toggle-wrapper.theme-toggle--floating .theme-toggle {
@@ -357,10 +381,6 @@ header nav a:hover::after {
     gap: .3em;
     padding: 0 8px;
     color: var(--text-on-image);
-}
-
-.theme-toggle-wrapper.theme-toggle--floating .theme-toggle-label {
-    /* display: none; */
 }
 
 .theme-toggle-wrapper.theme-toggle--staff-login+form h1 {
@@ -535,7 +555,7 @@ header nav a:hover::after {
     }
 
     .nav-sidebar a {
-        font-size: 1.2em;
+        font-size: 1em;
     }
 
     header li {
@@ -546,12 +566,12 @@ header nav a:hover::after {
         display: none;
     }
 
-    .theme-toggle-label {
-        display: none;
-    }
-
     .theme-toggle {
         padding: 0 6px;
+    }
+
+    .theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
+        background-color: var(--backdrop-color);
     }
 }
 

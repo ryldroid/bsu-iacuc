@@ -19,6 +19,7 @@ class Users extends Controller
       'email'        => filter_var(trim($post['email'] ?? ''), FILTER_SANITIZE_EMAIL),
       'phone_number' => trim($post['phone_number'] ?? ''),
       'school'       => trim(preg_replace('/[^\p{L}\p{M}\p{N}\s\-\'\.,()&]/u', '', $post['school'] ?? '')),
+      'sex'          => in_array($post['sex'] ?? '', ['Male', 'Female'], true) ? $post['sex'] : '',
       'password'     => $post['password'] ?? '',
       'confirm_pass' => $post['confirm_password'] ?? '',
       'role'         => $post['role'] ?? '',
@@ -34,9 +35,14 @@ class Users extends Controller
     string $password,
     string $confirm_pass,
     string $role,
-    bool $password_required = true
+    bool $password_required = true,
+    string $sex = ''
   ): array {
     $errors = [];
+
+    if (empty($sex)) {
+      $errors[] = 'Please select your sex.';
+    }
 
     if (empty($username)) {
       $errors[] = 'Username is required.';
@@ -126,6 +132,7 @@ class Users extends Controller
     $userAttempts = $this->model->countRecentAttempts($input, $WINDOW);
 
     if ($ipAttempts >= $MAX_ATTEMPTS || $userAttempts >= $MAX_ATTEMPTS) {
+      $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
       $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
       $this->redirect('users/login');
     }
@@ -141,6 +148,7 @@ class Users extends Controller
     if (!$user) {
       $this->model->recordLoginAttempt($ip);
       $this->model->recordLoginAttempt($input);
+      $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed login attempt (no account found)');
       $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
       $this->redirect('users/login');
     }
@@ -230,9 +238,9 @@ class Users extends Controller
 
     extract($this->sanitizeInputs($_POST));
     $school = trim($school ?? '');
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex');
 
-    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher');
+    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher', true, $sex);
 
     if ($school === '') {
       $errors[] = 'Please enter your school.';
@@ -259,7 +267,7 @@ class Users extends Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school);
+    $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex);
 
     if ($ok) {
       $this->sendEmailVerification([
@@ -346,6 +354,7 @@ class Users extends Controller
         'email'        => $user['email'],
         'phone_number' => $user['phone_number'] ?? '+63',
         'school'       => $user['school'] ?? '',
+        'sex'          => $user['sex'] ?? '',
         'role'         => $user['role'],
       ],
     ]);
@@ -375,9 +384,9 @@ class Users extends Controller
     }
 
     $school = trim($school ?? '');
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'role');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'role');
 
-    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false);
+    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false, $sex);
 
     if ($role === 'researcher') {
       if ($school === '') {
@@ -413,7 +422,7 @@ class Users extends Controller
       return;
     }
 
-    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'role');
+    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'role');
     if (!empty($password)) {
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
@@ -425,6 +434,10 @@ class Users extends Controller
       $_SESSION['user']['username']   = $username;
       $_SESSION['user']['email']      = $email;
       $_SESSION['user']['role'] = $role;
+
+      if (!empty($password)) {
+        $this->model->logAudit('password_changed', $id, $username, $role, 'user', $id, 'Password changed via account settings');
+      }
 
       if ($email !== $current_user['email']) {
         $this->model->markEmailUnverified($id);
@@ -457,7 +470,21 @@ class Users extends Controller
     $id       = (int) $_SESSION['user']['user_id'];
     $username = $_SESSION['user']['username'] ?? '';
     $role     = $_SESSION['user']['role'] ?? '';
-    $ok       = $this->model->deleteUser($id);
+
+    require_once dirname(__DIR__) . '/models/ProtocolModel.php';
+    require_once dirname(__DIR__) . '/models/DraftModel.php';
+
+    // Permanently remove protocols, versions, and submitted files before
+    // anonymizing the account itself, so username/email become reusable.
+    (new ProtocolModel())->purgeAllForUser($id);
+
+    (new DraftModel())->clear($id);
+    $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';
+    if (is_dir($draftDir)) {
+      $this->rrmdir($draftDir);
+    }
+
+    $ok = $this->model->deleteUser($id);
 
     if ($ok) {
       $this->model->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
@@ -470,6 +497,28 @@ class Users extends Controller
 
     $_SESSION['flash_error'] = 'Account deletion failed. Please try again or contact support.';
     $this->redirect('users/account');
+  }
+
+  private function rrmdir(string $dir): void
+  {
+    $items = @scandir($dir);
+    if ($items === false) {
+      return;
+    }
+
+    foreach ($items as $item) {
+      if ($item === '.' || $item === '..') {
+        continue;
+      }
+      $path = $dir . $item;
+      if (is_dir($path)) {
+        $this->rrmdir($path);
+      } else {
+        @unlink($path);
+      }
+    }
+
+    @rmdir($dir);
   }
 
   public function deactivate()

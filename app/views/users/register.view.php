@@ -53,7 +53,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <div class="input-group">
                     <input type="text" id="first_name" name="first_name" placeholder=" "
                         value="<?= htmlspecialchars($old['first_name'] ?? ''); ?>" required>
-                    <label for="first_name">First Name</label>
+                    <label for="first_name" id="first_name_label">First Name</label>
                 </div>
                 <div class="input-group">
                     <input type="text" id="last_name" name="last_name" placeholder=" "
@@ -78,6 +78,15 @@ include dirname(__DIR__) . '/includes/header.php';
                 <input type="tel" id="phone_number" name="phone_number" placeholder=" "
                     value="<?= htmlspecialchars($old['phone_number'] ?? '+63'); ?>" required>
                 <label for="phone_number">Phone Number</label>
+            </div>
+
+            <div class="input-group">
+                <select id="sex" name="sex" required>
+                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>— select —</option>
+                    <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
+                    <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
+                </select>
+                <label for="sex">Sex</label>
             </div>
 
             <div class="input-group">

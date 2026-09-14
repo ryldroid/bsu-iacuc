@@ -85,10 +85,18 @@ $hideHeader     = $hideHeader     ?? false;
         <?php if ($role === 'researcher'): ?>
           <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
             <ul class="nav-sidebar" id="nav-sidebar" inert>
-              <li><a href="<?= ROOT ?>/home">Home</a></li>
-              <li><a href="<?= ROOT ?>/submissions">My Protocols</a></li>
-              <li><a href="<?= ROOT ?>/announcements">Announcements</a></li>
-              <li><a href="<?= ROOT ?>/contact">Contact</a></li>
+              <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#home-icon" />
+                  </svg><span>Home</span></a></li>
+              <li><a href="<?= ROOT ?>/submissions"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#protocols-icon" />
+                  </svg><span>My Protocols</span></a></li>
+              <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#announcement-icon" />
+                  </svg><span>Announcements</span></a></li>
+              <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#contact-icon" />
+                  </svg><span>Contact</span></a></li>
             </ul>
           </nav>
 
@@ -96,12 +104,22 @@ $hideHeader     = $hideHeader     ?? false;
         <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
           <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
             <ul class="nav-sidebar" id="nav-sidebar" inert>
-              <li><a href="<?= ROOT ?>/admin/home">Dashboard</a></li>
-              <li><a href="<?= ROOT ?>/admin/records">Records</a></li>
+              <li><a href="<?= ROOT ?>/admin/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#home-icon" />
+                  </svg><span>Dashboard</span></a></li>
+              <li><a href="<?= ROOT ?>/admin/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#protocols-icon" />
+                  </svg><span>Records</span></a></li>
               <?php if ($role === 'admin'): ?>
-                <li><a href="<?= ROOT ?>/admin/clearances">Clearance Pool</a></li>
-                <li><a href="<?= ROOT ?>/admin/announcements">Announcements</a></li>
-                <li><a href="<?= ROOT ?>/admin/accounts">Manage Accounts</a></li>
+                <li><a href="<?= ROOT ?>/admin/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#clearance-icon" />
+                    </svg><span>Clearance Pool</span></a></li>
+                <li><a href="<?= ROOT ?>/admin/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#announcement-icon" />
+                    </svg><span>Announcements</span></a></li>
+                <li><a href="<?= ROOT ?>/admin/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#accounts-icon" />
+                    </svg><span>Manage Accounts</span></a></li>
               <?php endif; ?>
             </ul>
           </nav>
@@ -111,9 +129,15 @@ $hideHeader     = $hideHeader     ?? false;
         <!-- PUBLIC MOBILE NAVIGATION -->
         <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
           <ul class="nav-sidebar" id="nav-sidebar" inert>
-            <li><a href="<?= ROOT ?>/home">Home</a></li>
-            <li><a href="<?= ROOT ?>/announcements">Announcements</a></li>
-            <li><a href="<?= ROOT ?>/contact">Contact</a></li>
+            <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#home-icon" />
+                </svg><span>Home</span></a></li>
+            <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#announcement-icon" />
+                </svg><span>Announcements</span></a></li>
+            <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#contact-icon" />
+                </svg><span>Contact</span></a></li>
           </ul>
         </nav>
       <?php endif; ?>
@@ -143,6 +167,9 @@ $hideHeader     = $hideHeader     ?? false;
                 <button type="button" class="notif-mark-all">Mark all as read</button>
               </div>
               <div class="notif-list"></div>
+              <div class="notif-dropdown-footer">
+                <a href="<?= ROOT ?>/notifications/page">See all notifications</a>
+              </div>
             </div>
 
             <!-- <span class="greeting">Hello, </span> -->

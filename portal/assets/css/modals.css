@@ -46,6 +46,8 @@
     align-items: center;
     gap: 5px;
     margin: 0;
+    padding: 9px 12px;
+    font-family: var(--font-body);
 }
 
 /* Save comes before Cancel in the DOM (so Tab reaches it first from the
@@ -131,7 +133,7 @@
 .file-popup-frame img {
     max-width: 100%;
     /* percentage max-height can't reliably resolve here since this frame's
-       own height comes from flex-grow rather than a fixed value — cap
+       own height comes from flex-grow rather than a fixed value:  cap
        against the viewport directly instead so it always shrinks to fit. */
     max-height: 82vh;
     min-height: 0;
@@ -188,6 +190,7 @@
     line-height: 1.5;
     color: var(--secondary-text);
     margin-top: 8px;
+    margin-bottom: 8px;
 }
 
 .modal-subtitle {
@@ -465,7 +468,7 @@
     flex: 1;
     min-height: 0;
     /* the image never needs to exceed this, no matter how large the
-       original upload is — keeps the whole modal on-screen */
+       original upload is:  keeps the whole modal on-screen */
     max-height: 60vh;
     overflow: auto;
     display: flex;
@@ -516,6 +519,7 @@
     justify-content: center;
     padding: 10px 16px;
     font-size: 0.95em;
+    border-radius: 4px;
 }
 
 .review-payment-footer .confirm-modal-ok-danger {
@@ -538,5 +542,29 @@
 
     .review-payment-footer .modal-actions button {
         flex: 1 1 auto;
+    }
+}
+
+/* ===== Busy state for action buttons (approve/reject/confirm etc.) ===== */
+.btn-busy {
+    pointer-events: none;
+    opacity: .75;
+}
+
+.btn-busy-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: .4rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    vertical-align: -2px;
+    animation: btn-busy-spin .6s linear infinite;
+}
+
+@keyframes btn-busy-spin {
+    to {
+        transform: rotate(360deg);
     }
 }

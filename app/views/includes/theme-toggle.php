@@ -18,10 +18,6 @@ $themeToggleExtraClass = $themeToggleExtraClass ?? '';
     <svg class="theme-toggle-icon theme-toggle-icon-moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <use href="#moon-icon" />
     </svg>
-    <svg class="theme-toggle-icon theme-toggle-icon-auto" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <use href="#monitor-icon" />
-    </svg>
-    <span class="theme-toggle-label">Theme: <span id="theme-toggle-current">Auto</span></span>
     <span class="chev-icon">
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <use href="#chev-down-icon" />
@@ -30,6 +26,7 @@ $themeToggleExtraClass = $themeToggleExtraClass ?? '';
   </button>
 
   <div id="theme-menu" role="menu">
+    <div class="theme-menu-header" role="presentation">Theme</div>
     <button type="button" role="menuitemradio" data-mode="light">
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <use href="#sun-icon" />

@@ -1,5 +1,6 @@
 <?php
 $title = 'My Account';
+$hideHeader = true;
 $hideHeaderAuth = true;
 
 include dirname(__DIR__) . '/includes/header.php';
@@ -13,11 +14,14 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
 
 <div class="body">
     <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
+        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
+        <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
+
         <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_staff ? 'admin/home' : 'home' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>
-            Back to Home
+            Back
         </a>
 
         <?php if (empty($email_verified)): ?>
@@ -80,7 +84,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                 <div class="input-group">
                     <input type="text" id="first_name" name="first_name" placeholder=" "
                         value="<?= htmlspecialchars($old['first_name'] ?? ''); ?>" required>
-                    <label for="first_name">First Name <span class="required-asterisk">*</span></label>
+                    <label for="first_name" id="first_name_label">First Name <span class="required-asterisk">*</span></label>
                 </div>
                 <div class="input-group">
                     <input type="text" id="last_name" name="last_name" placeholder=" "
@@ -116,6 +120,15 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                 <input type="tel" id="phone_number" name="phone_number" placeholder=" "
                     value="<?= htmlspecialchars($old['phone_number'] ?? '+63'); ?>" required>
                 <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
+            </div>
+
+            <div class="input-group">
+                <select id="sex" name="sex" required>
+                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>— select —</option>
+                    <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
+                    <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
+                </select>
+                <label for="sex">Sex <span class="required-asterisk">*</span></label>
             </div>
 
             <?php if (($old['role'] ?? '') === 'researcher'): ?>
@@ -156,21 +169,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
         <fieldset class="form-actions">
             <legend>Account Actions</legend>
 
-            <form method="POST" action="<?= ROOT ?>/users/deactivate"
-                data-confirm-message="Are you sure? Reactivate your account at any time by logging in."
-                data-confirm-ok-text="Deactivate"
-                data-confirm-danger="true">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
-                <div class="popup-wrap">
-                    <button type="submit" class="btn-deactivate btn-red">Deactivate Account</button>
-                    <div class="info-wrapper">
-                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon" />
-                        </svg>
-                        <span class="info-popup">Deactivating your account will make your account details and submitted protocols invisible from the CCARD staff. However, they will not be deleted from the server. You may reactivate your account by logging in again.</span>
-                    </div>
-                </div>
-            </form>
+            <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD staff.</p>
 
             <form method="POST" action="<?= ROOT ?>/users/delete"
                 data-confirm-message="Are you sure? This cannot be undone."
@@ -183,7 +182,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#info-icon" />
                         </svg>
-                        <span class="info-popup">Deleting your account will remove all your information and submitted files from the database. This action is irreversible.</span>
+                        <span class="info-popup">Deleting your account permanently removes your account details, submitted protocols and files, and training certificate from our records. This action cannot be undone, though you may register again afterward using the same details.</span>
                     </div>
                 </div>
             </form>
@@ -234,6 +233,15 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') closeFilePopup();
     });
+
+    const accountSuccessMessage = document.querySelector('.account-form .success-message');
+    if (accountSuccessMessage) {
+        setTimeout(() => {
+            accountSuccessMessage.style.transition = 'opacity 0.4s ease';
+            accountSuccessMessage.style.opacity = '0';
+            setTimeout(() => accountSuccessMessage.remove(), 400);
+        }, 3000);
+    }
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

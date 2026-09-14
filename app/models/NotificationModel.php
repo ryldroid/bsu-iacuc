@@ -60,6 +60,38 @@ class NotificationModel extends Model
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   }
 
+  public function getForUserPaginated(int $userId, int $limit, int $offset): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT id, type, title, message, link, is_read, created_at
+             FROM `notifications`
+             WHERE user_id = ?
+             ORDER BY created_at DESC
+             LIMIT ? OFFSET ?"
+    );
+    if (! $stmt) {
+      return [];
+    }
+
+    $stmt->bind_param('iii', $userId, $limit, $offset);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  public function countForUser(int $userId): int
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT COUNT(*) AS c FROM `notifications` WHERE user_id = ?"
+    );
+    if (! $stmt) {
+      return 0;
+    }
+
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    return (int) $stmt->get_result()->fetch_assoc()['c'];
+  }
+
   public function getUnreadCount(int $userId): int
   {
     $stmt = $this->connection->prepare(

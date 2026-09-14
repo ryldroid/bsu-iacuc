@@ -37,8 +37,7 @@ $csrf = $csrf ?? '';
     <div class="clearance-board">
       <section class="clearance-tray" id="clearanceTrayCard">
         <h2>Unsorted Screenshots</h2>
-        <p class="helper">Drag one onto its protocol on the right, or on a touch screen, tap one then tap its protocol.</p>
-        <p class="helper clearance-select-hint" id="selectHint" hidden>1 screenshot selected &middot; tap a protocol to place it, or <button type="button" class="clearance-link-btn" onclick="clearSelection()">cancel</button></p>
+        <p class="helper">Drag-and-drop or tap on an ARC then assign it to an endorsed protocol.</p>
         <div class="clearance-tray-grid" id="trayGrid">
           <p class="helper clearance-empty">Loading&hellip;</p>
         </div>
@@ -66,7 +65,7 @@ $csrf = $csrf ?? '';
 <div class="modal-backdrop" id="confirmReviewBackdrop">
   <div class="modal-card clearance-modal-card">
     <h2>Confirm Clearances</h2>
-    <p class="helper clearance-modal-helper">Double-check all entries below before proceeding. Once you proceed, each protocol is marked <strong>Approved</strong>.</p>
+    <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check all entries below before proceeding.</strong> Once you proceed, each protocol is marked <strong>Approved</strong>.</p>
 
     <div id="confirmReviewError" class="alert error-messages clearance-modal-error" hidden></div>
 
@@ -78,6 +77,26 @@ $csrf = $csrf ?? '';
         </svg>
         Proceed
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit IPN modal -->
+<div class="modal-backdrop" id="ipnModalBackdrop">
+  <div class="modal-card">
+    <h2 id="ipnModalTitle">Add IPN</h2>
+    <p class="helper">This is the IPN used to identify this protocol, and will be kept in sync with its entry on the Records page.</p>
+
+    <div id="ipnModalError" class="alert error-messages" hidden></div>
+
+    <div class="clearance-ipn-field">
+      <label for="ipnModalInput">IPN</label>
+      <input type="text" id="ipnModalInput" placeholder="e.g. BSU-IACUC-2025-001">
+    </div>
+
+    <div class="modal-actions">
+      <button class="button" type="button" onclick="closeIpnModal()">Cancel</button>
+      <button class="button btn-apply" type="button" id="ipnModalSaveBtn" onclick="saveIpn()">Save</button>
     </div>
   </div>
 </div>
@@ -99,6 +118,8 @@ $csrf = $csrf ?? '';
   const CLEARANCE_UNSTAGE_API = ROOT_URL + '/apply/clearance_unstage';
   const CLEARANCE_CONFIRM_API = ROOT_URL + '/apply/clearance_confirm';
   const CLEARANCE_UNASSIGN_API = ROOT_URL + '/apply/clearance_unassign';
+  const CLEARANCE_DELETE_API = ROOT_URL + '/apply/clearance_delete';
+  const CLEARANCE_ASSIGN_IPN_API = ROOT_URL + '/apply/clearance_assign_ipn';
 
   let boardData = {
     unassigned: [],
@@ -119,23 +140,45 @@ $csrf = $csrf ?? '';
     } [ch]));
   }
 
+  function showFlash(message) {
+    const existing = document.getElementById('flashSuccess');
+    if (existing) existing.remove();
+    const flash = document.createElement('div');
+    flash.className = 'alert success-message';
+    flash.id = 'flashSuccess';
+    flash.textContent = message;
+    const main = document.getElementById('main-content');
+    main.insertBefore(flash, main.firstChild);
+    setTimeout(() => flash.remove(), 4000);
+  }
+
   function isImage(name) {
     return /\.(jpe?g|png)$/i.test(name || '');
   }
 
-  function thumbHtml(item) {
+  function thumbHtml(item, {
+    allowDelete = true
+  } = {}) {
+    const deleteBtn = allowDelete ? `
+                <button type="button" class="clearance-delete-btn" title="Delete" aria-label="Delete"
+                    onclick="event.stopPropagation(); deletePoolItem(${item.id}, this)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon"/></svg>
+                </button>` : '';
+
     if (!isImage(item.original_name)) {
       return `<div class="clearance-file-icon">
                  <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#review-icon"/></svg>
+                 ${deleteBtn}
                </div>`;
     }
     const safeName = escapeHtml(item.original_name).replace(/'/g, "\\'");
     return `<div class="clearance-thumb-media">
                 <img src="${item.file_url}" alt="${escapeHtml(item.original_name)}" loading="lazy">
-                <button type="button" class="clearance-zoom-btn" title="Preview" aria-label="Preview"
+                <button type="button" class="clearance-zoom-btn" title="Preview Image" aria-label="Preview Image"
                     onclick="openZoom(event, '${item.file_url}', '${safeName}')">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#search-icon"/></svg>
                 </button>
+                ${deleteBtn}
             </div>`;
   }
 
@@ -180,11 +223,6 @@ $csrf = $csrf ?? '';
     renderProtocols();
     renderConfirmed();
     updateConfirmButton();
-    updateSelectHint();
-  }
-
-  function updateSelectHint() {
-    document.getElementById('selectHint').hidden = selectedPoolId === null;
   }
 
   function toggleSelectThumb(poolId) {
@@ -192,14 +230,6 @@ $csrf = $csrf ?? '';
     selectedPoolId = selectedPoolId === poolId ? null : poolId;
     renderTray();
     renderProtocols();
-    updateSelectHint();
-  }
-
-  function clearSelection() {
-    selectedPoolId = null;
-    renderTray();
-    renderProtocols();
-    updateSelectHint();
   }
 
   function renderTray() {
@@ -215,7 +245,6 @@ $csrf = $csrf ?? '';
                 onclick="toggleSelectThumb(${item.id})">
                 ${thumbHtml(item)}
                 <span class="clearance-thumb-name">${escapeHtml(item.original_name)}</span>
-                <span class="clearance-thumb-meta">by ${escapeHtml(item.first_name)} ${escapeHtml(item.last_name || '')}</span>
             </div>
         `).join('');
   }
@@ -234,27 +263,37 @@ $csrf = $csrf ?? '';
     grid.innerHTML = boardData.endorsed_protocols.map(p => {
       const staged = stagedFor(p.protocol_id);
       const already = p.latest_clearance_version_id && !staged;
-      const isTarget = selectedPoolId !== null && !already;
+      const hasIpn = !!p.reference_no;
+      const isTarget = selectedPoolId !== null && !already && hasIpn;
+      const dragHandlers = hasIpn ?
+        `ondragover="event.preventDefault()" ondrop="onDrop(event, ${p.protocol_id})"` :
+        '';
+
       return `
-            <div class="clearance-protocol-card${staged ? ' has-staged' : ''}${isTarget ? ' is-target' : ''}"
+            <div class="clearance-protocol-card${staged ? ' has-staged' : ''}${isTarget ? ' is-target' : ''}${!hasIpn ? ' no-ipn' : ''}"
                 data-protocol-id="${p.protocol_id}"
-                ondragover="event.preventDefault()"
-                ondrop="onDrop(event, ${p.protocol_id})"
-                onclick="onCardTap(${p.protocol_id})">
+                ${dragHandlers}
+                onclick="onCardTap(${p.protocol_id}, ${hasIpn})">
                 <div class="clearance-protocol-info">
                     <span class="clearance-protocol-ref">${escapeHtml(p.reference_no)}</span>
                     <span class="clearance-protocol-title">${escapeHtml(p.research_title)}</span>
-                    <span class="helper">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name || '')}</span>
+                    <span class="helper">Researcher: ${escapeHtml(p.first_name)} ${escapeHtml(p.last_name || '')}</span>
+                    <span class="clearance-protocol-ipn">
+                        IPN: ${hasIpn ? escapeHtml(p.reference_no) : '<em>not yet assigned</em>'}
+                        <a href="#" class="clearance-ipn-link" onclick="event.preventDefault(); event.stopPropagation(); openIpnModal(${p.protocol_id}, '${escapeHtml(p.reference_no || '').replace(/'/g, "\\'")}')">${hasIpn ? 'Edit IPN' : 'Add IPN'}</a>
+                    </span>
                 </div>
                 <div class="clearance-drop-zone">
                     ${staged ? `
                         <div class="clearance-thumb clearance-thumb--staged">
-                            ${thumbHtml(staged)}
+                            ${thumbHtml(staged, { allowDelete: false })}
                             <button type="button" class="clearance-unstage-btn" title="Remove"
                                 onclick="event.stopPropagation(); unstage(${staged.id})">&times;</button>
                         </div>
                     ` : already ? `
                         <span class="helper">Already has a clearance on file.</span>
+                    ` : !hasIpn ? `
+                        <span class="helper clearance-drop-hint">Assign an IPN before attaching a clearance</span>
                     ` : `
                         <span class="helper clearance-drop-hint">Drop a screenshot here, or tap it after selecting one</span>
                     `}
@@ -274,7 +313,7 @@ $csrf = $csrf ?? '';
             <div class="clearance-confirmed-row">
                 <span class="clearance-confirmed-ref">${escapeHtml(item.reference_no)}</span>
                 <span class="clearance-confirmed-title">${escapeHtml(item.protocol_title)}</span>
-                <button type="button" class="button" onclick="detach(${item.id})">Detach</button>
+                <button type="button" class="button" onclick="detach(${item.id}, this)">Detach</button>
             </div>
         `).join('');
   }
@@ -297,8 +336,8 @@ $csrf = $csrf ?? '';
     stageItem(poolId, protocolId);
   }
 
-  function onCardTap(protocolId) {
-    if (selectedPoolId === null) return;
+  function onCardTap(protocolId, hasIpn) {
+    if (!hasIpn || selectedPoolId === null) return;
     const poolId = selectedPoolId;
     selectedPoolId = null;
     stageItem(poolId, protocolId);
@@ -347,12 +386,43 @@ $csrf = $csrf ?? '';
     loadBoard();
   }
 
-  async function detach(poolId) {
+  async function deletePoolItem(poolId, btn) {
+    const ok = await confirmAction('Delete this screenshot? This cannot be undone.', {
+      okText: 'Delete',
+      cancelText: 'Cancel',
+      danger: true
+    });
+    if (!ok) return;
+
+    setButtonBusy(btn, true, 'Deleting...');
+
+    try {
+      const res = await fetch(CLEARANCE_DELETE_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+          pool_id: poolId
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) alert(data.error ?? 'Could not delete that screenshot.');
+    } catch (err) {
+      alert('Network error.');
+    }
+    loadBoard();
+  }
+
+  async function detach(poolId, btn) {
     const ok = await confirmAction('Detach this clearance? The protocol will revert to Endorsed and the screenshot goes back to the pool.', {
       okText: 'Detach',
       cancelText: 'Cancel'
     });
     if (!ok) return;
+
+    setButtonBusy(btn, true, 'Detaching...');
 
     try {
       const res = await fetch(CLEARANCE_UNASSIGN_API, {
@@ -371,6 +441,70 @@ $csrf = $csrf ?? '';
       alert('Network error.');
     }
     loadBoard();
+  }
+
+  // ===== Add/Edit IPN modal =====
+  const ipnModalBackdrop = document.getElementById('ipnModalBackdrop');
+  let ipnModalProtocolId = null;
+
+  function openIpnModal(protocolId, currentValue) {
+    ipnModalProtocolId = protocolId;
+    document.getElementById('ipnModalTitle').textContent = currentValue ? 'Edit IPN' : 'Add IPN';
+    document.getElementById('ipnModalInput').value = currentValue || '';
+    document.getElementById('ipnModalError').hidden = true;
+    ipnModalBackdrop.classList.add('open');
+    document.getElementById('ipnModalInput').focus();
+  }
+
+  function closeIpnModal() {
+    ipnModalBackdrop.classList.remove('open');
+    ipnModalProtocolId = null;
+  }
+
+  ipnModalBackdrop.addEventListener('click', e => {
+    if (e.target === ipnModalBackdrop) closeIpnModal();
+  });
+
+  async function saveIpn() {
+    const input = document.getElementById('ipnModalInput');
+    const errBox = document.getElementById('ipnModalError');
+    const value = input.value.trim();
+
+    if (!value) {
+      errBox.textContent = 'IPN is required.';
+      errBox.hidden = false;
+      return;
+    }
+
+    const btn = document.getElementById('ipnModalSaveBtn');
+    setButtonBusy(btn, true, 'Saving...');
+
+    try {
+      const res = await fetch(CLEARANCE_ASSIGN_IPN_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': CSRF_TOKEN
+        },
+        body: JSON.stringify({
+          protocol_id: ipnModalProtocolId,
+          reference_no: value
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        errBox.textContent = data.error ?? 'Could not save the IPN.';
+        errBox.hidden = false;
+        setButtonBusy(btn, false);
+        return;
+      }
+      closeIpnModal();
+      loadBoard();
+    } catch (err) {
+      errBox.textContent = 'Network error. Please try again.';
+      errBox.hidden = false;
+    }
+    setButtonBusy(btn, false);
   }
 
   // ===== Confirm review dialog =====
@@ -395,7 +529,7 @@ $csrf = $csrf ?? '';
   async function proceedConfirm() {
     const btn = document.getElementById('confirmProceedBtn');
     const errBox = document.getElementById('confirmReviewError');
-    btn.disabled = true;
+    setButtonBusy(btn, true, 'Confirming...');
 
     try {
       const res = await fetch(CLEARANCE_CONFIRM_API, {
@@ -413,13 +547,17 @@ $csrf = $csrf ?? '';
         errBox.hidden = false;
       }
 
+      if (data.confirmed > 0) {
+        showFlash(`${data.confirmed} protocol(s) approved.`);
+      }
+
       closeConfirmReview();
       loadBoard();
     } catch (err) {
       errBox.textContent = 'Network error. Please try again.';
       errBox.hidden = false;
     }
-    btn.disabled = false;
+    setButtonBusy(btn, false);
   }
 
   loadBoard();

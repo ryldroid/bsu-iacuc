@@ -24,6 +24,30 @@ class Notifications extends Controller
     exit;
   }
 
+  public function page(): void
+  {
+    $this->requireLogin();
+
+    $userId  = (int) $_SESSION['user']['user_id'];
+    $perPage = 20;
+    $page    = max(1, (int) ($_GET['page'] ?? 1));
+    $offset  = ($page - 1) * $perPage;
+
+    $total      = $this->model->countForUser($userId);
+    $items      = $this->model->getForUserPaginated($userId, $perPage, $offset);
+    $totalPages = max(1, (int) ceil($total / $perPage));
+
+    $this->view('notifications', [
+      'user'       => $_SESSION['user'],
+      'csrf'       => $this->generateCsrfToken(),
+      'items'      => $items,
+      'total'      => $total,
+      'page'       => $page,
+      'totalPages' => $totalPages,
+      'perPage'    => $perPage,
+    ]);
+  }
+
   public function markread(): void
   {
     $this->requireLogin();

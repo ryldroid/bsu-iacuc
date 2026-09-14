@@ -23,17 +23,6 @@ $role = $user['role'] ?? '';
                     </div>
                 </li>
 
-                <li>
-                    <a href="<?= ROOT ?>/admin/records">
-                        <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#protocols-icon" />
-                        </svg>
-                    </a>
-                    <div>
-                        <span>Records</span>
-                    </div>
-                </li>
-
                 <?php if ($role === 'admin'): ?>
                     <!-- ADMIN ONLY -->
                     <li>
@@ -44,6 +33,17 @@ $role = $user['role'] ?? '';
                         </a>
                         <div>
                             <span>Clearance Pool</span>
+                        </div>
+                    </li>
+
+                    <li>
+                        <a href="<?= ROOT ?>/admin/records">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#protocols-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Records</span>
                         </div>
                     </li>
 
@@ -60,6 +60,29 @@ $role = $user['role'] ?? '';
                 <?php endif; ?>
 
                 <?php if ($role === 'reviewer'): ?>
+                    <!-- REVIEWER ONLY -->
+                    <li>
+                        <a href="<?= ROOT ?>/admin/reviewer_clearances">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#clearance-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Clearance</span>
+                        </div>
+                    </li>
+
+                    <li>
+                        <a href="<?= ROOT ?>/admin/records">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#protocols-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Records</span>
+                        </div>
+                    </li>
+
                     <li>
                         <a href="<?= ROOT ?>/announcements">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">

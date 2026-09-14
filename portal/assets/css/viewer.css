@@ -171,6 +171,7 @@
 }
 
 .title-history-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,6 +197,18 @@
 
 .title-history-trigger[aria-expanded="true"] svg {
   transform: rotate(180deg);
+}
+
+.title-history-trigger.has-update::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 1.5px solid #1e293b;
 }
 
 .title-history-menu {
@@ -344,15 +357,6 @@
 .return-reason-bar-comment {
   font-style: italic;
   color: #fcd34d;
-}
-
-.title-change-bar {
-  background: #1e293b;
-  color: #93c5fd;
-}
-
-.title-change-bar svg {
-  color: #60a5fa;
 }
 
 .deletion-request-bar {
@@ -510,6 +514,31 @@
   color: #fff;
 }
 
+.tool-btn--urgent {
+  background: #b91c1c;
+  border-color: #f87171;
+  color: #fff;
+  animation: urgentPulse 1.8s ease-in-out infinite;
+}
+
+.tool-btn--urgent:hover {
+  background: #7f1d1d;
+  color: #fff;
+  animation: none;
+}
+
+@keyframes urgentPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(248, 113, 113, 0);
+  }
+}
+
 .close-modal {
   background: none;
   border: none;
@@ -626,6 +655,42 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   flex-shrink: 0;
+}
+
+.sidebar-reviewer-note {
+  background: #1c1208;
+  border: 1px solid #92400e;
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+}
+
+.sidebar-reviewer-note-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fde68a;
+}
+
+.sidebar-reviewer-note-header svg {
+  flex-shrink: 0;
+  color: #fbbf24;
+}
+
+.sidebar-reviewer-note-comment {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  /* font-style: italic; */
+  color: #fcd34d;
+}
+
+.sidebar-reviewer-note-meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  color: #d6a24a;
 }
 
 .annot-item {
@@ -1089,7 +1154,7 @@
 .file-popup-frame img {
   max-width: 100%;
   /* percentage max-height can't reliably resolve here since this frame's
-     own height comes from flex-grow rather than a fixed value — cap
+     own height comes from flex-grow rather than a fixed value:  cap
      against the viewport directly instead so it always shrinks to fit. */
   max-height: 82vh;
   min-height: 0;

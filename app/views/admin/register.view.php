@@ -75,7 +75,7 @@ $role = $user['role'] ?? '';
                         <div class="input-group">
                             <input type="text" id="first_name" name="first_name" placeholder=" "
                                 value="<?= htmlspecialchars($old['first_name'] ?? ''); ?>" required>
-                            <label for="first_name">First Name</label>
+                            <label for="first_name" id="first_name_label">First Name</label>
                         </div>
                         <div class="input-group">
                             <input type="text" id="last_name" name="last_name" placeholder=" "
@@ -94,6 +94,15 @@ $role = $user['role'] ?? '';
                         <input type="email" id="email" name="email" placeholder=" "
                             value="<?= htmlspecialchars($old['email'] ?? ''); ?>" required>
                         <label for="email">Email</label>
+                    </div>
+
+                    <div class="input-group">
+                        <select id="sex" name="sex" required>
+                            <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>— select —</option>
+                            <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
+                            <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
+                        </select>
+                        <label for="sex">Sex</label>
                     </div>
 
                     <div class="input-group">
