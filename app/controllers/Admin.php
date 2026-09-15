@@ -1104,20 +1104,17 @@ class Admin extends Controller
         require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
         $model = new AnnouncementModel();
 
-        $title = trim($_POST['title'] ?? '');
-        $body  = trim($_POST['body'] ?? '');
-
-        if ($title === '') {
-            $this->jsonError(422, 'Title is required.');
-        }
-        if ($body === '') {
-            $this->jsonError(422, 'Announcement content is required.');
-        }
+        $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
+        $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
 
         $imageReason = null;
         $imageName   = $this->saveAnnouncementImage('image', $imageReason);
         if ($imageName === false) {
             $this->jsonError(422, $imageReason ?: 'Image upload failed.');
+        }
+
+        if ($body === '' && $imageName === null) {
+            $this->jsonError(422, 'Add either content or an image.');
         }
 
         $actor = $this->actor();
@@ -1164,18 +1161,12 @@ class Admin extends Controller
         $model = new AnnouncementModel();
 
         $id    = (int) ($_POST['id'] ?? 0);
-        $title = trim($_POST['title'] ?? '');
-        $body  = trim($_POST['body'] ?? '');
+        $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
+        $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
 
         $existing = $id > 0 ? $model->getById($id) : null;
         if (!$existing) {
             $this->jsonError(404, 'Announcement not found.');
-        }
-        if ($title === '') {
-            $this->jsonError(422, 'Title is required.');
-        }
-        if ($body === '') {
-            $this->jsonError(422, 'Announcement content is required.');
         }
 
         $imageReason = null;
@@ -1188,12 +1179,19 @@ class Admin extends Controller
 
         if ($newImage !== null) {
             $imageToSave = $newImage;
-            $this->deleteAnnouncementImage($existing['image_path']);
         } elseif ($removeImage) {
             $imageToSave = null;
-            $this->deleteAnnouncementImage($existing['image_path']);
         } else {
             $imageToSave = 'KEEP';
+        }
+
+        $hasImage = $imageToSave === 'KEEP' ? !empty($existing['image_path']) : $imageToSave !== null;
+        if ($body === '' && !$hasImage) {
+            $this->jsonError(422, 'Add either content or an image.');
+        }
+
+        if ($newImage !== null || $removeImage) {
+            $this->deleteAnnouncementImage($existing['image_path']);
         }
 
         $ok = $model->update($id, $title, $body, $imageToSave);

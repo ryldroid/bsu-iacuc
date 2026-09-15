@@ -392,9 +392,13 @@
         "Your session expired while offline. Log back in to send your queued actions.";
     if (btn) {
       btn.textContent = "Log in";
-      var root = typeof ROOT_URL !== "undefined" ? ROOT_URL : "";
+      var root = typeof NOTIF_ROOT !== "undefined" ? NOTIF_ROOT : "";
+      var loginPath =
+        typeof SESSION_LOGIN_PATH !== "undefined"
+          ? SESSION_LOGIN_PATH
+          : "users/login";
       btn.onclick = function () {
-        window.location.href = root + "/admin/login";
+        window.location.href = root + "/" + loginPath;
       };
     }
     bannerEl.classList.add("iq-banner--visible", "iq-banner--warn");

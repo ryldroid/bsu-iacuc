@@ -28,7 +28,6 @@ $first_name    = $user['first_name'] ?? '';
         <div class="dashboard-page-header records-page-header">
             <div>
                 <h1 class="dashboard-page-title">Manage Announcements</h1>
-                <p>Posts added here appear under "From Our Office" on the public Announcements page. The "From Our Partner Pages" Facebook section is separate and updates automatically.</p>
             </div>
 
             <?php if ($role === 'admin'): ?>
@@ -45,102 +44,57 @@ $first_name    = $user['first_name'] ?? '';
             <?php if (empty($announcements)): ?>
                 <p style="padding: 1.5rem;">No announcements yet.</p>
             <?php else: ?>
-                <table class="announcements-table">
-                    <thead>
-                        <tr>
-                            <th class="col-ann-title">Title</th>
-                            <th class="col-ann-content">Content</th>
-                            <th class="col-ann-image">Image</th>
-                            <th class="col-ann-posted">Posted</th>
-                            <?php if ($role === 'admin'): ?>
-                                <th class="col-ann-actions">Actions</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($announcements as $a): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($a['title'], ENT_QUOTES) ?></td>
-                                <td>
-                                    <span class="ann-body-clamp"><?= nl2br(htmlspecialchars($a['body'], ENT_QUOTES)) ?></span>
-                                    <button type="button" class="see-more-btn">See more</button>
-                                </td>
-                                <td>
-                                    <?php if (!empty($a['image_path'])): ?>
-                                        <img class="announcement-thumb" src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($a['image_path']) ?>" alt="">
-                                    <?php else: ?>
-                                        :
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= htmlspecialchars($a['created_at'], ENT_QUOTES) ?></td>
-                                <?php if ($role === 'admin'): ?>
-                                    <td>
-                                        <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>">Edit</button>
-                                        <button type="button" class="row-btn delete-announcement-btn" data-id="<?= (int) $a['id'] ?>" data-title="<?= htmlspecialchars($a['title'], ENT_QUOTES) ?>">Delete</button>
-                                    </td>
+                <div class="ann-list">
+                    <?php foreach ($announcements as $a):
+                        $annTitle = normalize_pasted_text($a['title']);
+                        $annBody  = normalize_pasted_text($a['body']);
+                        $hasImage = !empty($a['image_path']);
+                    ?>
+                        <div class="ann-row">
+                            <div class="ann-row-thumb">
+                                <?php if ($hasImage): ?>
+                                    <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($a['image_path']) ?>" alt="">
+                                <?php else: ?>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#file-x-icon">
+                                    </svg>
                                 <?php endif; ?>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                            </div>
+                            <div class="ann-row-body">
+                                <?php if ($annTitle !== ''): ?>
+                                    <div class="ann-row-title"><?= htmlspecialchars($annTitle, ENT_QUOTES) ?></div>
+                                <?php else: ?>
+                                    <div class="ann-row-title ann-empty-state">Untitled</div>
+                                <?php endif; ?>
+
+                                <?php if ($annBody !== ''): ?>
+                                    <div class="ann-row-snippet"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></div>
+                                <?php else: ?>
+                                    <div class="ann-row-snippet ann-empty-state">No caption</div>
+                                <?php endif; ?>
+
+                                <?php $annRowTs = strtotime($a['created_at']); ?>
+                                <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('M j, Y g:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
+                            </div>
+                            <?php if ($role === 'admin'): ?>
+                                <div class="ann-row-actions">
+                                    <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>" aria-label="Edit announcement">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#edit-icon">
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="row-btn delete-announcement-btn" data-id="<?= (int) $a['id'] ?>" data-title="<?= htmlspecialchars($annTitle, ENT_QUOTES) ?>" aria-label="Delete announcement">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#trash-icon">
+                                        </svg>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         </div>
-
-        <div id="fb-root"></div>
-        <script async defer crossorigin="anonymous"
-            src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0&appId=1366404755375168">
-        </script>
-
-        <section class="fb-cards" style="margin-top: 2rem;">
-            <h2>From Our Partner Pages</h2>
-            <p class="announcements-subtitle">Preview only: updates automatically from Facebook, not managed here.</p>
-
-            <div class="fb-pages-grid">
-                <!-- BSU Research Services FB (Bsu Ors) -->
-                <section class="fb-page-section">
-                    <div class="fb-page-label">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--green)" aria-hidden="true">
-                            <path d="M24 12.073C24 5.406 18.627 0 12 0S0 5.406 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.27h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
-                        </svg>
-                        Office of the Vice President for Research and Extension - BSU
-                    </div>
-                    <div class="fb-embed-wrap">
-                        <div class="fb-page"
-                            data-href="https://www.facebook.com/bsuovpre"
-                            data-tabs="timeline"
-                            data-width=""
-                            data-height="620"
-                            data-small-header="false"
-                            data-adapt-container-width="true"
-                            data-hide-cover="false"
-                            data-show-facepile="true">
-                        </div>
-                    </div>
-                </section>
-                <!-- BSU CCARD FB -->
-                <section class="fb-page-section">
-                    <div class="fb-page-label">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--green)" aria-hidden="true">
-                            <path d="M24 12.073C24 5.406 18.627 0 12 0S0 5.406 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.27h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
-                        </svg>
-                        BSU - Cordillera Center for Animal Research &amp; Development
-                    </div>
-                    <div class="fb-embed-wrap">
-                        <div class="fb-page"
-                            data-href="https://www.facebook.com/p/BSU-Cordillera-Center-for-Animal-Research-Development-100083273710247/"
-                            data-tabs="timeline"
-                            data-width=""
-                            data-height="600"
-                            data-small-header="false"
-                            data-adapt-container-width="true"
-                            data-hide-cover="false"
-                            data-show-facepile="true">
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </section>
-
     </main>
 </div>
 
@@ -155,11 +109,11 @@ $first_name    = $user['first_name'] ?? '';
             <div class="alert error-messages" id="addAnnouncementError" hidden></div>
             <div class="records-form-grid">
                 <div class="records-form-group records-form-full">
-                    <label for="add_ann_title">Title</label>
-                    <input type="text" id="add_ann_title" name="title" placeholder="e.g. Office Closure Notice">
+                    <label for="add_ann_title">Title (optional)</label>
+                    <input type="text" id="add_ann_title" name="title" placeholder="e.g. IACUC Protocol Orientation">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="add_ann_body">Content</label>
+                    <label for="add_ann_body">Content (optional)</label>
                     <textarea id="add_ann_body" name="body" rows="5"></textarea>
                 </div>
                 <div class="records-form-group records-form-full">
@@ -190,11 +144,11 @@ $first_name    = $user['first_name'] ?? '';
             <div class="records-form-grid">
                 <input type="hidden" id="edit_ann_id">
                 <div class="records-form-group records-form-full">
-                    <label for="edit_ann_title">Title</label>
+                    <label for="edit_ann_title">Title (optional)</label>
                     <input type="text" id="edit_ann_title" name="title">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="edit_ann_body">Content</label>
+                    <label for="edit_ann_body">Content (optional)</label>
                     <textarea id="edit_ann_body" name="body" rows="5"></textarea>
                 </div>
                 <div class="records-form-group records-form-full">
@@ -317,12 +271,9 @@ $first_name    = $user['first_name'] ?? '';
                 hideErr('addAnnouncementError');
                 const title = document.getElementById('add_ann_title').value.trim();
                 const body = document.getElementById('add_ann_body').value.trim();
-                if (!title) {
-                    showErr('addAnnouncementError', 'Title is required.');
-                    return;
-                }
-                if (!body) {
-                    showErr('addAnnouncementError', 'Content is required.');
+                const imageFile = document.getElementById('add_ann_image').files[0];
+                if (!body && !imageFile) {
+                    showErr('addAnnouncementError', 'Add either content or an image.');
                     return;
                 }
 
@@ -336,7 +287,6 @@ $first_name    = $user['first_name'] ?? '';
 
                 setButtonBusy(addSave, true, 'Posting...');
 
-                const imageFile = document.getElementById('add_ann_image').files[0];
                 post('/admin/announcements_add', {
                     title,
                     body,
@@ -401,12 +351,12 @@ $first_name    = $user['first_name'] ?? '';
                 hideErr('editAnnouncementError');
                 const title = document.getElementById('edit_ann_title').value.trim();
                 const body = document.getElementById('edit_ann_body').value.trim();
-                if (!title) {
-                    showErr('editAnnouncementError', 'Title is required.');
-                    return;
-                }
-                if (!body) {
-                    showErr('editAnnouncementError', 'Content is required.');
+                const imageFile = document.getElementById('edit_ann_image').files[0];
+                const removeImage = document.getElementById('edit_ann_remove_image').checked;
+                const previewWrap = document.getElementById('edit_ann_image_preview_wrap');
+                const keepingExistingImage = !previewWrap.hidden && !removeImage;
+                if (!body && !imageFile && !keepingExistingImage) {
+                    showErr('editAnnouncementError', 'Add either content or an image.');
                     return;
                 }
 
@@ -423,9 +373,6 @@ $first_name    = $user['first_name'] ?? '';
                 }
 
                 setButtonBusy(editSave, true, 'Saving...');
-
-                const imageFile = document.getElementById('edit_ann_image').files[0];
-                const removeImage = document.getElementById('edit_ann_remove_image').checked;
 
                 post('/admin/announcements_edit', {
                     id: document.getElementById('edit_ann_id').value,
@@ -478,21 +425,6 @@ $first_name    = $user['first_name'] ?? '';
                     setButtonBusy(btn, false);
                     alert('Network error. Please try again.');
                 });
-            });
-        });
-
-
-        document.querySelectorAll('.see-more-btn').forEach(btn => {
-            const clamp = btn.previousElementSibling;
-            if (!clamp) return;
-            requestAnimationFrame(() => {
-                if (clamp.scrollHeight <= clamp.clientHeight + 2) {
-                    btn.hidden = true;
-                }
-            });
-            btn.addEventListener('click', () => {
-                const expanded = clamp.classList.toggle('expanded');
-                btn.textContent = expanded ? 'See less' : 'See more';
             });
         });
 

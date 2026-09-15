@@ -154,7 +154,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
     html[data-theme] * {
-        transition: background-color 0.25s ease, color 0.25s ease,
+        transition: background-color 0.15s ease, color 0.25s ease,
             border-color 0.25s ease, box-shadow 0.25s ease, fill 0.25s ease,
             stroke 0.25s ease;
     }
@@ -508,7 +508,8 @@ main a.underlined:hover {
     }
 
     main {
-        padding: 40px 20px;
+        max-width: 100%;
+        padding: 40px 16px;
     }
 
     .status-card.active {

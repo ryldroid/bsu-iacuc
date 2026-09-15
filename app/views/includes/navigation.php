@@ -15,7 +15,7 @@ $role = $user['role'] ?? '';
                 <li>
                     <a href="<?= ROOT ?>/admin/home">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#home-icon" />
+                            <use href="#dashboard-icon" />
                         </svg>
                     </a>
                     <div>
@@ -154,7 +154,7 @@ $role = $user['role'] ?? '';
                         </svg>
                     </a>
                     <div>
-                        <span>Contact</span>
+                        <span>Contact Us</span>
                     </div>
                 </li>
             <?php endif; ?>

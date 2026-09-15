@@ -54,6 +54,7 @@ $hideHeader     = $hideHeader     ?? false;
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
+      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['admin', 'reviewer'], true) ? 'admin/login' : 'users/login') ?>;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
