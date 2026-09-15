@@ -1,16 +1,14 @@
-/* ===== UNIVERSAL ===== */
 :root {
     color-scheme: light;
 
     --radius: 4px;
     --btn-radius: 8px;
 
-    /* ===== FONTS ===== */
     --font-title: "Alfa Slab One", serif;
     --font-body: "Akt", serif;
     --font-default: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+    --font-new: "Roboto", sans-serif;
 
-    /* ===== BRAND (BSU green) ===== */
     --brand-color: rgb(22, 71, 11);
     --brand-color-hover: rgb(53, 112, 40);
     --brand-color-active: rgb(44, 96, 33);
@@ -25,26 +23,22 @@
     --brand-tint-active: rgba(77, 116, 70, 0.25);
     --brand-tint-strong: rgba(22, 71, 11, 0.382);
 
-    /* ===== SURFACES (flip between themes) ===== */
     --page-background: #f5f5f5;
     --card-background: #ffffff;
     --card-background-translucent: rgba(255, 255, 255, 0.912);
     --sidebar-background: #e2e5e2e1;
     --backdrop-color: rgba(0, 0, 0, 0.5);
 
-    /* ===== TEXT (flip between themes) ===== */
     --primary-text: #1a1a1a;
     --secondary-text: #666666;
     --text-on-brand: #f5f5f5;
 
-    /* ===== BORDERS & HOVER SURFACES (flip between themes) ===== */
     --divider-color: #e4e4e4;
     --divider-color-subtle: #f0f0f0;
     --divider-color-strong: #000000;
     --hover-surface: #d0d0d0;
     --hover-surface-soft: #f9fbf9;
 
-    /* ===== DECORATIVE ===== */
     --heading-fill: rgba(0, 0, 0, 0.15);
     --heading-fill-main: rgba(0, 0, 0, 0.15);
     --heading-shadow: rgba(0, 0, 0, 1);
@@ -54,12 +48,10 @@
     --tooltip-text: #ffffff;
     --focus-ring-tint: rgba(44, 96, 33, 0.12);
 
-    /* ===== SHADOWS (flip between themes) ===== */
     --shadow-color: rgba(0, 0, 0, 0.3);
     --shadow-color-soft: rgba(0, 0, 0, 0.15);
     --shadow-color-modal: rgba(0, 0, 0, 0.25);
 
-    /* ===== FEEDBACK COLORS (flip between themes) ===== */
     --required-color: red;
     --danger-color: #b91c1c;
     --danger-color-hover: #8f1d17;
@@ -70,7 +62,6 @@
     --success-background: #b8d7b8;
     --success-text: #062b04;
 
-    /* ===== STATUS BADGES (protocol review states) ===== */
     --status-warning-bg: #fef3e2;
     --status-warning-text: #92600a;
     --status-danger-bg: #fde8e8;
@@ -84,14 +75,18 @@
     --warning-text: #b45309;
     --brand-surface-faint: rgba(22, 71, 11, 0.03);
 
-    /* ===== ADDITIONAL NEUTRALS & TINTS (flip between themes) ===== */
     --muted-text: #8a8a8a;
     --input-border: #cccccc;
     --success-background-soft: #eaf7e6;
     --success-border-soft: #a7f3d0;
     --danger-tint-strong: rgba(149, 25, 25, 0.8);
 
-    /* ===== FONT SIZES ===== */
+    --body-background-tint: rgba(230, 239, 226, 0.681);
+    --faq-highlight-background: rgba(29, 69, 38, 0.706);
+    --faq-card-background: rgba(227, 227, 227, 0.716);
+    --faq-border-default: rgb(199, 199, 199);
+    --faq-border-accent: black;
+
 }
 
 [data-theme="dark"] {
@@ -108,7 +103,7 @@
 
     --divider-color: #333d47;
     --divider-color-subtle: #262e37;
-    --divider-color-strong: #6b7684;
+    --divider-color-strong: #6c7785;
     --hover-surface: #2a3339;
     --hover-surface-soft: #212a30;
 
@@ -117,15 +112,15 @@
     --heading-shadow: rgba(255, 255, 255, 0.45);
 
     --brand-surface-tint: rgba(30, 41, 36, 0.75);
-    --brand-text: #408c3c;
+    --brand-text: #489d43;
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);
     --shadow-color-modal: rgba(0, 0, 0, 0.5);
 
     --required-color: #ff6b6b;
-    --danger-color: #ef4444;
-    --danger-color-hover: #dc2626;
+    --danger-color: #f15757;
+    --danger-color-hover: #de3131;
     --danger-background-soft: #3a1f1f;
     --danger-border-soft: #5c2b2b;
     --warning-background: #5c2e00;
@@ -145,11 +140,17 @@
     --warning-text: #f0a868;
     --brand-surface-faint: rgba(200, 230, 192, 0.05);
 
-    --muted-text: #7d8994;
-    --input-border: #626f7a;
+    --muted-text: #818d97;
+    --input-border: #6a7884;
     --success-background-soft: #163a22;
     --success-border-soft: #2d5a3d;
     --danger-tint-strong: rgba(239, 68, 68, 0.55);
+
+    --body-background-tint: rgba(18, 42, 24, 0.5);
+    --faq-highlight-background: rgba(71, 106, 79, 0.706);
+    --faq-card-background: var(--hover-surface);
+    --faq-border-default: var(--divider-color-strong);
+    --faq-border-accent: var(--divider-color-strong);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -189,6 +190,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    background-color: var(--body-background-tint);
 }
 
 .body {
@@ -202,7 +204,6 @@ main {
     flex: 1;
 }
 
-/* ===== GENERAL ELEMENTS ===== */
 h1,
 h2 {
     font-family: "PT Serif", serif;
@@ -291,6 +292,7 @@ main button {
 }
 
 main a.underlined {
+    text-decoration: underline dashed 1px var(--brand-text);
     color: var(--brand-text);
 }
 
@@ -324,8 +326,6 @@ main a.underlined:hover {
     text-align: center;
 }
 
-/* ===== SPECIFIC ELEMENTS ===== */
-
 .required-asterisk {
     color: var(--required-color);
 }
@@ -345,8 +345,6 @@ main a.underlined:hover {
 .skip-link:focus {
     top: 1rem;
 }
-
-/* ===== MESSAGES ===== */
 
 .success-message,
 .error-message {
@@ -393,7 +391,6 @@ main a.underlined:hover {
     font-size: .9em;
 }
 
-/* ===== STATUS FILTERS ===== */
 .filter-wrapper {
     position: relative;
     width: fit-content;
@@ -449,7 +446,6 @@ main a.underlined:hover {
     color: var(--secondary-text);
 }
 
-/* ===== DASHBOARD SORT (researcher / admin / reviewer dashboards) ===== */
 .dashboard-filter-row {
     display: flex;
     align-items: center;
@@ -495,6 +491,10 @@ main a.underlined:hover {
     outline: none;
     border-color: var(--focus-ring-color);
     box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+main p {
+    text-align: justify;
 }
 
 @media (max-width: 768px) {

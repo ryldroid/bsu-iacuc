@@ -1019,7 +1019,7 @@ include 'includes/header.php';
 
         } catch (err) {
             document.getElementById('pdfColumn').innerHTML =
-                '<p class="error-msg">Could not load document: ' + escHtml(err.message) + '</p>';
+                '<p class="error-msg">File not found.</p>';
         }
         await loadAnnotations();
     }
