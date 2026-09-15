@@ -35,6 +35,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5em;
+  margin-top: 1em;
 }
 
 .fb-page-section {
@@ -76,142 +77,345 @@ h2 {
   }
 }
 
+.announcements-empty {
+  color: var(--secondary-text);
+  font-size: 0.9em;
+}
+
+/* ===== Office announcement cards (public announcements page) =====
+   Grid of clickable cards; each opens the full post in a modal, same
+   pattern as the "Latest Announcements" teaser on the home page. */
 .office-announcements-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25em;
   margin-top: 1em;
   min-width: 0;
 }
 
 .office-announcement-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
   border: 1px solid var(--divider-color);
   border-radius: var(--btn-radius);
   background: var(--card-background);
   box-shadow: 0 1px 4px var(--shadow-color-soft);
-  padding: 1em 1.25em;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.15s, transform 0.15s;
+  margin-top: 0;
+}
+
+.office-announcement-card:hover,
+.office-announcement-card:focus-visible {
+  box-shadow: 0 6px 16px var(--shadow-color-soft);
+  transform: translateY(-2px);
+  background: none;
+}
+
+.office-announcement-card:hover .office-announcement-title,
+.office-announcement-card:focus-visible .office-announcement-title {
+  color: var(--brand-text);
+}
+
+.office-announcement-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: var(--brand-surface-tint);
+  overflow: hidden;
+}
+
+.office-announcement-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  margin: 0;
+}
+
+.office-announcement-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  padding: 1em 1.15em 1.15em;
   min-width: 0;
-  box-sizing: border-box;
 }
 
 .office-announcement-title {
-  margin: 0 0 0.25em;
-  font-size: 1.25em;
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition: color 0.15s;
+}
+
+.office-announcement-card.is-untitled .office-announcement-title {
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.office-announcement-snippet {
+  font-size: 0.85em;
+  color: var(--secondary-text);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .office-announcement-date {
   display: block;
   font-size: 0.75em;
   color: var(--secondary-text);
-  margin-bottom: 0.5em;
+  opacity: 0.85;
 }
 
-.office-announcement-body {
+/* Photo-only card: just the image with the date badge overlaid */
+.office-announcement-card--photo {
+  position: relative;
+}
+
+.office-announcement-card--photo .office-announcement-thumb {
+  aspect-ratio: 4 / 3;
+}
+
+.office-announcement-date--photo {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background-color: var(--backdrop-color);
+  color: var(--text-on-image);
+  font-size: 0.72em;
+  opacity: 1;
+}
+
+/* ===== Office announcement modal (extends the generic .modal-card) ===== */
+.office-announcement-modal-card {
+  position: relative;
+  max-width: 780px;
+}
+
+.office-announcement-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--divider-color-subtle);
+  color: var(--secondary-text);
+  font-size: .9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.office-announcement-modal-close:hover,
+.office-announcement-modal-close:focus-visible {
+  background-color: var(--hover-surface);
+  color: var(--primary-text);
+}
+
+#officeAnnouncementModalBody .office-announcement-modal-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 8px;
+  margin: 0 0 14px 0;
+}
+
+.office-announcement-modal-title {
+  padding-right: 30px;
+  margin: 0 0 0.2em;
+}
+
+.office-announcement-modal-date {
+  display: block;
+  font-size: .8rem;
+  color: var(--secondary-text);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.office-announcement-modal-text {
   margin: 0;
+  font-size: .9rem;
+  line-height: 1.6;
+  color: var(--primary-text);
   white-space: pre-line;
   font-family: var(--font-body);
 }
 
-.announcements-empty {
-  color: var(--secondary-text);
-  font-size: 0.9em;
+@media (max-width: 700px) {
+  .office-announcements-list {
+    grid-template-columns: 1fr;
+  }
+
+  .office-announcement-modal-card {
+    width: calc(100% - 24px);
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 12px;
+  }
+
+  #officeAnnouncementModalBody .office-announcement-modal-image {
+    max-height: 40vh;
+  }
 }
 
+/* ===== Manage Announcements list (admin) ===== */
 
-.ann-body-clamp {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: unset;
-  overflow: hidden;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.ann-body-clamp.expanded {
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  display: block;
-}
-
-.see-more-btn {
-  background: none;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  margin-top: 0.3em;
-  color: var(--brand-text);
-  font-size: 0.82em;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.see-more-btn:hover {
-  color: var(--brand-color-hover);
-}
-
-.office-announcement-image {
-  display: block;
-  max-width: 100%;
-  max-height: 320px;
-  object-fit: cover;
+.ann-list {
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
   border-radius: var(--btn-radius);
-  margin-bottom: 0.6em;
+  overflow: hidden;
 }
 
-.announcement-thumb {
-  width: 56px;
-  height: 56px;
+.ann-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--divider-color-subtle);
+}
+
+.ann-row:last-child {
+  border-bottom: none;
+}
+
+.ann-row:hover {
+  background: var(--hover-surface-soft);
+}
+
+.ann-row-thumb {
+  width: 44px;
+  height: 44px;
+  margin-top: 2px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--divider-color-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-text);
+}
+
+.ann-row-thumb img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
   display: block;
 }
 
-.announcements-table {
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
+.ann-row-body {
+  flex: 1;
+  min-width: 0;
 }
 
-.announcements-table th,
-.announcements-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--divider-color);
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: break-word;
+.ann-row-title {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--primary-text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ann-row-snippet {
+  margin-top: 2px;
+  font-size: 0.85em;
+  color: var(--secondary-text);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   word-break: break-word;
 }
 
-.announcements-table th {
-  font-size: 0.78em;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.ann-row-date {
+  margin-top: 4px;
+  font-size: 0.75em;
   color: var(--muted-text);
-  background: var(--divider-color-subtle);
 }
 
-.announcements-table .col-ann-title {
-  width: 18%;
+.ann-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 0.12s;
 }
 
-.announcements-table .col-ann-content {
-  width: 42%;
+.ann-row:hover .ann-row-actions,
+.ann-row-actions:focus-within {
+  opacity: 1;
 }
 
-.announcements-table .col-ann-image {
-  width: 12%;
+/* Touch devices have no hover state, so keep the actions visible there
+   rather than hiding controls behind a gesture that doesn't exist. */
+@media (hover: none) {
+  .ann-row-actions {
+    opacity: 1;
+  }
 }
 
-.announcements-table .col-ann-posted {
-  width: 13%;
-  white-space: nowrap;
+.ann-row-actions .row-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  background: var(--card-background);
+  color: var(--secondary-text);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.announcements-table .col-ann-actions {
-  width: 15%;
-  white-space: nowrap;
+.ann-row-actions .edit-announcement-btn:hover {
+  background: var(--brand-color-hover);
+  border-color: var(--brand-color-hover);
+  color: var(--text-on-brand);
+}
+
+.ann-row-actions .delete-announcement-btn:hover {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+  color: var(--text-on-brand);
+}
+
+.ann-empty-state {
+  color: var(--muted-text);
+  font-style: italic;
+  opacity: 0.85;
 }
 
 .ann-image-preview-wrap {
@@ -256,5 +460,10 @@ h2 {
   text-transform: none;
   letter-spacing: normal;
   color: var(--secondary-text);
+  margin: 0;
+}
+
+
+.error-messages {
   margin: 0;
 }

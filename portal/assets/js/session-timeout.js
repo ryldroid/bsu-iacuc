@@ -69,7 +69,8 @@
   }
 
   function forceLogout() {
-    window.location.href = NOTIF_ROOT + "/users/login";
+    var loginPath = window.SESSION_LOGIN_PATH || "users/login";
+    window.location.href = NOTIF_ROOT + "/" + loginPath;
   }
 
   ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(

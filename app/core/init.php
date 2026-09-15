@@ -42,6 +42,7 @@ $_SESSION['last_activity'] = time();
 
 require_once 'config.php';
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+require_once 'TextSanitizer.php';
 require_once 'ErrorPage.php';
 require_once 'Mailer.php';
 require_once 'Notifier.php';

@@ -29,26 +29,79 @@ $officeAnnouncements = $announcementModel->getAll();
         <div class="announcements-sections">
             <section class="announcements">
                 <h2>From Our Office</h2>
-                <p class="announcements-subtitle">Latest updates from BSU-CCARD.</p>
-
 
                 <?php if (empty($officeAnnouncements)): ?>
                     <p class="announcements-empty">No announcements yet. Check back soon.</p>
                 <?php else: ?>
                     <div class="office-announcements-list">
-                        <?php foreach ($officeAnnouncements as $post): ?>
-                            <article class="office-announcement-card" id="ann-<?= (int) $post['id'] ?>">
-                                <?php if (!empty($post['image_path'])): ?>
-                                    <img class="office-announcement-image"
-                                        src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>"
-                                        alt="">
+                        <?php foreach ($officeAnnouncements as $post):
+                            $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
+                            $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
+                            $hasImage = !empty($post['image_path']);
+                            $hasTitle = $annTitle !== '';
+                            $hasBody = $annBody !== '';
+                            $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody;
+
+                            if ($hasTitle) {
+                                $annHeading = $annTitle;
+                                $annSnippet = $hasBody ? $annBody : '';
+                            } elseif ($hasBody) {
+                                $annHeading = $annBody;
+                                $annSnippet = '';
+                            } else {
+                                $annHeading = 'Photo update';
+                                $annSnippet = '';
+                            }
+                            $isUntitled = !$hasTitle && !$hasBody;
+                            $annTimestamp = strtotime($post['created_at']);
+                            $annDateDisplay = $annTimestamp ? date('M j, Y g:i A', $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
+                            $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+                        ?>
+                            <button type="button"
+                                class="office-announcement-card<?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
+                                data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
+                                aria-haspopup="dialog">
+
+                                <?php if ($hasImage): ?>
+                                    <span class="office-announcement-thumb">
+                                        <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                    </span>
                                 <?php endif; ?>
-                                <h3 class="office-announcement-title"><?= htmlspecialchars($post['title'], ENT_QUOTES) ?></h3>
-                                <time class="office-announcement-date"><?= htmlspecialchars($post['created_at'], ENT_QUOTES) ?></time>
-                                <p class="office-announcement-body ann-body-clamp"><?= nl2br(htmlspecialchars($post['body'], ENT_QUOTES)) ?></p>
-                                <button type="button" class="see-more-btn">See more</button>
-                            </article>
+
+                                <?php if (!$isPhotoOnly): ?>
+                                    <span class="office-announcement-body-wrap">
+                                        <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
+                                        <?php if ($annSnippet !== ''): ?>
+                                            <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
+                                        <?php endif; ?>
+                                        <time class="office-announcement-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                    </span>
+                                <?php else: ?>
+                                    <time class="office-announcement-date office-announcement-date--photo" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                <?php endif; ?>
+                            </button>
+
+                            <template id="annModalTpl-<?= (int) $post['id'] ?>">
+                                <?php if ($hasImage): ?>
+                                    <img class="office-announcement-modal-image"
+                                        src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                <?php endif; ?>
+                                <?php if ($hasTitle): ?>
+                                    <h2 class="office-announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
+                                <?php endif; ?>
+                                <time class="office-announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                <?php if ($hasBody): ?>
+                                    <p class="office-announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
+                                <?php endif; ?>
+                            </template>
                         <?php endforeach; ?>
+                    </div>
+
+                    <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
+                        <div class="modal-card office-announcement-modal-card">
+                            <button type="button" class="office-announcement-modal-close" id="officeAnnouncementModalClose" aria-label="Close">✕</button>
+                            <div id="officeAnnouncementModalBody"></div>
+                        </div>
                     </div>
                 <?php endif; ?>
 
@@ -56,7 +109,6 @@ $officeAnnouncements = $announcementModel->getAll();
 
             <section class="fb-cards">
                 <h2>From Our Partner Pages</h2>
-                <p class="announcements-subtitle">Instant access to related Facebook pages.</p>
 
                 <div class="fb-pages-grid">
                     <!-- BSU Research Services FB (Bsu Ors) -->
@@ -111,17 +163,48 @@ $officeAnnouncements = $announcementModel->getAll();
 <?php include "includes/footer.php"; ?>
 
 <script>
-    document.querySelectorAll('.office-announcement-card .see-more-btn').forEach(btn => {
-        const clamp = btn.previousElementSibling;
-        if (!clamp) return;
-        requestAnimationFrame(() => {
-            if (clamp.scrollHeight <= clamp.clientHeight + 2) {
-                btn.hidden = true;
-            }
+    // ===== ANNOUNCEMENT MODAL (office announcement cards) =====
+    (function() {
+        const modal = document.getElementById('officeAnnouncementModal');
+        if (!modal) return;
+
+        const modalBody = document.getElementById('officeAnnouncementModalBody');
+        const closeBtn = document.getElementById('officeAnnouncementModalClose');
+        let lastFocused = null;
+
+        function openAnnouncementModal(trigger) {
+            const tpl = document.getElementById(trigger.dataset.annModal);
+            if (!tpl) return;
+
+            modalBody.innerHTML = '';
+            modalBody.appendChild(tpl.content.cloneNode(true));
+
+            const heading = modalBody.querySelector('.office-announcement-modal-title');
+            modal.setAttribute('aria-label', heading ? heading.textContent : 'Announcement');
+
+            lastFocused = document.activeElement;
+            modal.classList.add('open');
+            closeBtn.focus();
+        }
+
+        function closeAnnouncementModal() {
+            modal.classList.remove('open');
+            modalBody.innerHTML = '';
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+        }
+
+        document.querySelectorAll('[data-ann-modal]').forEach((btn) => {
+            btn.addEventListener('click', () => openAnnouncementModal(btn));
         });
-        btn.addEventListener('click', () => {
-            const expanded = clamp.classList.toggle('expanded');
-            btn.textContent = expanded ? 'See less' : 'See more';
+
+        closeBtn.addEventListener('click', closeAnnouncementModal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeAnnouncementModal();
         });
-    });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('open')) closeAnnouncementModal();
+        });
+    })();
 </script>

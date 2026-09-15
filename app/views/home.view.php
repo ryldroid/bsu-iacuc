@@ -96,15 +96,89 @@ include "includes/scroll-top.php";
                             <h2>Latest Announcements</h2>
                             <a href="<?= ROOT ?>/announcements" class="underlined">See all →</a>
                         </div>
-                        <?php foreach ($homeLatestAnnouncements as $post): ?>
-                            <a href="<?= ROOT ?>/announcements#ann-<?= (int) $post['id'] ?>" class="faq-cont home-announcement-cont">
-                                <span class="faq-question">
-                                    <span class="home-announcement-teaser-title"><?= htmlspecialchars($post['title'], ENT_QUOTES) ?></span>
-                                    <time><?= htmlspecialchars($post['created_at'], ENT_QUOTES) ?></time>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
+                        <div class="home-announcements-list">
+                            <?php foreach ($homeLatestAnnouncements as $post):
+                                $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
+                                $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
+                                $hasImage = !empty($post['image_path']);
+                                $hasTitle = $annTitle !== '';
+                                $hasBody = $annBody !== '';
+                                $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody;
+
+                                if ($hasTitle) {
+                                    $annHeading = $annTitle;
+                                    $annSnippet = $hasBody ? $annBody : '';
+                                } elseif ($hasBody) {
+                                    $annHeading = '';
+                                    $annSnippet = $annBody;
+                                } else {
+                                    $annHeading = 'Photo update';
+                                    $annSnippet = '';
+                                }
+                                $isUntitled = !$hasTitle && !$hasBody;
+                                $annTimestamp = strtotime($post['created_at']);
+                                $annDateDisplay = $annTimestamp ? date('M j, Y g:i A', $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
+                                $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+                            ?>
+                                <?php if ($isPhotoOnly): ?>
+                                    <button type="button"
+                                        class="home-announcement-cont home-announcement-cont--photo"
+                                        data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
+                                        aria-haspopup="dialog">
+                                        <span class="home-announcement-photo">
+                                            <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                            <time datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                        </span>
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button"
+                                        class="home-announcement-cont<?= $isUntitled ? ' is-untitled' : '' ?>"
+                                        data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
+                                        aria-haspopup="dialog">
+                                        <span class="home-announcement-thumb<?= $hasImage ? '' : ' is-placeholder' ?>">
+                                            <?php if ($hasImage): ?>
+                                                <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                            <?php else: ?>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <use href="#announcement-icon" />
+                                                </svg>
+                                            <?php endif; ?>
+                                        </span>
+                                        <span class="home-announcement-text">
+                                            <span class="home-announcement-top-row">
+                                                <span class="home-announcement-teaser-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
+                                                <time datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                            </span>
+                                            <?php if ($annSnippet !== ''): ?>
+                                                <span class="home-announcement-snippet<?= $hasTitle ? '' : ' home-announcement-snippet--primary' ?>"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </button>
+                                <?php endif; ?>
+
+                                <template id="annModalTpl-<?= (int) $post['id'] ?>">
+                                    <?php if ($hasImage): ?>
+                                        <img class="home-announcement-modal-image"
+                                            src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                    <?php endif; ?>
+                                    <?php if ($hasTitle): ?>
+                                        <h2 class="home-announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
+                                    <?php endif; ?>
+                                    <time class="home-announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                    <?php if ($hasBody): ?>
+                                        <p class="home-announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
+                                    <?php endif; ?>
+                                </template>
+                            <?php endforeach; ?>
+                        </div>
                     </section>
+
+                    <div class="modal-backdrop" id="homeAnnouncementModal" role="dialog" aria-modal="true">
+                        <div class="modal-card home-announcement-modal-card">
+                            <button type="button" class="home-announcement-modal-close" id="homeAnnouncementModalClose" aria-label="Close">✕</button>
+                            <div id="homeAnnouncementModalBody"></div>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
                 <!-- FAQ -->
@@ -113,135 +187,135 @@ include "includes/scroll-top.php";
                     <div class="faq-list">
                         <details class="faq-cont">
                             <summary class="faq-question">
-                            Who may avail?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            Students and researchers from BSU and other institutions within the Cordillera Administrative Region.
-                        </div>
-                    </details>
+                                Who may avail?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                Students and researchers from BSU and other institutions within the Cordillera Administrative Region.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            What are the requirements?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                What are the requirements?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            When working in groups, should each member apply for an IACUC protocol review?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                When working in groups, should each member apply for an IACUC protocol review?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            What kind of IACUC training is required?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the <a href="<?= ROOT ?>/announcements" class="underlined">announcements</a> page or inquire at the CCARD office to be updated with the scheduled trainings.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                What kind of IACUC training is required?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the <a href="<?= ROOT ?>/announcements" class="underlined">announcements</a> page or inquire at the CCARD office to be updated with the scheduled trainings.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            What type of experiments need IACUC review?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            IACUC review is needed for all work involving direct interaction with <span class="italic">live animals only</span>.
-                        </div>
-                    </details>
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            Do I need an IACUC protocol to use dead animals or animal parts?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                What type of experiments need IACUC review?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                IACUC review is needed for all work involving direct interaction with <span class="italic">live animals only</span>.
+                            </div>
+                        </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                Do I need an IACUC protocol to use dead animals or animal parts?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            How long does it take to get an IACUC review?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            Protocols are reviewed as soon as protocols are submitted. However, it may take 1-8 weeks for IACUC review and the issuance of the animal research clearance by BAI.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                How long does it take to get an IACUC review?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                Protocols are reviewed as soon as protocols are submitted. However, it may take 1-8 weeks for IACUC review and the issuance of the animal research clearance by BAI.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            Can the investigator begin animal work before receiving IACUC review?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            No. The IACUC review shall be part of the thesis proposal when using live animals.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                Can the investigator begin animal work before receiving IACUC review?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                No. The IACUC review shall be part of the thesis proposal when using live animals.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            How much do I pay for an IACUC Protocol Review?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Clearance, to be paid upon submission of the reviewed IACUC protocol.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                How much do I pay for an IACUC Protocol Review?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Clearance, to be paid upon submission of the reviewed IACUC protocol.
+                            </div>
+                        </details>
 
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            What if I amend my IACUC protocol to add/change procedures / personnel / animals?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            All revision must be communicated with the IACUC in writing. Please note that even the most <strong>minor</strong> changes <strong>must</strong> be revised and reviewed for approval.
-                        </div>
-                    </details>
-                    <details class="faq-cont">
-                        <summary class="faq-question">
-                            Who do I contact if I have questions regarding the animal care and use program or the IACUC?
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </summary>
-                        <div class="faq-answer">
-                            In BSU, you may visit the CCARD office. You may also refer to the <a href="<?= ROOT ?>/contact" class="underlined">contact</a> page for additional contact information.
-                        </div>
-                    </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                What if I amend my IACUC protocol to add/change procedures / personnel / animals?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                All revision must be communicated with the IACUC in writing. Please note that even the most <strong>minor</strong> changes <strong>must</strong> be revised and reviewed for approval.
+                            </div>
+                        </details>
+                        <details class="faq-cont">
+                            <summary class="faq-question">
+                                Who do I contact if I have questions regarding the animal care and use program or the IACUC?
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#chev-down-icon" />
+                                </svg>
+                            </summary>
+                            <div class="faq-answer">
+                                In BSU, you may visit the CCARD office. You may also refer to the <a href="<?= ROOT ?>/contact" class="underlined">contact</a> page for additional contact information.
+                            </div>
+                        </details>
 
-                    <!-- <details class="faq-cont">
+                        <!-- <details class="faq-cont">
                         <summary class="faq-question">
                             Where do I get an IACUC protocol from?
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -252,8 +326,8 @@ include "includes/scroll-top.php";
                             The protocol form can be requested from CCARD office or you can personally ask for a soft copy to be emailed to you. Please ensure to always use a new copy every time you submit a protocol.
                         </div>
                     </details> -->
-                </div>
-            </article>
+                    </div>
+                </article>
             </div>
         </div>
     </main>
@@ -338,6 +412,51 @@ include "includes/scroll-top.php";
                 container.innerHTML =
                     `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
             });
+    })();
+
+    // ===== ANNOUNCEMENT MODAL (home teaser cards) =====
+    (function() {
+        const modal = document.getElementById('homeAnnouncementModal');
+        if (!modal) return;
+
+        const modalBody = document.getElementById('homeAnnouncementModalBody');
+        const closeBtn = document.getElementById('homeAnnouncementModalClose');
+        let lastFocused = null;
+
+        function openAnnouncementModal(trigger) {
+            const tpl = document.getElementById(trigger.dataset.annModal);
+            if (!tpl) return;
+
+            modalBody.innerHTML = '';
+            modalBody.appendChild(tpl.content.cloneNode(true));
+
+            const heading = modalBody.querySelector('.home-announcement-modal-title');
+            modal.setAttribute('aria-label', heading ? heading.textContent : 'Announcement');
+
+            lastFocused = document.activeElement;
+            modal.classList.add('open');
+            closeBtn.focus();
+        }
+
+        function closeAnnouncementModal() {
+            modal.classList.remove('open');
+            modalBody.innerHTML = '';
+            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+        }
+
+        document.querySelectorAll('[data-ann-modal]').forEach((btn) => {
+            btn.addEventListener('click', () => openAnnouncementModal(btn));
+        });
+
+        closeBtn.addEventListener('click', closeAnnouncementModal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeAnnouncementModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('open')) closeAnnouncementModal();
+        });
     })();
 </script>
 
