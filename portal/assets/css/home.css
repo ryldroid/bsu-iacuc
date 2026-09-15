@@ -250,7 +250,7 @@ h2 {
 
 .home-announcement-cont {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     width: 100%;
     padding: 10px 14px;
@@ -278,10 +278,12 @@ h2 {
 }
 
 .home-announcement-cont:hover .home-announcement-top-row time,
-.home-announcement-cont:hover .home-announcement-snippet {
+.home-announcement-cont:hover .home-announcement-snippet:not(.home-announcement-snippet--primary) {
     color: var(--secondary-text);
 }
 
+.home-announcement-cont:hover .home-announcement-snippet--primary,
+.home-announcement-cont:focus-visible .home-announcement-snippet--primary,
 .home-announcement-cont:hover .home-announcement-teaser-title,
 .home-announcement-cont:focus-visible .home-announcement-teaser-title {
     color: var(--brand-text);
@@ -393,11 +395,20 @@ h2 {
 }
 
 .home-announcement-snippet {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
     font-size: 0.85em;
+    line-height: 1.35;
     opacity: 0.75;
+}
+
+.home-announcement-snippet--primary {
+    color: var(--primary-text);
+    font-weight: 500;
+    opacity: 1;
 }
 
 .home-announcements-list img {

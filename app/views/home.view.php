@@ -109,8 +109,8 @@ include "includes/scroll-top.php";
                                     $annHeading = $annTitle;
                                     $annSnippet = $hasBody ? $annBody : '';
                                 } elseif ($hasBody) {
-                                    $annHeading = $annBody;
-                                    $annSnippet = '';
+                                    $annHeading = '';
+                                    $annSnippet = $annBody;
                                 } else {
                                     $annHeading = 'Photo update';
                                     $annSnippet = '';
@@ -150,7 +150,7 @@ include "includes/scroll-top.php";
                                                 <time datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
                                             </span>
                                             <?php if ($annSnippet !== ''): ?>
-                                                <span class="home-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
+                                                <span class="home-announcement-snippet<?= $hasTitle ? '' : ' home-announcement-snippet--primary' ?>"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
                                             <?php endif; ?>
                                         </span>
                                     </button>
