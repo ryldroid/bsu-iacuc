@@ -17,6 +17,7 @@
     --focus-ring-color: rgb(48, 159, 23);
 
     --brand-text: var(--brand-color);
+    --nav-icons: #274824ed;
 
     --tint-on-brand: rgba(255, 255, 255, 0.25);
     --tint-on-brand-soft: rgba(255, 255, 255, 0.15);
@@ -112,7 +113,8 @@
     --heading-shadow: rgba(255, 255, 255, 0.45);
 
     --brand-surface-tint: rgba(30, 41, 36, 0.75);
-    --brand-text: #489d43;
+    --brand-text: #209029e0;
+    --nav-icons: #8dd188ca;
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);
@@ -474,7 +476,8 @@ main a.underlined:hover {
     font-size: 0.85em;
     font-family: var(--font-body);
     border: 1px solid var(--input-border);
-    border-radius: var(--radius);
+    /* border-radius: var(--radius); */
+    border-radius: var(--btn-radius);
     background: var(--card-background);
     color: var(--secondary-text);
     cursor: pointer;
@@ -523,4 +526,10 @@ main p {
     .dashboard-sort-group .dashboard-sort-select {
         flex: 1 1 auto;
     }
+}
+
+.sort-filter-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }

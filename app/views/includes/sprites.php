@@ -98,13 +98,16 @@
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
     </symbol>
 
+    <!-- clearance page -->
+    <symbol id="clearance-page-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-paperclip">
+        <path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551" />
+    </symbol>
+
 
     <!-- ===== DASHBOARD / MY PROTOCOLS ===== -->
     <!-- filter (mobile) -->
-    <symbol id="filter-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-filter-icon lucide-list-filter">
-        <path d="M2 5h20" />
-        <path d="M6 12h12" />
-        <path d="M9 19h6" />
+    <symbol id="filter-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-funnel">
+        <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
     </symbol>
 
     <!-- add/plus -->
@@ -309,6 +312,15 @@
         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
         <path class="icon-detail" d="M6.5 17H20" />
         <path class="icon-detail" d="m9 9.5 2 2 4-4" />
+    </symbol>
+
+    <!-- sort by icon -->
+    <symbol id="sort-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-a-z">
+        <path d="m3 16 4 4 4-4" />
+        <path d="M7 20V4" />
+        <path d="M20 8h-5" />
+        <path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10" />
+        <path d="M15 14h5l-5 6h5" />
     </symbol>
 
     <!-- ===== HOME PAGE - CLEARANCE PROCESS TIMELINE ===== -->

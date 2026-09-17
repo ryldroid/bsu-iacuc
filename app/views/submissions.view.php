@@ -116,7 +116,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#filter-icon" />
                     </svg>
-                    Status: <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
+                    Filter Status: <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
                 </div>
 
                 <div class="status-filters">
@@ -137,7 +137,12 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
 
             <div class="dashboard-sort-group">
-                <p>Sort by: </p>
+                <p class="sort-filter-label">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#sort-icon" />
+                    </svg>
+                    Sort by:
+                </p>
                 <select id="submissionsSortSelect" class="dashboard-sort-select" data-sort-target=".protocols-list" aria-label="Sort protocols">
                     <option value="newest">Newest Submitted</option>
                     <option value="oldest">Oldest Submitted</option>

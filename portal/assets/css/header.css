@@ -580,3 +580,21 @@ header nav a:hover::after {
     border-radius: 50% !important;
     padding: 40px 20px;
 }
+
+
+header {
+    position: sticky;
+    top: 0;
+    transition: transform 0.3s ease;
+    will-change: transform;
+}
+
+header.header--hidden {
+    transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    header {
+        transition: none;
+    }
+}

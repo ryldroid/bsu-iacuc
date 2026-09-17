@@ -121,6 +121,11 @@ $first_name    = $user['first_name'] ?? '';
                     <input type="file" id="add_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
                     <div class="ann-image-preview-wrap" id="add_ann_image_preview_wrap" hidden>
                         <img id="add_ann_image_preview" src="" alt="Selected image preview">
+                        <button type="button" class="image-zoom-btn" id="add_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#search-icon" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -156,6 +161,11 @@ $first_name    = $user['first_name'] ?? '';
                     <input type="file" id="edit_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
                     <div class="ann-image-preview-wrap" id="edit_ann_image_preview_wrap" hidden>
                         <img id="edit_ann_image_preview" src="" alt="Announcement image preview">
+                        <button type="button" class="image-zoom-btn" id="edit_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#search-icon" />
+                            </svg>
+                        </button>
                     </div>
                     <div class="ann-remove-image-row" id="edit_ann_remove_row" hidden>
                         <input type="checkbox" id="edit_ann_remove_image">
@@ -222,27 +232,32 @@ $first_name    = $user['first_name'] ?? '';
             }
         }
 
-        function wireImagePreview(inputId, wrapId, imgId) {
+        function setPreviewImage(imgId, zoomBtnId, src) {
+            document.getElementById(imgId).src = src;
+            const zoomBtn = document.getElementById(zoomBtnId);
+            if (zoomBtn) zoomBtn.dataset.zoomSrc = src;
+        }
+
+        function wireImagePreview(inputId, wrapId, imgId, zoomBtnId) {
             const input = document.getElementById(inputId);
             if (!input) return;
             input.addEventListener('change', () => {
                 const file = input.files && input.files[0];
                 const wrap = document.getElementById(wrapId);
-                const img = document.getElementById(imgId);
                 if (!file) {
                     wrap.hidden = true;
                     return;
                 }
                 const reader = new FileReader();
                 reader.onload = e => {
-                    img.src = e.target.result;
+                    setPreviewImage(imgId, zoomBtnId, e.target.result);
                     wrap.hidden = false;
                 };
                 reader.readAsDataURL(file);
             });
         }
-        wireImagePreview('add_ann_image', 'add_ann_image_preview_wrap', 'add_ann_image_preview');
-        wireImagePreview('edit_ann_image', 'edit_ann_image_preview_wrap', 'edit_ann_image_preview');
+        wireImagePreview('add_ann_image', 'add_ann_image_preview_wrap', 'add_ann_image_preview', 'add_ann_image_zoom_btn');
+        wireImagePreview('edit_ann_image', 'edit_ann_image_preview_wrap', 'edit_ann_image_preview', 'edit_ann_image_zoom_btn');
 
         const removeImageCheckbox = document.getElementById('edit_ann_remove_image');
         if (removeImageCheckbox) {
@@ -325,13 +340,13 @@ $first_name    = $user['first_name'] ?? '';
 
                         document.getElementById('edit_ann_image').value = '';
                         const previewWrap = document.getElementById('edit_ann_image_preview_wrap');
-                        const preview = document.getElementById('edit_ann_image_preview');
                         const removeRow = document.getElementById('edit_ann_remove_row');
                         const removeCheckbox = document.getElementById('edit_ann_remove_image');
                         removeCheckbox.checked = false;
                         previewWrap.style.opacity = '';
                         if (data.data.image_path) {
-                            preview.src = ROOT + '/assets/uploads/announcements/' + encodeURIComponent(data.data.image_path);
+                            setPreviewImage('edit_ann_image_preview', 'edit_ann_image_zoom_btn',
+                                ROOT + '/assets/uploads/announcements/' + encodeURIComponent(data.data.image_path));
                             previewWrap.hidden = false;
                             removeRow.hidden = false;
                         } else {

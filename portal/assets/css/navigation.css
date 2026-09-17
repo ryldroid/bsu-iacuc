@@ -8,13 +8,33 @@
 }
 
 aside {
-    top: 0;
+    position: sticky;
+    /* Follows the header as it hides/shows so it never covers the first icon.
+       Falls back to the header height before header.js runs. */
+    top: var(--header-offset, 52px);
     left: 0;
+
+    /* position:sticky always creates its own stacking context, which traps
+       any z-index set on descendants (like the hover tooltip below) inside
+       it. Giving the sidebar itself a z-index lets that whole context paint
+       above ordinary page content (e.g. images in <main>), which otherwise
+       cover the tooltip because they come later in the DOM. Kept below the
+       header's 1000 so header dropdowns still win. */
+    z-index: 900;
 
     min-height: 100vh;
     width: 64px;
 
     background-color: var(--sidebar-background);
+    align-self: flex-start;
+
+    transition: top 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    aside {
+        transition: none;
+    }
 }
 
 aside ul {
@@ -33,7 +53,8 @@ aside li {
 aside a,
 aside div {
     background-color: var(--sidebar-background);
-    color: var(--brand-text);
+    /* color: var(--brand-text); */
+    color: var(--nav-icons);
     transition: all .15s ease;
 }
 
@@ -66,6 +87,7 @@ aside div {
     border-radius: 16px;
 
     opacity: 0;
+    pointer-events: none;
 
     margin-left: .5em;
     padding: 10px 16px;
@@ -86,12 +108,17 @@ aside svg {
 #contact-icon,
 #announcement-icon,
 #accounts-icon,
-#clearance-icon {
+#clearance-icon,
+#dashboard-icon {
     fill: inherit;
 }
 
 .icon-detail {
     stroke: var(--icon-detail-color, currentColor);
+}
+
+aside a.active-link {
+    color: var(--brand-text);
 }
 
 aside a.active-link svg {
@@ -105,11 +132,8 @@ aside a.active-link svg {
     }
 }
 
-aside a.active-link svg {
-    fill: currentColor;
-}
-
-aside a.active-link svg path {
+aside a.active-link svg path,
+aside a.active-link svg rect {
     fill: currentColor;
 }
 

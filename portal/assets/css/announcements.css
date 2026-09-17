@@ -207,84 +207,11 @@ h2 {
   opacity: 1;
 }
 
-/* ===== Office announcement modal (extends the generic .modal-card) ===== */
-.office-announcement-modal-card {
-  position: relative;
-  max-width: 780px;
-}
-
-.office-announcement-modal-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background-color: var(--divider-color-subtle);
-  color: var(--secondary-text);
-  font-size: .9rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.office-announcement-modal-close:hover,
-.office-announcement-modal-close:focus-visible {
-  background-color: var(--hover-surface);
-  color: var(--primary-text);
-}
-
-#officeAnnouncementModalBody .office-announcement-modal-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 60vh;
-  object-fit: contain;
-  border-radius: 8px;
-  margin: 0 0 14px 0;
-}
-
-.office-announcement-modal-title {
-  padding-right: 30px;
-  margin: 0 0 0.2em;
-}
-
-.office-announcement-modal-date {
-  display: block;
-  font-size: .8rem;
-  color: var(--secondary-text);
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.office-announcement-modal-text {
-  margin: 0;
-  font-size: .9rem;
-  line-height: 1.6;
-  color: var(--primary-text);
-  white-space: pre-line;
-  font-family: var(--font-body);
-}
-
 @media (max-width: 700px) {
   .office-announcements-list {
     grid-template-columns: 1fr;
   }
 
-  .office-announcement-modal-card {
-    width: calc(100% - 24px);
-    max-height: 90vh;
-    overflow-y: auto;
-    margin: 12px;
-  }
-
-  #officeAnnouncementModalBody .office-announcement-modal-image {
-    max-height: 40vh;
-  }
 }
 
 /* ===== Manage Announcements list (admin) ===== */
@@ -419,6 +346,7 @@ h2 {
 }
 
 .ann-image-preview-wrap {
+  position: relative;
   margin-top: 0.5em;
 }
 

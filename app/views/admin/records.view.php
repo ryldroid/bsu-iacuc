@@ -396,7 +396,12 @@ function formatDurationRange(?string $start, ?string $end): string
                 </select>
 
                 <div class="records-sort-group">
-                    <p>Sort by: </p>
+                    <p class="sort-filter-label">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#sort-icon" />
+                        </svg>
+                        Sort by:
+                    </p>
                     <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
                         <?php foreach (RecordModel::SORT_OPTIONS as $key => $opt): ?>
                             <option value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($opt['label']) ?></option>

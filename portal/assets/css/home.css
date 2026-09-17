@@ -536,6 +536,7 @@ h2 {
     font-size: 0.85em;
     line-height: 1.35;
     opacity: 0.75;
+    margin-top: .5em;
 }
 
 .home-announcement-snippet--primary {
@@ -550,65 +551,6 @@ h2 {
 
 .home-announcements-list button {
     margin: 0;
-}
-
-/* ===== Announcement detail modal (home teaser cards) ===== */
-.home-announcement-modal-card {
-    position: relative;
-    max-width: 780px;
-}
-
-.home-announcement-modal-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    background-color: var(--divider-color-subtle);
-    color: var(--secondary-text);
-    font-size: .9rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
-}
-
-.home-announcement-modal-close:hover,
-.home-announcement-modal-close:focus-visible {
-    background-color: var(--hover-surface);
-    color: var(--primary-text);
-}
-
-#homeAnnouncementModalBody .home-announcement-modal-image {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 60vh;
-    object-fit: contain;
-    border-radius: 8px;
-    margin: 0 0 14px 0;
-}
-
-.home-announcement-modal-title {
-    padding-right: 30px;
-}
-
-.home-announcement-modal-date {
-    display: block;
-    font-size: .8rem;
-    color: var(--secondary-text);
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.home-announcement-modal-text {
-    font-size: .9rem;
-    line-height: 1.6;
-    color: var(--primary-text);
 }
 
 /* ===== RESPONSIVE: TABLET ===== */
@@ -829,7 +771,7 @@ h2 {
     .home-announcement-teaser-title,
     .home-announcement-snippet {
         white-space: normal;
-        overflow: visible;
+        /* overflow: visible; */
         text-overflow: clip;
     }
 
@@ -848,16 +790,6 @@ h2 {
         font-size: .95em;
     }
 
-    .home-announcement-modal-card {
-        width: calc(100% - 24px);
-        max-height: 90vh;
-        overflow-y: auto;
-        margin: 12px;
-    }
-
-    #homeAnnouncementModalBody .home-announcement-modal-image {
-        max-height: 40vh;
-    }
 }
 
 /* ===== RESPONSIVE: VERY SMALL PHONE ===== */

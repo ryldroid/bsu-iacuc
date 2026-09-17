@@ -56,6 +56,7 @@ $officeAnnouncements = $announcementModel->getAll();
                             $annTimestamp = strtotime($post['created_at']);
                             $annDateDisplay = $annTimestamp ? date('M j, Y g:i A', $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
                             $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+                            $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
                         ?>
                             <button type="button"
                                 class="office-announcement-card<?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
@@ -64,7 +65,7 @@ $officeAnnouncements = $announcementModel->getAll();
 
                                 <?php if ($hasImage): ?>
                                     <span class="office-announcement-thumb">
-                                        <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                        <img src="<?= $annImgUrl ?>" alt="">
                                     </span>
                                 <?php endif; ?>
 
@@ -83,23 +84,31 @@ $officeAnnouncements = $announcementModel->getAll();
 
                             <template id="annModalTpl-<?= (int) $post['id'] ?>">
                                 <?php if ($hasImage): ?>
-                                    <img class="office-announcement-modal-image"
-                                        src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                    <div class="announcement-modal-image-wrap">
+                                        <img class="announcement-modal-image"
+                                            src="<?= $annImgUrl ?>" alt="">
+                                        <button type="button" class="image-zoom-btn" title="Zoom image" aria-label="Zoom image"
+                                            data-zoom-src="<?= $annImgUrl ?>" data-zoom-alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <use href="#search-icon" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 <?php endif; ?>
                                 <?php if ($hasTitle): ?>
-                                    <h2 class="office-announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
+                                    <h2 class="announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
                                 <?php endif; ?>
-                                <time class="office-announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                <time class="announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
                                 <?php if ($hasBody): ?>
-                                    <p class="office-announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
+                                    <p class="announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
                                 <?php endif; ?>
                             </template>
                         <?php endforeach; ?>
                     </div>
 
                     <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
-                        <div class="modal-card office-announcement-modal-card">
-                            <button type="button" class="office-announcement-modal-close" id="officeAnnouncementModalClose" aria-label="Close">✕</button>
+                        <div class="modal-card announcement-modal-card">
+                            <button type="button" class="announcement-modal-close" id="officeAnnouncementModalClose" aria-label="Close">✕</button>
                             <div id="officeAnnouncementModalBody"></div>
                         </div>
                     </div>
@@ -163,48 +172,13 @@ $officeAnnouncements = $announcementModel->getAll();
 <?php include "includes/footer.php"; ?>
 
 <script>
-    // ===== ANNOUNCEMENT MODAL (office announcement cards) =====
-    (function() {
-        const modal = document.getElementById('officeAnnouncementModal');
-        if (!modal) return;
-
-        const modalBody = document.getElementById('officeAnnouncementModalBody');
-        const closeBtn = document.getElementById('officeAnnouncementModalClose');
-        let lastFocused = null;
-
-        function openAnnouncementModal(trigger) {
-            const tpl = document.getElementById(trigger.dataset.annModal);
-            if (!tpl) return;
-
-            modalBody.innerHTML = '';
-            modalBody.appendChild(tpl.content.cloneNode(true));
-
-            const heading = modalBody.querySelector('.office-announcement-modal-title');
-            modal.setAttribute('aria-label', heading ? heading.textContent : 'Announcement');
-
-            lastFocused = document.activeElement;
-            modal.classList.add('open');
-            closeBtn.focus();
-        }
-
-        function closeAnnouncementModal() {
-            modal.classList.remove('open');
-            modalBody.innerHTML = '';
-            if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
-        }
-
-        document.querySelectorAll('[data-ann-modal]').forEach((btn) => {
-            btn.addEventListener('click', () => openAnnouncementModal(btn));
+    // See home.view.php for why this waits on DOMContentLoaded: modals.js
+    // is deferred, so it isn't defined yet when this inline script runs.
+    document.addEventListener('DOMContentLoaded', function() {
+        initAnnouncementModal({
+            modalId: 'officeAnnouncementModal',
+            bodyId: 'officeAnnouncementModalBody',
+            closeId: 'officeAnnouncementModalClose'
         });
-
-        closeBtn.addEventListener('click', closeAnnouncementModal);
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeAnnouncementModal();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('open')) closeAnnouncementModal();
-        });
-    })();
+    });
 </script>

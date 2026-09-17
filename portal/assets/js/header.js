@@ -120,3 +120,71 @@ function updateNavbar(e) {
 }
 
 updateNavbar(media);
+
+// ===== HIDE HEADER ON SCROLL =====
+
+const mainHeader = document.querySelector("header");
+let lastScrollY = window.scrollY;
+const SCROLL_THRESHOLD = 10;
+
+/**
+ * Publishes how much of the header is currently on screen as --header-offset.
+ * The sticky icon sidebar pins itself to that value instead of to 0, so the
+ * header can never paint over the first nav icon when it slides back in.
+ */
+function syncHeaderOffset() {
+  const visible =
+    mainHeader && !mainHeader.classList.contains("header--hidden")
+      ? mainHeader.offsetHeight
+      : 0;
+  document.documentElement.style.setProperty("--header-offset", `${visible}px`);
+}
+
+function setHeaderHidden(hidden) {
+  if (!mainHeader || mainHeader.classList.contains("header--hidden") === hidden)
+    return;
+  mainHeader.classList.toggle("header--hidden", hidden);
+  syncHeaderOffset();
+}
+
+function handleHeaderScroll() {
+  if (!mainHeader) return;
+
+  // Keep the header put while the mobile sidebar is open
+  if (sidebar?.classList.contains("show")) return;
+
+  const currentScrollY = window.scrollY;
+  const diff = currentScrollY - lastScrollY;
+
+  // Ignore tiny jitter
+  if (Math.abs(diff) < SCROLL_THRESHOLD) return;
+
+  // Always show at very top
+  if (currentScrollY <= 0) {
+    setHeaderHidden(false);
+  }
+  // Scrolling down -> hide
+  else if (diff > 0) {
+    setHeaderHidden(true);
+  }
+  // Scrolling up -> show
+  else {
+    setHeaderHidden(false);
+  }
+
+  lastScrollY = currentScrollY;
+}
+
+if (mainHeader) {
+  syncHeaderOffset();
+  window.addEventListener("scroll", handleHeaderScroll, { passive: true });
+  window.addEventListener("resize", syncHeaderOffset);
+
+  // Keyboard users tabbing into a hidden header bring it back
+  mainHeader.addEventListener("focusin", () => {
+    setHeaderHidden(false);
+    lastScrollY = window.scrollY;
+  });
+} else {
+  syncHeaderOffset();
+}

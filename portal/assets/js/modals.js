@@ -121,6 +121,118 @@
     }
   };
 
+  window.initAnnouncementModal = function (config) {
+    const modal = document.getElementById(config.modalId);
+    if (!modal) return;
+
+    const modalBody = document.getElementById(config.bodyId);
+    const closeBtn = document.getElementById(config.closeId);
+    let lastFocused = null;
+
+    function open(trigger) {
+      const tpl = document.getElementById(trigger.dataset.annModal);
+      if (!tpl) return;
+
+      modalBody.innerHTML = "";
+      modalBody.appendChild(tpl.content.cloneNode(true));
+
+      const heading = modalBody.querySelector(".announcement-modal-title");
+      modal.setAttribute(
+        "aria-label",
+        heading ? heading.textContent : "Announcement",
+      );
+
+      lastFocused = document.activeElement;
+      modal.classList.add("open");
+      closeBtn.focus();
+    }
+
+    function close() {
+      modal.classList.remove("open");
+      modalBody.innerHTML = "";
+      if (lastFocused && typeof lastFocused.focus === "function")
+        lastFocused.focus();
+    }
+
+    (config.triggers || document.querySelectorAll("[data-ann-modal]")).forEach(
+      (btn) => {
+        btn.addEventListener("click", () => open(btn));
+      },
+    );
+
+    closeBtn.addEventListener("click", close);
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("open")) close();
+    });
+  };
+
+  let zoomBackdrop = null;
+  let zoomImg = null;
+  let zoomLastFocused = null;
+
+  function buildZoomModal() {
+    if (zoomBackdrop) return;
+
+    zoomBackdrop = document.createElement("div");
+    zoomBackdrop.className = "modal-backdrop image-zoom-backdrop";
+    zoomBackdrop.innerHTML = `
+      <div class="image-zoom-card">
+        <button type="button" class="image-zoom-close" aria-label="Close">&times;</button>
+        <img class="image-zoom-img" src="" alt="">
+      </div>
+    `;
+    document.body.appendChild(zoomBackdrop);
+
+    zoomImg = zoomBackdrop.querySelector(".image-zoom-img");
+    zoomBackdrop
+      .querySelector(".image-zoom-close")
+      .addEventListener("click", closeImageZoom);
+
+    zoomBackdrop.addEventListener("click", (e) => {
+      if (e.target === zoomBackdrop) closeImageZoom();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && zoomBackdrop.classList.contains("open"))
+        closeImageZoom();
+    });
+  }
+
+  function closeImageZoom() {
+    if (!zoomBackdrop) return;
+    zoomBackdrop.classList.remove("open");
+    zoomImg.src = "";
+    if (zoomLastFocused && typeof zoomLastFocused.focus === "function")
+      zoomLastFocused.focus();
+  }
+
+  window.openImageZoom = function (url, alt) {
+    if (!url) return;
+    buildZoomModal();
+    zoomImg.src = url;
+    zoomImg.alt = alt || "";
+    zoomLastFocused = document.activeElement;
+    zoomBackdrop.classList.add("open");
+    zoomBackdrop.querySelector(".image-zoom-close").focus();
+  };
+
+  window.closeImageZoom = closeImageZoom;
+
+  function bindImageZoomTriggers() {
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest("[data-zoom-src]");
+      if (!trigger) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openImageZoom(trigger.dataset.zoomSrc, trigger.dataset.zoomAlt || "");
+    });
+  }
+
   function bindAutoConfirm() {
     document.addEventListener("click", async (e) => {
       const link = e.target.closest("a[data-confirm-message]");
@@ -173,4 +285,5 @@
   }
 
   bindAutoConfirm();
+  bindImageZoomTriggers();
 })();

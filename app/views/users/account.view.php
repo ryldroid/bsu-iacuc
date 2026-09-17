@@ -9,6 +9,8 @@ $current_role = $old['role'] ?? '';
 $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
 ?>
 
+<!-- PDF.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
@@ -208,22 +210,105 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
                 Close
             </button>
         </div>
-        <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
+        <div class="file-popup-frame" id="filePopupFrame">
+            <div id="filePopupPdfPages" class="file-popup-pdf-pages" hidden></div>
+            <img id="filePopupImg" alt="">
+            <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
+        </div>
     </div>
 </div>
 
 <script>
-    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    function openFilePopup(fileUrl, title) {
+    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
+    const filePopupFrame = document.getElementById('filePopupFrame');
+    const filePopupPdfPages = document.getElementById('filePopupPdfPages');
+    const filePopupImg = document.getElementById('filePopupImg');
+    const filePopupMessage = document.getElementById('filePopupMessage');
+    let filePopupObjectUrl = null;
+
+    // Exactly one of these three stays visible at a time.
+    function showFilePopupState(state) {
+        filePopupPdfPages.hidden = state !== 'pdf';
+        filePopupImg.hidden = state !== 'img';
+        filePopupMessage.hidden = state !== 'message';
+    }
+
+    async function renderPopupPdf(fileUrl) {
+        filePopupPdfPages.innerHTML = '';
+        const frameWidth = filePopupFrame.clientWidth;
+        const doc = await pdfjsLib.getDocument(fileUrl).promise;
+
+        for (let p = 1; p <= doc.numPages; p++) {
+            const page = await doc.getPage(p);
+            const scale = Math.min(1.5, (frameWidth - 48) / page.getViewport({
+                scale: 1
+            }).width);
+            const vp = page.getViewport({
+                scale
+            });
+
+            const canvas = document.createElement('canvas');
+            const outputScale = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(vp.width * outputScale);
+            canvas.height = Math.floor(vp.height * outputScale);
+            canvas.style.width = vp.width + 'px';
+            canvas.style.height = vp.height + 'px';
+            filePopupPdfPages.appendChild(canvas);
+
+            await page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: vp,
+                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
+            }).promise;
+        }
+    }
+
+    async function openFilePopup(fileUrl, title) {
         document.getElementById('filePopupTitle').textContent = title;
-        document.getElementById('filePopupFrame').src = fileUrl;
         filePopupBackdrop.classList.add('open');
+        filePopupFrame.scrollTop = 0;
+
+        filePopupMessage.textContent = 'Loading…';
+        showFilePopupState('message');
+
+        try {
+            const res = await fetch(fileUrl);
+            if (!res.ok) throw new Error('Failed to load file');
+
+            const contentType = res.headers.get('content-type') || '';
+
+            if (contentType.includes('pdf')) {
+                await renderPopupPdf(fileUrl);
+                showFilePopupState('pdf');
+                filePopupFrame.scrollTop = 0;
+                return;
+            }
+
+            const blob = await res.blob();
+
+            if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = URL.createObjectURL(blob);
+
+            filePopupImg.src = filePopupObjectUrl;
+            filePopupImg.alt = title;
+            showFilePopupState('img');
+        } catch (err) {
+            filePopupMessage.textContent = 'Could not load this file.';
+            showFilePopupState('message');
+        }
     }
 
     function closeFilePopup() {
         filePopupBackdrop.classList.remove('open');
-        document.getElementById('filePopupFrame').src = 'about:blank';
+        filePopupPdfPages.innerHTML = '';
+        filePopupImg.removeAttribute('src');
+        if (filePopupObjectUrl) {
+            URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = null;
+        }
     }
 
     filePopupBackdrop.addEventListener('click', e => {

@@ -28,7 +28,7 @@ $role = $user['role'] ?? '';
                     <li>
                         <a href="<?= ROOT ?>/admin/clearances">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#clearance-icon" />
+                                <use href="#clearance-page-icon" />
                             </svg>
                         </a>
                         <div>
@@ -54,7 +54,7 @@ $role = $user['role'] ?? '';
                             </svg>
                         </a>
                         <div>
-                            <span>Announcements</span>
+                            <span>Manage Announcements</span>
                         </div>
                     </li>
                 <?php endif; ?>

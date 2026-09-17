@@ -287,7 +287,12 @@ foreach ($protocols as $p) {
                 </div>
 
                 <div class="dashboard-sort-group">
-                    <p>Sort by: </p>
+                    <p class="sort-filter-label">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#sort-icon" />
+                        </svg>
+                        Sort by:
+                    </p>
                     <select id="inboxSortSelect" class="dashboard-sort-select" aria-label="Sort protocols">
                         <option value="newest">Newest Submitted</option>
                         <option value="oldest">Oldest Submitted</option>
