@@ -112,12 +112,19 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <!-- Status filter bar -->
         <div class="dashboard-filter-row">
             <div class="filter-wrapper">
-                <div class="mobile-status-filters button">
+                <p class="sort-filter-label">
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#filter-icon" />
                     </svg>
-                    Filter Status: <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
-                </div>
+                    Status:
+                </p>
+
+                <button type="button" class="mobile-status-filters dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                    <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-down-icon" />
+                    </svg>
+                </button>
 
                 <div class="status-filters">
                     <button class="status-card active" data-status="all" data-label="All">
@@ -136,19 +143,36 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 </div>
             </div>
 
-            <div class="dashboard-sort-group">
+            <div class="dashboard-sort-group dashboard-field-group">
                 <p class="sort-filter-label">
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#sort-icon" />
                     </svg>
                     Sort by:
                 </p>
-                <select id="submissionsSortSelect" class="dashboard-sort-select" data-sort-target=".protocols-list" aria-label="Sort protocols">
-                    <option value="newest">Newest Submitted</option>
-                    <option value="oldest">Oldest Submitted</option>
-                    <option value="title_asc">Title (A–Z)</option>
-                    <option value="title_desc">Title (Z–A)</option>
-                </select>
+
+                <div class="sort-wrapper">
+                    <select id="submissionsSortSelect" class="dashboard-sort-select dashboard-select-trigger" data-sort-target=".protocols-list" aria-label="Sort protocols">
+                        <option value="newest">Newest Submitted</option>
+                        <option value="oldest">Oldest Submitted</option>
+                        <option value="title_asc">Title (A–Z)</option>
+                        <option value="title_desc">Title (Z–A)</option>
+                    </select>
+
+                    <button type="button" class="mobile-sort-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                        <span id="mobileSortLabel">Newest Submitted</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-down-icon" />
+                        </svg>
+                    </button>
+
+                    <div class="dropdown-panel" id="mobileSortOptions">
+                        <button class="status-card active" data-sort="newest">Newest Submitted</button>
+                        <button class="status-card" data-sort="oldest">Oldest Submitted</button>
+                        <button class="status-card" data-sort="title_asc">Title (A–Z)</button>
+                        <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -574,11 +598,14 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
     const statusMeta = <?= json_encode($statusMeta) ?>;
-    const filterBtns = document.querySelectorAll('.status-card');
+    const filterBtns = document.querySelectorAll('.status-filters .status-card');
     const protocolCards = document.querySelectorAll('.protocol');
     const mobileFilter = document.querySelector('.mobile-status-filters');
     const statusFilters = document.querySelector('.status-filters');
     const sortSelect = document.getElementById('submissionsSortSelect');
+    const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
+    const mobileSortOptions = document.getElementById('mobileSortOptions');
+    const mobileSortLabel = document.getElementById('mobileSortLabel');
     let currentFilter = 'all';
 
     // ===== Sort by =====
@@ -645,20 +672,60 @@ function statusIconSvg(string $iconId, int $size = 14): string
         if (emptyMsg) emptyMsg.style.display = visibleCards.length === 0 ? 'block' : 'none';
     }
 
+    // ===== Mobile dropdown open/close (filter + sort share this behavior) =====
+    function openDropdown(trigger, panel) {
+        if (!trigger || !panel) return;
+        const isOpen = panel.classList.toggle('active');
+        trigger.classList.toggle('open', isOpen);
+        trigger.setAttribute('aria-expanded', isOpen);
+    }
+
+    function closeDropdown(trigger, panel) {
+        if (!trigger || !panel) return;
+        panel.classList.remove('active');
+        trigger.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+
     mobileFilter?.addEventListener('click', e => {
         e.stopPropagation();
-        statusFilters.classList.toggle('active');
+        closeDropdown(mobileSortTrigger, mobileSortOptions);
+        openDropdown(mobileFilter, statusFilters);
     });
+
+    mobileSortTrigger?.addEventListener('click', e => {
+        e.stopPropagation();
+        closeDropdown(mobileFilter, statusFilters);
+        openDropdown(mobileSortTrigger, mobileSortOptions);
+    });
+
     document.addEventListener('click', e => {
         if (!statusFilters?.contains(e.target) && !mobileFilter?.contains(e.target)) {
-            statusFilters?.classList.remove('active');
+            closeDropdown(mobileFilter, statusFilters);
+        }
+        if (!mobileSortOptions?.contains(e.target) && !mobileSortTrigger?.contains(e.target)) {
+            closeDropdown(mobileSortTrigger, mobileSortOptions);
         }
     });
 
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             applySubmissionsFilter(btn.dataset.status);
-            statusFilters.classList.remove('active');
+            closeDropdown(mobileFilter, statusFilters);
+        });
+    });
+
+    // ===== Mobile sort dropdown mirrors the desktop <select> =====
+    const mobileSortBtns = mobileSortOptions?.querySelectorAll('.status-card') ?? [];
+    mobileSortBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            mobileSortBtns.forEach(b => b.classList.toggle('active', b === btn));
+            if (mobileSortLabel) mobileSortLabel.textContent = btn.textContent.trim();
+            if (sortSelect) {
+                sortSelect.value = btn.dataset.sort;
+                sortSelect.dispatchEvent(new Event('change'));
+            }
+            closeDropdown(mobileSortTrigger, mobileSortOptions);
         });
     });
 

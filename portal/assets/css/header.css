@@ -582,11 +582,14 @@ header nav a:hover::after {
 }
 
 
+/* No will-change here: it creates a new containing block for any
+   position:fixed descendant (the mobile nav-sidebar lives inside
+   <header>), which detaches that sidebar from the viewport and ties
+   it to the header's own box instead. */
 header {
     position: sticky;
     top: 0;
     transition: transform 0.3s ease;
-    will-change: transform;
 }
 
 header.header--hidden {

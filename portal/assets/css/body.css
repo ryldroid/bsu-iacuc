@@ -398,6 +398,19 @@ main a.underlined:hover {
     width: fit-content;
 }
 
+/* Desktop shows the status tabs only; the "Filter Status:" label is a
+   mobile-only companion to the dropdown trigger (see protocol-list.css). */
+.filter-wrapper>.sort-filter-label {
+    display: none;
+}
+
+/* Positions the mobile sort dropdown panel; "Sort by:" stays outside it
+   since, unlike the filter label, it is always visible. */
+.sort-wrapper {
+    position: relative;
+    width: fit-content;
+}
+
 .status-filters {
     display: flex;
     align-items: baseline;
@@ -456,27 +469,24 @@ main a.underlined:hover {
     gap: 12px;
 }
 
-.dashboard-sort-group {
+/* ===== Shared "label: control" row (filter + sort) ===== */
+.dashboard-field-group {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.dashboard-sort-group p {
-    font-size: .78em;
-    font-weight: 700;
-    letter-spacing: .02em;
-    color: var(--muted-text);
-    margin: 0;
-    white-space: nowrap;
-}
+/* ===== Shared select/trigger box (native <select> and the mobile filter button) ===== */
+.dashboard-select-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
 
-.dashboard-sort-select {
     padding: 7px 10px;
     font-size: 0.85em;
     font-family: var(--font-body);
     border: 1px solid var(--input-border);
-    /* border-radius: var(--radius); */
     border-radius: var(--btn-radius);
     background: var(--card-background);
     color: var(--secondary-text);
@@ -486,18 +496,29 @@ main a.underlined:hover {
     transition: border-color 150ms ease;
 }
 
-.dashboard-sort-select:hover {
+.dashboard-select-trigger:hover {
+    background: var(--card-background);
+    color: var(--secondary-text);
     border-color: var(--brand-color-hover);
 }
 
-.dashboard-sort-select:focus {
+.dashboard-select-trigger:active {
+    transform: none;
+    background: var(--hover-surface);
+}
+
+.dashboard-select-trigger:focus,
+.dashboard-select-trigger.open {
     outline: none;
     border-color: var(--focus-ring-color);
     box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
-main p {
-    text-align: justify;
+/* Best-effort: highlight the selected native <option> the same green used
+   by the filter dropdown's active row (support varies by browser). */
+.dashboard-sort-select option:checked {
+    background: var(--brand-color-active);
+    color: var(--text-on-brand);
 }
 
 @media (max-width: 768px) {
@@ -519,12 +540,15 @@ main p {
         transform: none;
     }
 
-    .dashboard-sort-group {
-        width: 100%;
+    .dashboard-select-trigger {
+        width: auto;
+        max-width: 140px;
     }
 
-    .dashboard-sort-group .dashboard-sort-select {
-        flex: 1 1 auto;
+    .dashboard-select-trigger span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
@@ -532,4 +556,11 @@ main p {
     display: flex;
     align-items: center;
     gap: 5px;
+
+    font-size: .78em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--muted-text);
+    margin: 0;
+    white-space: nowrap;
 }

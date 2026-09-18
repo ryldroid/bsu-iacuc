@@ -3,8 +3,13 @@
    researcher My Protocols page (submissions_view.php). Anything specific
    to only one of those pages stays in admin-home.css / submissions.css. */
 
-/* ===== Mobile status-filter dropdown trigger ===== */
-.mobile-status-filters {
+/* ===== Mobile dropdown triggers (filter + sort) ===== */
+.mobile-dropdown-trigger {
+  display: none;
+}
+
+/* ===== Mobile dropdown option panels (filter + sort) ===== */
+.dropdown-panel {
   display: none;
 }
 
@@ -772,36 +777,31 @@
 /* ===== Responsive ===== */
 @media (max-width: 767px) {
 
-  /* ===== Filter dropdown ===== */
-  .mobile-status-filters {
+  .dashboard-filter-row {
+    margin: 12px 0 4px;
+  }
+
+  /* ===== Filter + Sort dropdowns (box styling shared via .dashboard-select-trigger) ===== */
+  .filter-wrapper {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-
-    width: fit-content;
-    margin: 12px 0 4px;
-    padding: 8px 14px;
-
-    background: var(--card-background);
-    border: 1px solid var(--input-border);
-    border-radius: var(--btn-radius);
-    box-shadow: 0 1px 3px var(--shadow-color-soft);
-    color: var(--primary-text);
-    font-weight: 500;
-    transition: background 150ms ease, border-color 150ms ease;
+    gap: 8px;
   }
 
-  .mobile-status-filters:hover {
-    background: var(--hover-surface-soft);
-    color: var(--primary-text);
+  .filter-wrapper>.sort-filter-label {
+    display: flex;
   }
 
-  .mobile-status-filters:active {
-    transform: none;
-    background: var(--hover-surface);
+  .mobile-dropdown-trigger {
+    display: inline-flex;
   }
 
-  .status-filters {
+  .dashboard-sort-select {
+    display: none;
+  }
+
+  .status-filters,
+  .dropdown-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
@@ -822,12 +822,14 @@
     margin: 0;
   }
 
-  .status-filters button {
+  .status-filters button,
+  .dropdown-panel button {
     border-radius: 0;
     margin: 0;
   }
 
-  .status-filters.active {
+  .status-filters.active,
+  .dropdown-panel.active {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
