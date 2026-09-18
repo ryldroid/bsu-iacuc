@@ -15,12 +15,12 @@ $perPage         = $perPage         ?? 25;
 $search          = $search          ?? '';
 $school          = $school          ?? '';
 $animalType      = $animalType      ?? '';
-$gender          = $gender          ?? '';
+$sex          = $sex          ?? '';
 $researcherType  = $researcherType  ?? '';
 $sort            = $sort            ?? 'newest';
 $schools         = $schools         ?? [];
 $animalTypes     = $animalTypes     ?? [];
-$genders         = $genders         ?? [];
+$sexes         = $sexes         ?? [];
 $researcherTypes = $researcherTypes ?? [];
 $stats           = $stats           ?? [
     'total' => 0,
@@ -45,7 +45,7 @@ $flash_success   = $flash_success   ?? '';
 $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
-$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $gender !== '' || $researcherType !== '';
+$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '';
 $showActions = $role === 'admin';
 $colCount    = $showActions ? 14 : 13;
 
@@ -95,14 +95,14 @@ $researcherSlices  = pieChartSlices($stats['researcher_type_breakdown'], $pieCol
 $monthlyTrend = $stats['monthly_trend'] ?? [];
 $trendMax     = $monthlyTrend ? max(array_column($monthlyTrend, 'total')) : 0;
 
-function pageUrl(int $p, string $search, string $school, string $animalType, string $gender, string $researcherType, string $sort): string
+function pageUrl(int $p, string $search, string $school, string $animalType, string $sex, string $researcherType, string $sort): string
 {
     return '?' . http_build_query(array_filter([
         'page'   => $p,
         'search' => $search,
         'school' => $school,
         'animal' => $animalType,
-        'gender' => $gender,
+        'sex' => $sex,
         'rtype'  => $researcherType,
         'sort'   => $sort !== 'newest' ? $sort : '',
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)));
@@ -170,7 +170,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                                             'search' => $search,
                                                             'school' => $school,
                                                             'animal' => $animalType,
-                                                            'gender' => $gender,
+                                                            'sex' => $sex,
                                                             'rtype'  => $researcherType,
                                                             'sort'   => $sort !== 'newest' ? $sort : '',
                                                         ])) ?>">
@@ -313,7 +313,7 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
 
                     <div class="metric-card records-pie-card">
-                        <div class="metric-card-label">Records by Sex</div>
+                        <div class="metric-card-label">Records by Researcher Sex</div>
                         <?php if ($sexSlices): ?>
                             <div class="records-pie-body">
                                 <div class="records-pie-chart" style="background: conic-gradient(<?= pieGradient($sexSlices) ?>);"></div>
@@ -381,10 +381,10 @@ function formatDurationRange(?string $start, ?string $end): string
                     <?php endforeach; ?>
                 </select>
 
-                <select name="gender" class="records-filter-select" aria-label="Filter by gender" onchange="this.form.submit()">
+                <select name="sex" class="records-filter-select" aria-label="Filter by sex" onchange="this.form.submit()">
                     <option value="">All Sexes</option>
-                    <?php foreach ($genders as $g): ?>
-                        <option value="<?= htmlspecialchars($g, ENT_QUOTES) ?>" <?= $gender === $g ? 'selected' : '' ?>><?= htmlspecialchars($g) ?></option>
+                    <?php foreach ($sexes as $g): ?>
+                        <option value="<?= htmlspecialchars($g, ENT_QUOTES) ?>" <?= $sex === $g ? 'selected' : '' ?>><?= htmlspecialchars($g) ?></option>
                     <?php endforeach; ?>
                 </select>
 
@@ -400,7 +400,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#sort-icon" />
                         </svg>
-                        Sort by:
+                        Sort:
                     </p>
                     <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
                         <?php foreach (RecordModel::SORT_OPTIONS as $key => $opt): ?>
@@ -429,7 +429,7 @@ function formatDurationRange(?string $start, ?string $end): string
                             <th class="col-animal">Animal Type</th>
                             <th class="col-count">Count</th>
                             <th class="col-pi">Researcher</th>
-                            <th class="col-gender">Sex</th>
+                            <th class="col-sex">Researcher Sex</th>
                             <th class="col-rtype">Researcher Type</th>
                             <th class="col-adviser">Research Adviser</th>
                             <th class="col-vet">Veterinarian</th>
@@ -487,7 +487,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <td class="date-cell"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
                                     <td class="date-cell"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['principal_investigator'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['gender'] ?? '') ?></td>
+                                    <td class="date-cell"><?= htmlspecialchars($r['sex'] ?? '') ?></td>
                                     <td class="date-cell"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                     <td class="researcher-cell"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
@@ -515,8 +515,8 @@ function formatDurationRange(?string $start, ?string $end): string
                 </div>
                 <div class="pagination-buttons">
                     <?php if ($page > 1): ?>
-                        <a href="<?= pageUrl(1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="First">«</a>
-                        <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Previous">‹</a>
+                        <a href="<?= pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="First">«</a>
+                        <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Previous">‹</a>
                     <?php else: ?>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">«</span>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">‹</span>
@@ -528,15 +528,15 @@ function formatDurationRange(?string $start, ?string $end): string
                     if ($start > 1) echo '<span class="pagination-ellipsis">…</span>';
                     for ($i = $start; $i <= $end; $i++):
                     ?>
-                        <a href="<?= pageUrl($i, $search, $school, $animalType, $gender, $researcherType, $sort) ?>"
+                        <a href="<?= pageUrl($i, $search, $school, $animalType, $sex, $researcherType, $sort) ?>"
                             class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
                     <?php endfor;
                     if ($end < $totalPages) echo '<span class="pagination-ellipsis">…</span>';
                     ?>
 
                     <?php if ($page < $totalPages): ?>
-                        <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Next">›</a>
-                        <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $gender, $researcherType, $sort) ?>" class="pagination-btn" title="Last">»</a>
+                        <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Next">›</a>
+                        <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Last">»</a>
                     <?php else: ?>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">›</span>
                         <span class="pagination-btn" style="opacity:.35;cursor:default">»</span>
@@ -585,8 +585,8 @@ function formatDurationRange(?string $start, ?string $end): string
                     <input type="number" id="add_animal_count" name="animal_count" min="0" placeholder="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_gender">Sex</label>
-                    <select id="add_gender" name="gender">
+                    <label for="add_sex">Researcher Sex</label>
+                    <select id="add_sex" name="sex">
                         <option value="">— select —</option>
                         <option>Male</option>
                         <option>Female</option>
@@ -649,7 +649,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <input type="hidden" id="edit_id">
                 <div class="records-form-group records-form-full">
                     <label for="edit_reference_no">IPN</label>
-                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. BSU-IACUC-2025-001">
+                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. AR-2026-0001">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="edit_title">Title of Research</label>
@@ -672,8 +672,8 @@ function formatDurationRange(?string $start, ?string $end): string
                     <input type="number" id="edit_animal_count" name="animal_count" min="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_gender">Sex</label>
-                    <select id="edit_gender" name="gender">
+                    <label for="edit_sex">Researcher Sex</label>
+                    <select id="edit_sex" name="sex">
                         <option value="">— select —</option>
                         <option>Male</option>
                         <option>Female</option>
@@ -832,7 +832,7 @@ function formatDurationRange(?string $start, ?string $end): string
                     animal_type: document.getElementById('add_animal_type').value,
                     animal_count: document.getElementById('add_animal_count').value,
                     principal_investigator: document.getElementById('add_pi').value,
-                    gender: document.getElementById('add_gender').value,
+                    sex: document.getElementById('add_sex').value,
                     researcher_type: document.getElementById('add_researcher_type').value,
                     research_adviser: document.getElementById('add_research_adviser').value,
                     veterinarian: document.getElementById('add_veterinarian').value,
@@ -872,7 +872,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         document.getElementById('edit_school').value = d.school ?? '';
                         document.getElementById('edit_animal_type').value = d.animal_type ?? '';
                         document.getElementById('edit_animal_count').value = d.animal_count ?? '';
-                        document.getElementById('edit_gender').value = d.gender ?? '';
+                        document.getElementById('edit_sex').value = d.sex ?? '';
                         document.getElementById('edit_researcher_type').value = d.researcher_type ?? '';
                         document.getElementById('edit_research_adviser').value = d.research_adviser ?? '';
                         document.getElementById('edit_veterinarian').value = d.veterinarian ?? '';
@@ -896,7 +896,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 animal_type: document.getElementById('edit_animal_type').value,
                 animal_count: document.getElementById('edit_animal_count').value,
                 principal_investigator: document.getElementById('edit_pi').value,
-                gender: document.getElementById('edit_gender').value,
+                sex: document.getElementById('edit_sex').value,
                 researcher_type: document.getElementById('edit_researcher_type').value,
                 research_adviser: document.getElementById('edit_research_adviser').value,
                 veterinarian: document.getElementById('edit_veterinarian').value,

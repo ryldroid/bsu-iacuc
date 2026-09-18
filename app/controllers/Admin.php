@@ -152,15 +152,15 @@ class Admin extends Controller
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
         $animalType     = trim($_GET['animal'] ?? '');
-        $gender         = trim($_GET['gender'] ?? '');
+        $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
-        $total      = $model->count($search, $school, $animalType, $gender, $researcherType);
-        $records    = $model->getAll($search, $school, $animalType, $gender, $researcherType, $sort, $perPage, $offset);
+        $total      = $model->count($search, $school, $animalType, $sex, $researcherType);
+        $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('admin/records', [
@@ -174,12 +174,12 @@ class Admin extends Controller
             'search'          => $search,
             'school'          => $school,
             'animalType'      => $animalType,
-            'gender'          => $gender,
+            'sex'          => $sex,
             'researcherType'  => $researcherType,
             'sort'            => $sort,
             'schools'         => $model->distinctValues('school'),
             'animalTypes'     => $model->distinctValues('animal_type'),
-            'genders'         => $model->distinctValues('gender'),
+            'sexes'         => $model->distinctValues('sex'),
             'researcherTypes' => $model->distinctValues('researcher_type'),
             'stats'           => $model->stats(),
             'flash_success'   => $_SESSION['flash_success'] ?? '',
@@ -304,12 +304,12 @@ class Admin extends Controller
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
         $animalType     = trim($_GET['animal'] ?? '');
-        $gender         = trim($_GET['gender'] ?? '');
+        $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
 
-        $records = $model->getAll($search, $school, $animalType, $gender, $researcherType, $sort, 1000000, 0);
-        $stats   = $model->stats($search, $school, $animalType, $gender, $researcherType);
+        $records = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, 1000000, 0);
+        $stats   = $model->stats($search, $school, $animalType, $sex, $researcherType);
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
@@ -319,7 +319,7 @@ class Admin extends Controller
             'Search'          => $search,
             'School'          => $school,
             'Animal Type'     => $animalType,
-            'Sex'             => $gender,
+            'Researcher Sex'  => $sex,
             'Researcher Type' => $researcherType,
         ]);
 
@@ -333,7 +333,7 @@ class Admin extends Controller
             'Animal Type',
             'Count',
             'Researcher',
-            'Sex',
+            'Researcher Sex',
             'Researcher Type',
             'Research Adviser',
             'Veterinarian',
@@ -352,7 +352,7 @@ class Admin extends Controller
                 $r['animal_type'] ?? '',
                 $r['animal_count'] ?? '',
                 $r['principal_investigator'] ?? '',
-                $r['gender'] ?? '',
+                $r['sex'] ?? '',
                 $r['researcher_type'] ?? '',
                 $r['research_adviser'] ?? '',
                 $r['veterinarian'] ?? '',
@@ -428,7 +428,7 @@ class Admin extends Controller
         $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Type', $stats['animal_breakdown'], 'Animal Type');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by School', $stats['school_breakdown'], 'School');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Sex', $stats['sex_breakdown'], 'Sex');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
 
         $sheet->setCellValue("A$row", 'Records Processed by Month (This Quarter)');
         $sheet->getStyle("A$row")->getFont()->setBold(true);
@@ -495,7 +495,7 @@ class Admin extends Controller
             'animal_type'             => $str('animal_type'),
             'animal_count'            => $str('animal_count'),
             'principal_investigator'  => $str('principal_investigator'),
-            'gender'                  => $str('gender'),
+            'sex'                  => $str('sex'),
             'researcher_type'         => $str('researcher_type'),
             'research_adviser'        => $str('research_adviser'),
             'veterinarian'            => $str('veterinarian'),
@@ -544,6 +544,9 @@ class Admin extends Controller
 
     public function downloadAuditLogs(): void
     {
+        ini_set('display_errors', '1');
+        error_reporting(E_ALL);
+
         $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

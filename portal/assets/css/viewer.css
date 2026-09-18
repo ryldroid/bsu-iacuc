@@ -683,14 +683,7 @@
 .sidebar-reviewer-note-comment {
   margin: 0.4rem 0 0;
   font-size: 0.78rem;
-  /* font-style: italic; */
   color: #fcd34d;
-}
-
-.sidebar-reviewer-note-meta {
-  margin: 0.3rem 0 0;
-  font-size: 0.72rem;
-  color: #d6a24a;
 }
 
 .annot-item {
@@ -990,9 +983,26 @@
   }
 
   /* Comments are opened via tap-to-popup on the marker instead, so the
-     stacked list/toggle underneath the PDF isn't needed here. */
-  .annot-sidebar,
-  .sidebar-toggle {
+     stacked list/toggle underneath the PDF isn't needed here. The sidebar
+     itself stays in the layout (not display:none) because the reviewer
+     note lives inside it and still needs to be visible on mobile. */
+  .sidebar-toggle,
+  .annot-sidebar h3,
+  #annotList {
+    display: none;
+  }
+
+  .annot-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: none;
+    border-bottom: 1px solid #334155;
+    padding: 0.75rem;
+    flex-shrink: 0;
+    order: -1;
+  }
+
+  .annot-sidebar:not(:has(.sidebar-reviewer-note)) {
     display: none;
   }
 

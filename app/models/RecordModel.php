@@ -8,7 +8,7 @@ class RecordModel extends Model
     string $search,
     string $school,
     string $animalType,
-    string $gender,
+    string $sex,
     string $researcherType
   ): array {
     $conditions = [];
@@ -19,7 +19,7 @@ class RecordModel extends Model
       $like = '%' . $search . '%';
       $conditions[] = "(reference_no LIKE ? OR title_of_research LIKE ? OR school LIKE ?
                               OR animal_type LIKE ? OR principal_investigator LIKE ?
-                              OR gender LIKE ? OR researcher_type LIKE ?
+                              OR sex LIKE ? OR researcher_type LIKE ?
                               OR research_adviser LIKE ? OR veterinarian LIKE ?
                               OR received_by LIKE ?)";
       for ($i = 0; $i < 10; $i++) {
@@ -37,9 +37,9 @@ class RecordModel extends Model
       $params[] = &$animalType;
       $types .= 's';
     }
-    if ($gender !== '') {
-      $conditions[] = 'gender = ?';
-      $params[] = &$gender;
+    if ($sex !== '') {
+      $conditions[] = 'sex = ?';
+      $params[] = &$sex;
       $types .= 's';
     }
     if ($researcherType !== '') {
@@ -72,13 +72,13 @@ class RecordModel extends Model
     string $search = '',
     string $school = '',
     string $animalType = '',
-    string $gender = '',
+    string $sex = '',
     string $researcherType = '',
     string $sort = 'newest',
     int $limit = 25,
     int $offset = 0
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $gender, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
 
     $stmt = $this->connection->prepare(
       "SELECT * FROM `records` $where ORDER BY {$this->sortClause($sort)} LIMIT ? OFFSET ?"
@@ -103,10 +103,10 @@ class RecordModel extends Model
     string $search = '',
     string $school = '',
     string $animalType = '',
-    string $gender = '',
+    string $sex = '',
     string $researcherType = ''
   ): int {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $gender, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
 
     $stmt = $this->connection->prepare("SELECT COUNT(*) FROM `records` $where");
     if (! $stmt) return 0;
@@ -125,10 +125,10 @@ class RecordModel extends Model
     string $search = '',
     string $school = '',
     string $animalType = '',
-    string $gender = '',
+    string $sex = '',
     string $researcherType = ''
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $gender, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
 
     $total = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
 
@@ -175,8 +175,8 @@ class RecordModel extends Model
     );
 
     $sexBreakdown = $this->groupedQuery(
-      'gender',
-      $this->andClause($where, "gender IS NOT NULL AND gender != ''"),
+      'sex',
+      $this->andClause($where, "sex IS NOT NULL AND sex != ''"),
       $params,
       $types
     );
@@ -330,7 +330,7 @@ class RecordModel extends Model
 
   public function distinctValues(string $column): array
   {
-    $allowed = ['school', 'animal_type', 'gender', 'researcher_type'];
+    $allowed = ['school', 'animal_type', 'sex', 'researcher_type'];
     if (! in_array($column, $allowed, true)) return [];
 
     $result = $this->connection->query(
@@ -376,7 +376,7 @@ class RecordModel extends Model
     $stmt = $this->connection->prepare(
       "INSERT INTO `records`
              (reference_no, title_of_research, school, animal_type, animal_count,
-              principal_investigator, gender, researcher_type, research_adviser,
+              principal_investigator, sex, researcher_type, research_adviser,
               veterinarian, research_duration_start, research_duration_end, date_released, received_by)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
@@ -395,7 +395,7 @@ class RecordModel extends Model
       $d['animal_type'],
       $animalCount,
       $d['principal_investigator'],
-      $d['gender'],
+      $d['sex'],
       $d['researcher_type'],
       $d['research_adviser'],
       $d['veterinarian'],
@@ -416,7 +416,7 @@ class RecordModel extends Model
     $refNoOrNull = $refNo !== '' ? $refNo : null;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, gender, user_id, protocol_id)
+      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, user_id, protocol_id)
              VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
     if (! $stmt) return false;
@@ -451,7 +451,7 @@ class RecordModel extends Model
                animal_type              = ?,
                animal_count             = ?,
                principal_investigator   = ?,
-               gender                   = ?,
+               sex                   = ?,
                researcher_type          = ?,
                research_adviser         = ?,
                veterinarian             = ?,
@@ -477,7 +477,7 @@ class RecordModel extends Model
       $d['animal_type'],
       $animalCount,
       $d['principal_investigator'],
-      $d['gender'],
+      $d['sex'],
       $d['researcher_type'],
       $d['research_adviser'],
       $d['veterinarian'],

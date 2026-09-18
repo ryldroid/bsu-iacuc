@@ -361,7 +361,7 @@ include 'includes/header.php';
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#upload-icon" />
                             </svg>
-                            Confirm Payment
+                            Verify Payment
                         </button>
                     <?php endif; ?>
                 </div>
@@ -409,25 +409,16 @@ include 'includes/header.php';
                 </svg>
             </button>
             <div class="annot-sidebar-inner">
-                <?php if (!$isStaff && !empty($reviewerNote)): ?>
-                    <?php
-                    $rnItems = [];
-                    if (!empty($reviewerNote['wrong_cert']))   $rnItems[] = 'update your IACUC training certificate';
-                    if (!empty($reviewerNote['other_reason'])) $rnItems[] = 'revise your protocol';
-                    $rnLabel = empty($rnItems) ? 'revise your protocol' : implode(' and ', $rnItems);
-                    $rnReviewerName = trim(($reviewerNote['first_name'] ?? '') . ' ' . ($reviewerNote['last_name'] ?? ''));
-                    ?>
-                    <?php if (!empty($reviewerNote['comment'])): ?>
-                        <div class="sidebar-reviewer-note">
-                            <div class="sidebar-reviewer-note-header">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#info-icon" />
-                                </svg>
-                                Note from reviewer:
-                            </div>
-                            <p class="sidebar-reviewer-note-comment"><?= htmlspecialchars($reviewerNote['comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                <?php if (!$isStaff && !empty($reviewerNote) && !empty($reviewerNote['comment'])): ?>
+                    <div class="sidebar-reviewer-note">
+                        <div class="sidebar-reviewer-note-header">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#info-icon" />
+                            </svg>
+                            Note from reviewer:
                         </div>
-                    <?php endif; ?>
+                        <p class="sidebar-reviewer-note-comment"><?= htmlspecialchars($reviewerNote['comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                    </div>
                 <?php endif; ?>
                 <h3>Comments</h3>
                 <div id="annotList">
@@ -651,10 +642,10 @@ include 'includes/header.php';
 <?php endif; ?>
 
 <?php if ($canConfirmPayment): ?>
-    <!-- ===== Confirm Payment modal ===== -->
+    <!-- ===== Verify Payment modal ===== -->
     <div class="modal-backdrop" id="paymentModalBackdrop">
         <div class="modal-card">
-            <h2>Confirm Payment</h2>
+            <h2>Verify Payment</h2>
 
             <p class="modal-notice">The BAI Animal Research Clearance requires a Php 100.00 fee.</p>
 
@@ -715,7 +706,7 @@ include 'includes/header.php';
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#upload-icon" />
                     </svg>
-                    <span id="paymentModalSubmitLabel">Confirm Payment</span>
+                    <span id="paymentModalSubmitLabel">Verify Payment</span>
                 </button>
             </div>
         </div>
@@ -1614,7 +1605,7 @@ include 'includes/header.php';
     <?php endif; ?>
 
     <?php if ($canConfirmPayment): ?>
-        // ===== Confirm Payment modal =====
+        // ===== Verify Payment modal =====
         const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
         const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
         const paymentModal = document.getElementById('paymentModalBackdrop');
@@ -1630,7 +1621,7 @@ include 'includes/header.php';
             document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
             document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
             document.getElementById('paymentModalSubmitLabel').textContent =
-                method === 'in_person' ? 'Confirm Payment' : 'Submit Proof of Payment';
+                method === 'in_person' ? 'Verify Payment' : 'Submit Proof of Payment';
             document.getElementById('paymentModalError').hidden = true;
         }
 
@@ -1706,7 +1697,7 @@ include 'includes/header.php';
             errBox.hidden = true;
 
             const ok = await confirmAction(confirmMessage, {
-                okText: method === 'in_person' ? 'Confirm Payment' : 'Submit Proof',
+                okText: method === 'in_person' ? 'Verify Payment' : 'Submit Proof',
                 cancelText: 'Cancel'
             });
             if (!ok) return;

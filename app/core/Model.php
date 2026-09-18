@@ -18,7 +18,7 @@ class Model
             }
 
             $conn->set_charset('utf8mb4');
-  
+
 
             $conn->query("SET time_zone = '+08:00'");
 
@@ -103,7 +103,7 @@ class Model
                     `animal_type`            varchar(100) DEFAULT NULL,
                     `animal_count`           int(11)      DEFAULT NULL,
                     `principal_investigator` varchar(255) DEFAULT NULL,
-                    `gender`                 varchar(20)  DEFAULT NULL,
+                    `sex`                    varchar(20)  DEFAULT NULL,
                     `researcher_type`        varchar(50)  DEFAULT NULL,
                     `research_adviser`       varchar(255) DEFAULT NULL,
                     `veterinarian`           varchar(255) DEFAULT NULL,
@@ -112,6 +112,7 @@ class Model
                     `received_by`            varchar(255) DEFAULT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->renameColumn('records', 'gender', 'sex', "varchar(20) DEFAULT NULL");
         $this->ensureColumn('records', 'research_duration_start', "date DEFAULT NULL AFTER `research_duration`");
         $this->ensureColumn('records', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
         $this->ensureColumn('records', 'user_id', "int(11) DEFAULT NULL AFTER `id`");
@@ -362,6 +363,20 @@ class Model
         $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
         if ($exists && $exists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+    }
+
+    // Renames $from to $to, only when $from still exists and $to doesn't yet
+    // (so this is a no-op on fresh installs, which already create the
+    // column under its new name).
+    private function renameColumn(string $table, string $from, string $to, string $definition): void
+    {
+        $c = $this->connection;
+
+        $oldExists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$from'");
+        $newExists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$to'");
+        if ($oldExists && $oldExists->num_rows > 0 && $newExists && $newExists->num_rows === 0) {
+            $c->query("ALTER TABLE `$table` CHANGE COLUMN `$from` `$to` $definition");
         }
     }
 

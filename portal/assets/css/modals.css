@@ -329,7 +329,7 @@
     }
 }
 
-/* ===== Modal notice/subtitle text (Confirm Payment, Upload Clearance, etc.) ===== */
+/* ===== Modal notice/subtitle text (Verify Payment, Upload Clearance, etc.) ===== */
 .modal-notice {
     font-size: 0.9rem;
     line-height: 1.5;

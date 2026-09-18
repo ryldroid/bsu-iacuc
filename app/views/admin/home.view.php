@@ -46,13 +46,13 @@ $statusDescByRole = [
         'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "The reviewer has finished the assessment. Confirm payment and upload the scan with the IACUC Chair's sign to move it to Endorsed.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Waiting on the reviewer to upload the Animal Research Clearances through the Clearance Pool.',
+        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. You will be notified once the reviewer has uploaded the Animal Research Clearances. View through the Clearance Pool.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "You have finished the assessment. No action required. Waiting on the admin to confirm payment and upload the scan with the IACUC Chair's sign.",
+        'reviewed'              => "You have finished the assessment. No action required. The admin will now verify payments and upload the scan with the IACUC Chair's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances through the Clearance Pool. An admin will sort and release them to the researchers.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
@@ -298,7 +298,7 @@ foreach ($protocols as $p) {
                         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#sort-icon" />
                         </svg>
-                        Sort by:
+                        Sort:
                     </p>
 
                     <div class="sort-wrapper">
@@ -546,7 +546,7 @@ foreach ($protocols as $p) {
                                 if ($paymentStatus === 'proof_submitted') {
                                     $actions = [
                                         [
-                                            'label' => 'Confirm Payment',
+                                            'label' => 'Verify Payment',
                                             'action' => 'review-payment',
                                             'icon' => 'review',
                                             'primary' => true
@@ -1945,7 +1945,7 @@ foreach ($protocols as $p) {
     }
 </script>
 
-<!-- ===== Confirm Payment modal (admin only): shows the proof image (if any), then Approve / Reject ===== -->
+<!-- ===== Verify Payment modal (admin only): shows the proof image (if any), then Approve / Reject ===== -->
 <div class="modal-backdrop" id="reviewPaymentModalBackdrop">
     <div class="modal-card file-popup-card review-payment-card">
         <div class="file-popup-header">

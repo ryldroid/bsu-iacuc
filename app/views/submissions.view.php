@@ -148,7 +148,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#sort-icon" />
                     </svg>
-                    Sort by:
+                    Sort:
                 </p>
 
                 <div class="sort-wrapper">
@@ -407,7 +407,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
     </div>
 </div>
 
-<!-- Confirm Payment modal -->
+<!-- Verify Payment modal -->
 <div class="modal-backdrop" id="paymentModalBackdrop">
     <div class="modal-card">
         <h2>Payment</h2>
@@ -471,7 +471,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#upload-icon" />
                 </svg>
-                <span id="paymentModalSubmitLabel">Confirm Payment</span>
+                <span id="paymentModalSubmitLabel">Verify Payment</span>
             </button>
         </div>
     </div>
@@ -496,7 +496,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
         document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
         document.getElementById('paymentModalSubmitLabel').textContent =
-            method === 'in_person' ? 'Confirm Payment' : 'Submit Proof of Payment';
+            method === 'in_person' ? 'Verify Payment' : 'Submit Proof of Payment';
         document.getElementById('paymentModalError').hidden = true;
     }
 
@@ -918,7 +918,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#info-icon" />
                 </svg>
-                Returned for revision by ${escapeHtml(reason.first_name)} ${escapeHtml(reason.last_name)}
+                Returned for revision
             </div>
             <p class="history-return-date">${formatDate(reason.created_at)}</p>
             ${issueLabels.length > 0 ? `<ul class="history-return-issues">${issueLabels.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
