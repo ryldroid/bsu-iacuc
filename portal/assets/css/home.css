@@ -640,8 +640,33 @@ h2 {
         gap: 0;
     }
 
+    /* Let the two column wrapper divs disappear so their sections become
+       direct grid items of .articles, which makes the `order` values below
+       apply across both former columns instead of just within each one. */
+    .articles>div,
+    .articles>.faq-column {
+        display: contents;
+    }
+
+    .iacuc-section {
+        order: 1;
+    }
+
     .faq-section {
+        order: 2;
         margin-top: 40px;
+    }
+
+    .process-section {
+        order: 3;
+    }
+
+    .home-announcements-teaser {
+        order: 4;
+    }
+
+    .map-section {
+        order: 5;
     }
 
     .faq-column {
@@ -720,7 +745,19 @@ h2 {
     }
 
     .articles {
-        gap: 2em;
+        /* gap: 2em; */
+    }
+
+    .process-section {
+        margin-top: 0;
+    }
+
+    .process-section h2 {
+        margin-top: 0;
+    }
+
+    .faq-section {
+        margin-top: 0;
     }
 
     .articles h2,

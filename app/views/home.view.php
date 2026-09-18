@@ -38,7 +38,7 @@ include "includes/scroll-top.php";
         <div class="articles">
             <div>
                 <!-- ABOUT -->
-                <article>
+                <article class="iacuc-section">
                     <div class="home-iacuc">
                         <h2>What is IACUC?</h2>
                         <p>
@@ -67,7 +67,7 @@ include "includes/scroll-top.php";
                     <div class="faq-header">
                         <h2 class="faq-title">Frequently Asked Questions</h2>
                         <button type="button" class="faq-toggle-all" id="faqToggleAll">
-                            expand all
+                            [] expand all
                         </button>
                     </div>
 
@@ -473,7 +473,7 @@ include "includes/scroll-top.php";
     function updateToggleAllLabel() {
         if (!faqToggleAllBtn) return;
         const allOpen = Array.from(faqItems).every(details => details.classList.contains('is-open'));
-        faqToggleAllBtn.textContent = allOpen ? 'collapse all' : 'expand all';
+        faqToggleAllBtn.textContent = allOpen ? '[-] collapse all' : '[] expand all';
     }
 
     faqItems.forEach(details => {

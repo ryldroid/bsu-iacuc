@@ -1,4 +1,4 @@
-const CACHE_VERSION = "bsu-iacuc-v4";
+const CACHE_VERSION = "bsu-iacuc-v5";
 
 const PRECACHE_URLS = [
   "offline.html",

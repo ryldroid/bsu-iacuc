@@ -1,6 +1,7 @@
 body {
     position: relative;
     overflow-x: hidden;
+    background-color: transparent;
 }
 
 body::before {
@@ -14,7 +15,6 @@ body::before {
     background-repeat: no-repeat;
     background-attachment: fixed;
 
-    filter: blur(3px);
     z-index: -1;
 }
 

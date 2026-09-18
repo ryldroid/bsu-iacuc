@@ -80,69 +80,6 @@ $hideHeader     = $hideHeader     ?? false;
         </a>
       </div>
 
-      <?php if ($user): ?>
-
-        <!-- RESEARCHER MOBILE NAVIGATION -->
-        <?php if ($role === 'researcher'): ?>
-          <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
-            <ul class="nav-sidebar" id="nav-sidebar" inert>
-              <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#home-icon" />
-                  </svg><span>Home</span></a></li>
-              <li><a href="<?= ROOT ?>/submissions"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#protocols-icon" />
-                  </svg><span>My Protocols</span></a></li>
-              <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#announcement-icon" />
-                  </svg><span>Announcements</span></a></li>
-              <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#contact-icon" />
-                  </svg><span>Contact</span></a></li>
-            </ul>
-          </nav>
-
-          <!-- STAFF (ADMIN / REVIEWER) MOBILE NAVIGATION -->
-        <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
-          <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
-            <ul class="nav-sidebar" id="nav-sidebar" inert>
-              <li><a href="<?= ROOT ?>/admin/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#home-icon" />
-                  </svg><span>Dashboard</span></a></li>
-              <li><a href="<?= ROOT ?>/admin/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#protocols-icon" />
-                  </svg><span>Records</span></a></li>
-              <?php if ($role === 'admin'): ?>
-                <li><a href="<?= ROOT ?>/admin/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <use href="#clearance-icon" />
-                    </svg><span>Clearance Pool</span></a></li>
-                <li><a href="<?= ROOT ?>/admin/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <use href="#announcement-icon" />
-                    </svg><span>Announcements</span></a></li>
-                <li><a href="<?= ROOT ?>/admin/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <use href="#accounts-icon" />
-                    </svg><span>Manage Accounts</span></a></li>
-              <?php endif; ?>
-            </ul>
-          </nav>
-        <?php endif; ?>
-
-      <?php else: ?>
-        <!-- PUBLIC MOBILE NAVIGATION -->
-        <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
-          <ul class="nav-sidebar" id="nav-sidebar" inert>
-            <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#home-icon" />
-                </svg><span>Home</span></a></li>
-            <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#announcement-icon" />
-                </svg><span>Announcements</span></a></li>
-            <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#contact-icon" />
-                </svg><span>Contact</span></a></li>
-          </ul>
-        </nav>
-      <?php endif; ?>
-
       <!-- DARK MODE TOGGLE -->
       <?php include 'theme-toggle.php'; ?>
 
@@ -232,6 +169,70 @@ $hideHeader     = $hideHeader     ?? false;
         </div>
       <?php endif; ?>
     </header>
+    <!-- Mobile nav lives outside <header> so header's scroll-hide transform never traps it as a fixed-position containing block -->
+    <?php if ($user): ?>
+
+      <!-- RESEARCHER MOBILE NAVIGATION -->
+      <?php if ($role === 'researcher'): ?>
+        <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
+          <ul class="nav-sidebar" id="nav-sidebar" inert>
+            <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#home-icon" />
+                </svg><span>Home</span></a></li>
+            <li><a href="<?= ROOT ?>/submissions"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#protocols-icon" />
+                </svg><span>My Protocols</span></a></li>
+            <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#announcement-icon" />
+                </svg><span>Announcements</span></a></li>
+            <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#contact-icon" />
+                </svg><span>Contact</span></a></li>
+          </ul>
+        </nav>
+
+        <!-- STAFF (ADMIN / REVIEWER) MOBILE NAVIGATION -->
+      <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
+        <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
+          <ul class="nav-sidebar" id="nav-sidebar" inert>
+            <li><a href="<?= ROOT ?>/admin/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#home-icon" />
+                </svg><span>Dashboard</span></a></li>
+            <li><a href="<?= ROOT ?>/admin/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#protocols-icon" />
+                </svg><span>Records</span></a></li>
+            <?php if ($role === 'admin'): ?>
+              <li><a href="<?= ROOT ?>/admin/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#clearance-icon" />
+                  </svg><span>Clearance Pool</span></a></li>
+              <li><a href="<?= ROOT ?>/admin/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#announcement-icon" />
+                  </svg><span>Announcements</span></a></li>
+              <li><a href="<?= ROOT ?>/admin/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#accounts-icon" />
+                  </svg><span>Manage Accounts</span></a></li>
+            <?php endif; ?>
+          </ul>
+        </nav>
+      <?php endif; ?>
+
+    <?php else: ?>
+      <!-- PUBLIC MOBILE NAVIGATION -->
+      <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
+        <ul class="nav-sidebar" id="nav-sidebar" inert>
+          <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#home-icon" />
+              </svg><span>Home</span></a></li>
+          <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#announcement-icon" />
+              </svg><span>Announcements</span></a></li>
+          <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#contact-icon" />
+              </svg><span>Contact</span></a></li>
+        </ul>
+      </nav>
+    <?php endif; ?>
+
   <?php endif; ?>
 
   <?php if ($user && empty($user['email_verified'])): ?>
