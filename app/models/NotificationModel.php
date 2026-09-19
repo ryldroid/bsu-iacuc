@@ -4,6 +4,31 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class NotificationModel extends Model
 {
+  private const DEFAULT_STYLE = ['icon' => 'bell-icon', 'variant' => 'info'];
+
+  private const TYPE_STYLES = [
+    'account_verified'               => ['icon' => 'shield-check-icon', 'variant' => 'success'],
+    'protocol_submitted'             => ['icon' => 'upload-icon', 'variant' => 'info'],
+    'new_submission_admin'           => ['icon' => 'upload-icon', 'variant' => 'info'],
+    'protocol_resubmitted'           => ['icon' => 'upload-icon', 'variant' => 'warning'],
+    'protocol_renamed'               => ['icon' => 'edit-icon', 'variant' => 'purple'],
+    'protocol_status_changed'        => ['icon' => 'review-icon', 'variant' => 'info'],
+    'protocol_status_under_review'   => ['icon' => 'clock-icon', 'variant' => 'info'],
+    'protocol_status_needs_revision' => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
+    'protocol_status_reviewed'       => ['icon' => 'checkbox-icon', 'variant' => 'purple'],
+    'protocol_status_endorsed'       => ['icon' => 'shield-check-icon', 'variant' => 'teal'],
+    'protocol_status_approved'       => ['icon' => 'check-circle-icon', 'variant' => 'success'],
+    'payment_proof_uploaded'         => ['icon' => 'upload-icon', 'variant' => 'warning'],
+    'payment_verified'               => ['icon' => 'check-icon', 'variant' => 'success'],
+    'payment_proof_rejected'         => ['icon' => 'close-icon', 'variant' => 'danger'],
+    'protocol_paid'                  => ['icon' => 'download-icon', 'variant' => 'teal'],
+    'signed_scan_uploaded'           => ['icon' => 'edit-icon', 'variant' => 'purple'],
+    'clearance_pool_uploaded'        => ['icon' => 'clearance-icon', 'variant' => 'teal'],
+    'protocol_deletion_requested'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
+    'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
+    'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
+  ];
+
   public function create(int $userId, string $type, string $title, string $message = '', ?string $link = null): int | false
   {
     $stmt = $this->connection->prepare(
@@ -57,7 +82,7 @@ class NotificationModel extends Model
 
     $stmt->bind_param('ii', $userId, $limit);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    return $this->withDisplay($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
   }
 
   public function getForUserPaginated(int $userId, int $limit, int $offset): array
@@ -75,7 +100,16 @@ class NotificationModel extends Model
 
     $stmt->bind_param('iii', $userId, $limit, $offset);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    return $this->withDisplay($stmt->get_result()->fetch_all(MYSQLI_ASSOC));
+  }
+
+  private function withDisplay(array $items): array
+  {
+    return array_map(function (array $item): array {
+      $style = self::TYPE_STYLES[$item['type']] ?? self::DEFAULT_STYLE;
+
+      return $item + $style + ['message_html' => Notifier::toHtml((string) $item['message'])];
+    }, $items);
   }
 
   public function countForUser(int $userId): int

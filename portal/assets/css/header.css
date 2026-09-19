@@ -36,7 +36,7 @@ header img {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     background: var(--status-info-bg);
     color: var(--status-info-text);
     padding: 10px 20px;
@@ -44,19 +44,18 @@ header img {
 }
 
 .verify-banner-text {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .verify-banner-text svg {
-    flex-shrink: 0;
+    vertical-align: text-bottom;
+    margin-right: 8px;
 }
 
-.verify-banner-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.verify-banner-link-form {
+    display: contents;
 }
 
 .verify-banner-link {
@@ -68,6 +67,7 @@ header img {
     text-decoration: underline;
     cursor: pointer;
     font-size: 1em;
+    white-space: nowrap;
 }
 
 .verify-banner-close {
@@ -78,6 +78,7 @@ header img {
     cursor: pointer;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
     opacity: 0.75;
 }
 
@@ -373,6 +374,7 @@ header nav a:hover::after {
     top: var(--pinned-top-offset, 16px);
     right: 16px;
     margin-right: 0;
+    z-index: 1011;
     transition: top .2s ease;
 }
 
@@ -446,8 +448,8 @@ header nav a:hover::after {
 }
 
 .header-auth img {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
 }
 
@@ -542,8 +544,8 @@ header nav a:hover::after {
     }
 
     .header-auth svg {
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
     }
 
     .active-link {

@@ -209,6 +209,7 @@ main button:hover {
 
 .success-message {
     text-align: center;
+    justify-content: center;
     border-radius: 8px;
     padding: 10px 15px;
     background-color: var(--success-background);
@@ -263,6 +264,27 @@ main button:hover {
 .password-requirements ul {
     padding-left: 1.2em;
     margin-top: 0.3em;
+    list-style: none;
+}
+
+.password-requirements li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.password-requirements li .password-req-check {
+    flex-shrink: 0;
+    visibility: hidden;
+}
+
+.password-requirements li.met {
+    color: var(--success-text);
+}
+
+.password-requirements li.met .password-req-check {
+    visibility: visible;
 }
 
 .form-label {

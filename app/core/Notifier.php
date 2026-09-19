@@ -53,6 +53,21 @@ class Notifier
     }
   }
 
+  public static function bold(string $text): string
+  {
+    return "**$text**";
+  }
+
+  public static function boldTitle(string $title): string
+  {
+    return '"' . self::bold($title) . '"';
+  }
+
+  public static function toHtml(string $message): string
+  {
+    return preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+  }
+
   private static function sendEmail(array $email): void
   {
     try {

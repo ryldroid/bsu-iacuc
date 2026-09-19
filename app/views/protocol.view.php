@@ -366,9 +366,14 @@ include 'includes/header.php';
                     <?php endif; ?>
                 </div>
             <?php elseif ($isCompleted && $isLatestVersion): ?>
-                <?php if ($latestClearanceFileUrl): ?>
-                    <a class="tool-btn tool-btn--success" href="<?= htmlspecialchars($latestClearanceFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        download="<?= htmlspecialchars($latestClearanceVersion['original_name'] ?? 'clearance', ENT_QUOTES, 'UTF-8') ?>">
+                <?php if ($latestClearanceFileUrl):
+                    $clearanceExt = strtolower(pathinfo($latestClearanceVersion['original_name'] ?? '', PATHINFO_EXTENSION));
+                    $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
+                ?>
+                    <a class="tool-btn tool-btn--success download-clearance-btn" href="<?= htmlspecialchars($latestClearanceFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        download="<?= htmlspecialchars($latestClearanceVersion['original_name'] ?? 'clearance', ENT_QUOTES, 'UTF-8') ?>"
+                        data-view-href="<?= htmlspecialchars($latestClearanceFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#download-icon" />
                         </svg>
@@ -770,6 +775,26 @@ include 'includes/header.php';
                             Confirm
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($protocol['deletion_rejection_reason'])): ?>
+    <!-- ===== Deletion request rejected modal ===== -->
+    <div class="modal-backdrop" id="deletionRejectedModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label">Deletion Request Rejected</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">Reason: <?= htmlspecialchars($protocol['deletion_rejection_reason'], ENT_QUOTES, 'UTF-8') ?></p>
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeDeletionRejectedModal()">Close</button>
                 </div>
             </div>
         </div>
@@ -1852,11 +1877,30 @@ include 'includes/header.php';
         }
     <?php endif; ?>
 
+    <?php if (!empty($protocol['deletion_rejection_reason'])): ?>
+        // ===== Deletion request rejected modal =====
+        const deletionRejectedBackdrop = document.getElementById('deletionRejectedModalBackdrop');
+
+        function openDeletionRejectedModal() {
+            deletionRejectedBackdrop.classList.add('open');
+        }
+
+        function closeDeletionRejectedModal() {
+            deletionRejectedBackdrop.classList.remove('open');
+        }
+
+        deletionRejectedBackdrop.addEventListener('click', e => {
+            if (e.target === deletionRejectedBackdrop) closeDeletionRejectedModal();
+        });
+    <?php endif; ?>
+
         // ===== Auto-open from notification/email links =====
         (function handleAutoOpenFromLink() {
             const openTarget = new URLSearchParams(window.location.search).get('open');
             if (openTarget === 'deletion_request' && typeof openDeletionReviewModal === 'function') {
                 openDeletionReviewModal();
+            } else if (openTarget === 'deletion_rejected' && typeof openDeletionRejectedModal === 'function') {
+                openDeletionRejectedModal();
             } else if (openTarget === 'signed_scan') {
                 <?= $latestSignedScanFileUrl ? 'openFilePopup(' . json_encode($latestSignedScanFileUrl) . ', ' . json_encode('Signed Scan') . ');' : '' ?>
             }
@@ -2228,6 +2272,15 @@ include 'includes/header.php';
             }
         }
     <?php endif; ?>
+
+    // ===== Download Clearance: also open images in a new tab =====
+    document.querySelectorAll('.download-clearance-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {
+                window.open(btn.dataset.viewHref, '_blank', 'noopener');
+            }
+        });
+    });
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

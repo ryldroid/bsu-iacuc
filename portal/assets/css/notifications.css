@@ -151,6 +151,16 @@
   color: var(--status-danger-text);
 }
 
+.notif-item-icon--purple {
+  background-color: var(--status-purple-bg);
+  color: var(--status-purple-text);
+}
+
+.notif-item-icon--teal {
+  background-color: var(--status-teal-bg);
+  color: var(--status-teal-text);
+}
+
 .notif-item-body {
   flex: 1;
   min-width: 0;
@@ -214,6 +224,16 @@
 @media (max-width: 768px) {
   #notif-dropdown {
     width: 300px;
+  }
+
+  .notif-item-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .notif-item-icon svg {
+    width: 13px;
+    height: 13px;
   }
 }
 

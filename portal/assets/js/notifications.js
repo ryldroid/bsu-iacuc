@@ -29,22 +29,6 @@ function timeAgo(dateStr) {
   return new Date(dateStr.replace(" ", "T")).toLocaleDateString();
 }
 
-const NOTIF_TYPE_STYLES = {
-  account_verified: { icon: "shield-check-icon", variant: "success" },
-  protocol_submitted: { icon: "upload-icon", variant: "info" },
-  new_submission_admin: { icon: "upload-icon", variant: "info" },
-  protocol_resubmitted: { icon: "upload-icon", variant: "info" },
-  protocol_renamed: { icon: "edit-icon", variant: "info" },
-  protocol_status_changed: { icon: "review-icon", variant: "info" },
-  protocol_deletion_requested: {
-    icon: "alert-triangle-icon",
-    variant: "warning",
-  },
-  protocol_deletion_rejected: { icon: "close-icon", variant: "danger" },
-  protocol_deleted: { icon: "trash-icon", variant: "danger" },
-};
-const NOTIF_TYPE_DEFAULT = { icon: "bell-icon", variant: "info" };
-
 function renderBadge(count) {
   if (!notifBadge) return;
   if (count > 0) {
@@ -67,18 +51,16 @@ function renderList(items) {
     .map((item) => {
       const isUnread = item.is_read == 0;
       const href = item.link ? `${NOTIF_ROOT}/${item.link}` : "#";
-      const { icon, variant } =
-        NOTIF_TYPE_STYLES[item.type] ?? NOTIF_TYPE_DEFAULT;
       return `
         <a href="${href}" class="notif-item${isUnread ? " unread" : ""}" data-id="${item.id}">
-          <span class="notif-item-icon notif-item-icon--${variant}">
+          <span class="notif-item-icon notif-item-icon--${item.variant}">
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#${icon}" />
+              <use href="#${item.icon}" />
             </svg>
           </span>
           <div class="notif-item-body">
             <div class="notif-item-title">${escapeHtml(item.title)}</div>
-            <div class="notif-item-message">${escapeHtml(item.message)}</div>
+            <div class="notif-item-message">${item.message_html}</div>
             <div class="notif-item-time">${timeAgo(item.created_at)}</div>
           </div>
           ${isUnread ? '<span class="notif-item-dot" aria-hidden="true"></span>' : ""}

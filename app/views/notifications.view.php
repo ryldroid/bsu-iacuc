@@ -19,19 +19,6 @@ $totalPages = $totalPages ?? 1;
 $perPage    = $perPage    ?? 20;
 $offset     = ($page - 1) * $perPage;
 
-$typeIcons = [
-  'account_verified'            => ['icon' => 'shield-check-icon', 'variant' => 'success'],
-  'protocol_submitted'          => ['icon' => 'upload-icon', 'variant' => 'info'],
-  'new_submission_admin'        => ['icon' => 'upload-icon', 'variant' => 'info'],
-  'protocol_resubmitted'        => ['icon' => 'upload-icon', 'variant' => 'info'],
-  'protocol_renamed'            => ['icon' => 'edit-icon', 'variant' => 'info'],
-  'protocol_status_changed'     => ['icon' => 'review-icon', 'variant' => 'info'],
-  'protocol_deletion_requested' => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
-  'protocol_deletion_rejected'  => ['icon' => 'close-icon', 'variant' => 'danger'],
-  'protocol_deleted'            => ['icon' => 'trash-icon', 'variant' => 'danger'],
-];
-$defaultIcon = ['icon' => 'bell-icon', 'variant' => 'info'];
-
 function notifPageUrl(int $p): string
 {
   return ROOT . '/notifications/page?page=' . $p;
@@ -69,19 +56,18 @@ function notifTimeAgo(string $dateStr): string
           <?php
           $isUnread = (int) $item['is_read'] === 0;
           $href     = $item['link'] ? ROOT . '/' . $item['link'] : '#';
-          $style    = $typeIcons[$item['type']] ?? $defaultIcon;
           ?>
           <a href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"
             class="notif-item<?= $isUnread ? ' unread' : '' ?>"
             data-id="<?= (int) $item['id'] ?>">
-            <span class="notif-item-icon notif-item-icon--<?= $style['variant'] ?>">
+            <span class="notif-item-icon notif-item-icon--<?= $item['variant'] ?>">
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#<?= $style['icon'] ?>" />
+                <use href="#<?= $item['icon'] ?>" />
               </svg>
             </span>
             <div class="notif-item-body">
               <div class="notif-item-title"><?= htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8') ?></div>
-              <div class="notif-item-message"><?= htmlspecialchars($item['message'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="notif-item-message"><?= $item['message_html'] ?></div>
               <div class="notif-item-time"><?= notifTimeAgo($item['created_at']) ?></div>
             </div>
             <?php if ($isUnread): ?>

@@ -25,13 +25,13 @@ $statusMeta = [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => 'Being reviewed by the IACUC reviewer. No action needed. You will be notified for every action required.',
+        'desc'  => 'No action needed. Your protocol is being reviewed by CCARD, and you will be notified for every feedback given.',
     ],
     'needs-revision' => [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => 'The reviewer found an issue and sent it back. Revise your protocol following the comments and re-submit your file.',
+        'desc'  => 'The reviewer found an issue and sent your protocol back. Revise it following the comments and re-submit your file.',
     ],
     'reviewed' => [
         'label' => 'Reviewed',
@@ -43,7 +43,7 @@ $statusMeta = [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => 'Your protocol has been endorsed to DA-CARFU. No action needed. Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.',
+        'desc'  => 'No action needed. Your protocol has been endorsed to DA-CARFU. Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.',
     ],
     'approved' => [
         'label' => 'Approved',
@@ -195,7 +195,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 <button type="button" class="legend-info-btn" id="legendInfoBtn"
                     aria-expanded="false" aria-controls="legendInfoPanel"
                     aria-label="What do the statuses mean? What should I do?">
-                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#question-info-icon" />
                     </svg>
                 </button>
@@ -260,7 +260,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
-                    <div class="protocol" data-status="<?= $statusKey ?>"
+                    <div class="protocol" id="protocol-<?= $protocolIdInt ?>" data-status="<?= $statusKey ?>"
                         data-submitted="<?= htmlspecialchars($submittedIso, ENT_QUOTES, 'UTF-8') ?>"
                         data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
@@ -315,12 +315,18 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#<?= $needsRevision ? 'upload-icon' : 'eye-icon' ?>" />
                                     </svg>
-                                    <?= $needsRevision ? 'Open &amp; Re-submit' : 'Open' ?>
+                                    <?= $needsRevision ? 'Review Comments &amp; Re-submit' : 'Open' ?>
                                 </a>
 
-                                <?php if ($isApproved): ?>
+                                <?php if ($isApproved):
+                                    $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
+                                    $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
+                                ?>
                                     <a class="download-clearance-btn button button--primary"
-                                        href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>" target="_blank" rel="noopener">
+                                        href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
+                                        data-view-href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>"
+                                        data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>"
+                                        rel="noopener">
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#download-icon" />
                                         </svg>
@@ -740,6 +746,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
         }
     })();
 
+    (function highlightFromUrl() {
+        const id = new URLSearchParams(window.location.search).get('highlight');
+        const card = id && document.getElementById('protocol-' + id);
+        if (!card) return;
+        if (card.style.display === 'none') applySubmissionsFilter(card.dataset.status);
+        card.scrollIntoView({
+            block: 'center'
+        });
+        card.classList.add('protocol--highlight');
+    })();
+
     // ===== Continue vs New Application =====
     (function() {
         const applyUrl = '<?= ROOT ?>/apply';
@@ -1051,6 +1068,15 @@ function statusIconSvg(string $iconId, int $size = 14): string
         dismissFlash('flashSuccess', 4000);
         dismissFlash('flashError', 7000);
     })();
+
+    // ===== Download Clearance: always download, also open images in a new tab =====
+    document.querySelectorAll('.download-clearance-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {
+                window.open(btn.dataset.viewHref, '_blank', 'noopener');
+            }
+        });
+    });
 </script>
 
 <?php include 'includes/footer.php'; ?>

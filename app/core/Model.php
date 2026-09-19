@@ -146,6 +146,7 @@ class Model
         $this->ensureColumn('protocols', 'deletion_requested_by_name', "varchar(150) DEFAULT NULL AFTER `deletion_requested_by`");
         $this->ensureColumn('protocols', 'deletion_requested_by_role', "varchar(30) DEFAULT NULL AFTER `deletion_requested_by_name`");
         $this->ensureColumn('protocols', 'deletion_request_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_requested_by_role`");
+        $this->ensureColumn('protocols', 'deletion_rejection_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_request_reason`");
         $this->ensureColumn('protocols', 'deleted_at', "timestamp NULL DEFAULT NULL AFTER `deletion_request_reason`");
         $this->ensureColumn('protocols', 'deleted_by', "int(11) DEFAULT NULL AFTER `deleted_at`");
         $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");

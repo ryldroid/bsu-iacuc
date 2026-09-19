@@ -22,6 +22,7 @@
     border-radius: 6px;
     font-size: .78rem;
     max-width: 480px;
+    display: none;
 }
 
 .return-reason-by {

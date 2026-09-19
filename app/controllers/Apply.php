@@ -1,45 +1,5 @@
 <?php
 
-/**
- * Routes:
- *   GET  /apply                        → upload form (researcher)
- *   POST /apply/submit                 → save new protocol + upload file
- *   POST /apply/reupload               → upload a new version (status must be Needs Revision)
- *   GET  /apply/viewer/{id}/{versionId?} → PDF.js viewer for a protocol (versionId optional; defaults to latest, used by "Show History" to open a specific past version read-only)
- *   GET  /apply/file/{vid}             → stream a file by version id
- *   GET  /apply/hascert                → check if researcher has cert on file
- *   GET  /apply/versions/{id}          → protocol file version history (JSON)
- *   GET  /apply/allversions/{id}       → all file versions (JSON)
- *   GET  /apply/cert/{userId}          → stream a researcher's stored certificate
- *   GET  /apply/clearance/{id}         → redirect to latest clearance file
- *   POST /apply/clearance_upload       → attach clearance doc and mark Approved (admin)
- *   GET|POST /apply/annotate           → get/save/edit/delete annotations (JSON)
- *   POST /apply/status                 → update protocol status (JSON)
- *   POST /apply/payment_proof          → researcher confirms payment (JSON)
- *   POST /apply/verify_payment         → admin marks a protocol paid (JSON)
- *   POST /apply/undo_payment           → admin undoes a "mark as paid" (JSON)
- *   POST /apply/reject_payment         → admin rejects a payment confirmation with a reason (JSON)
- *   POST /apply/signed_scan_upload     → admin uploads the wet-signed scan (JSON)
- *   POST /apply/clearance_pool_upload  → reviewer uploads a BAI clearance screenshot to the pool (JSON)
- *   GET  /apply/clearance_pool         → list unassigned + staged clearance pool items (JSON, admin)
- *   GET  /apply/clearance_pool_file/{id} → stream a clearance pool item
- *   POST /apply/clearance_stage        → admin drags a screenshot onto a protocol (provisional, JSON)
- *   POST /apply/clearance_unstage      → admin undoes a stage before confirming (JSON)
- *   POST /apply/clearance_confirm      → admin commits all staged matches at once, marks Approved (JSON)
- *   POST /apply/clearance_unassign     → admin detaches an already-confirmed wrong match (JSON)
- *   POST /apply/clearance_delete       → admin deletes an unwanted, still-unassigned screenshot (JSON)
- *   POST /apply/clearance_assign_ipn   → admin assigns/edits a protocol's IPN from the Clearance page (JSON)
- *   POST /apply/return_revision        → return for revision with reasons (JSON)
- *   GET  /apply/returnreason/{id}      → get latest return reason (JSON)
- *   POST /apply/reuploadcert           → replace researcher's stored certificate
- *   GET  /apply/draft                  → load the current user's in-progress draft (JSON)
- *   POST /apply/draftsave              → save draft step/checkboxes/title (JSON)
- *   POST /apply/draftupload            → upload a draft file (protocol/cert)
- *   GET  /apply/draftfile/{key}        → stream a draft file belonging to the current user
- *   POST /apply/draftremovefile        → remove a single draft file
- *   POST /apply/draftclear             → discard the current user's draft entirely
- */
-
 class Apply extends Controller
 {
     public function __construct()
@@ -51,9 +11,14 @@ class Apply extends Controller
 
     // ===== HELPERS =====
 
-    private function requireProtocolAccess(array $protocol, int $userId, string $role): void
+    private function requireProtocolAccess(array $protocol, int $userId, string $role, bool $asPage = false): void
     {
         if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['admin', 'reviewer'])) {
+            if ($asPage) {
+                $this->renderError(403, 'Access Denied', [
+                    'You do not have permission to view this protocol.',
+                ]);
+            }
             $this->jsonError(403, 'Access denied.');
         }
     }
@@ -87,7 +52,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'protocol_renamed',
             'Protocol Renamed',
-            "\"$oldTitle\" was renamed to \"$newTitle\" by $roleLabel - {$actor['name']}.",
+            Notifier::boldTitle($oldTitle) . ' was renamed to ' . Notifier::boldTitle($newTitle) . " by $roleLabel - {$actor['name']}.",
             'apply/viewer/' . $protocol['protocol_id'],
             [
                 'template' => 'protocol_renamed',
@@ -115,7 +80,7 @@ class Apply extends Controller
                 $staffRole,
                 'protocol_renamed',
                 'Protocol Renamed',
-                "$roleLabel {$actor['name']} renamed \"$oldTitle\" to \"$newTitle\".",
+                "$roleLabel {$actor['name']} renamed " . Notifier::boldTitle($oldTitle) . ' to ' . Notifier::boldTitle($newTitle) . '.',
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
                     'template' => 'protocol_renamed_staff',
@@ -142,7 +107,7 @@ class Apply extends Controller
                 $staffRole,
                 'protocol_resubmitted',
                 'Protocol Re-submitted',
-                "$roleLabel {$actor['name']} resubmitted \"$title\" for review.",
+                "$roleLabel {$actor['name']} resubmitted " . Notifier::boldTitle($title) . ' for review.',
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
                     'template' => 'protocol_resubmitted_staff',
@@ -167,7 +132,7 @@ class Apply extends Controller
             'reviewer',
             'protocol_deletion_requested',
             'Deletion Requested',
-            "$roleLabel {$actor['name']} requested deletion of \"$title\". Reason: $reason",
+            "$roleLabel {$actor['name']} requested deletion of " . Notifier::boldTitle($title) . ". Reason: $reason",
             'apply/viewer/' . $protocol['protocol_id'] . '?open=deletion_request',
             [
                 'template' => 'protocol_deletion_requested',
@@ -196,7 +161,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'protocol_deleted',
             'Protocol Deleted',
-            "Your protocol \"$title\" was deleted by {$actor['name']}. Reason: $reason",
+            'Your protocol ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('deleted') . " by {$actor['name']}. Reason: $reason",
             'submissions',
             [
                 'template' => 'protocol_deleted',
@@ -231,8 +196,8 @@ class Apply extends Controller
             $requesterId,
             'protocol_deletion_rejected',
             'Deletion Request Rejected',
-            "Your request to delete \"$title\" was rejected by {$actor['name']}. Reason: $rejectionReason",
-            'submissions',
+            'Your request to delete ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . " by {$actor['name']}. Reason: $rejectionReason",
+            'apply/viewer/' . $protocol['protocol_id'] . '?open=deletion_rejected',
             [
                 'template' => 'protocol_deletion_rejected',
                 'vars'     => [
@@ -260,13 +225,13 @@ class Apply extends Controller
 
         $link = strtolower($newStatus) === 'needs revision'
             ? 'apply/viewer/' . $protocol['protocol_id']
-            : 'submissions?status=' . strtolower(str_replace(' ', '-', $newStatus));
+            : 'submissions?status=' . strtolower(str_replace(' ', '-', $newStatus)) . '&highlight=' . $protocol['protocol_id'];
 
         Notifier::send(
             (int) $protocol['user_id'],
-            'protocol_status_changed',
+            'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
             'Protocol Status Updated',
-            "Your protocol \"$title\" is now: $newStatus.",
+            'Your protocol ' . Notifier::boldTitle($title) . ' is now: ' . Notifier::bold($newStatus) . '.',
             $link,
             [
                 'template' => 'protocol_status_changed',
@@ -286,7 +251,7 @@ class Apply extends Controller
             'admin',
             'payment_proof_uploaded',
             'Payment Proof Uploaded',
-            "{$actor['name']} uploaded proof of payment for \"$title\".",
+            "{$actor['name']} uploaded proof of payment for " . Notifier::boldTitle($title) . '.',
             'admin/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_uploaded',
@@ -306,8 +271,8 @@ class Apply extends Controller
                 (int) $protocol['user_id'],
                 'payment_verified',
                 'Payment Verified',
-                "Your payment for \"$title\" has been verified.",
-                'submissions?status=reviewed',
+                'Your payment for ' . Notifier::boldTitle($title) . ' has been ' . Notifier::bold('verified') . '.',
+                'submissions?status=reviewed&highlight=' . $protocol['protocol_id'],
                 [
                     'template' => 'payment_verified',
                     'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
@@ -322,7 +287,7 @@ class Apply extends Controller
             'admin',
             'protocol_paid',
             'Protocol Ready for Printing',
-            "\"$title\" has been paid and is ready to print and sign.",
+            Notifier::boldTitle($title) . ' has been ' . Notifier::bold('paid') . ' and is ready to print and sign.',
             'admin/home?status=reviewed',
             [
                 'template' => 'protocol_paid',
@@ -345,8 +310,8 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'payment_proof_rejected',
             'Payment Proof Rejected',
-            "Your payment for \"$title\" was rejected. Reason: $reason. Please resubmit.",
-            'submissions?status=reviewed',
+            'Your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . ". Reason: $reason. Please resubmit.",
+            'submissions?status=reviewed&highlight=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_rejected',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'reason' => $reason, 'protocol_id' => $protocol['protocol_id']],
@@ -370,7 +335,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'signed_scan_uploaded',
             'Signed Protocol Uploaded',
-            "The signed scan of \"$title\" has been uploaded.",
+            'The signed scan of ' . Notifier::boldTitle($title) . ' has been uploaded.',
             'apply/viewer/' . $protocol['protocol_id'],
             [
                 'template' => 'signed_scan_uploaded',
@@ -438,10 +403,6 @@ class Apply extends Controller
         return $known[$mime] ?? "a \"$mime\" file";
     }
 
-    // Names a protocol PDF for download. Once the protocol has an IPN
-    // assigned (via the Records page or the Clearance page's "Add IPN"),
-    // files are named IPN_ResearcherName.ext. Before that, falls back to
-    // ResearcherName_Title.ext so files are still identifiable pre-IPN.
     private function protocolDisplayFilename(?string $ipn, string $researcherName, string $title, string $ext): string
     {
         $researcherName = trim($researcherName) !== '' ? trim($researcherName) : 'Applicant';
@@ -458,16 +419,9 @@ class Apply extends Controller
         return $base . '.' . strtolower($ext);
     }
 
-    // Names a clearance file for download: IPN-ResearcherName.ext once the
-    // protocol has an IPN. A clearance can only exist for a protocol that's
-    // been Endorsed, and the Clearance Pool workflow now requires an IPN
-    // before a screenshot can be staged:  so this should almost always have
-    // one. The admin-only /apply/clearance_upload path bypasses that check
-    // though, so we still fall back to just the researcher's name if it's
-    // somehow missing.
     private function clearanceDisplayFilename(?string $ipn, string $researcherName, string $ext): string
     {
-        $researcherName = trim($researcherName) !== '' ? trim($researcherName) : 'Applicant';
+        $researcherName = mb_strtoupper(trim($researcherName) !== '' ? trim($researcherName) : 'Applicant');
         $ipn            = trim((string) $ipn);
 
         $illegal        = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
@@ -642,8 +596,8 @@ class Apply extends Controller
             $actor['id'],
             'protocol_submitted',
             'Protocol Submitted',
-            "Your protocol \"$title\" has been submitted and is now under review.",
-            'submissions?status=under-review',
+            'Your protocol ' . Notifier::boldTitle($title) . ' has been submitted and is now ' . Notifier::bold('under review') . '.',
+            'submissions?status=under-review&highlight=' . $protocolId,
             [
                 'template' => 'protocol_submitted',
                 'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocolId],
@@ -657,7 +611,7 @@ class Apply extends Controller
             'admin',
             'new_submission_admin',
             'New Protocol Submitted',
-            ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . " submitted \"$title\".",
+            ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . ' submitted ' . Notifier::boldTitle($title) . '.',
             'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted_admin',
@@ -915,32 +869,32 @@ class Apply extends Controller
         $isOwnCertificate = $userId === $actor['id'];
 
         if (!$isOwnCertificate && !in_array($actor['role'], ['admin', 'reviewer'])) {
-            http_response_code(403);
-            echo 'Access denied.';
-            exit;
+            $this->renderError(403, 'Access Denied', [
+                'You do not have permission to view this certificate.',
+            ]);
         }
 
         if ($userId < 1) {
-            http_response_code(400);
-            echo 'Missing user ID.';
-            exit;
+            $this->renderError(400, 'Missing User ID', [
+                'No researcher was specified.',
+            ]);
         }
 
         $userModel = new UserModel();
         $cert      = $userModel->getCert($userId);
 
         if (!$cert) {
-            http_response_code(404);
-            echo 'No certificate on file for this researcher.';
-            exit;
+            $this->renderError(404, 'No Certificate Found', [
+                'No certificate is on file for this researcher.',
+            ]);
         }
 
         $filePath = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $cert['cert_path'];
 
         if (!file_exists($filePath) || !is_readable($filePath)) {
-            http_response_code(404);
-            echo 'Certificate file not found on server.';
-            exit;
+            $this->renderError(404, 'File Not Found', [
+                'The certificate file could not be found on the server.',
+            ]);
         }
 
         $this->streamFile($filePath, $cert['cert_original_name'] ?: basename($filePath));
@@ -1009,22 +963,22 @@ class Apply extends Controller
         $this->requireLogin();
 
         if ($protocolId < 1) {
-            http_response_code(400);
-            echo 'Missing protocol ID.';
-            exit;
+            $this->renderError(400, 'Missing Protocol ID', [
+                'No protocol was specified.',
+            ]);
         }
 
         $model    = new ProtocolModel();
         $protocol = $model->getById($protocolId);
 
         if (!$protocol) {
-            http_response_code(404);
-            echo 'Protocol not found.';
-            exit;
+            $this->renderError(404, 'Protocol Not Found', [
+                'The protocol you are looking for does not exist or may have been removed.',
+            ]);
         }
 
         $actor = $this->actor();
-        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
+        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
         $latestVersion = $model->getLatestVersion($protocolId, 'protocol');
 
@@ -1036,9 +990,9 @@ class Apply extends Controller
                 || (int) $version['protocol_id'] !== $protocolId
                 || $version['file_type'] !== 'protocol'
             ) {
-                http_response_code(404);
-                echo 'That protocol version could not be found.';
-                exit;
+                $this->renderError(404, 'Version Not Found', [
+                    'That protocol version could not be found.',
+                ]);
             }
         } else {
             $version = $latestVersion;
@@ -1112,34 +1066,34 @@ class Apply extends Controller
         $this->requireLogin();
 
         if ($versionId < 1) {
-            http_response_code(400);
-            echo 'Missing version ID.';
-            exit;
+            $this->renderError(400, 'Missing Version ID', [
+                'No file version was specified.',
+            ]);
         }
 
         $model   = new ProtocolModel();
         $version = $model->getVersionById($versionId);
 
         if (!$version) {
-            http_response_code(404);
-            echo 'File not found.';
-            exit;
+            $this->renderError(404, 'File Not Found', [
+                'The file you are looking for does not exist or may have been removed.',
+            ]);
         }
 
         $actor = $this->actor();
 
         if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['admin', 'reviewer'])) {
-            http_response_code(403);
-            echo 'Access denied.';
-            exit;
+            $this->renderError(403, 'Access Denied', [
+                'You do not have permission to view this file.',
+            ]);
         }
 
         $filePath = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $version['file_path'];
 
         if (!file_exists($filePath) || !is_readable($filePath)) {
-            http_response_code(404);
-            echo 'File not found on server.';
-            exit;
+            $this->renderError(404, 'File Not Found', [
+                'The file could not be found on the server.',
+            ]);
         }
 
         $forceDownload = isset($_GET['download']);
@@ -1161,8 +1115,6 @@ class Apply extends Controller
     }
 
     // ===== DOWNLOAD ALL PAID  (GET /apply/download_all_paid) =====
-    // Zips the latest protocol PDF for every Reviewed + paid protocol, for
-    // batch printing.
 
     public function download_all_paid(): void
     {
@@ -1170,24 +1122,24 @@ class Apply extends Controller
 
         $actor = $this->actor();
         if ($actor['role'] !== 'admin') {
-            http_response_code(403);
-            echo 'Admin only.';
-            exit;
+            $this->renderError(403, 'Access Denied', [
+                'This page is for admins only.',
+            ]);
         }
 
         if (!class_exists('ZipArchive')) {
-            http_response_code(500);
-            echo 'The PHP zip extension is not available on this server.';
-            exit;
+            $this->renderError(500, 'Something Went Wrong', [
+                'The PHP zip extension is not available on this server.',
+            ]);
         }
 
         $rows = (new ProtocolModel())->getReviewedPaidWithLatestFile();
         $rows = array_filter($rows, fn($r) => !empty($r['file_path']));
 
         if (empty($rows)) {
-            http_response_code(404);
-            echo 'No paid, reviewed protocols to download.';
-            exit;
+            $this->renderError(404, 'Nothing To Download', [
+                'There are no paid, reviewed protocols to download.',
+            ]);
         }
 
         $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
@@ -1944,7 +1896,7 @@ class Apply extends Controller
             $this->jsonError(422, 'There is no pending deletion request for this protocol.');
         }
 
-        $ok = $model->rejectDeletionRequest($protocolId);
+        $ok = $model->rejectDeletionRequest($protocolId, $reason);
 
         if ($ok) {
             $model->logAudit('protocol_deletion_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Rejected deletion request. Reason: $reason");
@@ -2012,22 +1964,22 @@ class Apply extends Controller
         $this->requireLogin();
 
         if ($protocolId < 1) {
-            http_response_code(400);
-            echo 'Missing protocol ID.';
-            exit;
+            $this->renderError(400, 'Missing Protocol ID', [
+                'No protocol was specified.',
+            ]);
         }
 
         $model    = new ProtocolModel();
         $protocol = $model->getById($protocolId);
 
         if (!$protocol) {
-            http_response_code(404);
-            echo 'Protocol not found.';
-            exit;
+            $this->renderError(404, 'Protocol Not Found', [
+                'The protocol you are looking for does not exist or may have been removed.',
+            ]);
         }
 
         $actor = $this->actor();
-        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
+        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
         $version = $model->getLatestVersion($protocolId, 'clearance');
         if (!$version) {
@@ -2039,7 +1991,12 @@ class Apply extends Controller
             ]);
         }
 
-        $this->redirect('apply/file/' . (int) $version['id']);
+        $target = 'apply/file/' . (int) $version['id'];
+        if (isset($_GET['download'])) {
+            $target .= '?download=1';
+        }
+
+        $this->redirect($target);
     }
 
     // ===== CLEARANCE POOL UPLOAD  (POST /apply/clearance_pool_upload) =====
@@ -2144,26 +2101,24 @@ class Apply extends Controller
 
         $actor = $this->actor();
         if (!in_array($actor['role'], ['admin', 'reviewer'])) {
-            http_response_code(403);
-            echo 'Access denied.';
-            exit;
+            $this->renderError(403, 'Access Denied', [
+                'This page is for admins and reviewers only.',
+            ]);
         }
 
         $model = new ProtocolModel();
         $item  = $model->getClearancePoolItem($poolId);
 
         if (!$item || !file_exists($item['file_path'])) {
-            http_response_code(404);
-            echo 'File not found.';
-            exit;
+            $this->renderError(404, 'File Not Found', [
+                'The clearance file you are looking for does not exist or may have been removed.',
+            ]);
         }
 
         $this->streamFile($item['file_path'], $item['original_name']);
     }
 
     // ===== CLEARANCE STAGE  (POST /apply/clearance_stage) =====
-    // Drags a pool screenshot onto a protocol card. Nothing is committed yet:
-    // this only marks a provisional match, reversible via clearance_unstage.
 
     public function clearance_stage(): void
     {
@@ -2213,7 +2168,6 @@ class Apply extends Controller
     }
 
     // ===== CLEARANCE UNSTAGE  (POST /apply/clearance_unstage) =====
-    // Drags a screenshot back off a protocol card, before confirming.
 
     public function clearance_unstage(): void
     {
@@ -2244,9 +2198,6 @@ class Apply extends Controller
     }
 
     // ===== CLEARANCE DELETE  (POST /apply/clearance_delete) =====
-    // Removes an unwanted screenshot from the unsorted pool (e.g. uploaded by
-    // mistake). Only unassigned items can be deleted this way; one already
-    // staged or confirmed must go through unstage/detach first.
 
     public function clearance_delete(): void
     {
@@ -2289,9 +2240,6 @@ class Apply extends Controller
     }
 
     // ===== CLEARANCE ASSIGN IPN  (POST /apply/clearance_assign_ipn) =====
-    // Lets an admin assign or edit a protocol's IPN right from the Clearance
-    // page, so a screenshot can be matched to it. Keeps the linked records-
-    // page row (if one exists for this protocol) in sync too.
 
     public function clearance_assign_ipn(): void
     {
@@ -2347,8 +2295,6 @@ class Apply extends Controller
     }
 
     // ===== CLEARANCE CONFIRM  (POST /apply/clearance_confirm) =====
-    // Commits every currently-staged match in one batch: moves each file,
-    // records the clearance version, and marks each protocol Approved.
 
     public function clearance_confirm(): void
     {
@@ -2413,9 +2359,6 @@ class Apply extends Controller
     }
 
     // ===== CLEARANCE UNASSIGN  (POST /apply/clearance_unassign) =====
-    // Detaches an already-confirmed clearance from the wrong protocol: reverts
-    // that protocol to Endorsed, deletes the specific clearance version, and
-    // puts the screenshot back in the unassigned pool.
 
     public function clearance_unassign(): void
     {

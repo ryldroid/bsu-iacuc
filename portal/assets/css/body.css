@@ -69,6 +69,8 @@
     --status-danger-text: #9b1c1c;
     --status-purple-bg: #ede9fe;
     --status-purple-text: #5b21b6;
+    --status-teal-bg: #ccfbf1;
+    --status-teal-text: #115e59;
     --status-info-bg: #e0f2fe;
     --status-info-text: #075985;
     --status-success-bg: #dcfce7;
@@ -135,6 +137,8 @@
     --status-danger-text: #f5a3a3;
     --status-purple-bg: #2f2350;
     --status-purple-text: #c4b5fd;
+    --status-teal-bg: #0f3a38;
+    --status-teal-text: #5eead4;
     --status-info-bg: #0f3049;
     --status-info-text: #7dd3fc;
     --status-success-bg: #133824;

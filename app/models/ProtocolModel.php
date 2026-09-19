@@ -196,20 +196,22 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
-    public function rejectDeletionRequest(int $protocolId): bool
+    public function rejectDeletionRequest(int $protocolId, string $reason): bool
     {
+        $reason = mb_substr(trim($reason), 0, 1000);
+
         $stmt = $this->connection->prepare(
             "UPDATE `protocols`
              SET deletion_requested_at = NULL, deletion_requested_by = NULL,
                  deletion_requested_by_name = NULL, deletion_requested_by_role = NULL,
-                 deletion_request_reason = NULL
+                 deletion_request_reason = NULL, deletion_rejection_reason = ?
              WHERE id = ?"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('i', $protocolId);
+        $stmt->bind_param('si', $reason, $protocolId);
         return $stmt->execute();
     }
 
@@ -456,6 +458,12 @@ class ProtocolModel extends Model
                    AND pv6.file_type = 'signed_scan'
                  ORDER BY pv6.version_number DESC
                  LIMIT 1) AS latest_signed_scan_version_id,
+                (SELECT pv7.original_name
+                 FROM `protocol_versions` pv7
+                 WHERE pv7.protocol_id = p.id
+                   AND pv7.file_type = 'clearance'
+                 ORDER BY pv7.version_number DESC
+                 LIMIT 1) AS latest_clearance_original_name,
                 GREATEST(
                     p.updated_at,
                     COALESCE(
@@ -547,6 +555,7 @@ class ProtocolModel extends Model
                 p.deletion_requested_by_name,
                 p.deletion_requested_by_role,
                 p.deletion_request_reason,
+                p.deletion_rejection_reason,
                 p.payment_status,
                 p.payment_method,
                 p.paid_at,

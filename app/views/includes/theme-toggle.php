@@ -12,10 +12,10 @@ $themeToggleExtraClass = $themeToggleExtraClass ?? '';
     aria-haspopup="true"
     aria-label="Theme options"
     aria-controls="theme-menu">
-    <svg class="theme-toggle-icon theme-toggle-icon-sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg class="theme-toggle-icon theme-toggle-icon-sun" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <use href="#sun-icon" />
     </svg>
-    <svg class="theme-toggle-icon theme-toggle-icon-moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg class="theme-toggle-icon theme-toggle-icon-moon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <use href="#moon-icon" />
     </svg>
     <span class="chev-icon">

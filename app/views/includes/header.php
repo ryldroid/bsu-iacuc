@@ -45,6 +45,7 @@ $hideHeader     = $hideHeader     ?? false;
   <script src="<?= asset_js('action-queue.js') ?>" defer></script>
   <script src="<?= asset_js('sw-register.js') ?>" data-root="<?= ROOT ?>" defer></script>
   <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
+  <script src="<?= asset_js('password-strength.js') ?>" defer></script>
   <?php if ($user):
     if (empty($_SESSION['csrf_token'])) {
       $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -152,8 +153,8 @@ $hideHeader     = $hideHeader     ?? false;
 
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->
           <?php } else { ?>
-            <a href="<?= ROOT ?>/users/login" id="headerLogin" class="auth-btn">Log In</a>
-            <a href="<?= ROOT ?>/users/register" id="headerRegister" class="auth-btn">Create Account</a>
+            <a href="<?= ROOT ?>/users/login" id="headerLogin" class="auth-btn">Sign In</a>
+            <a href="<?= ROOT ?>/users/register" id="headerRegister" class="auth-btn">Register</a>
           <?php } ?>
 
           <!-- MOBILE HAMBURGER ICON -->
@@ -242,20 +243,18 @@ $hideHeader     = $hideHeader     ?? false;
           <use href="#info-icon" />
         </svg>
         <span>Verify your email to receive notification updates via email and keep up to date on your protocols' status.</span>
-      </div>
-      <div class="verify-banner-actions">
-        <form method="POST" action="<?= ROOT ?>/users/resend_verification"
+        <form method="POST" action="<?= ROOT ?>/users/resend_verification" class="verify-banner-link-form"
           data-confirm-message="Send a verification link to <?= htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
           data-confirm-ok-text="Send">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
           <button type="submit" class="verify-banner-link">Verify my email</button>
         </form>
-        <button type="button" class="verify-banner-close" id="verifyEmailBannerClose" aria-label="Dismiss">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <use href="#close-icon" />
-          </svg>
-        </button>
       </div>
+      <button type="button" class="verify-banner-close" id="verifyEmailBannerClose" aria-label="Dismiss">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <use href="#close-icon" />
+        </svg>
+      </button>
     </div>
   <?php endif; ?>
 

@@ -376,13 +376,6 @@ foreach ($protocols as $p) {
             <?php if (($user['role'] ?? '') === 'admin'): ?>
                 <!-- ===== Bulk actions: apply to every matching protocol in the current tab, not just one row ===== -->
                 <div class="bulk-actions-bar" id="bulkActionsBar" hidden>
-                    <!-- <span class="bulk-actions-label">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#filter-icon" />
-                        </svg>
-                        Applies to every protocol in this tab
-                    </span> -->
-
                     <a class="row-btn row-btn-primary" id="downloadAllPaidBtn" hidden
                         href="<?= ROOT ?>/apply/download_all_paid" title="Download the latest protocol PDF for every reviewed, paid protocol">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -419,6 +412,18 @@ foreach ($protocols as $p) {
                             Mark Selected as Endorsed
                         </button>
                     </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if (($user['role'] ?? '') === 'reviewer'): ?>
+                <div class="bulk-actions-bar" id="bulkActionsBar">
+                    <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
+                        href="<?= ROOT ?>/admin/reviewer_clearances" title="Upload Animal Research Clearances">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        Go to Clearance Pool
+                    </a>
                 </div>
             <?php endif; ?>
 
@@ -505,9 +510,9 @@ foreach ($protocols as $p) {
                             case 'approved':
                                 $actions = [
                                     [
-                                        'label' => 'Show Clearance',
+                                        'label' => 'View Clearance',
                                         'action' => 'view-clearance',
-                                        'icon' => 'download',
+                                        'icon' => 'review',
                                         'primary' => true
                                     ],
                                     [
@@ -660,9 +665,9 @@ foreach ($protocols as $p) {
                             case 'approved':
                                 $actions = [
                                     [
-                                        'label' => 'Show Clearance',
+                                        'label' => 'View Clearance',
                                         'action' => 'view-clearance',
-                                        'icon' => 'download',
+                                        'icon' => 'review',
                                         'primary' => true
                                     ],
                                     [
@@ -1326,7 +1331,13 @@ foreach ($protocols as $p) {
                 break;
 
             case 'review-payment':
-                openReviewPaymentModal(protocolId, protocol?.research_title ?? '', protocol?.payment_method ?? 'online');
+                openReviewPaymentModal(
+                    protocolId,
+                    protocol?.research_title ?? '',
+                    protocol?.payment_method ?? 'online',
+                    `${protocol?.first_name ?? ''} ${protocol?.last_name ?? ''}`.trim(),
+                    protocol?.school ?? ''
+                );
                 break;
         }
     });
@@ -1958,8 +1969,13 @@ foreach ($protocols as $p) {
             </button>
         </div>
 
+        <div class="review-payment-summary" id="reviewPaymentSummary">
+            <p class="review-payment-summary-title" id="reviewPaymentSummaryTitle"></p>
+            <p class="review-payment-summary-meta" id="reviewPaymentSummaryMeta"></p>
+        </div>
+
         <div class="review-payment-image-frame" id="reviewPaymentImageFrame">
-            <p class="helper">Loading proof of payment&hellip;</p>
+            <p class="review-payment-note">Loading proof of payment&hellip;</p>
         </div>
 
         <div class="review-payment-footer">
@@ -1995,14 +2011,16 @@ foreach ($protocols as $p) {
     const reviewPaymentModal = document.getElementById('reviewPaymentModalBackdrop');
     let currentReviewPaymentProtocolId = null;
 
-    function openReviewPaymentModal(protocolId, title, paymentMethod) {
+    function openReviewPaymentModal(protocolId, title, paymentMethod, researcherName, school) {
         currentReviewPaymentProtocolId = protocolId;
         document.getElementById('reviewPaymentTitle').textContent = title;
+        document.getElementById('reviewPaymentSummaryTitle').textContent = title;
+        document.getElementById('reviewPaymentSummaryMeta').textContent = [researcherName, school].filter(Boolean).join(' \u00b7 ');
         resetReviewPaymentModal();
         reviewPaymentModal.classList.add('open');
         if (paymentMethod === 'in_person') {
             document.getElementById('reviewPaymentImageFrame').innerHTML =
-                '<p class="helper">The researcher confirmed paying the fee in person at CCARD. No proof file was submitted : verify with your records before approving.</p>';
+                '<p class="review-payment-note">The researcher confirmed paying the fee in person at CCARD. Verify with your records before approving.</p>';
         } else {
             loadPaymentProofImage(protocolId);
         }
@@ -2015,7 +2033,7 @@ foreach ($protocols as $p) {
 
     function resetReviewPaymentModal() {
         document.getElementById('reviewPaymentImageFrame').innerHTML =
-            '<p class="helper">Loading proof of payment&hellip;</p>';
+            '<p class="review-payment-note">Loading proof of payment&hellip;</p>';
         document.getElementById('reviewPaymentActions').hidden = false;
         document.getElementById('reviewPaymentRejectPanel').hidden = true;
         document.getElementById('reject_payment_comment').value = '';
@@ -2034,7 +2052,13 @@ foreach ($protocols as $p) {
         if (!openPaymentId) return;
         const protocol = protocolsData.find(p => p.protocol_id == openPaymentId);
         if (!protocol) return;
-        openReviewPaymentModal(openPaymentId, protocol.research_title ?? '', protocol.payment_method ?? 'online');
+        openReviewPaymentModal(
+            openPaymentId,
+            protocol.research_title ?? '',
+            protocol.payment_method ?? 'online',
+            `${protocol.first_name ?? ''} ${protocol.last_name ?? ''}`.trim(),
+            protocol.school ?? ''
+        );
     })();
 
     async function loadPaymentProofImage(protocolId) {
@@ -2045,7 +2069,7 @@ foreach ($protocols as $p) {
             const latest = data?.payment_proof_files?.[0];
 
             if (!latest) {
-                frame.innerHTML = '<p class="helper">No proof of payment file was found for this protocol.</p>';
+                frame.innerHTML = '<p class="review-payment-note">No proof of payment file was found for this protocol.</p>';
                 return;
             }
 
@@ -2054,11 +2078,11 @@ foreach ($protocols as $p) {
             img.src = latest.file_url;
             img.alt = 'Proof of payment';
             img.onerror = () => {
-                frame.innerHTML = '<p class="helper">Could not load the proof of payment image.</p>';
+                frame.innerHTML = '<p class="review-payment-note">Could not load the proof of payment image.</p>';
             };
             frame.appendChild(img);
         } catch (err) {
-            frame.innerHTML = '<p class="helper">Network error while loading the proof of payment.</p>';
+            frame.innerHTML = '<p class="review-payment-note">Network error while loading the proof of payment.</p>';
         }
     }
 

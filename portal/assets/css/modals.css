@@ -24,6 +24,11 @@
     box-shadow: 0 8px 32px var(--shadow-color-modal);
 }
 
+.modal-card .underlined {
+    text-decoration: underline dashed 1px var(--brand-text);
+    color: var(--brand-text);
+}
+
 .modal-card h2 {
     font-size: 1.1rem;
     margin-bottom: .35rem;
@@ -234,6 +239,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+#reviewPaymentTitle {
+    visibility: hidden;
 }
 
 .file-popup-close {
@@ -607,6 +616,33 @@
     max-width: 640px;
     display: flex;
     flex-direction: column;
+}
+
+.review-payment-summary {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--divider-color);
+    flex-shrink: 0;
+}
+
+.review-payment-summary-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    white-space: normal;
+    overflow-wrap: break-word;
+    margin: 0 0 0.25rem;
+}
+
+.review-payment-summary-meta {
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+    margin: 0;
+}
+
+.review-payment-note {
+    font-size: 0.95rem;
+    font-style: normal;
+    color: var(--secondary-text);
 }
 
 .review-payment-image-frame {
