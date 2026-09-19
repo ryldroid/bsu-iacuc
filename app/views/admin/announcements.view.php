@@ -127,6 +127,7 @@ $first_name    = $user['first_name'] ?? '';
                             </svg>
                         </button>
                     </div>
+                    <div class="upload-progress-container" id="addAnnImageProgress"></div>
                 </div>
             </div>
         </div>
@@ -171,6 +172,7 @@ $first_name    = $user['first_name'] ?? '';
                         <input type="checkbox" id="edit_ann_remove_image">
                         <label for="edit_ann_remove_image">Remove current image</label>
                     </div>
+                    <div class="upload-progress-container" id="editAnnImageProgress"></div>
                 </div>
 
             </div>
@@ -203,13 +205,20 @@ $first_name    = $user['first_name'] ?? '';
             btn.addEventListener('click', () => closeModal(btn.dataset.close));
         });
 
-        function post(url, body) {
+        function post(url, body, onProgress) {
             body.csrf_token = CSRF;
             const fd = new FormData();
             Object.entries(body).forEach(([k, v]) => {
                 if (v === undefined || v === null) return;
                 fd.append(k, v);
             });
+            // Real upload progress needs XHR (fetch can't report it); only worth
+            // the XHR path when there's actually a file attached to track.
+            if (onProgress) {
+                return uploadWithProgress(ROOT + url, fd, {
+                    onProgress
+                });
+            }
             return fetch(ROOT + url, {
                     method: 'POST',
                     body: fd
@@ -300,24 +309,30 @@ $first_name    = $user['first_name'] ?? '';
                 );
                 if (!confirmed) return;
 
-                setButtonBusy(addSave, true, 'Posting...');
+                setButtonBusy(addSave, true, imageFile ? 'Uploading...' : 'Posting...');
+
+                const addProgressContainer = document.getElementById('addAnnImageProgress');
+                addProgressContainer.innerHTML = '';
+                const addBar = imageFile ? createUploadProgressBar(addProgressContainer) : null;
 
                 post('/admin/announcements_add', {
                     title,
                     body,
                     image: imageFile
-                }).then(data => {
+                }, addBar ? (pct => addBar.update(pct)) : undefined).then(data => {
                     if (data.ok) {
                         closeModal('addAnnouncementModal');
                         sessionStorage.setItem('announcements_flash', 'Announcement added.');
                         location.reload();
                     } else {
                         setButtonBusy(addSave, false);
+                        if (addBar) addBar.remove();
                         showErr('addAnnouncementError', data.message || 'Add failed.');
                     }
-                }).catch(() => {
+                }).catch(err => {
                     setButtonBusy(addSave, false);
-                    showErr('addAnnouncementError', 'Network error. Please try again.');
+                    if (addBar) addBar.remove();
+                    showErr('addAnnouncementError', err.message || 'Network error. Please try again.');
                 });
             });
         }
@@ -375,19 +390,19 @@ $first_name    = $user['first_name'] ?? '';
                     return;
                 }
 
-                closeModal('editAnnouncementModal');
                 const confirmed = await confirmAction(
                     'Save changes to this announcement?', {
                         okText: 'Save',
                         cancelText: 'Cancel'
                     }
                 );
-                if (!confirmed) {
-                    openModal('editAnnouncementModal');
-                    return;
-                }
+                if (!confirmed) return;
 
-                setButtonBusy(editSave, true, 'Saving...');
+                setButtonBusy(editSave, true, imageFile ? 'Uploading...' : 'Saving...');
+
+                const editProgressContainer = document.getElementById('editAnnImageProgress');
+                editProgressContainer.innerHTML = '';
+                const editBar = imageFile ? createUploadProgressBar(editProgressContainer) : null;
 
                 post('/admin/announcements_edit', {
                     id: document.getElementById('edit_ann_id').value,
@@ -395,18 +410,20 @@ $first_name    = $user['first_name'] ?? '';
                     body,
                     image: imageFile,
                     remove_image: removeImage ? '1' : '0'
-                }).then(data => {
+                }, editBar ? (pct => editBar.update(pct)) : undefined).then(data => {
                     if (data.ok) {
                         closeModal('editAnnouncementModal');
                         sessionStorage.setItem('announcements_flash', 'Announcement updated.');
                         location.reload();
                     } else {
                         setButtonBusy(editSave, false);
+                        if (editBar) editBar.remove();
                         showErr('editAnnouncementError', data.message || 'Update failed.');
                     }
-                }).catch(() => {
+                }).catch(err => {
                     setButtonBusy(editSave, false);
-                    showErr('editAnnouncementError', 'Network error. Please try again.');
+                    if (editBar) editBar.remove();
+                    showErr('editAnnouncementError', err.message || 'Network error. Please try again.');
                 });
             });
         }

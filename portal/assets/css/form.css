@@ -51,6 +51,28 @@
   width: 100%;
 }
 
+.phone-field-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.phone-prefix {
+  flex-shrink: 0;
+  padding: 12px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--input-border);
+  background-color: var(--page-background);
+  color: var(--secondary-text);
+  font-size: .9em;
+}
+
+.phone-field-wrap input {
+  flex: 1;
+  min-width: 0;
+}
+
 .input-group select {
   width: 100%;
   margin-bottom: 0;

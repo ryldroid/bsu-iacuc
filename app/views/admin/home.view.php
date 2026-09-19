@@ -1859,6 +1859,8 @@ foreach ($protocols as $p) {
             </label>
         </div>
 
+        <div class="upload-progress-container" id="signedScanProgress"></div>
+
         <div class="modal-actions">
             <button class="button" type="button" onclick="closeSignedScanModal()">Cancel</button>
             <button class="button btn-apply" type="button" id="signedScanSubmitBtn"
@@ -1882,6 +1884,7 @@ foreach ($protocols as $p) {
         document.getElementById('signed_scan_file').value = '';
         resetSignedScanFilePicker();
         document.getElementById('signedScanError').hidden = true;
+        document.getElementById('signedScanProgress').innerHTML = '';
         signedScanModal.classList.add('open');
     }
 
@@ -1923,8 +1926,12 @@ foreach ($protocols as $p) {
             return;
         }
 
-        btn.disabled = true;
+        setButtonBusy(btn, true, 'Uploading...');
         errBox.hidden = true;
+
+        const progressContainer = document.getElementById('signedScanProgress');
+        progressContainer.innerHTML = '';
+        const bar = createUploadProgressBar(progressContainer);
 
         const formData = new FormData();
         formData.append('protocol_id', currentSignedScanProtocolId);
@@ -1932,26 +1939,26 @@ foreach ($protocols as $p) {
         formData.append('csrf_token', CSRF_TOKEN);
 
         try {
-            const res = await fetch(SIGNED_SCAN_UPLOAD_API, {
-                method: 'POST',
+            const data = await uploadWithProgress(SIGNED_SCAN_UPLOAD_API, formData, {
                 headers: {
                     'X-CSRF-Token': CSRF_TOKEN
                 },
-                body: formData
+                onProgress: pct => bar.update(pct)
             });
-            const data = await res.json();
 
             if (data.success) {
                 window.location.reload();
             } else {
                 errBox.textContent = data.error ?? 'Upload failed. Please try again.';
                 errBox.hidden = false;
-                btn.disabled = false;
+                setButtonBusy(btn, false);
+                bar.remove();
             }
         } catch (err) {
-            errBox.textContent = 'Network error. Please try again.';
+            errBox.textContent = err.message || 'Network error. Please try again.';
             errBox.hidden = false;
-            btn.disabled = false;
+            setButtonBusy(btn, false);
+            bar.remove();
         }
     }
 </script>

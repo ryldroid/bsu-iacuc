@@ -46,6 +46,7 @@ $hideHeader     = $hideHeader     ?? false;
   <script src="<?= asset_js('sw-register.js') ?>" data-root="<?= ROOT ?>" defer></script>
   <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
   <script src="<?= asset_js('password-strength.js') ?>" defer></script>
+  <script src="<?= asset_js('phone-input.js') ?>" defer></script>
   <?php if ($user):
     if (empty($_SESSION['csrf_token'])) {
       $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

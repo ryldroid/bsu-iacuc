@@ -55,6 +55,10 @@ include "includes/scroll-top.php";
         submittedId: null,
     };
 
+    // Upload-in-progress state, keyed by doc key ('protocol'/'cert'). Kept separate
+    // from `state` since it's transient UI-only and must never hit the draft autosave.
+    let uploadProgress = {};
+
     // ===== DRAFT SYNC =====
     let _saveTimer = null;
 
@@ -220,6 +224,12 @@ include "includes/scroll-top.php";
     });
 
     function uploadBox(key, label, subtitle, required = false) {
+        if (uploadProgress[key]) {
+            return `<div class="info-bar upload-in-progress">
+            <span class="file-badge-name">Uploading&hellip;</span>
+            <div class="upload-progress-container" id="upload-progress-${key}"></div>
+        </div>`;
+        }
         const name = state[key + 'Name'];
         if (name) {
             const size = formatFileSize(state[key + 'Size']);
@@ -255,7 +265,11 @@ include "includes/scroll-top.php";
 
         let subLine, action;
 
-        if (opts.alreadyOnFile) {
+        if (uploadProgress[key]) {
+            subLine = `<span class="doc-row-sub">Uploading&hellip;</span>
+            <div class="upload-progress-container" id="upload-progress-${key}"></div>`;
+            action = '';
+        } else if (opts.alreadyOnFile) {
             subLine = `<span class="doc-row-sub done">${opts.alreadyNote}</span>`;
             action = `<div class="doc-row-done">${checkSvg}<span>Submitted</span></div>`;
         } else if (name) {
@@ -708,8 +722,6 @@ include "includes/scroll-top.php";
             saveState();
         }
 
-        event.target.disabled = true;
-
         const fieldMap = {
             protocol: 'protocol_file',
             cert: 'cert'
@@ -718,27 +730,31 @@ include "includes/scroll-top.php";
         fd.append('key', key);
         fd.append(fieldMap[key], file);
 
-        try {
-            const res = await fetch(ROOT + '/apply/draftupload', {
-                method: 'POST',
-                body: fd
-            });
-            const json = await res.json();
+        uploadProgress[key] = true;
+        render();
+        const progressContainer = document.getElementById('upload-progress-' + key);
+        const bar = createUploadProgressBar(progressContainer);
 
-            if (!res.ok || json.error) {
+        try {
+            const json = await uploadWithProgress(ROOT + '/apply/draftupload', fd, {
+                onProgress: pct => bar.update(pct)
+            });
+
+            if (json.error) {
                 alert(json.error ?? 'Upload failed. Please try again.');
-                event.target.disabled = false;
-                event.target.value = '';
+                delete uploadProgress[key];
+                render();
                 return;
             }
 
             state[key + 'Name'] = json.name;
             state[key + 'Size'] = json.size;
+            delete uploadProgress[key];
             render();
         } catch (e) {
-            alert('Network error. Please check your connection and try again.');
-            event.target.disabled = false;
-            event.target.value = '';
+            alert(e.message || 'Network error. Please check your connection and try again.');
+            delete uploadProgress[key];
+            render();
         }
     }
 

@@ -468,6 +468,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         onchange="handlePaymentFileChange(this)">
                 </label>
             </div>
+
+            <div class="upload-progress-container" id="paymentProofProgress"></div>
         </div>
 
         <div class="modal-actions">
@@ -515,6 +517,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
         }
         document.getElementById('paymentModalError').hidden = true;
+        document.getElementById('paymentProofProgress').innerHTML = '';
         handlePaymentMethodChange();
         paymentModal.classList.add('open');
     }
@@ -573,30 +576,34 @@ function statusIconSvg(string $iconId, int $size = 14): string
             formData.append('payment_proof_file', fileInput.files[0]);
         }
 
-        btn.disabled = true;
+        setButtonBusy(btn, true, method === 'in_person' ? 'Verifying...' : 'Uploading...');
         errBox.hidden = true;
 
+        const progressContainer = document.getElementById('paymentProofProgress');
+        progressContainer.innerHTML = '';
+        const bar = method === 'online' ? createUploadProgressBar(progressContainer) : null;
+
         try {
-            const res = await fetch(PAYMENT_PROOF_API, {
-                method: 'POST',
+            const data = await uploadWithProgress(PAYMENT_PROOF_API, formData, {
                 headers: {
                     'X-CSRF-Token': CSRF_TOKEN
                 },
-                body: formData
+                onProgress: bar ? (pct => bar.update(pct)) : undefined
             });
-            const data = await res.json();
 
             if (data.success) {
                 window.location.reload();
             } else {
                 errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
                 errBox.hidden = false;
-                btn.disabled = false;
+                setButtonBusy(btn, false);
+                if (bar) bar.remove();
             }
         } catch (err) {
-            errBox.textContent = 'Network error. Please try again.';
+            errBox.textContent = err.message || 'Network error. Please try again.';
             errBox.hidden = false;
-            btn.disabled = false;
+            setButtonBusy(btn, false);
+            if (bar) bar.remove();
         }
     }
 </script>

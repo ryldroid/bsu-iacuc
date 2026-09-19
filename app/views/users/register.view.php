@@ -75,8 +75,12 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="input-group">
-                <input type="tel" id="phone_number" name="phone_number" placeholder=" "
-                    value="<?= htmlspecialchars($old['phone_number'] ?? '+63'); ?>" required>
+                <div class="phone-field-wrap">
+                    <span class="phone-prefix">+63</span>
+                    <input type="tel" id="phone_number" name="phone_number" placeholder=" "
+                        inputmode="numeric" pattern="9[0-9]{9}" maxlength="10"
+                        value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $old['phone_number'] ?? '')); ?>" required>
+                </div>
                 <label for="phone_number">Phone Number</label>
             </div>
 

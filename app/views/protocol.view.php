@@ -551,6 +551,8 @@ include 'includes/header.php';
 
                 <div id="reuploadError" class="error-messages" hidden></div>
 
+                <div class="upload-progress-container" id="reuploadProgress"></div>
+
                 <div class="panel-modal-actions">
                     <button class="tool-btn" type="button" onclick="closeReuploadModal()">Cancel</button>
                     <button class="tool-btn tool-btn--success" type="button" id="reuploadSubmitBtn"
@@ -702,6 +704,8 @@ include 'includes/header.php';
                             onchange="handlePaymentFileChange(this)">
                     </label>
                 </div>
+
+                <div class="upload-progress-container" id="paymentProofProgress"></div>
             </div>
 
             <div class="modal-actions">
@@ -1658,6 +1662,7 @@ include 'includes/header.php';
             if (!IS_BSU_RESEARCHER) {
                 document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
             }
+            document.getElementById('paymentProofProgress').innerHTML = '';
             handlePaymentMethodChange();
             paymentModal.classList.add('open');
         }
@@ -1727,17 +1732,19 @@ include 'includes/header.php';
             });
             if (!ok) return;
 
-            setButtonBusy(btn, true, 'Submitting...');
+            setButtonBusy(btn, true, method === 'in_person' ? 'Submitting...' : 'Uploading...');
+
+            const progressContainer = document.getElementById('paymentProofProgress');
+            progressContainer.innerHTML = '';
+            const bar = method === 'online' ? createUploadProgressBar(progressContainer) : null;
 
             try {
-                const res = await fetch(PAYMENT_PROOF_API, {
-                    method: 'POST',
+                const data = await uploadWithProgress(PAYMENT_PROOF_API, formData, {
                     headers: {
                         'X-CSRF-Token': CSRF_TOKEN
                     },
-                    body: formData
+                    onProgress: bar ? (pct => bar.update(pct)) : undefined
                 });
-                const data = await res.json();
 
                 if (data.success) {
                     window.location.reload();
@@ -1745,11 +1752,13 @@ include 'includes/header.php';
                     errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
                     errBox.hidden = false;
                     setButtonBusy(btn, false);
+                    if (bar) bar.remove();
                 }
             } catch (err) {
-                errBox.textContent = 'Network error. Please try again.';
+                errBox.textContent = err.message || 'Network error. Please try again.';
                 errBox.hidden = false;
                 setButtonBusy(btn, false);
+                if (bar) bar.remove();
             }
         }
     <?php endif; ?>
@@ -2196,6 +2205,7 @@ include 'includes/header.php';
             resubmitFiles = {};
             renderResubmitDocs();
             document.getElementById('reuploadError').hidden = true;
+            document.getElementById('reuploadProgress').innerHTML = '';
             resubmitModal.classList.add('open');
         }
 
@@ -2209,16 +2219,14 @@ include 'includes/header.php';
             if (e.key === 'Escape') closeReuploadModal();
         });
 
-        async function uploadProtocolFile(endpoint, fieldName, file) {
+        async function uploadProtocolFile(endpoint, fieldName, file, onProgress) {
             const formData = new FormData();
             formData.append('protocol_id', PROTOCOL_ID);
             if (file) formData.append(fieldName, file);
 
-            const res = await fetch(ROOT_URL + endpoint, {
-                method: 'POST',
-                body: formData
+            return uploadWithProgress(ROOT_URL + endpoint, formData, {
+                onProgress
             });
-            return res.json();
         }
 
         async function submitReupload() {
@@ -2244,31 +2252,37 @@ include 'includes/header.php';
             setButtonBusy(submitBtn, true, 'Resubmitting...');
             errBox.hidden = true;
 
+            const progressContainer = document.getElementById('reuploadProgress');
+            progressContainer.innerHTML = '';
+            const bar = createUploadProgressBar(progressContainer);
+
+            // Queue: any flagged docs first, protocol form always last (matches upload order below).
+            const queue = RESUBMIT_DOCS.filter(doc => doc.key !== 'protocol' && resubmitFiles[doc.key]);
+            queue.push(RESUBMIT_DOCS.find(doc => doc.key === 'protocol'));
+            const total = queue.length;
+
+            function overallProgress(index, filePct) {
+                return ((index + filePct / 100) / total) * 100;
+            }
+
             try {
-                for (const doc of RESUBMIT_DOCS) {
-                    if (doc.key === 'protocol') continue;
+                for (let i = 0; i < queue.length; i++) {
+                    const doc = queue[i];
                     const file = resubmitFiles[doc.key];
-                    if (!file) continue;
                     const {
                         path,
                         field
                     } = RESUBMIT_ENDPOINTS[doc.key];
-                    const result = await uploadProtocolFile(path, field, file);
+                    const result = await uploadProtocolFile(path, field, file, pct => bar.update(overallProgress(i, pct)));
                     if (!result.success) throw new Error(result.error ?? `${doc.title} upload failed. Please try again.`);
                 }
-
-                const {
-                    path,
-                    field
-                } = RESUBMIT_ENDPOINTS.protocol;
-                const protocolResult = await uploadProtocolFile(path, field, resubmitFiles.protocol);
-                if (!protocolResult.success) throw new Error(protocolResult.error ?? 'Upload failed. Please try again.');
 
                 window.location.href = ROOT_URL + '/submissions?status=under-review';
             } catch (err) {
                 errBox.textContent = err.message || 'Network error. Please try again.';
                 errBox.hidden = false;
                 setButtonBusy(submitBtn, false);
+                bar.remove();
             }
         }
     <?php endif; ?>

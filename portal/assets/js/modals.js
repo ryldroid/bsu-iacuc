@@ -121,6 +121,86 @@
     }
   };
 
+  // ===== Upload progress (real % for file uploads, via XHR since fetch
+  // can't report upload progress) =====
+
+  // Renders a progress bar into `container` (an existing, normally-empty
+  // element). Returns { update(percent), remove() }.
+  window.createUploadProgressBar = function (container) {
+    if (!container) return { update() {}, remove() {} };
+
+    const bar = document.createElement("div");
+    bar.className = "upload-progress";
+    bar.innerHTML =
+      '<div class="upload-progress-track"><div class="upload-progress-fill"></div></div>' +
+      '<span class="upload-progress-pct">0%</span>';
+    container.appendChild(bar);
+
+    const fill = bar.querySelector(".upload-progress-fill");
+    const pct = bar.querySelector(".upload-progress-pct");
+
+    return {
+      update(percent) {
+        const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        fill.style.width = clamped + "%";
+        pct.textContent = clamped + "%";
+      },
+      remove() {
+        bar.remove();
+      },
+    };
+  };
+
+  // Drop-in replacement for `fetch(url, {method:'POST', body:formData}).then(r=>r.json())`
+  // that reports real upload progress via XMLHttpRequest. Resolves with the
+  // parsed JSON body; rejects with an Error (message safe to show the user)
+  // on network failure or a non-JSON response.
+  window.uploadWithProgress = function (url, formData, options) {
+    options = options || {};
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url);
+
+      const headers = options.headers || {};
+      Object.keys(headers).forEach((key) => {
+        xhr.setRequestHeader(key, headers[key]);
+      });
+
+      if (typeof options.onProgress === "function") {
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            options.onProgress((e.loaded / e.total) * 100);
+          }
+        });
+      }
+
+      xhr.addEventListener("load", () => {
+        let data;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch (e) {
+          reject(new Error("Unexpected server response. Please try again."));
+          return;
+        }
+        resolve(data);
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(
+          new Error(
+            "Network error. Please check your connection and try again.",
+          ),
+        );
+      });
+
+      xhr.addEventListener("abort", () => {
+        reject(new Error("Upload cancelled."));
+      });
+
+      xhr.send(formData);
+    });
+  };
+
   window.initAnnouncementModal = function (config) {
     const modal = document.getElementById(config.modalId);
     if (!modal) return;

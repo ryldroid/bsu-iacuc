@@ -10,6 +10,27 @@ class Users extends Controller
     $this->model = new UserModel();
   }
 
+  private function normalizePhoneNumber(string $raw): string
+  {
+    $digits = preg_replace('/\D/', '', $raw);
+
+    if ($digits === '') {
+      return '';
+    }
+
+    // Pasted with the country code, e.g. "639171234567" or "+639171234567"
+    if (str_starts_with($digits, '63') && strlen($digits) > 10) {
+      $digits = substr($digits, 2);
+    }
+
+    // Typed in local "09XX" format
+    if ($digits[0] === '0') {
+      $digits = substr($digits, 1);
+    }
+
+    return '+63' . $digits;
+  }
+
   private function sanitizeInputs(array $post): array
   {
     return [
@@ -17,7 +38,7 @@ class Users extends Controller
       'first_name'   => ucfirst(mb_strtolower(trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $post['first_name'] ?? '')))),
       'last_name'    => trim(preg_replace('/[^\p{L}\p{M}\s\-\']/u', '', $post['last_name'] ?? '')),
       'email'        => filter_var(trim($post['email'] ?? ''), FILTER_SANITIZE_EMAIL),
-      'phone_number' => trim($post['phone_number'] ?? ''),
+      'phone_number' => $this->normalizePhoneNumber($post['phone_number'] ?? ''),
       'school'       => trim(preg_replace('/[^\p{L}\p{M}\p{N}\s\-\'\.,()&]/u', '', $post['school'] ?? '')),
       'sex'          => in_array($post['sex'] ?? '', ['Male', 'Female'], true) ? $post['sex'] : '',
       'password'     => $post['password'] ?? '',
@@ -71,7 +92,7 @@ class Users extends Controller
     } else {
       if (preg_match('/[a-zA-Z]/', $phone_number)) {
         $errors[] = 'Phone number cannot contain letters. Please enter numbers only.';
-      } elseif (!preg_match('/^\+63\d{9,10}$/', $phone_number)) {
+      } elseif (!preg_match('/^\+639\d{9}$/', $phone_number)) {
         $errors[] = 'Enter a valid Philippine phone number (e.g., +639171234567)';
       }
     }

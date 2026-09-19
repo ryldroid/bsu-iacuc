@@ -68,6 +68,8 @@ $csrf = $csrf ?? '';
 
       <div class="modal-file-previews" id="clearanceScreenshotPreviews" hidden></div>
 
+      <div class="upload-progress-container" id="clearanceScreenshotProgress"></div>
+
       <div class="modal-actions">
         <button class="button btn-apply" type="button" id="clearanceScreenshotSubmitBtn"
           onclick="submitClearanceScreenshots()">
@@ -201,8 +203,12 @@ $csrf = $csrf ?? '';
       return;
     }
 
-    btn.disabled = true;
+    setButtonBusy(btn, true, 'Uploading...');
     errBox.hidden = true;
+
+    const progressContainer = document.getElementById('clearanceScreenshotProgress');
+    progressContainer.innerHTML = '';
+    const bar = createUploadProgressBar(progressContainer);
 
     const formData = new FormData();
     for (const file of fileInput.files) {
@@ -211,26 +217,26 @@ $csrf = $csrf ?? '';
     formData.append('csrf_token', CSRF_TOKEN);
 
     try {
-      const res = await fetch(CLEARANCE_POOL_UPLOAD_API, {
-        method: 'POST',
+      const data = await uploadWithProgress(CLEARANCE_POOL_UPLOAD_API, formData, {
         headers: {
           'X-CSRF-Token': CSRF_TOKEN
         },
-        body: formData
+        onProgress: pct => bar.update(pct)
       });
-      const data = await res.json();
 
       if (data.success) {
         window.location.reload();
       } else {
         errBox.textContent = (data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.');
         errBox.hidden = false;
-        btn.disabled = false;
+        setButtonBusy(btn, false);
+        bar.remove();
       }
     } catch (err) {
-      errBox.textContent = 'Network error. Please try again.';
+      errBox.textContent = err.message || 'Network error. Please try again.';
       errBox.hidden = false;
-      btn.disabled = false;
+      setButtonBusy(btn, false);
+      bar.remove();
     }
   }
 </script>
