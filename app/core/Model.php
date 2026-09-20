@@ -427,9 +427,6 @@ class Model
         }
         $protocolsDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
 
-        $linked  = 0;
-        $skipped = 0;
-
         while ($row = $result->fetch_assoc()) {
             try {
                 $stmt = $c->prepare(
@@ -438,8 +435,6 @@ class Model
                      ORDER BY version_number DESC LIMIT 1"
                 );
                 if (! $stmt) {
-                    error_log("backfillRecordFiles #{$row['id']}: prepare() failed: " . $c->error);
-                    $skipped++;
                     continue;
                 }
                 $protocolId = (int) $row['protocol_id'];
@@ -447,15 +442,11 @@ class Model
                 $stmt->execute();
                 $version = $stmt->get_result()->fetch_assoc();
                 if (! $version) {
-                    error_log("backfillRecordFiles #{$row['id']}: no protocol_versions row for protocol #{$protocolId}");
-                    $skipped++;
                     continue;
                 }
 
                 $source = $protocolsDir . $version['file_path'];
                 if (! is_file($source)) {
-                    error_log("backfillRecordFiles #{$row['id']}: source file missing at $source");
-                    $skipped++;
                     continue;
                 }
 
@@ -464,9 +455,6 @@ class Model
                 $destination = $recordsDir . $safeName;
 
                 if (! @link($source, $destination)) {
-                    $err = error_get_last();
-                    error_log("backfillRecordFiles #{$row['id']}: link() failed: " . ($err['message'] ?? 'unknown'));
-                    $skipped++;
                     continue;
                 }
 
@@ -478,26 +466,16 @@ class Model
                 );
                 if (! $update) {
                     @unlink($destination);
-                    error_log("backfillRecordFiles #{$row['id']}: UPDATE prepare() failed: " . $c->error);
-                    $skipped++;
                     continue;
                 }
                 $update->bind_param('ssi', $safeName, $originalName, $recordId);
                 if (! $update->execute()) {
                     @unlink($destination);
-                    error_log("backfillRecordFiles #{$row['id']}: UPDATE failed: " . $update->error);
-                    $skipped++;
-                    continue;
                 }
-
-                $linked++;
             } catch (Throwable $e) {
                 error_log('backfillRecordFiles record #' . $row['id'] . ' failed: ' . $e->getMessage());
-                $skipped++;
             }
         }
-
-        error_log("backfillRecordFiles done: linked=$linked skipped=$skipped");
     }
 
     // One-time: renames the 'admin' role value to 'staff' to match the
