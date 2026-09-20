@@ -1045,13 +1045,11 @@
     border-top: 1px solid #334155;
   }
 
-  /* The trigger sits to the right of a truncated title, so anchoring
-     the menu's left edge to it (the desktop default) pushes a
-     260px+ box off the right edge of narrow screens. Anchor from the
-     right edge instead so it grows back toward the trigger. */
+  /* How far the trigger sits from the screen edge depends on the
+     title's length, so a fixed left/right anchor overflows one side
+     or the other. JS clamps the actual offset on open; this just
+     narrows the box for small screens. */
   .title-history-menu {
-    left: auto;
-    right: 0;
     min-width: 220px;
     max-width: calc(100vw - 24px);
   }

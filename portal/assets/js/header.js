@@ -70,14 +70,41 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-document.querySelectorAll("header nav a, aside nav a").forEach((link) => {
-  const linkPath = link.pathname.replace(/\/+$/, "");
-  const currentPath = window.location.pathname.replace(/\/+$/, "");
-  if (linkPath === currentPath) {
-    link.classList.add("active-link");
-    link.setAttribute("aria-current", "page");
-  }
-});
+// ===== Edge-aware dropdown positioning =====
+// Shared by any absolutely-positioned panel anchored to a small trigger
+// (title rename history, mobile filter/sort panels, etc). Where the
+// trigger sits relative to the screen edge varies by content (a short
+// title vs. a long one, a row anchored left vs. right), so a fixed
+// left/right CSS anchor overflows one side or the other depending on
+// context. This measures the actual position at open-time and clamps
+// it to stay within the viewport, in whichever direction is needed.
+//
+// anchorEl: the positioned ancestor the panel's `left` is relative to
+// panelEl: the panel itself (must already be visible/open when called)
+function positionEdgeAwareDropdown(anchorEl, panelEl, margin = 12) {
+  if (!anchorEl || !panelEl) return;
+  panelEl.style.left = "0px";
+  panelEl.style.right = "auto";
+  const anchorRect = anchorEl.getBoundingClientRect();
+  const panelRect = panelEl.getBoundingClientRect();
+  const maxLeft = window.innerWidth - margin - panelRect.width;
+  const minLeft = margin;
+  const desiredLeft = anchorRect.left;
+  const clampedLeft = Math.min(Math.max(desiredLeft, minLeft), maxLeft);
+  panelEl.style.left = `${clampedLeft - anchorRect.left}px`;
+}
+window.positionEdgeAwareDropdown = positionEdgeAwareDropdown;
+
+document
+  .querySelectorAll("header nav a, aside nav a, #mobileNav a")
+  .forEach((link) => {
+    const linkPath = link.pathname.replace(/\/+$/, "");
+    const currentPath = window.location.pathname.replace(/\/+$/, "");
+    if (linkPath === currentPath) {
+      link.classList.add("active-link");
+      link.setAttribute("aria-current", "page");
+    }
+  });
 
 // ===== VERIFY EMAIL BANNER =====
 

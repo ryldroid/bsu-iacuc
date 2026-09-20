@@ -115,7 +115,23 @@
     --heading-shadow: rgba(255, 255, 255, 0.45);
 
     --brand-surface-tint: rgba(30, 41, 36, 0.75);
-    --brand-text: #209029e0;
+    /* Same low-contrast issue as --brand-color-hover below: the
+       light-mode --brand-color is a dark, saturated green that reads
+       fine on white but, even brightened a little (the old value
+       here), still blends toward the dark background and falls short
+       of readable contrast for text, links and headings. Needs its
+       own solid, brighter value here — kept distinct from
+       --nav-icons (below) since that's the *inactive* sidebar icon
+       color and --brand-text marks the active one; if the two match,
+       the active indicator disappears in dark mode. */
+    --brand-text: #4ade80;
+    /* --brand-color-hover doubles as both a hover background (fine on
+       dark backgrounds, since it always sits under light button text)
+       and a hover *text* color (contact links, "expand all", account
+       page, etc). The light-mode value is a dark, muted green that
+       reads fine on white but is nearly invisible as plain text on a
+       dark background, so it needs its own brighter value here. */
+    --brand-color-hover: #3ddc57;
     --nav-icons: #8dd188ca;
 
     --shadow-color: rgba(0, 0, 0, 0.6);

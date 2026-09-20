@@ -1038,6 +1038,9 @@ foreach ($protocols as $p) {
         const isOpen = panel.classList.toggle('active');
         trigger.classList.toggle('open', isOpen);
         trigger.setAttribute('aria-expanded', isOpen);
+        if (isOpen) {
+            positionEdgeAwareDropdown(panel.closest('.filter-wrapper, .sort-wrapper'), panel);
+        }
     }
 
     function closeDropdown(trigger, panel) {

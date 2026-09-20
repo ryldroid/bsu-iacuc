@@ -152,7 +152,8 @@ h2 {
 
 .faq-toggle-all:hover {
     /* background-color: var(--brand-color, currentColor); */
-    color: var(--brand-color, currentColor);
+    /* color: var(--brand-color, currentColor); */
+    color: var(--brand-text);
     text-decoration: underline;
     background: none;
 }
@@ -874,5 +875,9 @@ h2 {
     .faq-toggle-all {
         font-size: 0.8em;
         padding: 5px 12px;
+    }
+
+    .underlined.see_all {
+        padding: 0 6px;
     }
 }

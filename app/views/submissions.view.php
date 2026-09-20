@@ -691,6 +691,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
         const isOpen = panel.classList.toggle('active');
         trigger.classList.toggle('open', isOpen);
         trigger.setAttribute('aria-expanded', isOpen);
+        if (isOpen) {
+            positionEdgeAwareDropdown(panel.closest('.filter-wrapper, .sort-wrapper'), panel);
+        }
     }
 
     function closeDropdown(trigger, panel) {

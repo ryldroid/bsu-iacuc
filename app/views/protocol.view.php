@@ -941,6 +941,10 @@ include 'includes/header.php';
         const isOpen = titleHistoryMenu.classList.toggle('open');
         titleHistoryTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 
+        if (isOpen) {
+            positionEdgeAwareDropdown(titleHistorySwitcher, titleHistoryMenu);
+        }
+
         if (isOpen && titleHistoryTrigger.classList.contains('has-update')) {
             titleHistoryTrigger.classList.remove('has-update');
             fetch(ROOT_URL + '/apply/mark_title_seen', {
