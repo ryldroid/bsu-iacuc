@@ -188,6 +188,35 @@ class Personnel extends Controller
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
+    public function records_file(int $recordId = 0): void
+    {
+        $this->requirePersonnel();
+
+        if ($recordId < 1) {
+            $this->renderError(400, 'Missing Record ID', [
+                'No record was specified.',
+            ]);
+        }
+
+        $record = (new RecordModel())->getById($recordId);
+
+        if (!$record || empty($record['file_path'])) {
+            $this->renderError(404, 'File Not Found', [
+                'The file you are looking for does not exist or may have been removed.',
+            ]);
+        }
+
+        $filePath = dirname(__DIR__, 2) . '/storage/uploads/records/' . $record['file_path'];
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            $this->renderError(404, 'File Not Found', [
+                'The file could not be found on the server.',
+            ]);
+        }
+
+        $this->streamFile($filePath, $record['file_original_name'] ?: basename($filePath), isset($_GET['download']));
+    }
+
     public function records_add(): void
     {
         $this->requireStaff(true);

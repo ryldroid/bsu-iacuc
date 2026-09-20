@@ -1096,18 +1096,21 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
-    // ===== ACCOUNT DELETION (hard purge) =====
+    // ===== ACCOUNT DELETION (reversible) =====
 
     /**
-     * Permanently removes every protocol belonging to a user, their uploaded
-     * files on disk, and all related child rows (versions, title history,
-     * payment rejections, annotations, return reasons). Used when a user
-     * deletes their account, as opposed to the reversible soft-delete used
-     * elsewhere (deleted_at).
+     * Soft-deletes every not-already-deleted protocol belonging to a user,
+     * via the same reversible softDelete() used elsewhere (deleted_at).
+     * Files, versions, and child rows are left untouched: IACUC retention
+     * requirements (9 CFR 2.35(f), PHS Policy IV.E) apply to proposed
+     * activities regardless of outcome, so protocol records must survive
+     * the researcher's account being deleted. Submitter identity on these
+     * records already resolves live through the (now anonymized) users
+     * row, so nothing here re-exposes PII.
      */
-    public function purgeAllForUser(int $userId): bool
+    public function softDeleteAllForUser(int $userId, string $actorName, string $reason = 'Account deleted by owner'): bool
     {
-        $stmt = $this->connection->prepare("SELECT id FROM `protocols` WHERE user_id = ?");
+        $stmt = $this->connection->prepare("SELECT id FROM `protocols` WHERE user_id = ? AND deleted_at IS NULL");
         if (! $stmt) {
             return false;
         }
@@ -1115,50 +1118,11 @@ class ProtocolModel extends Model
         $stmt->execute();
         $protocolIds = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id');
 
-        if (empty($protocolIds)) {
-            return true;
-        }
-
-        $storageBase = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
-
+        $ok = true;
         foreach ($protocolIds as $protocolId) {
-            $dir = $storageBase . $protocolId . '/';
-            if (is_dir($dir)) {
-                $this->rrmdir($dir);
-            }
+            $ok = $this->softDelete((int) $protocolId, $userId, $actorName, $reason) && $ok;
         }
-
-        $placeholders = implode(',', array_fill(0, count($protocolIds), '?'));
-        $types        = str_repeat('i', count($protocolIds));
-
-        $childTables = [
-            'protocol_versions',
-            'protocol_title_history',
-            'payment_proof_rejections',
-            'annotations',
-            'protocol_return_reasons',
-        ];
-        foreach ($childTables as $table) {
-            $stmt = $this->connection->prepare("DELETE FROM `$table` WHERE protocol_id IN ($placeholders)");
-            if ($stmt) {
-                $stmt->bind_param($types, ...$protocolIds);
-                $stmt->execute();
-            }
-        }
-
-        // Clearance pool screenshots are a shared pool; just detach rather than delete the pool item itself.
-        $stmt = $this->connection->prepare("UPDATE `clearance_pool` SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL, version_id = NULL WHERE protocol_id IN ($placeholders)");
-        if ($stmt) {
-            $stmt->bind_param($types, ...$protocolIds);
-            $stmt->execute();
-        }
-
-        $stmt = $this->connection->prepare("DELETE FROM `protocols` WHERE id IN ($placeholders)");
-        if (! $stmt) {
-            return false;
-        }
-        $stmt->bind_param($types, ...$protocolIds);
-        return $stmt->execute();
+        return $ok;
     }
 
     /**
@@ -1179,27 +1143,5 @@ class ProtocolModel extends Model
         $stmt->bind_param('i', $userId);
         $stmt->execute();
         return (bool) $stmt->get_result()->fetch_row();
-    }
-
-    private function rrmdir(string $dir): void
-    {
-        $items = @scandir($dir);
-        if ($items === false) {
-            return;
-        }
-
-        foreach ($items as $item) {
-            if ($item === '.' || $item === '..') {
-                continue;
-            }
-            $path = $dir . $item;
-            if (is_dir($path)) {
-                $this->rrmdir($path);
-            } else {
-                @unlink($path);
-            }
-        }
-
-        @rmdir($dir);
     }
 }

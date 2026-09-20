@@ -46,8 +46,8 @@ $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '';
-$showActions = $role === 'staff';
-$colCount    = $showActions ? 14 : 13;
+$isStaff = $role === 'staff';
+$colCount = 14;
 
 $pieColors = ['#2f6f4e', '#5b9c78', '#8bc4a3', '#c9a227', '#b5651d', '#6d597a', '#457b9d', '#9d9d9d'];
 
@@ -167,13 +167,13 @@ function formatDurationRange(?string $start, ?string $end): string
 
             <a class="row-btn records-export-btn"
                 href="<?= ROOT ?>/personnel/records_export?<?= http_build_query(array_filter([
-                                                            'search' => $search,
-                                                            'school' => $school,
-                                                            'animal' => $animalType,
-                                                            'sex' => $sex,
-                                                            'rtype'  => $researcherType,
-                                                            'sort'   => $sort !== 'newest' ? $sort : '',
-                                                        ])) ?>">
+                                                                'search' => $search,
+                                                                'school' => $school,
+                                                                'animal' => $animalType,
+                                                                'sex' => $sex,
+                                                                'rtype'  => $researcherType,
+                                                                'sort'   => $sort !== 'newest' ? $sort : '',
+                                                            ])) ?>">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#download-icon">
                 </svg>
@@ -416,13 +416,11 @@ function formatDurationRange(?string $start, ?string $end): string
         <!-- ===== Table ===== -->
         <div class="protocol-table-wrap records-table-wrap">
             <div class="protocol-table-scroll">
-                <table class="protocol-table records-table <?= $showActions ? '' : 'no-actions-col' ?>">
+                <table class="protocol-table records-table">
                     <thead>
                         <tr>
                             <!-- ACTION BUTTONS column -->
-                            <?php if ($showActions): ?>
-                                <th class="col-actions">Actions</th>
-                            <?php endif; ?>
+                            <th class="col-actions">Actions</th>
                             <th class="col-ref">IPN</th>
                             <th class="col-title">Title of Research</th>
                             <th class="col-school">School</th>
@@ -455,9 +453,19 @@ function formatDurationRange(?string $start, ?string $end): string
                             <?php foreach ($records as $i => $r): ?>
                                 <tr>
                                     <!-- ACTION BUTTONS -->
-                                    <?php if ($showActions): ?>
-                                        <td class="actions-cell">
-                                            <div class="row-actions">
+                                    <td class="actions-cell">
+                                        <div class="row-actions">
+                                            <?php if (!empty($r['file_path'])): ?>
+                                                <a class="row-btn view-record-btn"
+                                                    href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>"
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    aria-label="View protocol file">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                        <use href="#eye-icon">
+                                                    </svg>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ($isStaff): ?>
                                                 <button type="button" class="row-btn delete-record-btn"
                                                     data-id="<?= (int)$r['id'] ?>"
                                                     data-title="<?= htmlspecialchars(mb_substr($r['title_of_research'], 0, 60), ENT_QUOTES) ?>"
@@ -474,9 +482,9 @@ function formatDurationRange(?string $start, ?string $end): string
                                                         <use href="#edit-icon">
                                                     </svg>
                                                 </button>
-                                            </div>
-                                        </td>
-                                    <?php endif; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
                                     <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no']) ?></td>
                                     <td>
                                         <div class="protocol-title-cell">

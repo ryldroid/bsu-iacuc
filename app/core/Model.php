@@ -120,6 +120,8 @@ class Model
         $this->ensureIndex('records', 'idx_records_user_id', "(`user_id`)");
         $this->ensureColumn('records', 'protocol_id', "int(11) DEFAULT NULL AFTER `user_id`");
         $this->ensureIndex('records', 'idx_records_protocol_id', "(`protocol_id`)");
+        $this->ensureColumn('records', 'file_path', "varchar(255) DEFAULT NULL");
+        $this->ensureColumn('records', 'file_original_name', "varchar(255) DEFAULT NULL");
         $this->backfillRecordProtocolLinks();
         $this->migrateAdminRoleToStaff();
 

@@ -500,9 +500,11 @@ class Users extends Controller
     require_once dirname(__DIR__) . '/models/ProtocolModel.php';
     require_once dirname(__DIR__) . '/models/DraftModel.php';
 
-    // Permanently remove protocols, versions, and submitted files before
-    // anonymizing the account itself, so username/email become reusable.
-    (new ProtocolModel())->purgeAllForUser($id);
+    // Soft-delete the user's protocols (reversible, files/versions kept) before
+    // anonymizing the account itself. Protocol records must survive account
+    // deletion per IACUC retention requirements; only the account's own PII
+    // gets scrubbed below, via deleteUser()'s username/email anonymization.
+    (new ProtocolModel())->softDeleteAllForUser($id, $username, 'Account deleted by owner');
 
     (new DraftModel())->clear($id);
     $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';

@@ -41,6 +41,32 @@ class Controller
     ];
   }
 
+  protected function streamFile(string $filePath, string $displayName, bool $forceDownload = false): void
+  {
+    $finfo    = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($filePath);
+
+    $normalize = [
+      'image/x-png' => 'image/png',
+      'image/pjpeg' => 'image/jpeg',
+    ];
+    $mimeType = $normalize[$mimeType] ?? $mimeType;
+
+    if (!in_array($mimeType, ['application/pdf', 'image/jpeg', 'image/png'], true)) {
+      $this->jsonError(403, 'File type not permitted.');
+    }
+
+    $disposition = $forceDownload ? 'attachment' : 'inline';
+
+    header('Content-Type: ' . $mimeType);
+    header('Content-Disposition: ' . $disposition . '; filename="' . addslashes($displayName) . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+    readfile($filePath);
+    exit;
+  }
+
   protected function jsonError(int $code, string $message): void
   {
     http_response_code($code);

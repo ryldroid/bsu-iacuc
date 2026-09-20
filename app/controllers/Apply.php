@@ -489,32 +489,6 @@ class Apply extends Controller
         return move_uploaded_file($file['tmp_name'], $dest) ? [$dest, $cleanOriginal] : false;
     }
 
-    private function streamFile(string $filePath, string $displayName, bool $forceDownload = false): void
-    {
-        $finfo    = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($filePath);
-
-        $normalize = [
-            'image/x-png' => 'image/png',
-            'image/pjpeg' => 'image/jpeg',
-        ];
-        $mimeType = $normalize[$mimeType] ?? $mimeType;
-
-        if (!in_array($mimeType, ['application/pdf', 'image/jpeg', 'image/png'], true)) {
-            $this->jsonError(403, 'File type not permitted.');
-        }
-
-        $disposition = $forceDownload ? 'attachment' : 'inline';
-
-        header('Content-Type: ' . $mimeType);
-        header('Content-Disposition: ' . $disposition . '; filename="' . addslashes($displayName) . '"');
-        header('Content-Length: ' . filesize($filePath));
-        header('Cache-Control: private, no-store');
-        header('X-Content-Type-Options: nosniff');
-        readfile($filePath);
-        exit;
-    }
-
     // ===== UPLOAD FORM  (GET /apply) =====
 
     public function index(): void
@@ -1381,7 +1355,33 @@ class Apply extends Controller
                 $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
                 $school = $protocol['submitter_school'] ?? '';
                 $sex = $protocol['submitter_sex'] ?? null;
-                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, null, $protocolId, $sex);
+
+                $recordFilePath   = null;
+                $recordFileOriginal = null;
+                $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
+                error_log('DIAG records-link: protocolId=' . $protocolId . ' latestVersion=' . var_export($latestProtocolVersion, true));
+                if ($latestProtocolVersion) {
+                    $source = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $latestProtocolVersion['file_path'];
+                    $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
+                    error_log('DIAG records-link: source=' . $source . ' is_file=' . (is_file($source) ? '1' : '0') . ' recordsDir=' . $recordsDir);
+                    if (!is_dir($recordsDir)) {
+                        $mkdirOk = mkdir($recordsDir, 0750, true);
+                        error_log('DIAG records-link: mkdir result=' . ($mkdirOk ? '1' : '0'));
+                    }
+                    $ext  = pathinfo($latestProtocolVersion['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
+                    $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
+                    $destination = $recordsDir . $safeName;
+
+                    if (is_file($source) && link($source, $destination)) {
+                        $recordFilePath = $safeName;
+                        $recordFileOriginal = $latestProtocolVersion['original_name'] ?: basename($source);
+                        error_log('DIAG records-link: link succeeded, destination=' . $destination);
+                    } else {
+                        error_log("Failed to hard-link protocol file for record snapshot (protocol #$protocolId).");
+                    }
+                }
+
+                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, null, $protocolId, $sex, $recordFilePath, $recordFileOriginal);
             }
 
             $flashMessages = [

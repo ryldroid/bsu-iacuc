@@ -423,7 +423,7 @@
 }
 
 .records-table .col-actions {
-  width: 140px;
+  min-width: 140px;
   white-space: nowrap;
 }
 
@@ -530,11 +530,6 @@
   color: var(--brand-text);
 }
 
-.records-table.no-actions-col thead .col-ref,
-.records-table.no-actions-col .records-ref {
-  left: 0;
-}
-
 .records-table tbody tr:nth-child(even) .records-ref {
   background-color: var(--divider-color-subtle);
   background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
@@ -549,12 +544,15 @@
 
 .records-table .row-actions {
   display: flex;
+  justify-content: center;
   gap: 6px;
 }
 
 .records-table .row-actions .row-btn {
   padding: 6px 10px;
+  font: inherit;
   font-size: .78em;
+  line-height: 1;
   border: 1px solid var(--divider-color);
   border-radius: var(--radius);
   box-shadow: none;
@@ -564,6 +562,7 @@
   display: flex;
   align-items: center;
   gap: .3em;
+  margin-top: 0;
 }
 
 .records-table .row-actions .row-btn:hover {

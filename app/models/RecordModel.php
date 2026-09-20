@@ -407,7 +407,7 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
-  public function insertFromProtocol(string $refNo, string $title, string $pi, string $school = '', ?int $userId = null, ?int $protocolId = null, ?string $sex = null): bool
+  public function insertFromProtocol(string $refNo, string $title, string $pi, string $school = '', ?int $userId = null, ?int $protocolId = null, ?string $sex = null, ?string $filePath = null, ?string $fileOriginalName = null): bool
   {
     if ($refNo !== '' && $this->refExists($refNo)) {
       return false;
@@ -416,11 +416,11 @@ class RecordModel extends Model
     $refNoOrNull = $refNo !== '' ? $refNo : null;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, user_id, protocol_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, user_id, protocol_id, file_path, file_original_name)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     if (! $stmt) return false;
-    $stmt->bind_param('sssssii', $refNoOrNull, $title, $pi, $school, $sex, $userId, $protocolId);
+    $stmt->bind_param('sssssiiss', $refNoOrNull, $title, $pi, $school, $sex, $userId, $protocolId, $filePath, $fileOriginalName);
     return $stmt->execute();
   }
 
