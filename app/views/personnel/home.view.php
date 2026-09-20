@@ -4,7 +4,7 @@
 /** @var array       $protocols */
 /** @var array       $statuses */
 
-$title = 'Staff Dashboard';
+$title = 'Personnel Dashboard';
 
 include dirname(__DIR__) . '/includes/header.php';
 include dirname(__DIR__) . '/includes/scroll-top.php';
@@ -39,10 +39,10 @@ $filterSlugMap = [
 ];
 
 // ===== Status metadata: color + icon + role-aware plain-language description =====
-$staffRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'admin';
+$personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
-    'admin' => [
+    'staff' => [
         'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "The reviewer has finished the assessment. Confirm payment and upload the scan with the IACUC Chair's sign to move it to Endorsed.",
@@ -52,8 +52,8 @@ $statusDescByRole = [
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "You have finished the assessment. No action required. The admin will now verify payments and upload the scan with the IACUC Chair's sign.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances through the Clearance Pool. An admin will sort and release them to the researchers.',
+        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments and upload the scan with the IACUC Chair's sign.",
+        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances through the Clearance Pool. Administrative staff will sort and release them to the researchers.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
 ];
@@ -63,31 +63,31 @@ $statusMeta = [
         'label' => 'To Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => $statusDescByRole[$staffRole]['to-review'],
+        'desc'  => $statusDescByRole[$personnelRole]['to-review'],
     ],
     'returned-for-revision' => [
         'label' => 'Returned for Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => $statusDescByRole[$staffRole]['returned-for-revision'],
+        'desc'  => $statusDescByRole[$personnelRole]['returned-for-revision'],
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => $statusDescByRole[$staffRole]['reviewed'],
+        'desc'  => $statusDescByRole[$personnelRole]['reviewed'],
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => $statusDescByRole[$staffRole]['endorsed'],
+        'desc'  => $statusDescByRole[$personnelRole]['endorsed'],
     ],
     'approved' => [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => $statusDescByRole[$staffRole]['approved'],
+        'desc'  => $statusDescByRole[$personnelRole]['approved'],
     ],
 ];
 
@@ -169,7 +169,7 @@ foreach ($protocols as $p) {
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
 <script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
 
@@ -373,7 +373,7 @@ foreach ($protocols as $p) {
             <!-- ===== Status guide (shows description for the active filter) ===== -->
             <div class="status-guide" id="statusGuide"></div>
 
-            <?php if (($user['role'] ?? '') === 'admin'): ?>
+            <?php if (($user['role'] ?? '') === 'staff'): ?>
                 <!-- ===== Bulk actions: apply to every matching protocol in the current tab, not just one row ===== -->
                 <div class="bulk-actions-bar" id="bulkActionsBar" hidden>
                     <a class="row-btn row-btn-primary" id="downloadAllPaidBtn" hidden
@@ -385,7 +385,7 @@ foreach ($protocols as $p) {
                     </a>
 
                     <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
-                        href="<?= ROOT ?>/admin/clearances" title="Sort and attach uploaded clearances for every endorsed protocol">
+                        href="<?= ROOT ?>/personnel/clearances" title="Sort and attach uploaded clearances for every endorsed protocol">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
                         </svg>
@@ -418,7 +418,7 @@ foreach ($protocols as $p) {
             <?php if (($user['role'] ?? '') === 'reviewer'): ?>
                 <div class="bulk-actions-bar" id="bulkActionsBar">
                     <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
-                        href="<?= ROOT ?>/admin/reviewer_clearances" title="Upload Animal Research Clearances">
+                        href="<?= ROOT ?>/personnel/reviewer_clearances" title="Upload Animal Research Clearances">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
                         </svg>
@@ -705,7 +705,7 @@ foreach ($protocols as $p) {
                         }
                     }
                 ?>
-                    <?php $canEndorse = $userRole === 'admin' && $statusLower === 'reviewed' && $paymentStatus === 'paid' && $hasSignedScan; ?>
+                    <?php $canEndorse = $userRole === 'staff' && $statusLower === 'reviewed' && $paymentStatus === 'paid' && $hasSignedScan; ?>
                     <div class="protocol"
                         data-protocol-id="<?= $protocolId ?>"
                         data-filter-slug="<?= $filterSlug ?>"
@@ -713,7 +713,7 @@ foreach ($protocols as $p) {
                         data-submitted="<?= htmlspecialchars(date('c', strtotime($protocol['submitted_at'])), ENT_QUOTES, 'UTF-8') ?>"
                         data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
-                        <?php if ($userRole === 'admin' && $statusLower === 'reviewed'): ?>
+                        <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
                             <label class="protocol-select-label" title="<?= $canEndorse ? 'Select this protocol' : 'Not eligible for endorsement yet' ?>">
                                 <input type="checkbox" class="consent-checkbox protocol-select-checkbox"
                                     aria-label="Select protocol for bulk endorsement"
@@ -741,7 +741,7 @@ foreach ($protocols as $p) {
                             </div>
 
                             <div class="actions">
-                                <?php if ($userRole === 'admin' && $statusLower === 'reviewed' && !empty($protocol['latest_protocol_version_id'])): ?>
+                                <?php if ($userRole === 'staff' && $statusLower === 'reviewed' && !empty($protocol['latest_protocol_version_id'])): ?>
                                     <a class="quick-download-btn"
                                         href="<?= ROOT ?>/apply/file/<?= (int) $protocol['latest_protocol_version_id'] ?>?download=1"
                                         title="Download protocol PDF" aria-label="Download protocol PDF">
@@ -1720,7 +1720,7 @@ foreach ($protocols as $p) {
             return;
         }
 
-        fetch(ROOT_URL + '/admin/researcher_details?id=' + encodeURIComponent(userId))
+        fetch(ROOT_URL + '/personnel/researcher_details?id=' + encodeURIComponent(userId))
             .then(r => r.json())
             .then(data => {
                 if (!data.ok) {
@@ -1838,7 +1838,7 @@ foreach ($protocols as $p) {
     });
 </script>
 
-<!-- ===== Upload Signed Scan modal (admin only) ===== -->
+<!-- ===== Upload Signed Scan modal (administrative staff only) ===== -->
 <div class="modal-backdrop" id="signedScanModalBackdrop">
     <div class="modal-card">
         <h2>Upload Signed Scan</h2>
@@ -1966,7 +1966,7 @@ foreach ($protocols as $p) {
     }
 </script>
 
-<!-- ===== Verify Payment modal (admin only): shows the proof image (if any), then Approve / Reject ===== -->
+<!-- ===== Verify Payment modal (administrative staff only): shows the proof image (if any), then Approve / Reject ===== -->
 <div class="modal-backdrop" id="reviewPaymentModalBackdrop">
     <div class="modal-card file-popup-card review-payment-card">
         <div class="file-popup-header">

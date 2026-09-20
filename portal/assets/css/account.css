@@ -300,14 +300,14 @@ main button:hover {
     margin: .5em auto .1em;
 }
 
-.staff-login-link {
+.personnel-login-link {
     position: fixed;
     bottom: 20px;
     right: 25px;
     color: var(--text-on-image);
 }
 
-.staff-login-link a.underlined {
+.personnel-login-link a.underlined {
     color: var(--brand-color-light);
 }
 
@@ -496,13 +496,13 @@ main button:hover {
         width: 100%;
     }
 
-    .staff-login-link {
+    .personnel-login-link {
         position: static;
         margin-top: 1.5em;
         color: inherit;
     }
 
-    .staff-login-link a.underlined {
+    .personnel-login-link a.underlined {
         color: var(--brand-text);
     }
 

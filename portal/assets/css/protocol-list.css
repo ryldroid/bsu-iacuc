@@ -1,7 +1,7 @@
 /* ===== PROTOCOL LIST:  protocol-list.css =====
-   Shared by the admin Protocol Inbox (admin/home_view.php) and the
+   Shared by the personnel Protocol Inbox (personnel/home.view.php) and the
    researcher My Protocols page (submissions_view.php). Anything specific
-   to only one of those pages stays in admin-home.css / submissions.css. */
+   to only one of those pages stays in personnel-home.css / submissions.css. */
 
 /* ===== Mobile dropdown triggers (filter + sort) ===== */
 .mobile-dropdown-trigger {

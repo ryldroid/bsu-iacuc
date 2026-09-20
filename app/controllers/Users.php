@@ -107,7 +107,7 @@ class Users extends Controller
       }
     }
 
-    $valid_roles = ['researcher', 'admin', 'reviewer'];
+    $valid_roles = ['researcher', 'staff', 'reviewer'];
     if (!in_array($role, $valid_roles)) {
       $errors[] = 'Please select a valid role.';
     }
@@ -406,7 +406,7 @@ class Users extends Controller
     if ($current_user['role'] === 'researcher') {
       $role = $current_user['role'];
     } else {
-      $role = in_array($role, ['admin', 'reviewer']) ? $role : $current_user['role'];
+      $role = in_array($role, ['staff', 'reviewer']) ? $role : $current_user['role'];
     }
 
     $school = trim($school ?? '');
@@ -567,7 +567,7 @@ class Users extends Controller
 
       session_destroy();
       session_start();
-      $_SESSION['flash_success'] = 'Your account has been deactivated. Submissions have been hidden from the staff. Log in again at any time to reactivate.';
+      $_SESSION['flash_success'] = 'Your account has been deactivated. Submissions have been hidden from personnel. Log in again at any time to reactivate.';
     } else {
       $_SESSION['flash_error'] = 'Deactivation failed. Please try again.';
     }

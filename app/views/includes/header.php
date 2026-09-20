@@ -56,7 +56,7 @@ $hideHeader     = $hideHeader     ?? false;
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
-      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['admin', 'reviewer'], true) ? 'admin/login' : 'users/login') ?>;
+      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'users/login') ?>;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
@@ -139,8 +139,8 @@ $hideHeader     = $hideHeader     ?? false;
 
               <?php if ($role === 'researcher'): ?>
                 <form method="POST" action="<?= ROOT ?>/users/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
-                <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
-                  <form method="POST" action="<?= ROOT ?>/admin/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
+                <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
+                  <form method="POST" action="<?= ROOT ?>/personnel/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                   <?php endif; ?>
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                   <button type="submit" class="btn-header-logout">
@@ -193,24 +193,24 @@ $hideHeader     = $hideHeader     ?? false;
           </ul>
         </nav>
 
-        <!-- STAFF (ADMIN / REVIEWER) MOBILE NAVIGATION -->
-      <?php elseif ($role === 'admin' || $role === 'reviewer'): ?>
+        <!-- PERSONNEL (STAFF / REVIEWER) MOBILE NAVIGATION -->
+      <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
         <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
           <ul class="nav-sidebar" id="nav-sidebar" inert>
-            <li><a href="<?= ROOT ?>/admin/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <li><a href="<?= ROOT ?>/personnel/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#home-icon" />
                 </svg><span>Dashboard</span></a></li>
-            <li><a href="<?= ROOT ?>/admin/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <li><a href="<?= ROOT ?>/personnel/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#protocols-icon" />
                 </svg><span>Records</span></a></li>
-            <?php if ($role === 'admin'): ?>
-              <li><a href="<?= ROOT ?>/admin/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <?php if ($role === 'staff'): ?>
+              <li><a href="<?= ROOT ?>/personnel/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#clearance-icon" />
                   </svg><span>Clearance Pool</span></a></li>
-              <li><a href="<?= ROOT ?>/admin/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <li><a href="<?= ROOT ?>/personnel/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#announcement-icon" />
                   </svg><span>Announcements</span></a></li>
-              <li><a href="<?= ROOT ?>/admin/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#accounts-icon" />
                   </svg><span>Manage Accounts</span></a></li>
             <?php endif; ?>

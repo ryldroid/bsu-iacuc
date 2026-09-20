@@ -1,6 +1,6 @@
 <?php
 
-class Admin extends Controller
+class Personnel extends Controller
 {
     public UserModel $model;
 
@@ -13,27 +13,27 @@ class Admin extends Controller
         $this->model = new UserModel();
     }
 
-    private function requireAdmin(bool $ajax = false): void
+    private function requireStaff(bool $ajax = false): void
     {
-        $this->requireStaff($ajax);
-        if ($_SESSION['user']['role'] !== 'admin') {
+        $this->requirePersonnel($ajax);
+        if ($_SESSION['user']['role'] !== 'staff') {
             $ajax
-                ? $this->jsonError(403, 'Admin access required.')
-                : $this->redirect('admin/home');
+                ? $this->jsonError(403, 'Administrative staff access required.')
+                : $this->redirect('personnel/home');
         }
     }
 
-    private function requireStaff(bool $ajax = false): void
+    private function requirePersonnel(bool $ajax = false): void
     {
         if (!$this->isLoggedIn()) {
             $ajax
                 ? $this->jsonError(401, 'Your session has expired. Please log in again.')
-                : $this->redirect('admin/login');
+                : $this->redirect('personnel/login');
         }
-        if (!in_array($_SESSION['user']['role'] ?? '', ['admin', 'reviewer'])) {
+        if (!in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'])) {
             $ajax
                 ? $this->jsonError(401, 'Your session has expired. Please log in again.')
-                : $this->redirect('admin/login');
+                : $this->redirect('personnel/login');
         }
     }
 
@@ -47,7 +47,7 @@ class Admin extends Controller
 
     public function home(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         (new RecordModel())->runExpiryDeactivationSweep();
 
@@ -59,19 +59,19 @@ class Admin extends Controller
         $activityTimestamps = array_column($protocols, 'last_activity_at');
         $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
 
-        $this->view('admin/home', [
+        $this->view('personnel/home', [
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'protocols'       => $protocols,
             'statuses'        => $statuses,
-            'updatesEndpoint' => 'admin/checkupdates',
+            'updatesEndpoint' => 'personnel/checkupdates',
             'updatesBaseline' => $updatesBaseline,
         ]);
     }
 
     public function checkupdates(): void
     {
-        $this->requireStaff(true);
+        $this->requirePersonnel(true);
         header('Content-Type: application/json');
 
         $model = new ProtocolModel();
@@ -81,7 +81,7 @@ class Admin extends Controller
 
     public function researcher_details(): void
     {
-        $this->requireStaff(true);
+        $this->requirePersonnel(true);
         header('Content-Type: application/json');
 
         $id   = (int) ($_GET['id'] ?? 0);
@@ -121,9 +121,9 @@ class Admin extends Controller
 
     public function clearances(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
 
-        $this->view('admin/clearances', [
+        $this->view('personnel/clearances', [
             'user' => $_SESSION['user'],
             'csrf' => $this->generateCsrfToken(),
         ]);
@@ -131,12 +131,12 @@ class Admin extends Controller
 
     public function reviewer_clearances(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
         if ($_SESSION['user']['role'] !== 'reviewer') {
-            $this->redirect('admin/home');
+            $this->redirect('personnel/home');
         }
 
-        $this->view('admin/reviewer-clearances', [
+        $this->view('personnel/reviewer-clearances', [
             'user' => $_SESSION['user'],
             'csrf' => $this->generateCsrfToken(),
         ]);
@@ -144,7 +144,7 @@ class Admin extends Controller
 
     public function records(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         $model = new RecordModel();
         $model->runExpiryDeactivationSweep();
@@ -163,7 +163,7 @@ class Admin extends Controller
         $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset);
         $totalPages = (int) ceil($total / $perPage);
 
-        $this->view('admin/records', [
+        $this->view('personnel/records', [
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'records'         => $records,
@@ -190,7 +190,7 @@ class Admin extends Controller
 
     public function records_add(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
@@ -219,7 +219,7 @@ class Admin extends Controller
 
     public function records_get(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         header('Content-Type: application/json');
 
         $model = new RecordModel();
@@ -236,7 +236,7 @@ class Admin extends Controller
 
     public function records_edit(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
@@ -271,7 +271,7 @@ class Admin extends Controller
 
     public function records_delete(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
@@ -298,7 +298,7 @@ class Admin extends Controller
 
     public function records_export(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         $model          = new RecordModel();
         $search         = trim($_GET['search'] ?? '');
@@ -508,12 +508,12 @@ class Admin extends Controller
 
     public function announcements(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
 
         require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
         $model = new AnnouncementModel();
 
-        $this->view('admin/announcements', [
+        $this->view('personnel/announcements', [
             'user'          => $_SESSION['user'],
             'role'          => $_SESSION['user']['role'] ?? '',
             'csrf'          => $this->generateCsrfToken(),
@@ -523,7 +523,7 @@ class Admin extends Controller
 
     public function accounts(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         $auditDateRange = $this->model->getAuditLogDateRange();
 
@@ -533,10 +533,10 @@ class Admin extends Controller
         $defaultFrom = $auditDateRange['earliest'] ? max($ninetyAgo, $auditDateRange['earliest']) : $ninetyAgo;
         $defaultFrom = min($defaultFrom, $defaultTo);
 
-        $this->view('admin/accounts', [
+        $this->view('personnel/accounts', [
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
-            'pending'        => $_SESSION['user']['role'] === 'admin' ? $this->model->getPendingUsers() : [],
+            'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ]);
@@ -547,10 +547,10 @@ class Admin extends Controller
         ini_set('display_errors', '1');
         error_reporting(E_ALL);
 
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/accounts');
+            $this->redirect('personnel/accounts');
         }
 
         $this->verifyCsrfToken(false);
@@ -566,7 +566,7 @@ class Admin extends Controller
 
             if ($fromDate === null || $toDate === null) {
                 $_SESSION['flash_error'] = 'Please select both a from and to date, or choose to export the full history.';
-                $this->redirect('admin/accounts');
+                $this->redirect('personnel/accounts');
             }
         }
 
@@ -710,10 +710,10 @@ class Admin extends Controller
     {
         if ($this->isLoggedIn()) {
             $role = $_SESSION['user']['role'] ?? '';
-            $this->redirect(in_array($role, ['admin', 'reviewer']) ? 'admin/home' : 'submissions');
+            $this->redirect(in_array($role, ['staff', 'reviewer']) ? 'personnel/home' : 'submissions');
         }
 
-        $this->view('admin/login', [
+        $this->view('personnel/login', [
             'csrf'  => $this->generateCsrfToken(),
             'error' => $_SESSION['flash_error'] ?? '',
         ]);
@@ -723,7 +723,7 @@ class Admin extends Controller
     public function login_process(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
         $this->verifyCsrfToken(true);
@@ -741,12 +741,12 @@ class Admin extends Controller
         ) {
             $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
             $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
         if (empty($input) || empty($password)) {
             $_SESSION['flash_error'] = 'Please fill in all fields.';
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
         $user = $this->model->getUserByUsername($input) ?? $this->model->getUserByEmail($input);
@@ -754,27 +754,27 @@ class Admin extends Controller
         if (!$user) {
             $this->model->recordLoginAttempt($ip);
             $this->model->recordLoginAttempt($input);
-            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed admin login attempt');
+            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
             $_SESSION['flash_error'] = 'No account found with that username or email.';
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
-        if (!in_array($user['role'], ['admin', 'reviewer'])) {
-            $_SESSION['flash_error'] = 'This portal is for staff only.';
-            $this->redirect('admin/login');
+        if (!in_array($user['role'], ['staff', 'reviewer'])) {
+            $_SESSION['flash_error'] = 'This portal is for CCARD personnel only.';
+            $this->redirect('personnel/login');
         }
 
         if (($user['status'] ?? 'active') === 'pending') {
-            $_SESSION['flash_error'] = 'Your account is pending admin approval.';
-            $this->redirect('admin/login');
+            $_SESSION['flash_error'] = 'Your account is pending administrative staff approval.';
+            $this->redirect('personnel/login');
         }
 
         if (!password_verify($password, $user['password'])) {
             $this->model->recordLoginAttempt($ip);
             $this->model->recordLoginAttempt($input);
-            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed admin login attempt');
+            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
             $_SESSION['flash_error'] = 'Invalid password. Please try again.';
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
         $this->model->clearLoginAttempts($ip);
@@ -794,22 +794,22 @@ class Admin extends Controller
             $this->model->markWelcomeSeen((int) $user['id']);
         }
 
-        $this->model->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Staff logged in');
-        $this->redirect('admin/home');
+        $this->model->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Personnel logged in');
+        $this->redirect('personnel/home');
     }
 
     public function logout(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/home');
+            $this->redirect('personnel/home');
         }
 
         $actor = $this->actor();
-        $this->model->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Staff logged out');
+        $this->model->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Personnel logged out');
 
         session_destroy();
         session_start();
-        $this->redirect('admin/login');
+        $this->redirect('personnel/login');
     }
 
     private function getValidInvite(string $token): array
@@ -829,7 +829,7 @@ class Admin extends Controller
         $token  = $_GET['token'] ?? '';
         $invite = $this->getValidInvite($token);
 
-        $this->view('admin/register', [
+        $this->view('personnel/register', [
             'csrf'        => $this->generateCsrfToken(),
             'token'       => htmlspecialchars($token),
             'preset_role' => $invite['role'],
@@ -841,7 +841,7 @@ class Admin extends Controller
     public function register_process(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/login');
+            $this->redirect('personnel/login');
         }
 
         $this->verifyCsrfToken();
@@ -899,7 +899,7 @@ class Admin extends Controller
         }
 
         if (!empty($errors)) {
-            $this->view('admin/register', [
+            $this->view('personnel/register', [
                 'csrf'        => $this->generateCsrfToken(),
                 'token'       => htmlspecialchars($token),
                 'preset_role' => $role,
@@ -916,7 +916,7 @@ class Admin extends Controller
             $this->model->consumeInviteToken($token, $newUserId);
             $this->sendEmailVerification(['id' => $newUserId, 'first_name' => $first_name, 'email' => $email]);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
-            $this->view('admin/register', [
+            $this->view('personnel/register', [
                 'csrf'    => $this->generateCsrfToken(),
                 'token'   => htmlspecialchars($token),
                 'errors'  => [],
@@ -924,7 +924,7 @@ class Admin extends Controller
                 'success' => true,
             ]);
         } else {
-            $this->view('admin/register', [
+            $this->view('personnel/register', [
                 'csrf'        => $this->generateCsrfToken(),
                 'token'       => htmlspecialchars($token),
                 'preset_role' => $role,
@@ -936,17 +936,17 @@ class Admin extends Controller
 
     public function generate_invite(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/accounts');
+            $this->redirect('personnel/accounts');
         }
 
         $this->verifyCsrfToken();
 
-        $role = $_POST['invite_role'] ?? 'admin';
-        if (!in_array($role, ['admin', 'reviewer'])) {
-            $role = 'admin';
+        $role = $_POST['invite_role'] ?? 'staff';
+        if (!in_array($role, ['staff', 'reviewer'])) {
+            $role = 'staff';
         }
 
         $token = $this->model->createInviteToken($role, 48);
@@ -954,20 +954,20 @@ class Admin extends Controller
         $actor = $this->actor();
         $this->model->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
 
-        $this->view('admin/accounts', [
+        $this->view('personnel/accounts', [
             'user'        => $_SESSION['user'],
             'csrf'        => $this->generateCsrfToken(),
-            'invite_url'  => ROOT . '/admin/register?token=' . $token,
+            'invite_url'  => ROOT . '/personnel/register?token=' . $token,
             'invite_role' => $role,
         ]);
     }
 
     public function approve(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/accounts');
+            $this->redirect('personnel/accounts');
         }
 
         $this->verifyCsrfToken();
@@ -977,7 +977,7 @@ class Admin extends Controller
             $applicant = $this->model->getUser($id);
             $actor     = $this->actor();
 
-            $this->model->logAudit('user_approved', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Approved staff account: ' . ($applicant['username'] ?? $id));
+            $this->model->logAudit('user_approved', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Approved personnel account: ' . ($applicant['username'] ?? $id));
             $this->model->approveUser($id);
 
             if ($applicant) {
@@ -999,15 +999,15 @@ class Admin extends Controller
         }
 
         $_SESSION['flash_success'] = 'Account approved.';
-        $this->redirect('admin/accounts');
+        $this->redirect('personnel/accounts');
     }
 
     public function reject(): void
     {
-        $this->requireAdmin();
+        $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('admin/accounts');
+            $this->redirect('personnel/accounts');
         }
 
         $this->verifyCsrfToken();
@@ -1017,7 +1017,7 @@ class Admin extends Controller
             $applicant = $this->model->getUser($id);
             $actor     = $this->actor();
 
-            $this->model->logAudit('user_rejected', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Rejected staff account: ' . ($applicant['username'] ?? $id));
+            $this->model->logAudit('user_rejected', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Rejected personnel account: ' . ($applicant['username'] ?? $id));
             $this->model->rejectUser($id);
 
             if ($applicant) {
@@ -1026,17 +1026,17 @@ class Admin extends Controller
         }
 
         $_SESSION['flash_success'] = 'Account rejected and removed.';
-        $this->redirect('admin/accounts');
+        $this->redirect('personnel/accounts');
     }
 
     public function forgot_password(): void
     {
-        $this->handleForgotPassword('admin/forgot_password', 'admin/reset_password', 'admin/login');
+        $this->handleForgotPassword('personnel/forgot_password', 'personnel/reset_password', 'personnel/login');
     }
 
     public function reset_password(): void
     {
-        $this->handleResetPassword('admin/reset_password', 'admin/login');
+        $this->handleResetPassword('personnel/reset_password', 'personnel/login');
     }
 
     private function announcementImageDir(): string
@@ -1140,7 +1140,7 @@ class Admin extends Controller
 
     public function announcements_add(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
@@ -1177,7 +1177,7 @@ class Admin extends Controller
 
     public function announcements_get(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         header('Content-Type: application/json');
 
         require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
@@ -1196,7 +1196,7 @@ class Admin extends Controller
 
     public function announcements_edit(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
@@ -1251,7 +1251,7 @@ class Admin extends Controller
 
     public function announcements_delete(): void
     {
-        $this->requireAdmin(true);
+        $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');

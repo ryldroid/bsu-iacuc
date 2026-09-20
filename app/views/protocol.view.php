@@ -4,8 +4,8 @@
 /** @var array  $version  */
 /** @var bool   $isLatestVersion */
 /** @var string $csrf     */
+/** @var bool   $isPersonnel    */
 /** @var bool   $isStaff    */
-/** @var bool   $isAdmin    */
 /** @var bool   $isReviewer */
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
@@ -21,7 +21,7 @@
 
 $title = htmlspecialchars($protocol['research_title'] ?? 'Protocol', ENT_QUOTES, 'UTF-8');
 
-$roleLabels = ['researcher' => 'Researcher', 'admin' => 'Admin', 'reviewer' => 'Reviewer'];
+$roleLabels = ['researcher' => 'Researcher', 'staff' => 'Staff', 'reviewer' => 'Reviewer'];
 
 $statusLabels = [
     'under review'   => 'Under Review',
@@ -37,11 +37,11 @@ $isLatestVersion = $isLatestVersion ?? true;
 
 $canReview = $isReviewer && $statusKey === 'under review' && $isLatestVersion;
 
-$canResubmit = !$isStaff && $isLatestVersion && $statusKey === 'needs revision';
+$canResubmit = !$isPersonnel && $isLatestVersion && $statusKey === 'needs revision';
 
 $paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
 $paymentMethod     = $protocol['payment_method'] ?? null;
-$canConfirmPayment = !$isStaff && $isLatestVersion && $statusKey === 'reviewed'
+$canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 $isBsuResearcher   = stripos(trim($protocol['submitter_school'] ?? ''), 'Benguet State University') !== false;
 
@@ -54,7 +54,7 @@ $protocolId = (int) $protocol['protocol_id'];
 $versionId  = (int) $version['id'];
 $versionNum = (int) $version['version_number'];
 
-$backUrl = $backUrl ?? ($isStaff ? ROOT . '/admin/home' : ROOT . '/submissions');
+$backUrl = $backUrl ?? ($isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions');
 
 $versions   = $versions ?? [$version];
 $fromFilter = $fromFilter ?? '';
@@ -125,14 +125,14 @@ include 'includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if (!$isAdmin && !empty($protocol['deletion_requested_at'])): ?>
+    <?php if (!$isStaff && !empty($protocol['deletion_requested_at'])): ?>
         <div class="return-reason-bar deletion-request-bar">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#trash-icon" />
             </svg>
             A deletion request is pending for this protocol (requested by
             <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The admin has been notified.
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The administrative staff has been notified.
         </div>
     <?php endif; ?>
 
@@ -248,7 +248,7 @@ include 'includes/header.php';
         </div>
 
         <div class="viewer-topbar-right">
-            <?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
+            <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
                 <button class="tool-btn tool-btn--urgent" type="button" onclick="openDeletionReviewModal()">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#alert-triangle-icon" />
@@ -410,7 +410,7 @@ include 'includes/header.php';
                 </svg>
             </button>
             <div class="annot-sidebar-inner">
-                <?php if (!$isStaff && !empty($reviewerNote) && !empty($reviewerNote['comment'])): ?>
+                <?php if (!$isPersonnel && !empty($reviewerNote) && !empty($reviewerNote['comment'])): ?>
                     <div class="sidebar-reviewer-note">
                         <div class="sidebar-reviewer-note-header">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -651,7 +651,7 @@ include 'includes/header.php';
                 <p class="panel-modal-intro">
                     <?= $canDelete
                         ? 'This will delete the protocol and notify the researcher. Please explain why.'
-                        : 'The admin will be notified of your request along with the reason below.' ?>
+                        : 'Administrative staff will be notified of your request along with the reason below.' ?>
                 </p>
 
                 <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional">(required)</span></label>
@@ -750,7 +750,7 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
+<?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
     <!-- ===== Approve / reject deletion request modal ===== -->
     <div class="modal-backdrop" id="deletionReviewModalBackdrop">
         <div class="modal-card panel-modal-card">
@@ -897,8 +897,8 @@ include 'includes/header.php';
     const FILE_EXT = <?= json_encode(strtolower(pathinfo($version['original_name'] ?? '', PATHINFO_EXTENSION))) ?>;
     const VERSION_ID = <?= $versionId              ?>;
     const PROTOCOL_ID = <?= $protocolId             ?>;
+    const IS_PERSONNEL = <?= $isPersonnel    ? 'true' : 'false' ?>;
     const IS_STAFF = <?= $isStaff    ? 'true' : 'false' ?>;
-    const IS_ADMIN = <?= $isAdmin    ? 'true' : 'false' ?>;
     const IS_REVIEWER = <?= $isReviewer ? 'true' : 'false' ?>;
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;
     const STATUS_KEY = <?= json_encode($statusKey) ?>;
@@ -1744,7 +1744,7 @@ include 'includes/header.php';
                     return;
                 }
                 formData.append('confirm_in_person', '1');
-                confirmMessage = 'Confirm that you have paid the Php 100.00 fee in person? An admin will verify this.';
+                confirmMessage = 'Confirm that you have paid the Php 100.00 fee in person? Administrative staff will verify this.';
             } else {
                 const fileInput = document.getElementById('payment_proof_file');
                 if (!fileInput.files.length) {
@@ -1795,7 +1795,7 @@ include 'includes/header.php';
         }
     <?php endif; ?>
 
-    <?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
+    <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
         // ===== Approve / reject deletion request modal =====
         const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
         const deletionReviewLabel = document.getElementById('deletionReviewLabel');

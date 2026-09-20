@@ -1,5 +1,5 @@
 <?php
-$title = 'Staff Registration';
+$title = 'Personnel Registration';
 
 /** @var array|null $user */
 $first_name = $user['first_name'] ?? '';
@@ -29,7 +29,7 @@ $role = $user['role'] ?? '';
     <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
-    <link rel="stylesheet" href="<?= asset_css('admin/admin.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('personnel/personnel.css') ?>">
 
     <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
     <script src="<?= asset_js('password-strength.js') ?>" defer></script>
@@ -55,11 +55,11 @@ $role = $user['role'] ?? '';
                 </div>
 
             <?php else: ?>
-                <form method="POST" action="<?= ROOT ?>/admin/register_process">
+                <form method="POST" action="<?= ROOT ?>/personnel/register_process">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? ''); ?>">
                     <input type="hidden" name="invite_token" value="<?= htmlspecialchars($token ?? ''); ?>">
 
-                    <h1>Staff Registration</h1>
+                    <h1>Personnel Registration</h1>
 
                     <?php if (!empty($errors)): ?>
                         <div class="error-messages">

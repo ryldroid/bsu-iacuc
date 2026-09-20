@@ -386,7 +386,7 @@ header nav a:hover::after {
     color: var(--text-on-image);
 }
 
-.theme-toggle-wrapper.theme-toggle--staff-login+form h1 {
+.theme-toggle-wrapper.theme-toggle--personnel-login+form h1 {
     margin-top: 44px;
 }
 

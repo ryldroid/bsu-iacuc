@@ -6,7 +6,7 @@ $hideHeaderAuth = true;
 include dirname(__DIR__) . '/includes/header.php';
 
 $current_role = $old['role'] ?? '';
-$is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
+$is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
 
 <!-- PDF.js from CDN -->
@@ -19,7 +19,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
         <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
         <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
 
-        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_staff ? 'admin/home' : 'home' ?>">
+        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_personnel ? 'personnel/home' : 'home' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>
@@ -175,7 +175,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
         <fieldset class="form-actions">
             <legend>Account Actions</legend>
 
-            <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD staff.</p>
+            <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
 
             <form method="POST" action="<?= ROOT ?>/users/delete"
                 data-confirm-message="Are you sure? This cannot be undone."
@@ -194,7 +194,7 @@ $is_staff = in_array($old['role'] ?? '', ['admin', 'reviewer']);
             </form>
 
             <form class="logout-form" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out"
-                action="<?= ROOT ?>/<?= $is_staff ? 'admin/logout' : 'users/logout' ?>" method="POST">
+                action="<?= ROOT ?>/<?= $is_personnel ? 'personnel/logout' : 'users/logout' ?>" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
                 <button type="submit" class="btn-logout">Log Out</button>
             </form>

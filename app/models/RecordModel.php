@@ -524,7 +524,7 @@ class RecordModel extends Model
    * Runs the auto-deactivation sweep: for every user with an expired,
    * linked clearance and no protocols still being processed, deactivate
    * their account (info/files/certificate are kept; see UserModel::deactivateUser).
-   * Cheap to call on every admin page load:  it's a couple of indexed
+   * Cheap to call on every staff page load:  it's a couple of indexed
    * queries and only does work when there's something to deactivate.
    */
   public function runExpiryDeactivationSweep(): int

@@ -46,7 +46,7 @@ $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '';
-$showActions = $role === 'admin';
+$showActions = $role === 'staff';
 $colCount    = $showActions ? 14 : 13;
 
 $pieColors = ['#2f6f4e', '#5b9c78', '#8bc4a3', '#c9a227', '#b5651d', '#6d597a', '#457b9d', '#9d9d9d'];
@@ -123,8 +123,8 @@ function formatDurationRange(?string $start, ?string $end): string
 }
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/records.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -166,7 +166,7 @@ function formatDurationRange(?string $start, ?string $end): string
             </div>
 
             <a class="row-btn records-export-btn"
-                href="<?= ROOT ?>/admin/records_export?<?= http_build_query(array_filter([
+                href="<?= ROOT ?>/personnel/records_export?<?= http_build_query(array_filter([
                                                             'search' => $search,
                                                             'school' => $school,
                                                             'animal' => $animalType,
@@ -180,7 +180,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 Download Stats as Excel
             </a>
 
-            <?php if ($role === 'admin'): ?>
+            <?php if ($role === 'staff'): ?>
                 <button class="row-btn row-btn-primary" id="addRecordBtn" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#add-icon">
@@ -360,7 +360,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
             <?php if ($hasFilters): ?>
                 <div class="inbox-toolbar">
-                    <a href="<?= ROOT ?>/admin/records" class="row-btn records-clear-btn">Clear all</a>
+                    <a href="<?= ROOT ?>/personnel/records" class="row-btn records-clear-btn">Clear all</a>
                 </div>
             <?php endif; ?>
 
@@ -825,7 +825,7 @@ function formatDurationRange(?string $start, ?string $end): string
                     return;
                 }
 
-                post('/admin/records_add', {
+                post('/personnel/records_add', {
                     reference_no: ref,
                     title_of_research: title,
                     school: document.getElementById('add_school').value,
@@ -857,7 +857,7 @@ function formatDurationRange(?string $start, ?string $end): string
             btn.addEventListener('click', () => {
                 hideErr('editError');
                 const id = btn.dataset.id;
-                fetch(ROOT + '/admin/records_get?id=' + encodeURIComponent(id))
+                fetch(ROOT + '/personnel/records_get?id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data.ok) {
@@ -888,7 +888,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
         document.getElementById('editRecordSave').addEventListener('click', () => {
             hideErr('editError');
-            post('/admin/records_edit', {
+            post('/personnel/records_edit', {
                 id: document.getElementById('edit_id').value,
                 reference_no: document.getElementById('edit_reference_no').value,
                 title_of_research: document.getElementById('edit_title').value,
@@ -930,7 +930,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
                 setButtonBusy(btn, true, 'Deleting...');
 
-                post('/admin/records_delete', {
+                post('/personnel/records_delete', {
                         id: btn.dataset.id
                     })
                     .then(data => {

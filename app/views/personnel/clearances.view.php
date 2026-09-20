@@ -12,8 +12,8 @@ $csrf = $csrf ?? '';
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/clearances.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
 
 <div class="body">
   <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>

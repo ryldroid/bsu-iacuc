@@ -61,7 +61,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <p class="underlined-p">Don't have an account? <a class="underlined" href="<?= ROOT ?>/users/register">Register here</a></p>
             <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/users/forgot_password">Forgot Password</a></p>
 
-            <p class="staff-login-link underlined-p">Are you staff? <a class="underlined" href="<?= ROOT ?>/admin/login">Staff login</a></p>
+            <p class="personnel-login-link underlined-p">Are you personnel? <a class="underlined" href="<?= ROOT ?>/personnel/login">Personnel login</a></p>
         </form>
     </main>
 </div>

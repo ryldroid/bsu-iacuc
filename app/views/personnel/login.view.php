@@ -1,5 +1,5 @@
 <?php
-$title = 'Staff Login';
+$title = 'Personnel Login';
 $hideHeaderAuth = true;
 $hideHeader     = true;
 
@@ -12,14 +12,14 @@ include dirname(__DIR__) . '/includes/sprites.php';
 
 <div class="body">
     <main class="main-content" id="main-content" tabindex="-1">
-        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating theme-toggle--staff-login'; ?>
+        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating theme-toggle--personnel-login'; ?>
         <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
 
-        <form method="POST" action="<?= ROOT ?>/admin/login_process">
+        <form method="POST" action="<?= ROOT ?>/personnel/login_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-            <h1>Staff Login</h1>
-            <p class="form-label">For administrators only.</p>
+            <h1>Personnel Login</h1>
+            <p class="form-label">For CCARD personnel only.</p>
 
             <?php if (!empty($_SESSION['flash_success'])): ?>
                 <div class="success-message">
@@ -52,10 +52,10 @@ include dirname(__DIR__) . '/includes/sprites.php';
 
             <button type="submit" class="btn-login">Log In</button>
 
-            <p class="underlined-p"><a class="underlined" href="<?= ROOT ?>/admin/forgot_password">Forgot Password</a></p>
+            <p class="underlined-p"><a class="underlined" href="<?= ROOT ?>/personnel/forgot_password">Forgot Password</a></p>
 
             <p class="helper-label helper">
-                Need staff access? Ask an existing admin for an invite link.
+                Need access? Ask an existing administrative staff member for an invite link.
             </p>
         </form>
     </main>

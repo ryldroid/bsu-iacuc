@@ -5,14 +5,14 @@ include dirname(__DIR__) . '/includes/scroll-top.php';
 
 $user   = $user ?? $_SESSION['user'] ?? [];
 $csrf   = $csrf ?? '';
-$isAdmin = ($user['role'] ?? '') === 'admin';
+$isStaff = ($user['role'] ?? '') === 'staff';
 $auditDateRange = $auditDateRange ?? ['earliest' => null, 'latest' => null];
 $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('admin/admin.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/accounts.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -39,12 +39,12 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
             <?php unset($_SESSION['flash_error']); ?>
         <?php endif; ?>
 
-        <?php if ($isAdmin): ?>
+        <?php if ($isStaff): ?>
             <!-- GENERATE INVITE LINK -->
             <section class="accounts-card invite-section">
-                <h2>Staff Registration Link</h2>
+                <h2>Personnel Registration Link</h2>
 
-                <form class="invite-form" action="<?= ROOT ?>/admin/generate_invite" method="POST">
+                <form class="invite-form" action="<?= ROOT ?>/personnel/generate_invite" method="POST">
                     <input type="hidden"
                         name="csrf_token"
                         value="<?= htmlspecialchars($csrf) ?>">
@@ -52,7 +52,7 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
                     <div class="form-section">
                         <label for="invite-role">Select Role:</label>
                         <select name="invite_role" id="invite-role">
-                            <option value="admin">Admin</option>
+                            <option value="staff">Administrative Staff</option>
                             <option value="reviewer">Reviewer</option>
                         </select>
                     </div>
@@ -88,7 +88,7 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
 
             <!-- PENDING ACCOUNTS -->
             <section class="accounts-card pending-section">
-                <h2>Pending Staff Approvals</h2>
+                <h2>Pending Personnel Approvals</h2>
 
                 <?php if (empty($pending)): ?>
                     <div class="empty-state">
@@ -123,7 +123,7 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
                             </div>
 
                             <div class="actions">
-                                <form method="POST" action="<?= ROOT ?>/admin/approve"
+                                <form method="POST" action="<?= ROOT ?>/personnel/approve"
                                     data-confirm-message="Approve this application?"
                                     data-confirm-ok-text="Approve">
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
@@ -131,7 +131,7 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
                                     <button type="submit" class="accounts-btn-primary">Approve</button>
                                 </form>
 
-                                <form method="POST" action="<?= ROOT ?>/admin/reject"
+                                <form method="POST" action="<?= ROOT ?>/personnel/reject"
                                     data-confirm-message="Reject and delete this application?"
                                     data-confirm-ok-text="Reject"
                                     data-confirm-danger="true">
@@ -151,7 +151,7 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
             <h2>Download Audit Logs</h2>
             <p class="audit-description">Export system activity logs to Excel. Select a date range, with the last 90 days selected by default.</p>
 
-            <form method="POST" action="<?= ROOT ?>/admin/downloadAuditLogs" class="audit-form" id="auditForm">
+            <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
 
                 <div class="form-section">

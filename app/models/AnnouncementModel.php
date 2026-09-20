@@ -1,5 +1,5 @@
 <?php
-// NEW FILE by SPM - CRUD for admin-managed "From Our Office" announcements
+// NEW FILE by SPM - CRUD for staff-managed "From Our Office" announcements
 
 require_once dirname(__DIR__) . '/core/Model.php';
 

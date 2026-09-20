@@ -12,8 +12,8 @@ $csrf = $csrf ?? '';
 
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/reviewer-clearances.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/reviewer-clearances.css') ?>">
 
 <div class="body">
   <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -43,7 +43,7 @@ $csrf = $csrf ?? '';
 
     <section class="clearance-upload-card">
       <h2>Upload Clearances</h2>
-      <p class="modal-notice">Upload the released Animal Research Clearances here. An admin will sort and release them to the researchers.</p>
+      <p class="modal-notice">Upload the released Animal Research Clearances here. Administrative staff will sort and release them to the researchers.</p>
 
       <div id="clearanceScreenshotError" class="alert error-messages" hidden></div>
 

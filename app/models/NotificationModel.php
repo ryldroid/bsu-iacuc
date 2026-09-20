@@ -9,7 +9,7 @@ class NotificationModel extends Model
   private const TYPE_STYLES = [
     'account_verified'               => ['icon' => 'shield-check-icon', 'variant' => 'success'],
     'protocol_submitted'             => ['icon' => 'upload-icon', 'variant' => 'info'],
-    'new_submission_admin'           => ['icon' => 'upload-icon', 'variant' => 'info'],
+    'new_submission_staff'           => ['icon' => 'upload-icon', 'variant' => 'info'],
     'protocol_resubmitted'           => ['icon' => 'upload-icon', 'variant' => 'warning'],
     'protocol_renamed'               => ['icon' => 'edit-icon', 'variant' => 'purple'],
     'protocol_status_changed'        => ['icon' => 'review-icon', 'variant' => 'info'],

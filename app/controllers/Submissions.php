@@ -15,10 +15,10 @@ class Submissions extends Controller
     {
         $this->requireLogin();
 
-        if (in_array($_SESSION['user']['role'] ?? '', ['admin', 'reviewer'], true)) {
+        if (in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'], true)) {
             $ajax
                 ? $this->jsonError(403, 'This page is for researchers only.')
-                : $this->redirect('admin/home');
+                : $this->redirect('personnel/home');
         }
     }
 

@@ -16,8 +16,8 @@ $announcements = $announcements ?? [];
 $first_name    = $user['first_name'] ?? '';
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('admin/admin-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('admin/records.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">
 
 <div class="body">
@@ -30,7 +30,7 @@ $first_name    = $user['first_name'] ?? '';
                 <h1 class="dashboard-page-title">Manage Announcements</h1>
             </div>
 
-            <?php if ($role === 'admin'): ?>
+            <?php if ($role === 'staff'): ?>
                 <button class="row-btn row-btn-primary" id="addAnnouncementBtn" type="button">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#add-icon">
@@ -76,7 +76,7 @@ $first_name    = $user['first_name'] ?? '';
                                 <?php $annRowTs = strtotime($a['created_at']); ?>
                                 <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('M j, Y g:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                             </div>
-                            <?php if ($role === 'admin'): ?>
+                            <?php if ($role === 'staff'): ?>
                                 <div class="ann-row-actions">
                                     <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>" aria-label="Edit announcement">
                                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -189,7 +189,7 @@ $first_name    = $user['first_name'] ?? '';
         const ROOT = '<?= ROOT ?>';
         const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
 
-        // ===== Modal helpers (same pattern as admin/records.view.php) =====
+        // ===== Modal helpers (same pattern as personnel/records.view.php) =====
         function openModal(id) {
             const modal = document.getElementById(id);
             modal.classList.add('open');
@@ -315,7 +315,7 @@ $first_name    = $user['first_name'] ?? '';
                 addProgressContainer.innerHTML = '';
                 const addBar = imageFile ? createUploadProgressBar(addProgressContainer) : null;
 
-                post('/admin/announcements_add', {
+                post('/personnel/announcements_add', {
                     title,
                     body,
                     image: imageFile
@@ -342,7 +342,7 @@ $first_name    = $user['first_name'] ?? '';
             btn.addEventListener('click', () => {
                 hideErr('editAnnouncementError');
                 const id = btn.dataset.id;
-                fetch(ROOT + '/admin/announcements_get?id=' + encodeURIComponent(id))
+                fetch(ROOT + '/personnel/announcements_get?id=' + encodeURIComponent(id))
                     .then(r => r.json())
                     .then(data => {
                         if (!data.ok) {
@@ -404,7 +404,7 @@ $first_name    = $user['first_name'] ?? '';
                 editProgressContainer.innerHTML = '';
                 const editBar = imageFile ? createUploadProgressBar(editProgressContainer) : null;
 
-                post('/admin/announcements_edit', {
+                post('/personnel/announcements_edit', {
                     id: document.getElementById('edit_ann_id').value,
                     title,
                     body,
@@ -443,7 +443,7 @@ $first_name    = $user['first_name'] ?? '';
 
                 setButtonBusy(btn, true, 'Deleting...');
 
-                post('/admin/announcements_delete', {
+                post('/personnel/announcements_delete', {
                     id: btn.dataset.id
                 }).then(data => {
                     if (data.ok) {

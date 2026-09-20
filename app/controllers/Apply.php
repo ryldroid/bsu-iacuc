@@ -13,7 +13,7 @@ class Apply extends Controller
 
     private function requireProtocolAccess(array $protocol, int $userId, string $role, bool $asPage = false): void
     {
-        if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['admin', 'reviewer'])) {
+        if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['staff', 'reviewer'])) {
             if ($asPage) {
                 $this->renderError(403, 'Access Denied', [
                     'You do not have permission to view this protocol.',
@@ -33,7 +33,7 @@ class Apply extends Controller
     private function roleLabel(string $role): string
     {
         return match ($role) {
-            'admin'    => 'Admin',
+            'staff'    => 'Staff',
             'reviewer' => 'Reviewer',
             default    => 'Researcher',
         };
@@ -71,19 +71,19 @@ class Apply extends Controller
         );
     }
 
-    private function notifyStaffProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
+    private function notifyPersonnelProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
     {
         $roleLabel = $this->roleLabel($actor['role']);
 
-        foreach (['admin', 'reviewer'] as $staffRole) {
+        foreach (['staff', 'reviewer'] as $personnelRole) {
             Notifier::sendToRole(
-                $staffRole,
+                $personnelRole,
                 'protocol_renamed',
                 'Protocol Renamed',
                 "$roleLabel {$actor['name']} renamed " . Notifier::boldTitle($oldTitle) . ' to ' . Notifier::boldTitle($newTitle) . '.',
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
-                    'template' => 'protocol_renamed_staff',
+                    'template' => 'protocol_renamed_personnel',
                     'vars'     => [
                         'old_title'   => $oldTitle,
                         'new_title'   => $newTitle,
@@ -97,20 +97,20 @@ class Apply extends Controller
         }
     }
 
-    private function notifyStaffProtocolResubmitted(array $protocol, array $actor): void
+    private function notifyPersonnelProtocolResubmitted(array $protocol, array $actor): void
     {
         $title     = $protocol['research_title'] ?? 'Untitled Protocol';
         $roleLabel = $this->roleLabel($actor['role']);
 
-        foreach (['admin', 'reviewer'] as $staffRole) {
+        foreach (['staff', 'reviewer'] as $personnelRole) {
             Notifier::sendToRole(
-                $staffRole,
+                $personnelRole,
                 'protocol_resubmitted',
                 'Protocol Re-submitted',
                 "$roleLabel {$actor['name']} resubmitted " . Notifier::boldTitle($title) . ' for review.',
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
-                    'template' => 'protocol_resubmitted_staff',
+                    'template' => 'protocol_resubmitted_personnel',
                     'vars'     => [
                         'title'       => $title,
                         'role_label'  => $roleLabel,
@@ -129,7 +129,7 @@ class Apply extends Controller
         $title     = $protocol['research_title'] ?? 'Untitled Protocol';
 
         Notifier::sendToRole(
-            'admin',
+            'staff',
             'protocol_deletion_requested',
             'Deletion Requested',
             "$roleLabel {$actor['name']} requested deletion of " . Notifier::boldTitle($title) . ". Reason: $reason",
@@ -248,11 +248,11 @@ class Apply extends Controller
         $title = $protocol['research_title'] ?? 'Untitled Protocol';
 
         Notifier::sendToRole(
-            'admin',
+            'staff',
             'payment_proof_uploaded',
             'Payment Proof Uploaded',
             "{$actor['name']} uploaded proof of payment for " . Notifier::boldTitle($title) . '.',
-            'admin/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
+            'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_uploaded',
                 'vars'     => ['title' => $title, 'actor_name' => $actor['name'], 'protocol_id' => $protocol['protocol_id']],
@@ -284,11 +284,11 @@ class Apply extends Controller
         }
 
         Notifier::sendToRole(
-            'admin',
+            'staff',
             'protocol_paid',
             'Protocol Ready for Printing',
             Notifier::boldTitle($title) . ' has been ' . Notifier::bold('paid') . ' and is ready to print and sign.',
-            'admin/home?status=reviewed',
+            'personnel/home?status=reviewed',
             [
                 'template' => 'protocol_paid',
                 'vars'     => ['title' => $title, 'protocol_id' => $protocol['protocol_id']],
@@ -350,11 +350,11 @@ class Apply extends Controller
     private function notifyClearancePoolUploaded(array $actor, int $count): void
     {
         Notifier::sendToRole(
-            'admin',
+            'staff',
             'clearance_pool_uploaded',
             'New Clearance Screenshots',
             "{$actor['name']} added $count clearance screenshot(s) for sorting.",
-            'admin/clearances',
+            'personnel/clearances',
             [
                 'template' => 'clearance_pool_uploaded',
                 'vars'     => ['actor_name' => $actor['name'], 'count' => $count],
@@ -608,13 +608,13 @@ class Apply extends Controller
         );
 
         Notifier::sendToRole(
-            'admin',
-            'new_submission_admin',
+            'staff',
+            'new_submission_staff',
             'New Protocol Submitted',
             ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . ' submitted ' . Notifier::boldTitle($title) . '.',
             'apply/viewer/' . $protocolId,
             [
-                'template' => 'protocol_submitted_admin',
+                'template' => 'protocol_submitted_staff',
                 'vars'     => ['submitter' => trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '')), 'title' => $title, 'protocol_id' => $protocolId],
                 'subject'  => 'New Protocol Submission',
             ]
@@ -868,7 +868,7 @@ class Apply extends Controller
         $actor            = $this->actor();
         $isOwnCertificate = $userId === $actor['id'];
 
-        if (!$isOwnCertificate && !in_array($actor['role'], ['admin', 'reviewer'])) {
+        if (!$isOwnCertificate && !in_array($actor['role'], ['staff', 'reviewer'])) {
             $this->renderError(403, 'Access Denied', [
                 'You do not have permission to view this certificate.',
             ]);
@@ -948,7 +948,7 @@ class Apply extends Controller
 
         $model->updateStatus($protocolId, 'Under Review');
         $this->notifyStatusChange($protocol, 'Under Review');
-        $this->notifyStaffProtocolResubmitted($protocol, $actor);
+        $this->notifyPersonnelProtocolResubmitted($protocol, $actor);
         $model->logAudit('protocol_revised', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol # $protocolId resubmitted");
         $_SESSION['flash_success'] = 'Your protocol has been resubmitted and is back under review.';
 
@@ -1007,20 +1007,20 @@ class Apply extends Controller
 
         $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
 
-        $isStaff    = in_array($actor['role'], ['admin', 'reviewer']);
-        $backBase   = $isStaff ? ROOT . '/admin/home' : ROOT . '/submissions';
+        $isPersonnel    = in_array($actor['role'], ['staff', 'reviewer']);
+        $backBase   = $isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
         $userModel     = new UserModel();
-        $hasCertOnFile = $isStaff ? false : $userModel->hasCert($actor['id']);
+        $hasCertOnFile = $isPersonnel ? false : $userModel->hasCert($actor['id']);
 
         $isOwner            = (int) $protocol['user_id'] === $actor['id'];
         $statusKeyForAccess = strtolower($protocol['status']);
-        $canRename          = ($isOwner || $isStaff)
+        $canRename          = ($isOwner || $isPersonnel)
             && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
-        $canRequestDeletion = ($isOwner && !$isStaff) || $actor['role'] === 'reviewer';
-        $canDelete          = $actor['role'] === 'admin';
+        $canRequestDeletion = ($isOwner && !$isPersonnel) || $actor['role'] === 'reviewer';
+        $canDelete          = $actor['role'] === 'staff';
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
             && (int) ($protocol['title_changed_by'] ?? 0) !== $actor['id']
@@ -1035,8 +1035,8 @@ class Apply extends Controller
             'fromFilter'        => $fromFilter,
             'isLatestVersion'   => $isLatestVersion,
             'csrf'              => $this->generateCsrfToken(),
-            'isStaff'           => $isStaff,
-            'isAdmin'           => $actor['role'] === 'admin',
+            'isPersonnel'           => $isPersonnel,
+            'isStaff'           => $actor['role'] === 'staff',
             'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
             'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
@@ -1082,7 +1082,7 @@ class Apply extends Controller
 
         $actor = $this->actor();
 
-        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['admin', 'reviewer'])) {
+        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['staff', 'reviewer'])) {
             $this->renderError(403, 'Access Denied', [
                 'You do not have permission to view this file.',
             ]);
@@ -1121,9 +1121,9 @@ class Apply extends Controller
         $this->requireLogin();
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
+        if ($actor['role'] !== 'staff') {
             $this->renderError(403, 'Access Denied', [
-                'This page is for admins only.',
+                'This page is for administrative staff only.',
             ]);
         }
 
@@ -1192,8 +1192,8 @@ class Apply extends Controller
         }
 
         $actor = $this->actor();
-        if (!in_array($actor['role'], ['admin', 'reviewer'])) {
-            $this->jsonError(403, 'Staff only.');
+        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1226,11 +1226,11 @@ class Apply extends Controller
 
         $actor = $this->actor();
 
-        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['admin', 'reviewer'])) {
+        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['staff', 'reviewer'])) {
             $this->jsonError(403, 'Forbidden.');
         }
 
-        if (!in_array($actor['role'], ['admin', 'reviewer'])) {
+        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
             $latestVersion   = $model->getLatestVersion((int) $version['protocol_id'], 'protocol');
             $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
 
@@ -1317,8 +1317,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if (!in_array($actor['role'], ['admin', 'reviewer'])) {
-            $this->jsonError(403, 'Staff only.');
+        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1341,7 +1341,7 @@ class Apply extends Controller
 
         $allowedTransitions = [
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
-            'admin'    => [
+            'staff'    => [
                 'reviewed' => ['Endorsed'],
                 'endorsed' => ['Reviewed', 'Approved'],
                 'approved' => ['Endorsed'],
@@ -1464,8 +1464,8 @@ class Apply extends Controller
         $this->notifyPaymentProofUploaded($protocol, $actor);
 
         $_SESSION['flash_success'] = $method === 'in_person'
-            ? 'Payment confirmed. An admin will verify it shortly.'
-            : 'Proof of payment submitted. An admin will verify it shortly.';
+            ? 'Payment confirmed. Administrative staff will verify it shortly.'
+            : 'Proof of payment submitted. Administrative staff will verify it shortly.';
         echo json_encode(['success' => true]);
         exit;
     }
@@ -1478,8 +1478,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1520,8 +1520,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1564,8 +1564,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1608,8 +1608,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1684,9 +1684,9 @@ class Apply extends Controller
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
         $isOwner       = (int) $protocol['user_id'] === $actor['id'];
-        $isStaff       = in_array($actor['role'], ['admin', 'reviewer']);
+        $isPersonnel       = in_array($actor['role'], ['staff', 'reviewer']);
 
-        if (!$isOwner && !$isStaff) {
+        if (!$isOwner && !$isPersonnel) {
             $this->jsonError(403, 'Access denied.');
         }
         if (!in_array(strtolower($protocol['status']), ['under review', 'needs revision'], true)) {
@@ -1701,10 +1701,10 @@ class Apply extends Controller
 
         $model->logAudit('protocol_renamed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Renamed from \"$oldTitle\" to \"$newTitle\"");
 
-        if ($isStaff && !$isOwner) {
+        if ($isPersonnel && !$isOwner) {
             $this->notifyProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
         } elseif ($isOwner) {
-            $this->notifyStaffProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
+            $this->notifyPersonnelProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
         }
 
         $_SESSION['flash_success'] = 'Protocol renamed.';
@@ -1726,7 +1726,7 @@ class Apply extends Controller
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
         if (!in_array($actor['role'], ['researcher', 'reviewer'], true)) {
-            $this->jsonError(403, 'Admins delete protocols directly. Use the Delete button instead.');
+            $this->jsonError(403, 'Administrative staff delete protocols directly. Use the Delete button instead.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1760,14 +1760,14 @@ class Apply extends Controller
         if ($ok) {
             $model->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
             $this->notifyDeletionRequested($protocol, $reason, $actor);
-            $_SESSION['flash_success'] = 'Deletion request sent to the admin.';
+            $_SESSION['flash_success'] = 'Deletion request sent to administrative staff.';
         }
 
         echo json_encode(['ok' => $ok]);
         exit;
     }
 
-    // ===== DELETE  (POST /apply/delete): admin only, any status =====
+    // ===== DELETE  (POST /apply/delete): administrative staff only, any status =====
 
     public function delete(): void
     {
@@ -1779,8 +1779,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin access only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1813,7 +1813,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion): admin only =====
+    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion): administrative staff only =====
 
     public function approve_deletion(): void
     {
@@ -1825,8 +1825,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin access only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1859,7 +1859,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion): admin only =====
+    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion): administrative staff only =====
 
     public function reject_deletion(): void
     {
@@ -1871,8 +1871,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin access only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1916,8 +1916,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -1983,7 +1983,7 @@ class Apply extends Controller
 
         $version = $model->getLatestVersion($protocolId, 'clearance');
         if (!$version) {
-            $dashboard = in_array($actor['role'], ['admin', 'reviewer']) ? 'admin/home' : 'submissions';
+            $dashboard = in_array($actor['role'], ['staff', 'reviewer']) ? 'personnel/home' : 'submissions';
             $this->renderError(404, 'No Clearance File Found', [
                 'No clearance document has been uploaded for this protocol yet.',
             ], [
@@ -2057,7 +2057,7 @@ class Apply extends Controller
             $this->notifyClearancePoolUploaded($actor, $inserted);
         }
 
-        $_SESSION['flash_success'] = $inserted . ' clearance screenshot(s) uploaded for the admins to view' . ($failures ? '; some files were skipped.' : '.');
+        $_SESSION['flash_success'] = $inserted . ' clearance screenshot(s) uploaded for administrative staff to view' . ($failures ? '; some files were skipped.' : '.');
         echo json_encode(['success' => $inserted > 0, 'inserted' => $inserted, 'failures' => $failures]);
         exit;
     }
@@ -2070,8 +2070,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $model      = new ProtocolModel();
@@ -2100,9 +2100,9 @@ class Apply extends Controller
         $this->requireLogin();
 
         $actor = $this->actor();
-        if (!in_array($actor['role'], ['admin', 'reviewer'])) {
+        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
             $this->renderError(403, 'Access Denied', [
-                'This page is for admins and reviewers only.',
+                'This page is for CCARD personnel only.',
             ]);
         }
 
@@ -2126,8 +2126,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2175,8 +2175,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2205,8 +2205,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2247,8 +2247,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2302,8 +2302,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2366,8 +2366,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'admin') {
-            $this->jsonError(403, 'Admin only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();

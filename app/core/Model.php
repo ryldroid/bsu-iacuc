@@ -121,6 +121,7 @@ class Model
         $this->ensureColumn('records', 'protocol_id', "int(11) DEFAULT NULL AFTER `user_id`");
         $this->ensureIndex('records', 'idx_records_protocol_id', "(`protocol_id`)");
         $this->backfillRecordProtocolLinks();
+        $this->migrateAdminRoleToStaff();
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
                     `id`                   int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -397,6 +398,18 @@ class Model
              WHERE r.protocol_id IS NULL
                AND (SELECT COUNT(*) FROM `protocols` p2 WHERE p2.title = r.title_of_research) = 1
                AND (SELECT COUNT(*) FROM `records` r2 WHERE r2.title_of_research = r.title_of_research) = 1"
+        );
+    }
+
+    // One-time: renames the 'admin' role value to 'staff' to match the
+    // app-wide terminology rename (admin -> staff, reviewer+admin -> personnel).
+    private function migrateAdminRoleToStaff(): void
+    {
+        $this->connection->query(
+            "UPDATE `users` SET `role` = 'staff' WHERE `role` = 'admin'"
+        );
+        $this->connection->query(
+            "UPDATE `invite_tokens` SET `role` = 'staff' WHERE `role` = 'admin'"
         );
     }
 

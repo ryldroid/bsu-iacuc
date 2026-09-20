@@ -10,10 +10,10 @@ $role = $user['role'] ?? '';
     <nav aria-label="Main navigation" class="main-navigation">
         <ul>
 
-            <!-- STAFF (ADMIN / REVIEWER) NAVIGATION -->
-            <?php if ($role === 'admin' || $role === 'reviewer'): ?>
+            <!-- PERSONNEL (STAFF / REVIEWER) NAVIGATION -->
+            <?php if ($role === 'staff' || $role === 'reviewer'): ?>
                 <li>
-                    <a href="<?= ROOT ?>/admin/home">
+                    <a href="<?= ROOT ?>/personnel/home">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#dashboard-icon" />
                         </svg>
@@ -23,10 +23,10 @@ $role = $user['role'] ?? '';
                     </div>
                 </li>
 
-                <?php if ($role === 'admin'): ?>
-                    <!-- ADMIN ONLY -->
+                <?php if ($role === 'staff'): ?>
+                    <!-- STAFF ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/admin/clearances">
+                        <a href="<?= ROOT ?>/personnel/clearances">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#clearance-page-icon" />
                             </svg>
@@ -37,7 +37,7 @@ $role = $user['role'] ?? '';
                     </li>
 
                     <li>
-                        <a href="<?= ROOT ?>/admin/records">
+                        <a href="<?= ROOT ?>/personnel/records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
@@ -48,7 +48,7 @@ $role = $user['role'] ?? '';
                     </li>
 
                     <li>
-                        <a href="<?= ROOT ?>/admin/announcements">
+                        <a href="<?= ROOT ?>/personnel/announcements">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#announcement-icon" />
                             </svg>
@@ -62,7 +62,7 @@ $role = $user['role'] ?? '';
                 <?php if ($role === 'reviewer'): ?>
                     <!-- REVIEWER ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/admin/reviewer_clearances">
+                        <a href="<?= ROOT ?>/personnel/reviewer_clearances">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#clearance-icon" />
                             </svg>
@@ -73,7 +73,7 @@ $role = $user['role'] ?? '';
                     </li>
 
                     <li>
-                        <a href="<?= ROOT ?>/admin/records">
+                        <a href="<?= ROOT ?>/personnel/records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
@@ -96,15 +96,15 @@ $role = $user['role'] ?? '';
                 <?php endif; ?>
 
 
-                <?php if (in_array($role, ['admin', 'reviewer'])): ?>
+                <?php if (in_array($role, ['staff', 'reviewer'])): ?>
                     <li>
-                        <a href="<?= ROOT ?>/admin/accounts">
+                        <a href="<?= ROOT ?>/personnel/accounts">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#accounts-icon" />
                             </svg>
                         </a>
                         <div>
-                            <span>Administration</span>
+                            <span>Personnel</span>
                         </div>
                     </li>
                 <?php endif; ?>

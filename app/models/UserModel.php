@@ -391,7 +391,7 @@ class UserModel extends Model
     $stmt->execute();
   }
 
-  // ===== ADMIN INVITE TOKENS =====
+  // ===== STAFF INVITE TOKENS =====
 
   public function createInviteToken(string $role = 'reviewer', int $hoursValid = 48): string
   {
