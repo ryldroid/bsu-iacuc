@@ -240,6 +240,7 @@ main button:hover {
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.3s;
+    cursor: text;
 }
 
 .info-wrapper:hover .info-popup {

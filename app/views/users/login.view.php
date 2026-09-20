@@ -28,7 +28,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <h1>Login</h1>
 
             <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="success-message">
+                <div class="success-message login-success">
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#info-icon">
                     </svg>

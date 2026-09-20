@@ -188,7 +188,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#info-icon" />
                         </svg>
-                        <span class="info-popup">Deleting your account permanently removes your account details, submitted protocols and files, and training certificate from our records. This action cannot be undone, though you may register again afterward using the same details.</span>
+                        <span class="info-popup">Deleting your account permanently removes your personal account details and training certificate from our records. Your submitted protocols and files are kept, as required by IACUC recordkeeping rules, but will no longer be linked to your account. This action cannot be undone, though you may register again afterward using the same details.</span>
                     </div>
                 </div>
             </form>

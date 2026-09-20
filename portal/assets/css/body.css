@@ -391,6 +391,10 @@ main a.underlined:hover {
     margin: 0 auto 20px;
 }
 
+.login-success {
+    margin: 0;
+}
+
 .error-message {
     color: var(--danger-color);
     margin: auto 20px;

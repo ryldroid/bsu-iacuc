@@ -195,6 +195,8 @@ class Model
             'protocol'
         );
 
+        $this->backfillRecordFiles();
+
         $c->query("CREATE TABLE IF NOT EXISTS `annotations` (
                 `id`          int(11)  NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `version_id`  int(11)  NOT NULL,
@@ -401,6 +403,67 @@ class Model
                AND (SELECT COUNT(*) FROM `protocols` p2 WHERE p2.title = r.title_of_research) = 1
                AND (SELECT COUNT(*) FROM `records` r2 WHERE r2.title_of_research = r.title_of_research) = 1"
         );
+    }
+
+    // One-time backfill for the records "view file" feature: records
+    // created before this feature shipped have a null file_path. For each
+    // one that has a protocol_id, hard-links that protocol's latest
+    // submitted document into storage/uploads/records/, the same way
+    // Apply::status() does for new Reviewed transitions.
+    private function backfillRecordFiles(): void
+    {
+        $c = $this->connection;
+
+        $result = $c->query(
+            "SELECT id, protocol_id FROM `records` WHERE file_path IS NULL AND protocol_id IS NOT NULL"
+        );
+        if (! $result || $result->num_rows === 0) {
+            return;
+        }
+
+        $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
+        if (! is_dir($recordsDir)) {
+            mkdir($recordsDir, 0750, true);
+        }
+        $protocolsDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
+
+        while ($row = $result->fetch_assoc()) {
+            $stmt = $c->prepare(
+                "SELECT file_path, original_name FROM `protocol_versions`
+                 WHERE protocol_id = ? AND file_type = 'protocol'
+                 ORDER BY version_number DESC LIMIT 1"
+            );
+            $stmt->bind_param('i', $row['protocol_id']);
+            $stmt->execute();
+            $version = $stmt->get_result()->fetch_assoc();
+            if (! $version) {
+                continue;
+            }
+
+            $source = $protocolsDir . $version['file_path'];
+            if (! is_file($source)) {
+                continue;
+            }
+
+            $ext         = pathinfo($version['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
+            $safeName    = bin2hex(random_bytes(8)) . '.' . $ext;
+            $destination = $recordsDir . $safeName;
+
+            if (! link($source, $destination)) {
+                continue;
+            }
+
+            $originalName = $version['original_name'] ?: basename($source);
+            $recordId     = (int) $row['id'];
+
+            $update = $c->prepare(
+                "UPDATE `records` SET file_path = ?, file_original_name = ? WHERE id = ?"
+            );
+            $update->bind_param('ssi', $safeName, $originalName, $recordId);
+            if (! $update->execute()) {
+                @unlink($destination);
+            }
+        }
     }
 
     // One-time: renames the 'admin' role value to 'staff' to match the
