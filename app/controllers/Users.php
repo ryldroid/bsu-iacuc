@@ -216,6 +216,11 @@ class Users extends Controller
       'email_verified' => (bool) $user['email_verified'],
     ];
 
+    if (empty($user['welcome_seen'])) {
+      $_SESSION['user']['show_welcome'] = true;
+      $this->model->markWelcomeSeen((int) $user['id']);
+    }
+
     $this->model->logAudit(
       event: 'login_success',
       actorId: (int)$user['id'],

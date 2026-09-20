@@ -364,6 +364,30 @@
     });
   }
 
+  function bindWelcomeModal() {
+    const modal = document.getElementById("welcomeModal");
+    if (!modal) return;
+
+    const closeBtn = document.getElementById("welcomeModalClose");
+
+    function close() {
+      modal.classList.remove("open");
+    }
+
+    closeBtn.addEventListener("click", close);
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.classList.contains("open")) close();
+    });
+
+    closeBtn.focus();
+  }
+
   bindAutoConfirm();
   bindImageZoomTriggers();
+  bindWelcomeModal();
 })();

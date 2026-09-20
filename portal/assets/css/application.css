@@ -406,9 +406,23 @@ main button svg {
     background: var(--divider-color-subtle);
     border-radius: 8px;
     border: 1px solid var(--input-border);
-    font-size: 13px;
+    font-size: .85em;
     color: var(--secondary-text);
     line-height: 1.7;
+}
+
+.step-help-link {
+    margin: -8px 0 16px;
+    font-size: .9em;
+}
+
+.howto-steps {
+    margin: 0 0 12px;
+    padding-left: 18px;
+}
+
+.howto-steps li {
+    margin-bottom: 10px;
 }
 
 /* ===== Status pill ===== */

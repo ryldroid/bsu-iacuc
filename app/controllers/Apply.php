@@ -129,7 +129,7 @@ class Apply extends Controller
         $title     = $protocol['research_title'] ?? 'Untitled Protocol';
 
         Notifier::sendToRole(
-            'reviewer',
+            'admin',
             'protocol_deletion_requested',
             'Deletion Requested',
             "$roleLabel {$actor['name']} requested deletion of " . Notifier::boldTitle($title) . ". Reason: $reason",
@@ -1019,8 +1019,8 @@ class Apply extends Controller
         $statusKeyForAccess = strtolower($protocol['status']);
         $canRename          = ($isOwner || $isStaff)
             && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
-        $canRequestDeletion = ($isOwner && !$isStaff) || $actor['role'] === 'admin';
-        $canDelete          = $actor['role'] === 'reviewer';
+        $canRequestDeletion = ($isOwner && !$isStaff) || $actor['role'] === 'reviewer';
+        $canDelete          = $actor['role'] === 'admin';
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
             && (int) ($protocol['title_changed_by'] ?? 0) !== $actor['id']
@@ -1725,8 +1725,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if (!in_array($actor['role'], ['researcher', 'admin'], true)) {
-            $this->jsonError(403, 'Reviewers delete protocols directly. Use the Delete button instead.');
+        if (!in_array($actor['role'], ['researcher', 'reviewer'], true)) {
+            $this->jsonError(403, 'Admins delete protocols directly. Use the Delete button instead.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1760,14 +1760,14 @@ class Apply extends Controller
         if ($ok) {
             $model->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
             $this->notifyDeletionRequested($protocol, $reason, $actor);
-            $_SESSION['flash_success'] = 'Deletion request sent to the reviewer.';
+            $_SESSION['flash_success'] = 'Deletion request sent to the admin.';
         }
 
         echo json_encode(['ok' => $ok]);
         exit;
     }
 
-    // ===== DELETE  (POST /apply/delete): reviewer only, any status =====
+    // ===== DELETE  (POST /apply/delete): admin only, any status =====
 
     public function delete(): void
     {
@@ -1779,8 +1779,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'reviewer') {
-            $this->jsonError(403, 'Reviewer access only.');
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1813,7 +1813,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion): reviewer only =====
+    // ===== APPROVE DELETION REQUEST  (POST /apply/approve_deletion): admin only =====
 
     public function approve_deletion(): void
     {
@@ -1825,8 +1825,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'reviewer') {
-            $this->jsonError(403, 'Reviewer access only.');
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1859,7 +1859,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion): reviewer only =====
+    // ===== REJECT DELETION REQUEST  (POST /apply/reject_deletion): admin only =====
 
     public function reject_deletion(): void
     {
@@ -1871,8 +1871,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'reviewer') {
-            $this->jsonError(403, 'Reviewer access only.');
+        if ($actor['role'] !== 'admin') {
+            $this->jsonError(403, 'Admin access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];

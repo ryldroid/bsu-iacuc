@@ -106,6 +106,13 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  public function markWelcomeSeen(int $id): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE $this->table SET welcome_seen = 1 WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    return $stmt->execute();
+  }
+
   // ===== CREATE UPDATE DELETE =====
 
   public function insertUser(

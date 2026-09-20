@@ -73,6 +73,16 @@
   min-width: 0;
 }
 
+/* The +63 prefix always sits where the label would rest, so float the
+   label permanently here too, same reasoning as the select fields below. */
+.input-group:has(.phone-field-wrap) label {
+  top: 0;
+  font-size: .7em;
+  color: var(--brand-text);
+  background: var(--card-background);
+  padding: 0 5px;
+}
+
 .input-group select {
   width: 100%;
   margin-bottom: 0;

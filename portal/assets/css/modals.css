@@ -60,6 +60,15 @@
     max-width: 780px;
 }
 
+.welcome-modal-card {
+    position: relative;
+    text-align: center;
+}
+
+.welcome-modal-card h2 {
+    padding-right: 30px;
+}
+
 .announcement-modal-close {
     position: absolute;
     top: 12px;

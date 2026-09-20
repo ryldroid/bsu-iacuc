@@ -125,14 +125,14 @@ include 'includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if (!$isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+    <?php if (!$isAdmin && !empty($protocol['deletion_requested_at'])): ?>
         <div class="return-reason-bar deletion-request-bar">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#trash-icon" />
             </svg>
             A deletion request is pending for this protocol (requested by
             <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The reviewer has been notified.
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The admin has been notified.
         </div>
     <?php endif; ?>
 
@@ -248,7 +248,7 @@ include 'includes/header.php';
         </div>
 
         <div class="viewer-topbar-right">
-            <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+            <?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
                 <button class="tool-btn tool-btn--urgent" type="button" onclick="openDeletionReviewModal()">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#alert-triangle-icon" />
@@ -339,12 +339,8 @@ include 'includes/header.php';
 
                 <div class="viewer-review-actions">
                     <?php if ($canReview): ?>
-                        <button class="tool-btn tool-btn--warn" id="btnNeedsRevision"
-                            onclick="openReturnModal()">
-                            Return for Revision
-                        </button>
-                        <button class="tool-btn tool-btn--success" id="btnApprove"
-                            onclick="confirmAction('Finish your review? The protocol will be marked as reviewed.', { okText: 'Proceed', cancelText: 'Cancel' }).then(ok => ok && updateStatus(this, 'Reviewed'))">
+                        <button class="tool-btn tool-btn--success" id="btnFinishReview"
+                            onclick="openReviewDecisionModal()">
                             Finish Review
                         </button>
                     <?php elseif ($canResubmit): ?>
@@ -475,6 +471,38 @@ include 'includes/header.php';
 </div><!-- .viewer-body -->
 
 <?php if ($canReview): ?>
+    <!-- ===== Finish Review decision modal ===== -->
+    <div class="modal-backdrop" id="reviewDecisionBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="panel-modal-header">
+                <div>
+                    <p class="panel-modal-label">Finish Review</p>
+                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="tool-btn" onclick="closeReviewDecisionModal()" aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <use href="#close-icon" />
+                    </svg>
+                    Close
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">Choose what to do with this protocol.</p>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn tool-btn--warn" type="button"
+                        onclick="closeReviewDecisionModal(); openReturnModal();">
+                        Return for Revision
+                    </button>
+                    <button class="tool-btn tool-btn--success" type="button" id="btnCompleteReview"
+                        onclick="completeReview(this)">
+                        Complete Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== Return for Revision modal ===== -->
     <div class="modal-backdrop" id="returnRevisionBackdrop">
         <div class="modal-card panel-modal-card">
@@ -514,7 +542,7 @@ include 'includes/header.php';
                 <div id="returnRevisionError" class="error-messages" hidden></div>
 
                 <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeReturnModal()">Cancel</button>
+                    <button class="tool-btn" type="button" onclick="closeReturnModal(); openReviewDecisionModal();">Back</button>
                     <button class="tool-btn tool-btn--warn" type="button" id="returnRevisionSubmitBtn"
                         onclick="submitReturnRevision()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -623,7 +651,7 @@ include 'includes/header.php';
                 <p class="panel-modal-intro">
                     <?= $canDelete
                         ? 'This will delete the protocol and notify the researcher. Please explain why.'
-                        : 'The reviewer will be notified of your request along with the reason below.' ?>
+                        : 'The admin will be notified of your request along with the reason below.' ?>
                 </p>
 
                 <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional">(required)</span></label>
@@ -722,7 +750,7 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+<?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
     <!-- ===== Approve / reject deletion request modal ===== -->
     <div class="modal-backdrop" id="deletionReviewModalBackdrop">
         <div class="modal-card panel-modal-card">
@@ -1763,7 +1791,7 @@ include 'includes/header.php';
         }
     <?php endif; ?>
 
-    <?php if ($isReviewer && !empty($protocol['deletion_requested_at'])): ?>
+    <?php if ($isAdmin && !empty($protocol['deletion_requested_at'])): ?>
         // ===== Approve / reject deletion request modal =====
         const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
         const deletionReviewLabel = document.getElementById('deletionReviewLabel');
@@ -2046,6 +2074,33 @@ include 'includes/header.php';
     });
 
     <?php if ($canReview): ?>
+        // ===== Finish Review decision modal =====
+        const reviewDecisionBackdrop = document.getElementById('reviewDecisionBackdrop');
+
+        function openReviewDecisionModal() {
+            reviewDecisionBackdrop.classList.add('open');
+        }
+
+        function closeReviewDecisionModal() {
+            reviewDecisionBackdrop.classList.remove('open');
+        }
+
+        reviewDecisionBackdrop.addEventListener('click', e => {
+            if (e.target === reviewDecisionBackdrop) closeReviewDecisionModal();
+        });
+
+        async function completeReview(btn) {
+            const ok = await confirmAction(
+                'Finish your review? The protocol will be marked as reviewed.', {
+                    okText: 'Proceed',
+                    cancelText: 'Back'
+                }
+            );
+            if (!ok) return;
+            closeReviewDecisionModal();
+            updateStatus(btn, 'Reviewed');
+        }
+
         // ===== Return for Revision modal =====
         const RETURN_REVISION_API = <?= json_encode(ROOT . '/apply/return_revision') ?>;
         const returnBackdrop = document.getElementById('returnRevisionBackdrop');

@@ -789,6 +789,11 @@ class Admin extends Controller
             'email_verified' => (bool) $user['email_verified'],
         ];
 
+        if (empty($user['welcome_seen'])) {
+            $_SESSION['user']['show_welcome'] = true;
+            $this->model->markWelcomeSeen((int) $user['id']);
+        }
+
         $this->model->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Staff logged in');
         $this->redirect('admin/home');
     }
@@ -1078,6 +1083,11 @@ class Admin extends Controller
             mkdir($dir, 0755, true);
         }
 
+        $webpName = $this->saveAsWebp($file['tmp_name'], $ext, $dir);
+        if ($webpName !== null) {
+            return $webpName;
+        }
+
         $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
 
         if (!move_uploaded_file($file['tmp_name'], $dir . $safeName)) {
@@ -1086,6 +1096,37 @@ class Admin extends Controller
         }
 
         return $safeName;
+    }
+
+    private function saveAsWebp(string $tmpPath, string $ext, string $dir): ?string
+    {
+        if (!function_exists('imagewebp') || !extension_loaded('gd')) {
+            return null;
+        }
+
+        $image = match ($ext) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($tmpPath),
+            'png'         => @imagecreatefrompng($tmpPath),
+            'gif'         => @imagecreatefromgif($tmpPath),
+            'webp'        => @imagecreatefromwebp($tmpPath),
+            default       => null,
+        };
+
+        if (!$image) {
+            return null;
+        }
+
+        if ($ext === 'png' || $ext === 'gif') {
+            imagepalettetotruecolor($image);
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+        }
+
+        $safeName = bin2hex(random_bytes(8)) . '.webp';
+        $saved    = imagewebp($image, $dir . $safeName, 82);
+        imagedestroy($image);
+
+        return $saved ? $safeName : null;
     }
 
     private function deleteAnnouncementImage(?string $filename): void

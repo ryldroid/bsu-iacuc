@@ -259,4 +259,19 @@ $hideHeader     = $hideHeader     ?? false;
     </div>
   <?php endif; ?>
 
+  <?php if ($user && !empty($user['show_welcome'])): ?>
+    <div class="modal-backdrop open" id="welcomeModal">
+      <div class="modal-card welcome-modal-card">
+        <button type="button" class="announcement-modal-close" id="welcomeModalClose" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#close-icon" />
+          </svg>
+        </button>
+        <h2>Welcome to BSU-IACUC!</h2>
+        <p>We're glad to have you here. Explore your dashboard to get started.</p>
+      </div>
+    </div>
+    <?php unset($_SESSION['user']['show_welcome']); ?>
+  <?php endif; ?>
+
   <div id="sidebar-backdrop" aria-hidden="true"></div>
