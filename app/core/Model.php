@@ -423,45 +423,57 @@ class Model
 
         $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
         if (! is_dir($recordsDir)) {
-            mkdir($recordsDir, 0750, true);
+            @mkdir($recordsDir, 0750, true);
         }
         $protocolsDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
 
         while ($row = $result->fetch_assoc()) {
-            $stmt = $c->prepare(
-                "SELECT file_path, original_name FROM `protocol_versions`
-                 WHERE protocol_id = ? AND file_type = 'protocol'
-                 ORDER BY version_number DESC LIMIT 1"
-            );
-            $stmt->bind_param('i', $row['protocol_id']);
-            $stmt->execute();
-            $version = $stmt->get_result()->fetch_assoc();
-            if (! $version) {
-                continue;
-            }
+            try {
+                $stmt = $c->prepare(
+                    "SELECT file_path, original_name FROM `protocol_versions`
+                     WHERE protocol_id = ? AND file_type = 'protocol'
+                     ORDER BY version_number DESC LIMIT 1"
+                );
+                if (! $stmt) {
+                    continue;
+                }
+                $protocolId = (int) $row['protocol_id'];
+                $stmt->bind_param('i', $protocolId);
+                $stmt->execute();
+                $version = $stmt->get_result()->fetch_assoc();
+                if (! $version) {
+                    continue;
+                }
 
-            $source = $protocolsDir . $version['file_path'];
-            if (! is_file($source)) {
-                continue;
-            }
+                $source = $protocolsDir . $version['file_path'];
+                if (! is_file($source)) {
+                    continue;
+                }
 
-            $ext         = pathinfo($version['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
-            $safeName    = bin2hex(random_bytes(8)) . '.' . $ext;
-            $destination = $recordsDir . $safeName;
+                $ext         = pathinfo($version['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
+                $safeName    = bin2hex(random_bytes(8)) . '.' . $ext;
+                $destination = $recordsDir . $safeName;
 
-            if (! link($source, $destination)) {
-                continue;
-            }
+                if (! @link($source, $destination)) {
+                    continue;
+                }
 
-            $originalName = $version['original_name'] ?: basename($source);
-            $recordId     = (int) $row['id'];
+                $originalName = $version['original_name'] ?: basename($source);
+                $recordId     = (int) $row['id'];
 
-            $update = $c->prepare(
-                "UPDATE `records` SET file_path = ?, file_original_name = ? WHERE id = ?"
-            );
-            $update->bind_param('ssi', $safeName, $originalName, $recordId);
-            if (! $update->execute()) {
-                @unlink($destination);
+                $update = $c->prepare(
+                    "UPDATE `records` SET file_path = ?, file_original_name = ? WHERE id = ?"
+                );
+                if (! $update) {
+                    @unlink($destination);
+                    continue;
+                }
+                $update->bind_param('ssi', $safeName, $originalName, $recordId);
+                if (! $update->execute()) {
+                    @unlink($destination);
+                }
+            } catch (Throwable $e) {
+                error_log('backfillRecordFiles record #' . $row['id'] . ' failed: ' . $e->getMessage());
             }
         }
     }
