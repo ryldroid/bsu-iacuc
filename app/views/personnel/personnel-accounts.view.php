@@ -10,7 +10,7 @@ $auditDateRange = $auditDateRange ?? ['earliest' => null, 'latest' => null];
 $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('personnel/personnel.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 

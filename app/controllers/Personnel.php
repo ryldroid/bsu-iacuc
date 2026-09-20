@@ -59,7 +59,7 @@ class Personnel extends Controller
         $activityTimestamps = array_column($protocols, 'last_activity_at');
         $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
 
-        $this->view('personnel/home', [
+        $this->view('personnel/personnel-home', [
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'protocols'       => $protocols,
@@ -513,7 +513,7 @@ class Personnel extends Controller
         require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
         $model = new AnnouncementModel();
 
-        $this->view('personnel/announcements', [
+        $this->view('personnel/personnel-announcements', [
             'user'          => $_SESSION['user'],
             'role'          => $_SESSION['user']['role'] ?? '',
             'csrf'          => $this->generateCsrfToken(),
@@ -533,7 +533,7 @@ class Personnel extends Controller
         $defaultFrom = $auditDateRange['earliest'] ? max($ninetyAgo, $auditDateRange['earliest']) : $ninetyAgo;
         $defaultFrom = min($defaultFrom, $defaultTo);
 
-        $this->view('personnel/accounts', [
+        $this->view('personnel/personnel-accounts', [
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
             'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
@@ -713,7 +713,7 @@ class Personnel extends Controller
             $this->redirect(in_array($role, ['staff', 'reviewer']) ? 'personnel/home' : 'submissions');
         }
 
-        $this->view('personnel/login', [
+        $this->view('personnel/personnel-login', [
             'csrf'  => $this->generateCsrfToken(),
             'error' => $_SESSION['flash_error'] ?? '',
         ]);
@@ -829,7 +829,7 @@ class Personnel extends Controller
         $token  = $_GET['token'] ?? '';
         $invite = $this->getValidInvite($token);
 
-        $this->view('personnel/register', [
+        $this->view('personnel/personnel-register', [
             'csrf'        => $this->generateCsrfToken(),
             'token'       => htmlspecialchars($token),
             'preset_role' => $invite['role'],
@@ -899,7 +899,7 @@ class Personnel extends Controller
         }
 
         if (!empty($errors)) {
-            $this->view('personnel/register', [
+            $this->view('personnel/personnel-register', [
                 'csrf'        => $this->generateCsrfToken(),
                 'token'       => htmlspecialchars($token),
                 'preset_role' => $role,
@@ -916,7 +916,7 @@ class Personnel extends Controller
             $this->model->consumeInviteToken($token, $newUserId);
             $this->sendEmailVerification(['id' => $newUserId, 'first_name' => $first_name, 'email' => $email]);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
-            $this->view('personnel/register', [
+            $this->view('personnel/personnel-register', [
                 'csrf'    => $this->generateCsrfToken(),
                 'token'   => htmlspecialchars($token),
                 'errors'  => [],
@@ -924,7 +924,7 @@ class Personnel extends Controller
                 'success' => true,
             ]);
         } else {
-            $this->view('personnel/register', [
+            $this->view('personnel/personnel-register', [
                 'csrf'        => $this->generateCsrfToken(),
                 'token'       => htmlspecialchars($token),
                 'preset_role' => $role,
@@ -954,7 +954,7 @@ class Personnel extends Controller
         $actor = $this->actor();
         $this->model->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
 
-        $this->view('personnel/accounts', [
+        $this->view('personnel/personnel-accounts', [
             'user'        => $_SESSION['user'],
             'csrf'        => $this->generateCsrfToken(),
             'invite_url'  => ROOT . '/personnel/register?token=' . $token,

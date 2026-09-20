@@ -29,7 +29,7 @@ $role = $user['role'] ?? '';
     <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
-    <link rel="stylesheet" href="<?= asset_css('personnel/personnel.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
 
     <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
     <script src="<?= asset_js('password-strength.js') ?>" defer></script>
