@@ -113,7 +113,19 @@ if (notifBell && notifDropdown) {
   notifBell.addEventListener("click", () => {
     const isOpen = notifDropdown.classList.toggle("active");
     notifBell.setAttribute("aria-expanded", isOpen);
-    if (isOpen) loadNotifications();
+    if (isOpen) {
+      loadNotifications();
+      document.dispatchEvent(
+        new CustomEvent("header-dropdown-open", { detail: "notif" }),
+      );
+    }
+  });
+
+  document.addEventListener("header-dropdown-open", (event) => {
+    if (event.detail !== "notif") {
+      notifDropdown.classList.remove("active");
+      notifBell.setAttribute("aria-expanded", "false");
+    }
   });
 
   document.addEventListener("click", (event) => {

@@ -214,7 +214,7 @@ main button:hover {
     padding: 10px 15px;
     background-color: var(--success-background);
     color: var(--success-text);
-    margin: 1.5em 0 0 0;
+    margin: 1.5em 0 20px;
     width: 80%;
 }
 
@@ -447,12 +447,15 @@ main button:hover {
     justify-content: center;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
     main {
         margin: 24px;
         padding: 32px 20px;
         border-radius: 6px;
     }
+}
+
+@media (max-width: 600px) {
 
     .btn-back.btn-back--pinned,
     .theme-toggle-wrapper.theme-toggle--floating .theme-toggle {

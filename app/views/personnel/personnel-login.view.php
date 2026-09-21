@@ -18,7 +18,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
         <form method="POST" action="<?= ROOT ?>/personnel/login_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-            <h1>Personnel Login</h1>
+            <h1 class="personnel-login-h1">Personnel Login</h1>
             <p class="form-label">For CCARD personnel only.</p>
 
             <?php if (!empty($_SESSION['flash_success'])): ?>

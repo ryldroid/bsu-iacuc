@@ -1304,6 +1304,14 @@
   color: var(--secondary-text);
 }
 
+#deletionReviewReasonWrap {
+  margin: 0.75rem 0;
+}
+
+#deletionReviewReasonText {
+  margin: .5em 0;
+}
+
 .return-comment-optional {
   font-weight: 400;
   color: var(--muted-text);
@@ -1342,4 +1350,8 @@
   justify-content: flex-end;
   gap: 0.6rem;
   margin-top: 0.5rem;
+}
+
+.panel-modal-actions[hidden] {
+  display: none;
 }

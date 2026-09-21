@@ -41,8 +41,19 @@ function showSidebar() {
     accountButton.setAttribute("aria-expanded", "false");
   }
 
-  isOpen ? closeSidebar() : openSidebar();
+  if (isOpen) {
+    closeSidebar();
+  } else {
+    document.dispatchEvent(
+      new CustomEvent("header-dropdown-open", { detail: "sidebar" }),
+    );
+    openSidebar();
+  }
 }
+
+document.addEventListener("header-dropdown-open", (event) => {
+  if (event.detail !== "sidebar") closeSidebar();
+});
 
 if (accountButton && dropdown) {
   accountButton.addEventListener("click", () => {

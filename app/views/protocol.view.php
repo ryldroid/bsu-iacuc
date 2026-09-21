@@ -107,35 +107,6 @@ include 'includes/header.php';
 
 <div class="viewer-body">
 
-    <?php if (!empty($flashSuccess)): ?>
-        <div class="return-reason-bar viewer-flash-success" id="viewerFlashSuccess">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#check-icon" />
-            </svg>
-            <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($flashError)): ?>
-        <div class="return-reason-bar viewer-flash-error" id="viewerFlashError">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#info-icon" />
-            </svg>
-            <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!$isStaff && !empty($protocol['deletion_requested_at'])): ?>
-        <div class="return-reason-bar deletion-request-bar">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#trash-icon" />
-            </svg>
-            A deletion request is pending for this protocol (requested by
-            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The administrative staff has been notified.
-        </div>
-    <?php endif; ?>
-
     <!-- ===== Top bar ===== -->
     <div class="viewer-topbar">
         <div class="viewer-topbar-left">
@@ -381,6 +352,35 @@ include 'includes/header.php';
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if (!empty($flashSuccess)): ?>
+        <div class="return-reason-bar viewer-flash-success" id="viewerFlashSuccess">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#check-icon" />
+            </svg>
+            <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($flashError)): ?>
+        <div class="return-reason-bar viewer-flash-error" id="viewerFlashError">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#info-icon" />
+            </svg>
+            <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$isStaff && !empty($protocol['deletion_requested_at'])): ?>
+        <div class="return-reason-bar deletion-request-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#trash-icon" />
+            </svg>
+            A deletion request is pending for this protocol (requested by
+            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The administrative staff has been notified.
+        </div>
+    <?php endif; ?>
 
     <?php if ($canReview): ?>
         <!-- ===== Annotation hint (reviewer only, while under review, latest version only) ===== -->
@@ -769,7 +769,8 @@ include 'includes/header.php';
                 <p class="panel-modal-intro" id="deletionReviewRequestInfo">
                     Deletion requested by
                     <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-                    <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>:
+                    <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                    for the reason of:
                     <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
                 </p>
 
@@ -819,8 +820,7 @@ include 'includes/header.php';
         <div class="modal-card panel-modal-card">
             <div class="panel-modal-header">
                 <div>
-                    <p class="panel-modal-label">Deletion Request Rejected</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="panel-modal-title">Deletion Request Rejected</p>
                 </div>
             </div>
             <div class="panel-modal-body">

@@ -50,6 +50,15 @@ if (themeToggleButton && themeMenu) {
   themeToggleButton.addEventListener("click", () => {
     const isOpen = themeMenu.classList.toggle("active");
     themeToggleButton.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen) {
+      document.dispatchEvent(
+        new CustomEvent("header-dropdown-open", { detail: "theme" }),
+      );
+    }
+  });
+
+  document.addEventListener("header-dropdown-open", (event) => {
+    if (event.detail !== "theme") closeThemeMenu();
   });
 
   themeMenu.querySelectorAll("button[data-mode]").forEach((item) => {
