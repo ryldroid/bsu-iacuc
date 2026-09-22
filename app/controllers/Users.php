@@ -373,6 +373,7 @@ class Users extends Controller
       'errors'         => !empty($_SESSION['flash_error']) ? [$_SESSION['flash_error']] : [],
       'certificate'    => $certificate,
       'email_verified' => (bool) $user['email_verified'],
+      'email_notifications' => (bool) $user['email_notifications'],
       'old'         => [
         'first_name'   => $user['first_name'],
         'last_name'    => $user['last_name'],
@@ -385,6 +386,30 @@ class Users extends Controller
       ],
     ]);
     unset($_SESSION['flash_error']);
+  }
+
+  // ===== EMAIL NOTIFICATIONS TOGGLE (POST /users/notifications) =====
+
+  public function notifications(): void
+  {
+    $this->requireLogin();
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->redirect('users/account');
+    }
+
+    $this->verifyCsrfToken();
+
+    $id      = (int) $_SESSION['user']['user_id'];
+    $enabled = !empty($_POST['email_notifications']);
+
+    $this->model->updateEmailNotifications($id, $enabled);
+
+    $_SESSION['flash_success'] = $enabled
+      ? 'You will now receive email updates about your protocols.'
+      : 'Email updates about your protocols have been turned off.';
+
+    $this->redirect('users/account');
   }
 
   public function update()
@@ -443,6 +468,8 @@ class Users extends Controller
         'csrf'        => $this->generateCsrfToken(),
         'errors'      => $errors,
         'certificate' => $certificate,
+        'email_verified'      => (bool) $current_user['email_verified'],
+        'email_notifications' => (bool) $current_user['email_notifications'],
         'old'         => $old,
       ]);
       return;

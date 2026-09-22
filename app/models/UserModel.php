@@ -169,6 +169,14 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  public function updateEmailNotifications(int $id, bool $enabled): bool
+  {
+    $val = $enabled ? 1 : 0;
+    $stmt = $this->connection->prepare("UPDATE $this->table SET email_notifications = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $id);
+    return $stmt->execute();
+  }
+
   public function deleteUser(int $id): bool
   {
     $stmt = $this->connection->prepare("SELECT cert_path FROM $this->table WHERE id = ?");

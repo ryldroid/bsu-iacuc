@@ -172,8 +172,24 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <button type="submit" class="btn-save btn-green">Save Changes</button>
         </form>
 
-        <fieldset class="form-actions">
-            <legend>Account Actions</legend>
+        <section class="settings-section">
+            <h2>Email Notifications</h2>
+
+            <form class="notifications-form" method="POST" action="<?= ROOT ?>/users/notifications" id="notifications-form">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+                <label class="switch-toggle" for="email_notifications">
+                    <span class="switch-toggle-label">Email me about protocol updates</span>
+                    <span class="switch-toggle-control">
+                        <input type="checkbox" id="email_notifications" name="email_notifications" value="1"
+                            <?= !empty($email_notifications) ? 'checked' : '' ?> onchange="this.form.submit()">
+                        <span class="switch-toggle-track"></span>
+                    </span>
+                </label>
+            </form>
+        </section>
+
+        <section class="settings-section">
+            <h2>Account Actions</h2>
 
             <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
 
@@ -198,7 +214,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
                 <button type="submit" class="btn-logout">Log Out</button>
             </form>
-        </fieldset>
+        </section>
     </main>
 </div>
 

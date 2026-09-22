@@ -20,7 +20,7 @@ class Notifier
     require_once dirname(__DIR__) . '/models/UserModel.php';
     $recipient = (new UserModel())->getUser($userId);
 
-    if ($recipient && !empty($recipient['email_verified'])) {
+    if ($recipient && !empty($recipient['email_verified']) && !empty($recipient['email_notifications'])) {
       self::sendEmail($email);
     }
   }
@@ -42,7 +42,7 @@ class Notifier
     }
 
     foreach ($recipients as $user) {
-      if (empty($user['email_verified'])) {
+      if (empty($user['email_verified']) || empty($user['email_notifications'])) {
         continue;
       }
 

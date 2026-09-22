@@ -50,7 +50,7 @@ class NotificationModel extends Model
   public function createForRole(string $role, string $type, string $title, string $message = '', ?string $link = null): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT id, email, first_name, email_verified FROM `users` WHERE role = ? AND status = 'active'"
+      "SELECT id, email, first_name, email_verified, email_notifications FROM `users` WHERE role = ? AND status = 'active'"
     );
     if (! $stmt) {
       return [];

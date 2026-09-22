@@ -26,8 +26,11 @@
       li.insertAdjacentHTML("afterbegin", checkIconMarkup()),
     );
 
+    block.hidden = true;
+
     function update() {
       const value = input.value;
+      block.hidden = value.length === 0;
       items.forEach((li, i) => {
         const met = typeof RULES[i] === "function" && RULES[i](value);
         li.classList.toggle("met", met);
