@@ -21,20 +21,23 @@ class Webhooks extends Controller
 
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? (getallheaders()['Authorization'] ?? '');
     $token = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
+
+    // TEMP DEBUG: log every request's auth details, so we can see whether the
+    // Authorization header is even arriving. Remove this block once diagnosed.
+    file_put_contents(
+      __DIR__ . '/../../storage/brevo_webhook_debug.log',
+      date('c') . ' authHeader=[' . $authHeader . '] token=[' . $token . '] ' .
+        'expectedSet=' . (empty(BREVO_WEBHOOK_SECRET) ? 'no' : 'yes') . ' ' .
+        'match=' . (hash_equals(BREVO_WEBHOOK_SECRET ?: '', $token) ? 'yes' : 'no') . PHP_EOL,
+      FILE_APPEND
+    );
+
     if (empty(BREVO_WEBHOOK_SECRET) || !hash_equals(BREVO_WEBHOOK_SECRET, $token)) {
       $this->jsonError(401, 'Invalid webhook secret.');
     }
 
     $raw     = file_get_contents('php://input');
     $payload = json_decode($raw, true);
-
-    // TEMP DEBUG: log every payload received, so we can see exactly what
-    // Brevo is sending. Remove this block once the issue is diagnosed.
-    file_put_contents(
-      __DIR__ . '/../../storage/brevo_webhook_debug.log',
-      date('c') . ' ' . $raw . PHP_EOL,
-      FILE_APPEND
-    );
 
     if (!is_array($payload)) {
       $this->jsonError(400, 'Invalid payload.');
