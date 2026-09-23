@@ -374,6 +374,7 @@ class Users extends Controller
       'certificate'    => $certificate,
       'email_verified' => (bool) $user['email_verified'],
       'email_notifications' => (bool) $user['email_notifications'],
+      'email_provider_blocked' => (bool) $user['email_provider_blocked'],
       'old'         => [
         'first_name'   => $user['first_name'],
         'last_name'    => $user['last_name'],
@@ -401,13 +402,21 @@ class Users extends Controller
     $this->verifyCsrfToken();
 
     $id      = (int) $_SESSION['user']['user_id'];
+    $email   = $_SESSION['user']['email'];
     $enabled = !empty($_POST['email_notifications']);
 
     $this->model->updateEmailNotifications($id, $enabled);
 
-    $_SESSION['flash_success'] = $enabled
-      ? 'You will now receive email updates about your protocols.'
-      : 'Email updates about your protocols have been turned off.';
+    if ($enabled) {
+      $resubscribed = Mailer::resubscribe($email);
+      $this->model->updateEmailProviderBlocked($id, !$resubscribed);
+
+      $_SESSION['flash_success'] = $resubscribed
+        ? 'You will now receive email updates about your protocols.'
+        : 'Preference saved, but we couldn\'t confirm with our email provider that you\'re unblocked. If you previously unsubscribed via email, you may need to try again shortly.';
+    } else {
+      $_SESSION['flash_success'] = 'Email updates about your protocols have been turned off.';
+    }
 
     $this->redirect('users/account');
   }
@@ -470,6 +479,7 @@ class Users extends Controller
         'certificate' => $certificate,
         'email_verified'      => (bool) $current_user['email_verified'],
         'email_notifications' => (bool) $current_user['email_notifications'],
+        'email_provider_blocked' => (bool) $current_user['email_provider_blocked'],
         'old'         => $old,
       ]);
       return;

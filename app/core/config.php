@@ -49,6 +49,17 @@ define('MAIL_PASSWORD', EnvLoader::get('MAIL_PASSWORD'));
 define('MAIL_FROM', EnvLoader::get('MAIL_FROM'));
 define('MAIL_FROMNAME', EnvLoader::get('MAIL_FROMNAME'));
 
+// Optional separate sender for account-security emails (verify_email, password_reset),
+// so a Brevo per-sender unsubscribe on the notifications sender can't affect these.
+// Falls back to the main sender until a second verified sender is set up in Brevo.
+define('MAIL_FROM_SECURITY', EnvLoader::get('MAIL_FROM_SECURITY', MAIL_FROM));
+define('MAIL_FROMNAME_SECURITY', EnvLoader::get('MAIL_FROMNAME_SECURITY', MAIL_FROMNAME));
+
+// Brevo transactional API access (for resubscribing a contact Brevo has blocked)
+// and the shared secret expected on the Brevo unsubscribe webhook URL.
+define('BREVO_API_KEY', EnvLoader::get('BREVO_API_KEY'));
+define('BREVO_WEBHOOK_SECRET', EnvLoader::get('BREVO_WEBHOOK_SECRET', ''));
+
 if (!$isLocal) {
   $required = [
     'PROD_DBNAME',

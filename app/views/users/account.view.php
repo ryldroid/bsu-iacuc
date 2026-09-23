@@ -186,6 +186,10 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                     </span>
                 </label>
             </form>
+
+            <?php if (!empty($email_provider_blocked)): ?>
+                <p class="helper email-provider-blocked-note">You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</p>
+            <?php endif; ?>
         </section>
 
         <section class="settings-section">

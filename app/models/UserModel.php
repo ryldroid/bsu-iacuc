@@ -177,6 +177,26 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  public function updateEmailProviderBlocked(int $id, bool $blocked): bool
+  {
+    $val = $blocked ? 1 : 0;
+    $stmt = $this->connection->prepare("UPDATE $this->table SET email_provider_blocked = ? WHERE id = ?");
+    $stmt->bind_param('ii', $val, $id);
+    return $stmt->execute();
+  }
+
+  // Called from the Brevo webhook when a contact unsubscribes via their email
+  // client. Syncs our own toggle off too, so the account page reflects reality
+  // instead of showing "on" for a user who isn't actually receiving anything.
+  public function markEmailProviderUnsubscribed(int $id): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET email_notifications = 0, email_provider_blocked = 1 WHERE id = ?"
+    );
+    $stmt->bind_param('i', $id);
+    return $stmt->execute();
+  }
+
   public function deleteUser(int $id): bool
   {
     $stmt = $this->connection->prepare("SELECT cert_path FROM $this->table WHERE id = ?");
