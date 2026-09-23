@@ -1,6 +1,6 @@
 <?php
 
-class Users extends Controller
+class User extends Controller
 {
   public UserModel $model;
 
@@ -126,7 +126,7 @@ class Users extends Controller
     $prefill = $_SESSION['new_username'] ?? $_SESSION['new_email'] ?? '';
     unset($_SESSION['new_username'], $_SESSION['new_email']);
 
-    $this->view('users/login', [
+    $this->view('user/login', [
       'prefill' => $prefill,
       'error'   => $_SESSION['flash_error'] ?? '',
       'csrf'    => $this->generateCsrfToken(),
@@ -137,7 +137,7 @@ class Users extends Controller
   public function login_process()
   {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     $this->verifyCsrfToken(true);
@@ -155,12 +155,12 @@ class Users extends Controller
     if ($ipAttempts >= $MAX_ATTEMPTS || $userAttempts >= $MAX_ATTEMPTS) {
       $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
       $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     if (empty($input) || empty($password)) {
       $_SESSION['flash_error'] = 'Please fill in all fields.';
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     $user = $this->model->getUserByUsername($input)
@@ -171,7 +171,7 @@ class Users extends Controller
       $this->model->recordLoginAttempt($input);
       $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed login attempt (no account found)');
       $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     if (!password_verify($password, $user['password'])) {
@@ -189,7 +189,7 @@ class Users extends Controller
         description: 'Failed login attempt (wrong password)'
       );
 
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     $this->model->clearLoginAttempts($ip);
@@ -197,7 +197,7 @@ class Users extends Controller
 
     if ($user['role'] !== 'researcher') {
       $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     $reactivated = false;
@@ -247,7 +247,7 @@ class Users extends Controller
       $this->redirect('submissions');
     }
 
-    $this->view('users/register', [
+    $this->view('user/register', [
       'errors' => [],
       'old'    => [],
       'csrf'   => $this->generateCsrfToken(),
@@ -257,7 +257,7 @@ class Users extends Controller
   public function register_process()
   {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/register');
+      $this->redirect('user/register');
     }
 
     $this->verifyCsrfToken();
@@ -284,7 +284,7 @@ class Users extends Controller
     }
 
     if (!empty($errors)) {
-      $this->view('users/register', [
+      $this->view('user/register', [
         'errors' => $errors,
         'old'    => $old,
         'csrf'   => $this->generateCsrfToken(),
@@ -303,7 +303,7 @@ class Users extends Controller
       ]);
 
       $_SESSION['new_username'] = $username;
-      $this->view('users/register', [
+      $this->view('user/register', [
         'errors'  => [],
         'old'     => [],
         'csrf'    => $this->generateCsrfToken(),
@@ -311,7 +311,7 @@ class Users extends Controller
       ]);
     } else {
       $errors[] = 'Registration failed. Please try again.';
-      $this->view('users/register', [
+      $this->view('user/register', [
         'errors' => $errors,
         'old'    => $old,
         'csrf'   => $this->generateCsrfToken(),
@@ -338,7 +338,7 @@ class Users extends Controller
     $this->redirect('home');
   }
 
-  // ===== SESSION PING  (POST /users/ping) =====
+  // ===== SESSION PING  (POST /user/ping) =====
   // Called by the idle-session-warning prompt when the user confirms they're
   // still there. init.php already refreshes $_SESSION['last_activity'] on
   // every request, so simply reaching this method (past requireLogin) is
@@ -368,7 +368,7 @@ class Users extends Controller
       ? $this->model->getCert((int) $user['id'])
       : null;
 
-    $this->view('users/account', [
+    $this->view('user/account', [
       'csrf'           => $this->generateCsrfToken(),
       'errors'         => !empty($_SESSION['flash_error']) ? [$_SESSION['flash_error']] : [],
       'certificate'    => $certificate,
@@ -389,14 +389,14 @@ class Users extends Controller
     unset($_SESSION['flash_error']);
   }
 
-  // ===== EMAIL NOTIFICATIONS TOGGLE (POST /users/notifications) =====
+  // ===== EMAIL NOTIFICATIONS TOGGLE (POST /user/notifications) =====
 
   public function notifications(): void
   {
     $this->requireLogin();
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/account');
+      $this->redirect('user/account');
     }
 
     $this->verifyCsrfToken();
@@ -418,7 +418,7 @@ class Users extends Controller
       $_SESSION['flash_success'] = 'Email updates about your protocols have been turned off.';
     }
 
-    $this->redirect('users/account');
+    $this->redirect('user/account');
   }
 
   public function update()
@@ -426,7 +426,7 @@ class Users extends Controller
     $this->requireLogin();
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/account');
+      $this->redirect('user/account');
     }
 
     $this->verifyCsrfToken();
@@ -473,7 +473,7 @@ class Users extends Controller
         ? $this->model->getCert($id)
         : null;
 
-      $this->view('users/account', [
+      $this->view('user/account', [
         'csrf'        => $this->generateCsrfToken(),
         'errors'      => $errors,
         'certificate' => $certificate,
@@ -517,7 +517,7 @@ class Users extends Controller
       $_SESSION['flash_error'] = 'Update failed. Please try again.';
     }
 
-    $this->redirect('users/account');
+    $this->redirect('user/account');
   }
 
   public function delete()
@@ -525,7 +525,7 @@ class Users extends Controller
     $this->requireLogin();
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/account');
+      $this->redirect('user/account');
     }
 
     $this->verifyCsrfToken();
@@ -557,11 +557,11 @@ class Users extends Controller
       session_destroy();
       session_start();
       $_SESSION['flash_success'] = 'Your account has been deleted.';
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     $_SESSION['flash_error'] = 'Account deletion failed. Please try again or contact support.';
-    $this->redirect('users/account');
+    $this->redirect('user/account');
   }
 
   private function rrmdir(string $dir): void
@@ -591,7 +591,7 @@ class Users extends Controller
     $this->requireLogin();
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/account');
+      $this->redirect('user/account');
     }
 
     $this->verifyCsrfToken();
@@ -611,7 +611,7 @@ class Users extends Controller
       $_SESSION['flash_error'] = 'Deactivation failed. Please try again.';
     }
 
-    $this->redirect('users/login');
+    $this->redirect('user/login');
   }
 
   public function forgot_password(): void
@@ -621,17 +621,17 @@ class Users extends Controller
     }
 
     $this->handleForgotPassword(
-      'users/forgot_password',
-      'users/reset_password',
-      'users/login'
+      'user/forgot_password',
+      'user/reset_password',
+      'user/login'
     );
   }
 
   public function reset_password(): void
   {
     $this->handleResetPassword(
-      'users/reset_password',
-      'users/login'
+      'user/reset_password',
+      'user/login'
     );
   }
 
@@ -642,7 +642,7 @@ class Users extends Controller
 
     if (!$record) {
       $_SESSION['flash_error'] = 'This verification link is invalid or has expired.';
-      $this->redirect($this->isLoggedIn() ? 'users/account' : 'users/login');
+      $this->redirect($this->isLoggedIn() ? 'user/account' : 'user/login');
       return;
     }
 
@@ -653,7 +653,7 @@ class Users extends Controller
     $this->model->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
 
     $_SESSION['flash_success'] = 'Your email has been verified!';
-    $this->redirect($this->isLoggedIn() ? 'users/account' : 'users/login');
+    $this->redirect($this->isLoggedIn() ? 'user/account' : 'user/login');
   }
 
   public function resend_verification(): void
@@ -661,7 +661,7 @@ class Users extends Controller
     $this->requireLogin();
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('users/account');
+      $this->redirect('user/account');
     }
 
     $this->verifyCsrfToken();
@@ -669,7 +669,7 @@ class Users extends Controller
     $id   = (int) $_SESSION['user']['user_id'];
     $user = $this->model->getUser($id);
 
-    $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/users/account');
+    $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/user/account');
 
     if (!empty($user['email_verified'])) {
       header('Location: ' . $back);

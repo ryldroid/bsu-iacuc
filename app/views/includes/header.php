@@ -56,7 +56,7 @@ $hideHeader     = $hideHeader     ?? false;
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
-      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'users/login') ?>;
+      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'user/login') ?>;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
@@ -131,14 +131,14 @@ $hideHeader     = $hideHeader     ?? false;
             </button>
 
             <div id="account-dropdown">
-              <a href="<?= ROOT ?>/users/account">
+              <a href="<?= ROOT ?>/user/account">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#account-dropdown-icon" />
                 </svg>
                 My Profile</a>
 
               <?php if ($role === 'researcher'): ?>
-                <form method="POST" action="<?= ROOT ?>/users/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
+                <form method="POST" action="<?= ROOT ?>/user/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                 <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
                   <form method="POST" action="<?= ROOT ?>/personnel/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                   <?php endif; ?>
@@ -154,8 +154,8 @@ $hideHeader     = $hideHeader     ?? false;
 
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->
           <?php } else { ?>
-            <a href="<?= ROOT ?>/users/login" id="headerLogin" class="auth-btn">Sign In</a>
-            <a href="<?= ROOT ?>/users/register" id="headerRegister" class="auth-btn">Register</a>
+            <a href="<?= ROOT ?>/user/login" id="headerLogin" class="auth-btn">Sign In</a>
+            <a href="<?= ROOT ?>/user/register" id="headerRegister" class="auth-btn">Register</a>
           <?php } ?>
 
           <!-- MOBILE HAMBURGER ICON -->
@@ -244,7 +244,7 @@ $hideHeader     = $hideHeader     ?? false;
           <use href="#info-icon" />
         </svg>
         <span>Verify your email to receive notification updates via email and keep up to date on your protocols' status.</span>
-        <form method="POST" action="<?= ROOT ?>/users/resend_verification" class="verify-banner-link-form"
+        <form method="POST" action="<?= ROOT ?>/user/resend_verification" class="verify-banner-link-form"
           data-confirm-message="Send a verification link to <?= htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
           data-confirm-ok-text="Send">
           <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">

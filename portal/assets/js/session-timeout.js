@@ -49,7 +49,7 @@
 
   async function extendSession() {
     try {
-      var res = await fetch(NOTIF_ROOT + "/users/ping", {
+      var res = await fetch(NOTIF_ROOT + "/user/ping", {
         method: "POST",
         headers: { "X-CSRF-Token": NOTIF_CSRF_TOKEN },
       });
@@ -69,7 +69,7 @@
   }
 
   function forceLogout() {
-    var loginPath = window.SESSION_LOGIN_PATH || "users/login";
+    var loginPath = window.SESSION_LOGIN_PATH || "user/login";
     window.location.href = NOTIF_ROOT + "/" + loginPath;
   }
 

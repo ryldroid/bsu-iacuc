@@ -396,7 +396,7 @@
       var loginPath =
         typeof SESSION_LOGIN_PATH !== "undefined"
           ? SESSION_LOGIN_PATH
-          : "users/login";
+          : "user/login";
       btn.onclick = function () {
         window.location.href = root + "/" + loginPath;
       };

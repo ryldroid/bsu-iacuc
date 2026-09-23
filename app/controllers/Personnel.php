@@ -1015,7 +1015,7 @@ class Personnel extends Controller
                     'account_verified',
                     'Account Verified',
                     'Your account has been verified. You can now log in.',
-                    'users/account',
+                    'user/account',
                     [
                         'template' => 'application_approved',
                         'vars'     => ['first_name' => $applicant['first_name']],

@@ -22,7 +22,7 @@ include dirname(__DIR__) . '/includes/header.php';
             Back
         </a>
 
-        <form method="POST" action="<?= ROOT ?>/users/login_process">
+        <form method="POST" action="<?= ROOT ?>/user/login_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
             <h1>Login</h1>
@@ -58,8 +58,8 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <button type="submit" class="btn-login">Log In</button>
 
-            <p class="underlined-p">Don't have an account? <a class="underlined" href="<?= ROOT ?>/users/register">Register here</a></p>
-            <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/users/forgot_password">Forgot Password</a></p>
+            <p class="underlined-p">Don't have an account? <a class="underlined" href="<?= ROOT ?>/user/register">Register here</a></p>
+            <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/user/forgot_password">Forgot Password</a></p>
 
             <p class="personnel-login-link underlined-p">Are you personnel? <a class="underlined" href="<?= ROOT ?>/personnel/login">Personnel login</a></p>
         </form>

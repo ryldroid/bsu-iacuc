@@ -98,7 +98,7 @@ class Controller
   protected function requireLogin()
   {
     if (!$this->isLoggedIn()) {
-      $this->redirect('users/login');
+      $this->redirect('user/login');
     }
 
     require_once dirname(__DIR__) . '/models/UserModel.php';
@@ -180,7 +180,7 @@ class Controller
     $userModel = new UserModel();
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-      $this->view('users/forgot_password', [
+      $this->view('user/forgot_password', [
         'csrf'  => $this->generateCsrfToken(),
         'route' => $forgotRoute,
       ]);
@@ -205,7 +205,7 @@ class Controller
       ], $user['email'], $user['first_name'], 'Password Reset');
     }
 
-    $this->view('users/forgot_password', [
+    $this->view('user/forgot_password', [
       'csrf'    => $this->generateCsrfToken(),
       'route'   => $forgotRoute,
       'success' => $success,
@@ -223,7 +223,7 @@ class Controller
       $reset = $userModel->getPasswordReset($token);
 
       if (!$reset) {
-        $this->view('users/reset_password', [
+        $this->view('user/reset_password', [
           'csrf'   => $this->generateCsrfToken(),
           'token'  => '',
           'route'  => $resetRoute,
@@ -232,7 +232,7 @@ class Controller
         return;
       }
 
-      $this->view('users/reset_password', [
+      $this->view('user/reset_password', [
         'csrf'   => $this->generateCsrfToken(),
         'token'  => $token,
         'route'  => $resetRoute,
@@ -245,7 +245,7 @@ class Controller
 
     $reset = $userModel->getPasswordReset($token);
     if (!$reset) {
-      $this->view('users/reset_password', [
+      $this->view('user/reset_password', [
         'csrf'   => $this->generateCsrfToken(),
         'token'  => '',
         'route'  => $resetRoute,
@@ -267,7 +267,7 @@ class Controller
     }
 
     if (!empty($errors)) {
-      $this->view('users/reset_password', [
+      $this->view('user/reset_password', [
         'csrf'   => $this->generateCsrfToken(),
         'token'  => $token,
         'route'  => $resetRoute,
@@ -280,7 +280,7 @@ class Controller
     $ok   = $userModel->updatePassword((int) $reset['user_id'], $hash);
 
     if (!$ok) {
-      $this->view('users/reset_password', [
+      $this->view('user/reset_password', [
         'csrf'   => $this->generateCsrfToken(),
         'token'  => $token,
         'route'  => $resetRoute,
@@ -305,7 +305,7 @@ class Controller
     $token = bin2hex(random_bytes(32));
     $userModel->createEmailVerification((int) $user['id'], $token);
 
-    $verify_url = ROOT . '/users/verify_email?token=' . $token;
+    $verify_url = ROOT . '/user/verify_email?token=' . $token;
 
     Mailer::sendTemplate('verify_email', [
       'first_name' => $user['first_name'],

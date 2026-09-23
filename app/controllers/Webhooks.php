@@ -15,41 +15,18 @@ class Webhooks extends Controller
   // transactional event in the Brevo dashboard, with Token auth (Bearer).
   public function brevo(): void
   {
-    // TEMP DEBUG: unconditionally record every request that reaches this
-    // method, before any other logic runs, so we can see if this code is
-    // even executing. Web-readable at /portal/webhook_debug.txt (no secret
-    // values are written). Remove this block (and delete the file) once done.
-    $authHeaderPeek = $_SERVER['HTTP_AUTHORIZATION']
-      ?? (function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? '') : '');
-    @file_put_contents(
-      __DIR__ . '/../../portal/webhook_debug.txt',
-      date('c') . ' | method=' . ($_SERVER['REQUEST_METHOD'] ?? '?') .
-        ' | authHeaderPresent=' . ($authHeaderPeek !== '' ? 'yes' : 'no') .
-        ' | authHeaderLen=' . strlen($authHeaderPeek) .
-        ' | contentType=' . ($_SERVER['CONTENT_TYPE'] ?? '?') . PHP_EOL,
-      FILE_APPEND
-    );
-
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
       $this->jsonError(405, 'Method not allowed.');
     }
 
-    $authHeader = $authHeaderPeek;
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? (getallheaders()['Authorization'] ?? '');
     $token = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
-
     if (empty(BREVO_WEBHOOK_SECRET) || !hash_equals(BREVO_WEBHOOK_SECRET, $token)) {
       $this->jsonError(401, 'Invalid webhook secret.');
     }
 
     $raw     = file_get_contents('php://input');
     $payload = json_decode($raw, true);
-
-    @file_put_contents(
-      __DIR__ . '/../../portal/webhook_debug.txt',
-      date('c') . ' | AUTH OK | event=' . ($payload['event'] ?? '?') .
-        ' | email=' . ($payload['email'] ?? '?') . PHP_EOL,
-      FILE_APPEND
-    );
 
     if (!is_array($payload)) {
       $this->jsonError(400, 'Invalid payload.');

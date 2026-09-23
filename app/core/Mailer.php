@@ -110,7 +110,7 @@ class Mailer
 
     private static function notificationFooter(): string
     {
-        $url = ROOT . '/users/account';
+        $url = ROOT . '/user/account';
         return '<p style="margin-top:16px;font-size:12px;color:#888;">'
             . 'You can manage email notification preferences in your <a href="' . $url . '">account settings</a>.'
             . '</p>';

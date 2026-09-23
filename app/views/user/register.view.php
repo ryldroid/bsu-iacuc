@@ -5,7 +5,7 @@ include dirname(__DIR__) . '/includes/header.php';
 ?>
 
 <?php if (!empty($success)): ?>
-    <meta http-equiv="refresh" content="2; url=<?= ROOT ?>/users/login">
+    <meta http-equiv="refresh" content="2; url=<?= ROOT ?>/user/login">
 <?php endif; ?>
 
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
@@ -24,7 +24,7 @@ include dirname(__DIR__) . '/includes/header.php';
             Back
         </a>
 
-        <form method="POST" action="<?= ROOT ?>/users/register_process">
+        <form method="POST" action="<?= ROOT ?>/user/register_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? ''); ?>">
 
             <h1>Create Account</h1>
@@ -119,7 +119,7 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <button type="submit">Register</button>
-            <p class="underlined-p">Already have an account? <a class="underlined" href="<?= ROOT ?>/users/login">Log in here</a></p>
+            <p class="underlined-p">Already have an account? <a class="underlined" href="<?= ROOT ?>/user/login">Log in here</a></p>
         </form>
     </main>
 </div>

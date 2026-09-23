@@ -27,14 +27,14 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         </a>
 
         <?php if (empty($email_verified)): ?>
-            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/users/resend_verification"
+            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/user/resend_verification"
                 data-confirm-message="Send a verification link to <?= htmlspecialchars($old['email'] ?? '') ?>?"
                 data-confirm-ok-text="Send">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
             </form>
         <?php endif; ?>
 
-        <form class="account-form" method="POST" action="<?= ROOT ?>/users/update"
+        <form class="account-form" method="POST" action="<?= ROOT ?>/user/update"
             data-confirm-message="Save changes to your account?"
             data-confirm-ok-text="Save Changes">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
@@ -175,7 +175,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         <section class="settings-section">
             <h2>Email Notifications</h2>
 
-            <form class="notifications-form" method="POST" action="<?= ROOT ?>/users/notifications" id="notifications-form">
+            <form class="notifications-form" method="POST" action="<?= ROOT ?>/user/notifications" id="notifications-form">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
                 <label class="switch-toggle" for="email_notifications">
                     <span class="switch-toggle-label">Email me about protocol updates</span>
@@ -197,7 +197,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
             <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
 
-            <form method="POST" action="<?= ROOT ?>/users/delete"
+            <form method="POST" action="<?= ROOT ?>/user/delete"
                 data-confirm-message="Are you sure? This cannot be undone."
                 data-confirm-ok-text="Delete Account"
                 data-confirm-danger="true">
@@ -214,7 +214,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             </form>
 
             <form class="logout-form" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out"
-                action="<?= ROOT ?>/<?= $is_personnel ? 'personnel/logout' : 'users/logout' ?>" method="POST">
+                action="<?= ROOT ?>/<?= $is_personnel ? 'personnel/logout' : 'user/logout' ?>" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
                 <button type="submit" class="btn-logout">Log Out</button>
             </form>
