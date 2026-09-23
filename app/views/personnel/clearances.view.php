@@ -256,7 +256,7 @@ $csrf = $csrf ?? '';
   function renderProtocols() {
     const grid = document.getElementById('protocolGrid');
     if (!boardData.endorsed_protocols || boardData.endorsed_protocols.length === 0) {
-      grid.innerHTML = '<p class="helper clearance-empty">No endorsed protocols waiting on a clearance right now.</p>';
+      grid.innerHTML = '<p class="helper clearance-empty">No endorsed protocols waiting on a clearance.</p>';
       return;
     }
 

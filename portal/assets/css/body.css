@@ -131,7 +131,7 @@
        page, etc). The light-mode value is a dark, muted green that
        reads fine on white but is nearly invisible as plain text on a
        dark background, so it needs its own brighter value here. */
-    --brand-color-hover: #3f9d5c;
+    --brand-color-hover: #3f9d5da8;
     --nav-icons: #8dd188ca;
 
     --shadow-color: rgba(0, 0, 0, 0.6);
@@ -245,13 +245,16 @@ button,
     font-size: 0.8em;
     font-family: var(--font-body);
 
-    border: none;
-    background-color: transparent;
-    box-shadow: 0 2px 4px var(--shadow-color-soft);
-    padding: 8px 4px;
     cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px var(--shadow-color-soft);
     border-radius: 4px;
     transition: all 150ms ease;
+
+    /* padding: 8px 4px; */
+    padding: 8px 18px;
+    /* background-color: transparent; */
+    background-color: var(--divider-color);
 }
 
 button:hover,
@@ -336,7 +339,7 @@ main a.underlined:hover {
 }
 
 .helper {
-    font-size: 0.7em;
+    font-size: 0.8em;
     font-style: italic;
     color: var(--secondary-text);
 }

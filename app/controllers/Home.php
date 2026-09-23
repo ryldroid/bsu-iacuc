@@ -9,6 +9,11 @@ class Home extends Controller
       $this->redirect('personnel/home');
     }
 
-    $this->view('home');
+    require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
+    $settingsModel = new SiteSettingModel();
+
+    $this->view('home', [
+      'siteSettings' => $settingsModel->getAll(),
+    ]);
   }
 }

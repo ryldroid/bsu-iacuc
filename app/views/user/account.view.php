@@ -173,7 +173,15 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         </form>
 
         <section class="settings-section">
-            <h2>Email Notifications</h2>
+            <div class="popup-wrap">
+                <h2>Email Notifications</h2>
+                <div class="info-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span class="info-popup">If you unsubscribed directly through your email client and wish to receive emails again, turn this toggle off and then on again. The system cannot detect the unsubscribe automatically.</span>
+                </div>
+            </div>
 
             <form class="notifications-form" method="POST" action="<?= ROOT ?>/user/notifications" id="notifications-form">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">

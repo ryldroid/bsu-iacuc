@@ -7,6 +7,11 @@ $homeLatestAnnouncements = array_slice($homeAnnouncementModel->getAll(), 0, 3);
 
 $title = "Home";
 
+$siteSettings    = $siteSettings ?? [];
+$bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - Institutional Animal Care and Use Committee';
+$aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
+$aboutParagraph2 = $siteSettings['about_paragraph_2'] ?? '';
+
 // Map card (CCARD office location)
 $ccardMapQuery = 'BSU Cordillera Center for Animal Research and Development, CVM Compound, Km. 5, La Trinidad, Benguet';
 $ccardMapEmbed = 'https://www.google.com/maps?q=' . rawurlencode($ccardMapQuery) . '&z=16&output=embed';
@@ -32,7 +37,7 @@ include "includes/scroll-top.php";
                 <img src="<?= IMGPATH ?>/bai.webp" alt="BAI logo">
             </div>
 
-            <h1>Benguet State University - Institutional Animal Care and Use Committee</h1>
+            <h1><?= htmlspecialchars($bannerTitle, ENT_QUOTES) ?></h1>
         </div>
 
         <div class="articles">
@@ -42,10 +47,10 @@ include "includes/scroll-top.php";
                     <div class="home-iacuc">
                         <h2>What is IACUC?</h2>
                         <p>
-                            The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate University and National and International policies and regulations. The IACUC, under the Office of the Research and Extension (R and E) specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).
+                            <?= nl2br(htmlspecialchars($aboutParagraph1, ENT_QUOTES)) ?>
                         </p>
                         <p>
-                            IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research Clearance by the Bureau of Animal Industry (BAI).
+                            <?= nl2br(htmlspecialchars($aboutParagraph2, ENT_QUOTES)) ?>
                         </p>
                         <p>
                             The IACUC reviews and endorses animal research protocols in line with

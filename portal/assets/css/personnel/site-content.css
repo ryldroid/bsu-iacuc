@@ -1,0 +1,24 @@
+.sections {
+  display: flex;
+  gap: 2em;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.sections>.accounts-card {
+  flex: 1 1 420px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .sections {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sections>.accounts-card {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}

@@ -307,7 +307,7 @@ include "includes/scroll-top.php";
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#alert-triangle-icon" />
         </svg>
-        <span><span class="bold">Uploads will be thoroughly examined.</span> Make sure documents are legible, accurate, and complete before submitting.</span>
+        <span>Make sure your uploads are legible, accurate, and complete before submitting.</span>
     </div>`;
 
     // ===== STEP 0 :  Requirements & Process =====
@@ -321,20 +321,20 @@ include "includes/scroll-top.php";
             subtitle: state.certAlready ?
                 'You have already submitted your certificate.' : 'Required for first-time submitters.',
             pill: state.certAlready ?
-                `<span class="status-pill status-pill-done">${checkSvgSm}On file</span>` : `<span class="status-pill status-pill-required">Required</span>`,
+                `<span class="status-pill status-pill-done">${checkSvgSm}Submitted</span>` : `<span class="status-pill status-pill-required">Required</span>`,
         }, ];
 
         const process = [
-            `Attach requirements. <br>
+            `Submit your IACUC training certificate. <br>
                 <span class="process-note">
-                Your training certificate is required unless you have already submitted one previously.
+                This is a one-time requirement and will be referenced for subsequent IACUC protocol review applications.
                 </span>`,
-            `Download the official IACUC protocol form, fill it in, then upload it in the next step. <br>
+            `Download and complete the official IACUC protocol form. <br>
                 <span class="process-note">
                 Only the Principal Investigator (PI) may submit an IACUC protocol for review.
-                Multiple submissions will be rejected and returned.
+                Multiple submissions of the same protocol will be rejected.
                 </span>`,
-            `Submit your completed form. You will be notified via email on updates on your protocol.`,
+            `Submit your completed form. You will be notified via email on updates.`,
         ];
 
         return `

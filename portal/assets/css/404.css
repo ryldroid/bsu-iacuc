@@ -42,12 +42,16 @@ div * {
 div a.button {
   text-decoration: none;
   color: inherit;
-  padding: 12px 8px;
+  font-family: inherit;
+  padding: 8px 18px;
+  background: var(--divider-color);
+  border-radius: var(--btn-radius);
 }
 
 h1 {
   font-family: var(--font-title);
   color: var(--primary-text);
+  font-weight: 100;
 }
 
 p {

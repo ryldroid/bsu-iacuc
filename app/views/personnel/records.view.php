@@ -419,8 +419,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 <table class="protocol-table records-table">
                     <thead>
                         <tr>
-                            <!-- ACTION BUTTONS column -->
-                            <th class="col-actions">Actions</th>
                             <th class="col-ref">IPN</th>
                             <th class="col-title">Title of Research</th>
                             <th class="col-school">School</th>
@@ -434,6 +432,8 @@ function formatDurationRange(?string $start, ?string $end): string
                             <th class="col-duration">Duration</th>
                             <th class="col-date">Date Released</th>
                             <th class="col-recv">Received By</th>
+                            <!-- ACTION BUTTONS column -->
+                            <th class="col-actions" aria-label="Actions"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -452,6 +452,28 @@ function formatDurationRange(?string $start, ?string $end): string
                         <?php else: ?>
                             <?php foreach ($records as $i => $r): ?>
                                 <tr>
+                                    <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no']) ?></td>
+                                    <td class="records-title-cell">
+                                        <div class="protocol-title-cell">
+                                            <?= htmlspecialchars($r['title_of_research']) ?>
+                                        </div>
+                                    </td>
+                                    <td class="researcher-cell" data-label="School"><?= htmlspecialchars($r['school'] ?? '') ?></td>
+                                    <td class="date-cell" data-label="Animal Type"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
+                                    <td class="date-cell" data-label="Count"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
+                                    <td class="researcher-cell" data-label="Researcher"><?= htmlspecialchars($r['principal_investigator'] ?? '') ?></td>
+                                    <td class="date-cell" data-label="Researcher Sex"><?= htmlspecialchars($r['sex'] ?? '') ?></td>
+                                    <td class="date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
+                                    <td class="researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
+                                    <td class="researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
+                                    <td class="date-cell" data-label="Duration">
+                                        <?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?>
+                                        <?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?>
+                                            <span class="records-expired-tag">Expired</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="date-cell" data-label="Date Released"><?= $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '' ?></td>
+                                    <td class="researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                     <!-- ACTION BUTTONS -->
                                     <td class="actions-cell">
                                         <div class="row-actions">
@@ -485,28 +507,6 @@ function formatDurationRange(?string $start, ?string $end): string
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no']) ?></td>
-                                    <td>
-                                        <div class="protocol-title-cell">
-                                            <?= htmlspecialchars($r['title_of_research']) ?>
-                                        </div>
-                                    </td>
-                                    <td class="researcher-cell"><?= htmlspecialchars($r['school'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
-                                    <td class="researcher-cell"><?= htmlspecialchars($r['principal_investigator'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['sex'] ?? '') ?></td>
-                                    <td class="date-cell"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
-                                    <td class="researcher-cell"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
-                                    <td class="researcher-cell"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                    <td class="date-cell">
-                                        <?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?>
-                                        <?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?>
-                                            <span class="records-expired-tag">Expired</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="date-cell"><?= $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '' ?></td>
-                                    <td class="researcher-cell"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -761,10 +761,14 @@ function formatDurationRange(?string $start, ?string $end): string
         const statsToggle = document.getElementById('recordsStatsToggle');
         const statsPanel = document.getElementById('recordsStatsPanel');
         if (statsToggle && statsPanel) {
+            const setStatsOpen = open => {
+                statsToggle.setAttribute('aria-expanded', String(open));
+                statsPanel.hidden = !open;
+            };
+
+            setStatsOpen(!window.matchMedia('(max-width: 600px)').matches);
             statsToggle.addEventListener('click', () => {
-                const isOpen = statsToggle.getAttribute('aria-expanded') === 'true';
-                statsToggle.setAttribute('aria-expanded', String(!isOpen));
-                statsPanel.hidden = isOpen;
+                setStatsOpen(statsToggle.getAttribute('aria-expanded') !== 'true');
             });
         }
 

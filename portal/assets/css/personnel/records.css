@@ -422,10 +422,6 @@
   background: var(--hover-surface-soft);
 }
 
-.records-table .col-actions {
-  min-width: 140px;
-  white-space: nowrap;
-}
 
 .records-table .col-ref {
   width: 120px;
@@ -482,37 +478,28 @@
   width: 130px;
 }
 
-.records-table thead .col-actions,
+.records-table .col-actions,
+.records-table .actions-cell {
+  width: 0;
+  padding: 0;
+}
+
 .records-table .actions-cell {
   position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--card-background);
-}
-
-.records-table thead .col-actions {
+  right: 0;
   z-index: 2;
-  background: var(--divider-color-subtle);
-}
-
-.records-table tbody tr:nth-child(even) .actions-cell {
-  background: var(--divider-color-subtle);
-}
-
-.records-table tbody tr:hover .actions-cell {
-  background: var(--hover-surface-soft);
 }
 
 .records-table thead .col-ref {
   position: sticky;
-  left: 110px;
+  left: 0;
   z-index: 2;
   background: var(--divider-color-subtle);
 }
 
 .records-table .records-ref {
   position: sticky;
-  left: 110px;
+  left: 0;
   z-index: 1;
   font-family: monospace;
 
@@ -542,10 +529,31 @@
   white-space: normal;
 }
 
+/* Row actions float over the right edge of the row on hover */
 .records-table .row-actions {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
   display: flex;
-  justify-content: center;
   gap: 6px;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: var(--hover-surface-soft);
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.records-table tbody tr:hover .row-actions,
+.records-table .row-actions:focus-within {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .records-table .row-actions {
+    opacity: 1;
+  }
 }
 
 .records-table .row-actions .row-btn {
@@ -776,11 +784,91 @@
     flex: 1 1 auto;
   }
 
-  .records-table thead .col-actions,
-  .records-table thead .col-ref,
-  .records-table .actions-cell,
+  /* Table rows become stacked cards */
+  .records-table-wrap .protocol-table-scroll {
+    border: none;
+    overflow: visible;
+    cursor: auto;
+  }
+
+  .records-table,
+  .records-table tbody {
+    display: block;
+  }
+
+  .records-table thead {
+    display: none;
+  }
+
+  .records-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    margin-bottom: 12px;
+    padding: 14px;
+    background: var(--card-background);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
+  }
+
+  .records-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .records-table tbody td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    white-space: normal;
+  }
+
+  .records-table tbody tr:nth-child(n) td {
+    background: none;
+  }
+
+  .records-table tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: .72em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--muted-text);
+  }
+
+  .records-table tbody td:empty {
+    display: none;
+  }
+
+  .records-table tbody td[colspan],
+  .records-table .records-title-cell {
+    grid-column: 1 / -1;
+  }
+
   .records-table .records-ref {
+    grid-column: 1;
+    grid-row: 1;
     position: static;
+    justify-self: start;
+    align-self: center;
     box-shadow: none;
+  }
+
+  .records-table .actions-cell {
+    grid-column: 2;
+    grid-row: 1;
+    position: static;
+    justify-self: end;
+    width: auto;
+  }
+
+  .records-table .row-actions {
+    position: static;
+    transform: none;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
   }
 }

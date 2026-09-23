@@ -210,6 +210,9 @@ $hideHeader     = $hideHeader     ?? false;
               <li><a href="<?= ROOT ?>/personnel/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#announcement-icon" />
                   </svg><span>Announcements</span></a></li>
+              <li><a href="<?= ROOT ?>/personnel/site_content"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#edit-icon" />
+                  </svg><span>Site Content</span></a></li>
               <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#accounts-icon" />
                   </svg><span>Manage Accounts</span></a></li>

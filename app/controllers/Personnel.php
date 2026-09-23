@@ -550,6 +550,185 @@ class Personnel extends Controller
         ]);
     }
 
+    public function site_content(): void
+    {
+        $this->requireStaff();
+
+        require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
+        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+
+        $settingsModel = new SiteSettingModel();
+        $officeModel   = new ContactOfficeModel();
+
+        $this->view('personnel/personnel-site-content', [
+            'user'     => $_SESSION['user'],
+            'csrf'     => $this->generateCsrfToken(),
+            'settings' => $settingsModel->getAll(),
+            'offices'  => $officeModel->getAll(),
+        ]);
+    }
+
+    public function site_content_settings(): void
+    {
+        $this->requireStaff();
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(true);
+
+        require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
+        $model = new SiteSettingModel();
+
+        $model->setMany([
+            'banner_title'      => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
+            'about_paragraph_1' => normalize_pasted_text(trim($_POST['about_paragraph_1'] ?? '')),
+            'about_paragraph_2' => normalize_pasted_text(trim($_POST['about_paragraph_2'] ?? '')),
+        ]);
+
+        $actor = $this->actor();
+        $model->logAudit('site_settings_updated', $actor['id'], $actor['name'], $actor['role'], 'site_settings', null, 'Updated homepage content');
+
+        $_SESSION['flash_success'] = 'Homepage content updated.';
+        $this->redirect('personnel/site_content');
+    }
+
+    public function site_content_office_add(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+        $model = new ContactOfficeModel();
+
+        $data = $this->sanitizeOfficePost();
+        if ($data['name'] === '') {
+            $this->jsonError(422, 'Office name is required.');
+        }
+
+        $ok = $model->insert(
+            $data['sort_order'],
+            $data['name'],
+            null,
+            $data['address'],
+            $data['phone'],
+            $data['email'],
+            $data['facebook_url'],
+            $data['facebook_label'],
+            $data['director_name'],
+            $data['director_role'],
+            $data['director_email']
+        );
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('contact_office_added', $actor['id'], $actor['name'], $actor['role'], 'contact_office', null, "Contact office added: {$data['name']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office added.' : 'Insert failed.']);
+        exit;
+    }
+
+    public function site_content_office_get(): void
+    {
+        $this->requireStaff(true);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+        $model = new ContactOfficeModel();
+
+        $id  = (int) ($_GET['id'] ?? 0);
+        $row = $id > 0 ? $model->getById($id) : null;
+
+        echo json_encode(
+            $row
+                ? ['ok' => true, 'data' => $row]
+                : ['ok' => false, 'message' => 'Office not found.']
+        );
+        exit;
+    }
+
+    public function site_content_office_edit(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+        $model = new ContactOfficeModel();
+
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id <= 0 || ! $model->getById($id)) {
+            $this->jsonError(404, 'Office not found.');
+        }
+
+        $data = $this->sanitizeOfficePost();
+        if ($data['name'] === '') {
+            $this->jsonError(422, 'Office name is required.');
+        }
+
+        $ok = $model->update(
+            $id,
+            $data['sort_order'],
+            $data['name'],
+            $data['address'],
+            $data['phone'],
+            $data['email'],
+            $data['facebook_url'],
+            $data['facebook_label'],
+            $data['director_name'],
+            $data['director_role'],
+            $data['director_email']
+        );
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('contact_office_edited', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office edited: {$data['name']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office updated.' : 'Update failed.']);
+        exit;
+    }
+
+    public function site_content_office_delete(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+        $model = new ContactOfficeModel();
+
+        $id     = (int) ($_POST['id'] ?? 0);
+        $office = $id > 0 ? $model->getById($id) : null;
+        $ok     = $office ? $model->delete($id) : false;
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('contact_office_deleted', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office deleted: {$office['name']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office deleted.' : 'Delete failed.']);
+        exit;
+    }
+
+    private function sanitizeOfficePost(): array
+    {
+        return [
+            'sort_order'     => (int) ($_POST['sort_order'] ?? 0),
+            'name'           => normalize_pasted_text(trim($_POST['name'] ?? '')),
+            'address'        => normalize_pasted_text(trim($_POST['address'] ?? '')) ?: null,
+            'phone'          => normalize_pasted_text(trim($_POST['phone'] ?? '')) ?: null,
+            'email'          => normalize_pasted_text(trim($_POST['email'] ?? '')) ?: null,
+            'facebook_url'   => trim($_POST['facebook_url'] ?? '') ?: null,
+            'facebook_label' => normalize_pasted_text(trim($_POST['facebook_label'] ?? '')) ?: null,
+            'director_name'  => normalize_pasted_text(trim($_POST['director_name'] ?? '')) ?: null,
+            'director_role'  => normalize_pasted_text(trim($_POST['director_role'] ?? '')) ?: null,
+            'director_email' => trim($_POST['director_email'] ?? '') ?: null,
+        ];
+    }
+
     public function accounts(): void
     {
         $this->requirePersonnel();

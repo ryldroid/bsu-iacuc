@@ -15,6 +15,37 @@
     color: var(--brand-text);
 }
 
+.sections {
+    display: flex;
+    gap: 2em;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.sections>.accounts-card,
+.sections>.sections-column {
+    flex: 1 1 420px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.sections .accounts-card {
+    max-width: 100%;
+}
+
+@media (max-width: 900px) {
+    .sections {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .sections>.accounts-card,
+    .sections>.sections-column {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
+
 .invite-form {
     display: flex;
     gap: 0.5rem;
@@ -287,6 +318,7 @@
     font-size: 0.9rem;
     color: var(--primary-text);
     white-space: nowrap;
+    margin-bottom: 1em;
 }
 
 .audit-full-history {
@@ -307,5 +339,9 @@
 
     .audit-form .accounts-btn-primary {
         width: 100%;
+    }
+
+    .audit-checkbox-label {
+        margin-bottom: 0;
     }
 }

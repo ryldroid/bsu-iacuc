@@ -57,6 +57,17 @@ $role = $user['role'] ?? '';
                             <span>Manage Announcements</span>
                         </div>
                     </li>
+
+                    <li>
+                        <a href="<?= ROOT ?>/personnel/site_content">
+                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#edit-icon" />
+                            </svg>
+                        </a>
+                        <div>
+                            <span>Site Content</span>
+                        </div>
+                    </li>
                 <?php endif; ?>
 
                 <?php if ($role === 'reviewer'): ?>
@@ -104,7 +115,7 @@ $role = $user['role'] ?? '';
                             </svg>
                         </a>
                         <div>
-                            <span>Personnel</span>
+                            <span>Administration</span>
                         </div>
                     </li>
                 <?php endif; ?>

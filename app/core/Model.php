@@ -295,6 +295,32 @@ class Model
 
         $this->ensureColumn('announcements', 'image_path', "varchar(255) DEFAULT NULL AFTER `body`");
 
+        $c->query("CREATE TABLE IF NOT EXISTS `site_settings` (
+                    `setting_key`   varchar(100) NOT NULL PRIMARY KEY,
+                    `setting_value` text         DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seedSiteSettings();
+
+        $c->query("CREATE TABLE IF NOT EXISTS `contact_offices` (
+                    `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `sort_order`     int(11)      NOT NULL DEFAULT 0,
+                    `name`           varchar(255) NOT NULL,
+                    `logo_path`      varchar(255) DEFAULT NULL,
+                    `address`        text         DEFAULT NULL,
+                    `phone`          text         DEFAULT NULL,
+                    `email`          text         DEFAULT NULL,
+                    `facebook_url`   varchar(500) DEFAULT NULL,
+                    `facebook_label` varchar(255) DEFAULT NULL,
+                    `director_name`  varchar(255) DEFAULT NULL,
+                    `director_role`  varchar(255) DEFAULT NULL,
+                    `director_email` varchar(255) DEFAULT NULL,
+                    `created_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seedContactOffices();
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
@@ -463,6 +489,96 @@ class Model
         }
 
         $c->query("DELETE FROM `protocol_versions` WHERE file_type = 'auth'");
+    }
+
+    // One-time seed so the homepage keeps showing its current copy until a
+    // staff member edits it via Site Content admin (personnel/site_content).
+    private function seedSiteSettings(): void
+    {
+        $c      = $this->connection;
+        $result = $c->query("SELECT COUNT(*) AS n FROM `site_settings`");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if ($row && (int) $row['n'] > 0) {
+            return;
+        }
+
+        $defaults = [
+            'banner_title' => 'Benguet State University - Institutional Animal Care and Use Committee',
+            'about_paragraph_1' => 'The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate University and National and International policies and regulations. The IACUC, under the Office of the Research and Extension (R and E) specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).',
+            'about_paragraph_2' => 'IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research Clearance by the Bureau of Animal Industry (BAI).',
+        ];
+
+        $stmt = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        foreach ($defaults as $key => $value) {
+            $stmt->bind_param('ss', $key, $value);
+            $stmt->execute();
+        }
+    }
+
+    // One-time seed matching the offices that used to be hardcoded on the
+    // Contact page, so nothing changes visually until staff edits them.
+    private function seedContactOffices(): void
+    {
+        $c      = $this->connection;
+        $result = $c->query("SELECT COUNT(*) AS n FROM `contact_offices`");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if ($row && (int) $row['n'] > 0) {
+            return;
+        }
+
+        $offices = [
+            [
+                0,
+                'Benguet State University - La Trinidad Campus',
+                'bsu.webp',
+                'La Trinidad, Benguet, 2601 Philippines',
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+            ],
+            [
+                1,
+                'Cordillera Center for Research and Development',
+                'ccard.webp',
+                'CCARD Bldg., CVM Compound, KM.5, La Trinidad, Benguet, 2601 Philipppines',
+                '+63 998 281 8950',
+                'ccard@bsu.edu.ph',
+                'https://www.facebook.com/profile.php?id=100083273710247',
+                'BSU - Cordillera Center for Animal Research & Development',
+                'Dr. Ana Mendoza',
+                'Director, BSU-CCARD',
+                'ab.mendoza@gmail.com',
+            ],
+            [
+                2,
+                'Bureau of Animal Industry',
+                'bai.webp',
+                'BPI Compound, Guisad, Baguio City, Benguet',
+                "(074) 444-9872\n+63 956 659 5110",
+                "regulatorydivision.car@gmail.com\nlivestock.cordillera@gmail.com",
+                null,
+                null,
+                null,
+                null,
+                null,
+            ],
+        ];
+
+        $stmt = $c->prepare(
+            "INSERT INTO `contact_offices`
+                (sort_order, name, logo_path, address, phone, email, facebook_url, facebook_label, director_name, director_role, director_email)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $types = 'i' . str_repeat('s', 10);
+        foreach ($offices as $o) {
+            [$sortOrder, $name, $logoPath, $address, $phone, $email, $fbUrl, $fbLabel, $dName, $dRole, $dEmail] = $o;
+            $stmt->bind_param($types, $sortOrder, $name, $logoPath, $address, $phone, $email, $fbUrl, $fbLabel, $dName, $dRole, $dEmail);
+            $stmt->execute();
+        }
     }
 
     private function dropColumn(string $table, string $column): void
