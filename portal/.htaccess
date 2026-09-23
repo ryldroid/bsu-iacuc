@@ -1,5 +1,9 @@
 RewriteEngine On
 
+# pass the Authorization header through to PHP (some hosts strip it by default)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # accept loading of actual files and directories
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

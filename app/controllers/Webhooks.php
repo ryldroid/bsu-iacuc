@@ -28,6 +28,14 @@ class Webhooks extends Controller
     $raw     = file_get_contents('php://input');
     $payload = json_decode($raw, true);
 
+    // TEMP DEBUG: log every payload received, so we can see exactly what
+    // Brevo is sending. Remove this block once the issue is diagnosed.
+    file_put_contents(
+      __DIR__ . '/../../storage/brevo_webhook_debug.log',
+      date('c') . ' ' . $raw . PHP_EOL,
+      FILE_APPEND
+    );
+
     if (!is_array($payload)) {
       $this->jsonError(400, 'Invalid payload.');
     }
