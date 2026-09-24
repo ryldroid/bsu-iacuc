@@ -372,7 +372,7 @@ include "includes/scroll-top.php";
                                     </svg>
                                 </span>
                                 <div class="timeline-content">
-                                    <h3>Apply</h3>
+                                    <h3>Apply for Review</h3>
                                     <p>Go to the <a href="<?= ROOT ?>/apply" class="underlined">application page</a>. Follow the steps to submit your IACUC protocol form.</p>
                                 </div>
                             </li>
@@ -384,7 +384,7 @@ include "includes/scroll-top.php";
                                     </svg>
                                 </span>
                                 <div class="timeline-content">
-                                    <h3>Track</h3>
+                                    <h3>Track Protocol</h3>
                                     <p>Track your protocol's status through the dashboard. View reviewer comments and resubmit for as long as revisions are requested. You will be notified of every update through email.</p>
                                 </div>
                             </li>
@@ -396,7 +396,7 @@ include "includes/scroll-top.php";
                                     </svg>
                                 </span>
                                 <div class="timeline-content">
-                                    <h3>Endorse and pay</h3>
+                                    <h3>Pay BAI's Processing Fee</h3>
                                     <p>Once the protocol has passed CCARD review, it will be endorsed to the Bureau of Animal Industry (BAI).</p>
                                     <p class="process-step-note">
                                         <span class="italic">Note:</span> BAI requires an animal research clearance processing fee of <strong>Php 100.00</strong>. Visit the BSU-CCARD office or <a href="<?= ROOT ?>/contact#director-contact" class="underlined">contact the CCARD Director</a> to process your payment.
@@ -411,7 +411,7 @@ include "includes/scroll-top.php";
                                     </svg>
                                 </span>
                                 <div class="timeline-content">
-                                    <h3>Receive clearance</h3>
+                                    <h3>Receive Clearance</h3>
                                     <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
                                 </div>
                             </li>

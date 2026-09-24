@@ -196,6 +196,7 @@ main button:hover {
 
 .btn-back {
     margin-left: 10px;
+    background: transparent;
 }
 
 .btn-deactivate {
@@ -316,6 +317,7 @@ main button:hover {
 
 .helper-label {
     margin-top: 1em;
+    text-align: center;
 }
 
 .underlined-p {

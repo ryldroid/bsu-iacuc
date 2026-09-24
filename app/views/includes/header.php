@@ -215,7 +215,7 @@ $hideHeader     = $hideHeader     ?? false;
                   </svg><span>Site Content</span></a></li>
               <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#accounts-icon" />
-                  </svg><span>Manage Accounts</span></a></li>
+                  </svg><span>Administration</span></a></li>
             <?php endif; ?>
           </ul>
         </nav>

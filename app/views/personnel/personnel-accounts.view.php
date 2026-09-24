@@ -8,6 +8,13 @@ $csrf   = $csrf ?? '';
 $isStaff = ($user['role'] ?? '') === 'staff';
 $auditDateRange = $auditDateRange ?? ['earliest' => null, 'latest' => null];
 $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
+$auditLogs      = $auditLogs      ?? [];
+$auditPage      = $auditPage      ?? 1;
+$auditPages     = $auditPages     ?? 1;
+$auditTotal     = $auditTotal     ?? 0;
+$auditPerPage   = $auditPerPage   ?? 10;
+$auditFilterDate = $auditFilterDate ?? null;
+$auditOffset    = ($auditPage - 1) * $auditPerPage;
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
@@ -149,45 +156,73 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
                 </div>
             <?php endif; ?>
 
-            <!-- DOWNLOAD AUDIT LOGS -->
-            <section class="accounts-card audit-section">
-                <h2>Download Audit Logs</h2>
-                <p class="audit-description">Export system activity logs to Excel. Select a date range, with the last 90 days selected by default.</p>
+            <div class="sections-column">
+                <!-- AUDIT LOG VIEWER -->
+                <section class="accounts-card audit-viewer-section" id="audit-log-viewer">
+                    <div class="audit-viewer-header">
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#history-icon" />
+                            </svg>
+                            Audit Log Viewer
+                        </h2>
 
-                <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-
-                    <div class="form-section">
-                        <label for="audit-from-date">From</label>
-                        <input type="date" id="audit-from-date" name="from_date"
-                            value="<?= htmlspecialchars($auditDefaults['from']) ?>"
-                            <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
-                            <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
+                        <div class="audit-jump-to-date">
+                            <input type="date" id="audit-jump-date"
+                                value="<?= htmlspecialchars($auditFilterDate ?? '') ?>"
+                                <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
+                                <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
+                            <button type="button" id="audit-jump-clear" class="accounts-btn-primary" <?= empty($auditFilterDate) ? 'hidden' : '' ?>>
+                                Show all
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="form-section">
-                        <label for="audit-to-date">To</label>
-                        <input type="date" id="audit-to-date" name="to_date"
-                            value="<?= htmlspecialchars($auditDefaults['to']) ?>"
-                            <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
-                            <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
+                    <div id="audit-log-results" data-page="<?= $auditPage ?>" data-date="<?= htmlspecialchars($auditFilterDate ?? '') ?>">
+                        <?php include __DIR__ . '/partials/audit-log-results.view.php'; ?>
                     </div>
+                </section>
 
-                    <div class="form-section audit-full-history">
-                        <label class="audit-checkbox-label">
-                            <input type="checkbox" id="audit-full-history" name="full_history" value="1">
-                            Export full history instead
-                        </label>
-                    </div>
+                <!-- DOWNLOAD AUDIT LOGS -->
+                <section class="accounts-card audit-section">
+                    <h2>Download Audit Logs</h2>
+                    <p class="audit-description">Export system activity logs to Excel. Select a date range, with the last 90 days selected by default.</p>
 
-                    <button type="submit" class="accounts-btn-primary">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#download-icon" />
-                        </svg>
-                        Download Audit Logs
-                    </button>
-                </form>
-            </section>
+                    <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+
+                        <div class="form-section">
+                            <label for="audit-from-date">From</label>
+                            <input type="date" id="audit-from-date" name="from_date"
+                                value="<?= htmlspecialchars($auditDefaults['from']) ?>"
+                                <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
+                                <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
+                        </div>
+
+                        <div class="form-section">
+                            <label for="audit-to-date">To</label>
+                            <input type="date" id="audit-to-date" name="to_date"
+                                value="<?= htmlspecialchars($auditDefaults['to']) ?>"
+                                <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
+                                <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
+                        </div>
+
+                        <div class="form-section audit-full-history">
+                            <label class="audit-checkbox-label">
+                                <input type="checkbox" id="audit-full-history" name="full_history" value="1">
+                                Export full history instead
+                            </label>
+                        </div>
+
+                        <button type="submit" class="accounts-btn-primary">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#download-icon" />
+                            </svg>
+                            Download Audit Logs
+                        </button>
+                    </form>
+                </section>
+            </div>
         </div>
 
     </main>
@@ -219,6 +254,65 @@ $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
             auditToDate.disabled = disabled;
         });
     }
+
+    // AUDIT LOG VIEWER - AJAX pagination + jump to date
+    (function() {
+        const results = document.getElementById('audit-log-results');
+        const jumpDate = document.getElementById('audit-jump-date');
+        const jumpClear = document.getElementById('audit-jump-clear');
+
+        if (!results) return;
+
+        function loadAuditPage(page, date) {
+            results.classList.add('is-loading');
+
+            const params = new URLSearchParams({
+                audit_page: page
+            });
+            if (date) params.set('audit_date', date);
+
+            fetch(`<?= ROOT ?>/personnel/auditLogResults?${params.toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.ok) return;
+
+                    results.innerHTML = data.html;
+                    results.dataset.page = data.page;
+                    results.dataset.date = date || '';
+                    jumpClear.hidden = !date;
+                })
+                .catch(() => {})
+                .finally(() => {
+                    results.classList.remove('is-loading');
+                });
+        }
+
+        results.addEventListener('click', (event) => {
+            const link = event.target.closest('.js-audit-page');
+            if (!link) return;
+
+            event.preventDefault();
+            loadAuditPage(link.dataset.page, results.dataset.date);
+        });
+
+        if (jumpDate) {
+            jumpDate.addEventListener('change', () => {
+                loadAuditPage(1, jumpDate.value);
+            });
+        }
+
+        if (jumpClear) {
+            jumpClear.addEventListener('click', () => {
+                jumpDate.value = '';
+                jumpClear.hidden = true;
+                loadAuditPage(1, '');
+            });
+        }
+    })();
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

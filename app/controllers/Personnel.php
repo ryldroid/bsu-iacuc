@@ -741,13 +741,70 @@ class Personnel extends Controller
         $defaultFrom = $auditDateRange['earliest'] ? max($ninetyAgo, $auditDateRange['earliest']) : $ninetyAgo;
         $defaultFrom = min($defaultFrom, $defaultTo);
 
-        $this->view('personnel/personnel-accounts', [
+        $auditFilterDate = $this->sanitizeDate($_GET['audit_date'] ?? '');
+        $requestedPage   = (int) ($_GET['audit_page'] ?? 1);
+        $auditLogPage    = $this->fetchAuditLogPage($requestedPage, $auditFilterDate);
+
+        $this->view('personnel/personnel-accounts', array_merge([
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
             'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
+        ], $auditLogPage));
+    }
+
+    public function auditLogResults(): void
+    {
+        $this->requirePersonnel(true);
+
+        $auditFilterDate = $this->sanitizeDate($_GET['audit_date'] ?? '');
+        $requestedPage   = (int) ($_GET['audit_page'] ?? 1);
+        $auditLogPage    = $this->fetchAuditLogPage($requestedPage, $auditFilterDate);
+
+        ob_start();
+        extract($auditLogPage);
+        include dirname(__DIR__) . '/views/personnel/partials/audit-log-results.view.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok'    => true,
+            'html'  => $html,
+            'page'  => $auditLogPage['auditPage'],
+            'pages' => $auditLogPage['auditPages'],
+            'total' => $auditLogPage['auditTotal'],
         ]);
+        exit;
+    }
+
+    private function fetchAuditLogPage(int $requestedPage, ?string $filterDate): array
+    {
+        $auditPerPage = 6;
+        $fromDate     = $filterDate;
+        $toDate       = $filterDate;
+
+        $auditTotal = $this->model->countAuditLogs($fromDate, $toDate);
+        $auditPages = max(1, (int) ceil($auditTotal / $auditPerPage));
+        $auditPage  = min(max(1, $requestedPage), $auditPages);
+        $auditLogs  = $this->model->getAuditLogs($fromDate, $toDate, $auditPerPage, ($auditPage - 1) * $auditPerPage);
+
+        $targetNameCache = [];
+        foreach ($auditLogs as &$log) {
+            $log['action_label'] = $this->humanizeAuditAction($log['action']);
+            $log['target_label'] = $this->resolveAuditTargetName($log['target_type'], $log['target_id'], $targetNameCache);
+        }
+        unset($log);
+
+        return [
+            'auditLogs'       => $auditLogs,
+            'auditPage'       => $auditPage,
+            'auditPages'      => $auditPages,
+            'auditTotal'      => $auditTotal,
+            'auditPerPage'    => $auditPerPage,
+            'auditOffset'     => ($auditPage - 1) * $auditPerPage,
+            'auditFilterDate' => $filterDate,
+        ];
     }
 
     public function downloadAuditLogs(): void

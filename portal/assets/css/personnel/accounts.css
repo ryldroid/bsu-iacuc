@@ -1,5 +1,6 @@
 .accounts-card {
-    margin: 1.5rem 0;
+    /* margin: 1.5rem 0; */
+    margin: 0;
     padding: 1.5rem;
     max-width: 800px;
     background: var(--card-background);
@@ -13,6 +14,10 @@
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--brand-text);
+}
+
+.audit-viewer-header h2 {
+    margin-bottom: 0;
 }
 
 .sections {
@@ -29,6 +34,13 @@
     max-width: 100%;
 }
 
+.sections-column {
+    /* margin-top: 1.5em; */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+}
+
 .sections .accounts-card {
     max-width: 100%;
 }
@@ -43,6 +55,10 @@
     .sections>.sections-column {
         flex: 1 1 auto;
         width: 100%;
+    }
+
+    .audit-viewer-section {
+        margin-top: 1.5em;
     }
 }
 
@@ -248,18 +264,188 @@
         align-items: center;
     }
 
+    .pending-box {
+        padding: .6rem;
+        margin: .6rem 0;
+    }
+
+    .pending-box p {
+        font-size: 0.82em;
+    }
+
+    .pending-box .username {
+        font-size: 0.82em;
+    }
+
+    .pending-box .application-date {
+        font-size: 0.78rem;
+    }
+
     .pending-box .actions {
         display: flex;
-        flex-direction: column;
+        gap: 0.4rem;
+        margin-top: .6em;
     }
 
     .pending-box .actions form {
-        width: 100%;
+        flex: 1;
     }
 
     .pending-box .actions .accounts-btn-primary,
     .pending-box .actions .reject-btn {
         width: 100%;
+        padding: 7px 10px;
+        font-size: 0.78em;
+    }
+}
+
+/* ===== AUDIT LOG VIEWER ===== */
+
+.audit-viewer-section {
+    scroll-margin-top: 70px;
+}
+
+.audit-viewer-section h2 {
+    display: flex;
+    align-items: center;
+    gap: .5em;
+}
+
+.audit-viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.audit-jump-to-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.audit-jump-to-date label {
+    display: flex;
+    color: var(--secondary-text);
+}
+
+.audit-jump-to-date input[type="date"] {
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    background: var(--card-background);
+    color: var(--primary-text);
+}
+
+.audit-jump-to-date input[type="date"]:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+}
+
+.audit-jump-clear {
+    border: none;
+    background: none;
+    color: var(--brand-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    margin-top: 0;
+}
+
+#audit-jump-date {
+    margin-bottom: 0;
+}
+
+.audit-jump-clear:hover {
+    text-decoration: underline;
+}
+
+#audit-log-results {
+    transition: opacity 0.15s ease;
+}
+
+#audit-log-results.is-loading {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.audit-viewer-table-wrap {
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
+    overflow: auto;
+}
+
+.audit-viewer-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.audit-viewer-table thead th {
+    background: var(--divider-color-subtle);
+    color: var(--muted-text);
+    font-size: .76em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--divider-color);
+    white-space: nowrap;
+}
+
+.audit-viewer-table tbody td {
+    padding: 12px 14px;
+    font-size: .9em;
+    color: var(--secondary-text);
+    border-bottom: 1px solid var(--divider-color);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.audit-viewer-table tbody td:nth-child(5) {
+    white-space: normal;
+    min-width: 220px;
+}
+
+.audit-viewer-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.audit-viewer-table tbody tr:nth-child(even) td {
+    background: var(--divider-color-subtle);
+}
+
+.audit-viewer-table tbody tr:hover td {
+    background: var(--hover-surface-soft);
+}
+
+.audit-viewer-role {
+    display: block;
+    font-size: .8em;
+    color: var(--muted-text);
+}
+
+.audit-viewer-section .pagination-bar {
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .audit-viewer-table thead th {
+        padding: 9px 10px;
+        font-size: .68em;
+    }
+
+    .audit-viewer-table tbody td {
+        padding: 9px 10px;
+        font-size: .8em;
+    }
+
+    .audit-viewer-role {
+        font-size: .78em;
     }
 }
 
@@ -333,11 +519,23 @@
 
 @media (max-width: 768px) {
     .audit-form {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         align-items: stretch;
     }
 
+    .audit-form .form-section:not(.audit-full-history) {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+
+    .audit-form input[type="date"] {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.82rem;
+    }
+
+    .audit-form .audit-full-history,
     .audit-form .accounts-btn-primary {
+        flex: 1 1 100%;
         width: 100%;
     }
 

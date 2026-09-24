@@ -40,11 +40,8 @@ class UserModel extends Model
     return $result->fetch_assoc() ?: ['earliest' => null, 'latest' => null];
   }
 
-  public function getAuditLogs(?string $fromDate = null, ?string $toDate = null): array
+  private function buildAuditLogFilters(?string $fromDate, ?string $toDate): array
   {
-    $sql = "SELECT created_at, username, role, action, target_type, target_id, details, ip_address
-      FROM audit_logs";
-
     $conditions = [];
     $types      = '';
     $params     = [];
@@ -61,11 +58,23 @@ class UserModel extends Model
       $params[]     = $toDate . ' 23:59:59';
     }
 
-    if (!empty($conditions)) {
-      $sql .= ' WHERE ' . implode(' AND ', $conditions);
-    }
+    $where = $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
+    return [$where, $params, $types];
+  }
 
-    $sql .= ' ORDER BY created_at DESC';
+  public function getAuditLogs(?string $fromDate = null, ?string $toDate = null, ?int $limit = null, int $offset = 0): array
+  {
+    [$where, $params, $types] = $this->buildAuditLogFilters($fromDate, $toDate);
+
+    $sql = "SELECT created_at, username, role, action, target_type, target_id, details, ip_address
+      FROM audit_logs$where ORDER BY created_at DESC";
+
+    if ($limit !== null) {
+      $sql     .= ' LIMIT ? OFFSET ?';
+      $types   .= 'ii';
+      $params[] = $limit;
+      $params[] = $offset;
+    }
 
     $stmt = $this->connection->prepare($sql);
 
@@ -75,6 +84,20 @@ class UserModel extends Model
 
     $stmt->execute();
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  public function countAuditLogs(?string $fromDate = null, ?string $toDate = null): int
+  {
+    [$where, $params, $types] = $this->buildAuditLogFilters($fromDate, $toDate);
+
+    $stmt = $this->connection->prepare("SELECT COUNT(*) FROM audit_logs$where");
+
+    if (!empty($params)) {
+      $stmt->bind_param($types, ...$params);
+    }
+
+    $stmt->execute();
+    return (int) $stmt->get_result()->fetch_row()[0];
   }
 
   // ===== IACUC TRAINING CERTIFICATE =====

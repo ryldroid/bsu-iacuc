@@ -233,6 +233,11 @@ header nav a:hover::after {
 
 .header-auth .mobile-menu {
     display: none;
+    margin-left: 0;
+}
+
+.header-auth .notif-bell {
+    /* margin-left: 0; */
 }
 
 .theme-toggle-wrapper {
@@ -570,7 +575,7 @@ header nav a:hover::after {
     }
 
     .theme-toggle {
-        padding: 0 6px;
+        padding: 0 0 0 6px;
     }
 
     .theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
@@ -580,7 +585,6 @@ header nav a:hover::after {
 
 .notif-bell {
     position: relative;
-    border-radius: 50% !important;
     padding: 40px 20px;
 }
 
