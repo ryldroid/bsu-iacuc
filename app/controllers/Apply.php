@@ -354,7 +354,7 @@ class Apply extends Controller
             'clearance_pool_uploaded',
             'New Clearance Screenshots',
             "{$actor['name']} added $count clearance screenshot(s) for sorting.",
-            'personnel/clearances',
+            'personnel/home?tab=clearance',
             [
                 'template' => 'clearance_pool_uploaded',
                 'vars'     => ['actor_name' => $actor['name'], 'count' => $count],

@@ -123,10 +123,7 @@ class Personnel extends Controller
     {
         $this->requireStaff();
 
-        $this->view('personnel/clearances', [
-            'user' => $_SESSION['user'],
-            'csrf' => $this->generateCsrfToken(),
-        ]);
+        $this->redirect('personnel/home?tab=clearance');
     }
 
     public function reviewer_clearances(): void
@@ -538,33 +535,32 @@ class Personnel extends Controller
     public function announcements(): void
     {
         $this->requireStaff();
-
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $model = new AnnouncementModel();
-
-        $this->view('personnel/personnel-announcements', [
-            'user'          => $_SESSION['user'],
-            'role'          => $_SESSION['user']['role'] ?? '',
-            'csrf'          => $this->generateCsrfToken(),
-            'announcements' => $model->getAll(),
-        ]);
+        $this->renderContentTab('announcements');
     }
 
     public function site_content(): void
     {
         $this->requireStaff();
+        $this->renderContentTab('site_content');
+    }
 
+    private function renderContentTab(string $activeTab): void
+    {
+        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
         require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
         require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
 
-        $settingsModel = new SiteSettingModel();
-        $officeModel   = new ContactOfficeModel();
+        $announcementModel = new AnnouncementModel();
+        $settingsModel     = new SiteSettingModel();
+        $officeModel       = new ContactOfficeModel();
 
-        $this->view('personnel/personnel-site-content', [
-            'user'     => $_SESSION['user'],
-            'csrf'     => $this->generateCsrfToken(),
-            'settings' => $settingsModel->getAll(),
-            'offices'  => $officeModel->getAll(),
+        $this->view('personnel/personnel-content', [
+            'user'          => $_SESSION['user'],
+            'csrf'          => $this->generateCsrfToken(),
+            'announcements' => $announcementModel->getAll(),
+            'settings'      => $settingsModel->getAll(),
+            'offices'       => $officeModel->getAll(),
+            'activeTab'     => $activeTab,
         ]);
     }
 
@@ -749,6 +745,7 @@ class Personnel extends Controller
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
             'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
+            'personnel'      => $_SESSION['user']['role'] === 'staff' ? $this->model->getPersonnelAccounts() : [],
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ], $auditLogPage));
@@ -1291,6 +1288,87 @@ class Personnel extends Controller
         }
 
         $_SESSION['flash_success'] = 'Account rejected and removed.';
+        $this->redirect('personnel/accounts');
+    }
+
+    public function update_role(): void
+    {
+        $this->requireStaff();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('personnel/accounts');
+        }
+
+        $this->verifyCsrfToken();
+
+        $id       = (int) ($_POST['user_id'] ?? 0);
+        $role     = $_POST['role'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $actor    = $this->actor();
+
+        if ($id === $actor['id']) {
+            $_SESSION['flash_error'] = 'You cannot change your own role.';
+            $this->redirect('personnel/accounts');
+        }
+
+        if (!in_array($role, ['staff', 'reviewer'], true)) {
+            $_SESSION['flash_error'] = 'Invalid role selected.';
+            $this->redirect('personnel/accounts');
+        }
+
+        $actorRecord = $this->model->getUser($actor['id']);
+        if (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
+            $this->model->logAudit('user_role_change_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting a role change');
+            $_SESSION['flash_error'] = 'Incorrect password. Role not changed.';
+            $this->redirect('personnel/accounts');
+        }
+
+        $target = $this->model->getUser($id);
+        if ($target && in_array($target['role'], ['staff', 'reviewer'], true)) {
+            $this->model->updateUserRole($id, $role);
+            $this->model->logAudit('user_role_changed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Changed role for {$target['username']} from {$target['role']} to $role");
+            $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
+        } else {
+            $_SESSION['flash_error'] = 'Personnel account not found.';
+        }
+
+        $this->redirect('personnel/accounts');
+    }
+
+    public function toggle_status(): void
+    {
+        $this->requireStaff();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('personnel/accounts');
+        }
+
+        $this->verifyCsrfToken();
+
+        $id    = (int) ($_POST['user_id'] ?? 0);
+        $actor = $this->actor();
+
+        if ($id === $actor['id']) {
+            $_SESSION['flash_error'] = 'You cannot deactivate your own account here.';
+            $this->redirect('personnel/accounts');
+        }
+
+        $target = $this->model->getUser($id);
+        if (!$target || !in_array($target['role'], ['staff', 'reviewer'], true)) {
+            $_SESSION['flash_error'] = 'Personnel account not found.';
+            $this->redirect('personnel/accounts');
+        }
+
+        if ($target['status'] === 'deactivated') {
+            $this->model->reactivateUser($id);
+            $this->model->logAudit('user_reactivated', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Reactivated personnel account: ' . $target['username']);
+            $_SESSION['flash_success'] = 'Account reactivated.';
+        } else {
+            $this->model->deactivateUser($id);
+            $this->model->logAudit('user_deactivated', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Deactivated personnel account: ' . $target['username']);
+            $_SESSION['flash_success'] = 'Account deactivated.';
+        }
+
         $this->redirect('personnel/accounts');
     }
 

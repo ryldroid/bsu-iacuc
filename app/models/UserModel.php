@@ -294,6 +294,29 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== PERSONNEL MANAGEMENT =====
+
+  public function getPersonnelAccounts(): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT id, username, first_name, last_name, email, role, status
+      FROM $this->table
+      WHERE role IN ('staff', 'reviewer') AND status != 'deleted'
+      ORDER BY FIELD(role, 'staff', 'reviewer'), first_name, last_name"
+    );
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  public function updateUserRole(int $id, string $role): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET role = ? WHERE id = ? AND role IN ('staff', 'reviewer')"
+    );
+    $stmt->bind_param('si', $role, $id);
+    return $stmt->execute();
+  }
+
   // ===== FORGOT PASSWORD =====
 
   public function createPasswordReset(int $user_id, string $token): bool

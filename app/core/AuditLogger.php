@@ -44,14 +44,23 @@ class AuditLogger
 
     private static function getClientIp(): string
     {
-        foreach (['HTTP_X_FORWARDED_FOR', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'] as $key) {
-            if (!empty($_SERVER[$key])) {
-                $ip = trim(explode(',', $_SERVER[$key])[0]);
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        if (in_array($remoteAddr, TrustedProxies::$ips, true)) {
+            foreach (['HTTP_X_FORWARDED_FOR', 'HTTP_CLIENT_IP'] as $key) {
+                if (!empty($_SERVER[$key])) {
+                    $ip = trim(explode(',', $_SERVER[$key])[0]);
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        return $ip;
+                    }
                 }
             }
         }
+
+        if (filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+            return $remoteAddr;
+        }
+
         return 'unknown';
     }
 }

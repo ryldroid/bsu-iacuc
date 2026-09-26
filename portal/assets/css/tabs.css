@@ -1,0 +1,58 @@
+/* ===== TAB STRIP ===== */
+
+.tab-strip {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--divider-color);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.tab-strip button {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 10px 2px 12px;
+  margin: 0;
+  font-size: .95em;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--secondary-text);
+  white-space: nowrap;
+  cursor: pointer;
+  position: relative;
+}
+
+.tab-strip button:hover {
+  color: var(--tab-text-active);
+}
+
+.tab-strip button[aria-selected="true"] {
+  color: var(--tab-text-active);
+}
+
+.tab-strip button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--tab-underline);
+}
+
+.tab-strip button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring-tint);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 768px) {
+  .tab-strip {
+    gap: 1.1rem;
+  }
+
+  .tab-strip button {
+    font-size: .88em;
+  }
+}

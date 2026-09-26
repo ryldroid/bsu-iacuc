@@ -45,6 +45,15 @@
     max-width: 100%;
 }
 
+/* The Roles and Audit Logs tabs hold tables, not the narrow invite
+   form/pending-list cards, so they shouldn't be capped at 800px like
+   the Registration tab's cards are. */
+.personnel-manage-section,
+.audit-viewer-section,
+.audit-section {
+    max-width: 100%;
+}
+
 @media (max-width: 900px) {
     .sections {
         flex-direction: column;
@@ -299,6 +308,211 @@
     }
 }
 
+/* ===== MANAGE PERSONNEL & ROLES ===== */
+
+.personnel-table-wrap {
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
+    overflow: auto;
+}
+
+.personnel-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.personnel-table thead th {
+    background: var(--divider-color-subtle);
+    color: var(--muted-text);
+    font-size: .76em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--divider-color);
+    white-space: nowrap;
+}
+
+.personnel-table tbody td {
+    padding: 10px 14px;
+    font-size: .9em;
+    color: var(--secondary-text);
+    border-bottom: 1px solid var(--divider-color);
+    vertical-align: middle;
+}
+
+.personnel-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.personnel-table tbody tr:nth-child(even) td {
+    background: var(--divider-color-subtle);
+}
+
+.personnel-table tbody tr:hover td {
+    background: var(--hover-surface-soft);
+}
+
+.personnel-name {
+    display: block;
+    font-weight: 600;
+    color: var(--primary-text);
+}
+
+.personnel-username {
+    display: block;
+    font-size: .85em;
+    color: var(--muted-text);
+}
+
+.personnel-role-form {
+    margin: 0;
+}
+
+.personnel-role-select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    background: var(--card-background);
+    color: var(--primary-text);
+    margin: 0;
+}
+
+.personnel-role-select:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+.personnel-role-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.personnel-status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.personnel-status-active {
+    background: var(--status-success-bg);
+    color: var(--status-success-text);
+}
+
+.personnel-status-inactive {
+    background: var(--status-danger-bg);
+    color: var(--status-danger-text);
+}
+
+.personnel-status-btn {
+    padding: 6px 14px;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.personnel-you-tag {
+    font-size: 0.85em;
+    color: var(--muted-text);
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .personnel-table thead th {
+        padding: 9px 10px;
+        font-size: .68em;
+    }
+
+    .personnel-table tbody td {
+        padding: 9px 10px;
+        font-size: .8em;
+    }
+
+    .personnel-role-select {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.4rem;
+    }
+
+    .personnel-status-btn {
+        padding: 6px 10px;
+        font-size: 0.76em;
+    }
+}
+
+.role-confirm-field {
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.role-confirm-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--secondary-text);
+    margin-bottom: 0.4rem;
+}
+
+.role-confirm-field .password-field-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.role-confirm-password {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    padding-right: 2.6rem;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    background: var(--card-background);
+    color: var(--primary-text);
+    margin: 0;
+}
+
+.role-confirm-password:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+.role-confirm-field .password-toggle-btn {
+    position: absolute;
+    width: fit-content;
+    height: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 6px;
+    margin: 0;
+    color: var(--muted-text);
+    cursor: pointer;
+}
+
+.role-confirm-field .password-toggle-btn:hover {
+    background: transparent;
+    color: var(--brand-color-hover);
+}
+
+.role-confirm-field .password-toggle-btn:active {
+    transform: translateY(calc(-50% + 1px));
+    box-shadow: none;
+}
+
+.role-confirm-field .password-toggle-btn svg {
+    pointer-events: none;
+}
+
 /* ===== AUDIT LOG VIEWER ===== */
 
 .audit-viewer-section {
@@ -542,4 +756,8 @@
     .audit-checkbox-label {
         margin-bottom: 0;
     }
+}
+
+#roleConfirmBackdrop .error-messages {
+    margin: 1em 0;
 }

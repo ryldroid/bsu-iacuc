@@ -204,9 +204,6 @@ $hideHeader     = $hideHeader     ?? false;
                   <use href="#protocols-icon" />
                 </svg><span>Records</span></a></li>
             <?php if ($role === 'staff'): ?>
-              <li><a href="<?= ROOT ?>/personnel/clearances"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#clearance-icon" />
-                  </svg><span>Clearance Pool</span></a></li>
               <li><a href="<?= ROOT ?>/personnel/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#announcement-icon" />
                   </svg><span>Announcements</span></a></li>

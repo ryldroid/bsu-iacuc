@@ -19,6 +19,9 @@
     --brand-text: var(--brand-color);
     --nav-icons: #274824ed;
 
+    --tab-text-active: var(--brand-text);
+    --tab-underline: var(--brand-color);
+
     --tint-on-brand: rgba(255, 255, 255, 0.25);
     --tint-on-brand-soft: rgba(255, 255, 255, 0.15);
     --brand-tint-active: rgba(77, 116, 70, 0.25);
@@ -133,6 +136,13 @@
        dark background, so it needs its own brighter value here. */
     --brand-color-hover: #3f9d5da8;
     --nav-icons: #8dd188ca;
+
+    /* Tabs invert the usual brand pairing here: --brand-text is tuned
+       bright for body text/icons, which reads as too loud for a tab
+       label, while --brand-color stays the light-mode dark green and
+       nearly disappears as a 2px underline on a dark background. */
+    --tab-text-active: #4d8f5e;
+    --tab-underline: #8dd188;
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);

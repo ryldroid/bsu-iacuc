@@ -24,6 +24,27 @@ define('CSSPATH', ROOT . '/assets/css');
 define('JSPATH', ROOT . '/assets/js');
 define('IMGPATH', ROOT . '/assets/images');
 
+// IPs of reverse proxies/load balancers this app sits behind, comma-separated.
+// Only requests coming from one of these are allowed to override the
+// connection's REMOTE_ADDR with an X-Forwarded-For/X-Client-IP header, since
+// those headers are otherwise just client-supplied and trivially spoofed.
+// Empty by default: with no trusted proxy configured, REMOTE_ADDR is used
+// as-is everywhere (including here on infinityfree, until its proxy IP is known).
+//
+// A static property instead of a define() constant: the list has to be built
+// at runtime from the env var, and Intelephense can only resolve define()
+// constants whose value is a literal, so a computed define() always shows as
+// "undefined" elsewhere even though it works fine at runtime.
+final class TrustedProxies
+{
+  public static array $ips = [];
+}
+
+TrustedProxies::$ips = array_filter(array_map(
+  'trim',
+  explode(',', EnvLoader::get('TRUSTED_PROXIES', ''))
+));
+
 define('ASSETS_FS_PATH', dirname(__DIR__, 2) . '/portal/assets');
 
 function asset_css(string $file): string

@@ -26,17 +26,6 @@ $role = $user['role'] ?? '';
                 <?php if ($role === 'staff'): ?>
                     <!-- STAFF ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/personnel/clearances">
-                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#clearance-page-icon" />
-                            </svg>
-                        </a>
-                        <div>
-                            <span>Clearance Pool</span>
-                        </div>
-                    </li>
-
-                    <li>
                         <a href="<?= ROOT ?>/personnel/records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
@@ -50,22 +39,11 @@ $role = $user['role'] ?? '';
                     <li>
                         <a href="<?= ROOT ?>/personnel/announcements">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#announcement-icon" />
-                            </svg>
-                        </a>
-                        <div>
-                            <span>Manage Announcements</span>
-                        </div>
-                    </li>
-
-                    <li>
-                        <a href="<?= ROOT ?>/personnel/site_content">
-                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#edit-icon" />
                             </svg>
                         </a>
                         <div>
-                            <span>Site Content</span>
+                            <span>Content</span>
                         </div>
                     </li>
                 <?php endif; ?>
