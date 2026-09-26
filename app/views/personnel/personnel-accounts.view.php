@@ -322,7 +322,7 @@ $activeTab = in_array($_GET['tab'] ?? '', ['registration', 'roles', 'audit-logs'
                             <div class="form-section audit-full-history">
                                 <label class="audit-checkbox-label">
                                     <input type="checkbox" id="audit-full-history" name="full_history" value="1">
-                                    Export full history instead
+                                    Export full history
                                 </label>
                             </div>
 

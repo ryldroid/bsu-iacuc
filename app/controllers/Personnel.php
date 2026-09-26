@@ -133,10 +133,7 @@ class Personnel extends Controller
             $this->redirect('personnel/home');
         }
 
-        $this->view('personnel/reviewer-clearances', [
-            'user' => $_SESSION['user'],
-            'csrf' => $this->generateCsrfToken(),
-        ]);
+        $this->redirect('personnel/home?tab=clearance');
     }
 
     public function records(): void
