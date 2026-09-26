@@ -261,7 +261,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php foreach ($animalSlices as $s): ?>
                                         <li>
                                             <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
-                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-label"><?= htmlspecialchars($s['label']) ?></span>
                                             <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
                                         </li>
                                     <?php endforeach; ?>
@@ -281,7 +281,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php foreach ($schoolSlices as $s): ?>
                                         <li>
                                             <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
-                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-label"><?= htmlspecialchars($s['label']) ?></span>
                                             <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
                                         </li>
                                     <?php endforeach; ?>
@@ -301,7 +301,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php foreach ($researcherSlices as $s): ?>
                                         <li>
                                             <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
-                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-label"><?= htmlspecialchars($s['label']) ?></span>
                                             <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
                                         </li>
                                     <?php endforeach; ?>
@@ -321,7 +321,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php foreach ($sexSlices as $s): ?>
                                         <li>
                                             <span class="records-pie-dot" style="background:<?= $s['color'] ?>"></span>
-                                            <?= htmlspecialchars($s['label']) ?>
+                                            <span class="records-pie-label"><?= htmlspecialchars($s['label']) ?></span>
                                             <span class="records-pie-pct"><?= number_format($s['total']) ?> · <?= round($s['pct']) ?>%</span>
                                         </li>
                                     <?php endforeach; ?>
