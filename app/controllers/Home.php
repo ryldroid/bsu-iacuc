@@ -12,8 +12,12 @@ class Home extends Controller
     require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
     $settingsModel = new SiteSettingModel();
 
+    require_once dirname(__DIR__) . '/models/FaqModel.php';
+    $faqModel = new FaqModel();
+
     $this->view('home', [
       'siteSettings' => $settingsModel->getAll(),
+      'faqs'         => $faqModel->getAll(),
     ]);
   }
 }

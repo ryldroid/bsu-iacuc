@@ -9,6 +9,28 @@
     box-shadow: 0 1px 3px var(--shadow-color-soft);
 }
 
+/* Inside a tabbed page, .tab-panel itself is the outer card (see
+   tabs.css). These sections keep the same white surface as the panel but
+   pick up the clearance pool's subtle-shadow treatment (see
+   .clearance-tray etc. in clearances.css) instead of a hard border, so
+   they read as distinct without breaking the unified card look. The
+   parent's flex `gap` still spaces the desktop columns apart, but it
+   collapses to 0 in the stacked mobile layout (see the max-width: 900px
+   rule below), so each section also carries its own bottom margin as a
+   floor. */
+.tab-panel .accounts-card {
+    background: var(--card-background);
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1rem;
+}
+
+.tab-panel .accounts-card:last-child {
+    margin-bottom: 0;
+}
+
 .accounts-card h2 {
     font-size: 1.1rem;
     font-weight: 700;
@@ -64,10 +86,7 @@
     .sections>.sections-column {
         flex: 1 1 auto;
         width: 100%;
-    }
-
-    .audit-viewer-section {
-        margin-top: 1.5em;
+        gap: 0;
     }
 }
 

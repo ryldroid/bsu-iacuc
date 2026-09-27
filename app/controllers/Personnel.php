@@ -546,10 +546,12 @@ class Personnel extends Controller
         require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
         require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
         require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
+        require_once dirname(__DIR__) . '/models/FaqModel.php';
 
         $announcementModel = new AnnouncementModel();
         $settingsModel     = new SiteSettingModel();
         $officeModel       = new ContactOfficeModel();
+        $faqModel          = new FaqModel();
 
         $this->view('personnel/personnel-content', [
             'user'          => $_SESSION['user'],
@@ -557,6 +559,7 @@ class Personnel extends Controller
             'announcements' => $announcementModel->getAll(),
             'settings'      => $settingsModel->getAll(),
             'offices'       => $officeModel->getAll(),
+            'faqs'          => $faqModel->getAll(),
             'activeTab'     => $activeTab,
         ]);
     }
@@ -719,6 +722,114 @@ class Personnel extends Controller
             'director_name'  => normalize_pasted_text(trim($_POST['director_name'] ?? '')) ?: null,
             'director_role'  => normalize_pasted_text(trim($_POST['director_role'] ?? '')) ?: null,
             'director_email' => trim($_POST['director_email'] ?? '') ?: null,
+        ];
+    }
+
+    public function site_content_faq_add(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/FaqModel.php';
+        $model = new FaqModel();
+
+        $data = $this->sanitizeFaqPost();
+        if ($data['question'] === '' || $data['answer'] === '') {
+            $this->jsonError(422, 'Both a question and an answer are required.');
+        }
+
+        $ok = $model->insert($data['sort_order'], $data['question'], $data['answer']);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('faq_added', $actor['id'], $actor['name'], $actor['role'], 'faq', null, "FAQ added: {$data['question']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ added.' : 'Insert failed.']);
+        exit;
+    }
+
+    public function site_content_faq_get(): void
+    {
+        $this->requireStaff(true);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/FaqModel.php';
+        $model = new FaqModel();
+
+        $id  = (int) ($_GET['id'] ?? 0);
+        $row = $id > 0 ? $model->getById($id) : null;
+
+        echo json_encode(
+            $row
+                ? ['ok' => true, 'data' => $row]
+                : ['ok' => false, 'message' => 'FAQ not found.']
+        );
+        exit;
+    }
+
+    public function site_content_faq_edit(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/FaqModel.php';
+        $model = new FaqModel();
+
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id <= 0 || ! $model->getById($id)) {
+            $this->jsonError(404, 'FAQ not found.');
+        }
+
+        $data = $this->sanitizeFaqPost();
+        if ($data['question'] === '' || $data['answer'] === '') {
+            $this->jsonError(422, 'Both a question and an answer are required.');
+        }
+
+        $ok = $model->update($id, $data['sort_order'], $data['question'], $data['answer']);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('faq_edited', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ edited: {$data['question']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ updated.' : 'Update failed.']);
+        exit;
+    }
+
+    public function site_content_faq_delete(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        require_once dirname(__DIR__) . '/models/FaqModel.php';
+        $model = new FaqModel();
+
+        $id  = (int) ($_POST['id'] ?? 0);
+        $faq = $id > 0 ? $model->getById($id) : null;
+        $ok  = $faq ? $model->delete($id) : false;
+
+        if ($ok) {
+            $actor = $this->actor();
+            $model->logAudit('faq_deleted', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ deleted: {$faq['question']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ deleted.' : 'Delete failed.']);
+        exit;
+    }
+
+    private function sanitizeFaqPost(): array
+    {
+        return [
+            'sort_order' => (int) ($_POST['sort_order'] ?? 0),
+            'question'   => normalize_pasted_text(trim($_POST['question'] ?? '')),
+            'answer'     => normalize_pasted_text(trim($_POST['answer'] ?? '')),
         ];
     }
 

@@ -77,161 +77,24 @@ include "includes/scroll-top.php";
                     </div>
 
                     <div class="faq-list">
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                Who may avail?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                Students and researchers from BSU and other institutions within the Cordillera Administrative Region.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                What are the requirements?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                When working in groups, should each member apply for an IACUC protocol review?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                What kind of IACUC training is required?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the <a href="<?= ROOT ?>/announcements" class="underlined">announcements</a> page or inquire at the CCARD office to be updated with the scheduled trainings.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                What type of experiments need IACUC review?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                IACUC review is needed for all work involving direct interaction with <span class="italic">live animals only</span>.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                Do I need an IACUC protocol to use dead animals or animal parts?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                How long does it take to get an IACUC review?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                Protocols are reviewed as soon as protocols are submitted. However, it may take 1-8 weeks for IACUC review and the issuance of the animal research clearance by BAI.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                Can the investigator begin animal work before receiving IACUC review?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                No. The IACUC review shall be part of the thesis proposal when using live animals.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                How much do I pay for an IACUC Protocol Review?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Clearance, to be paid upon submission of the reviewed IACUC protocol.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                What if I amend my IACUC protocol to add/change procedures / personnel / animals?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                All revision must be communicated with the IACUC through the portal. Please note that even the most <strong>minor</strong> changes <strong>must</strong> be revised and reviewed for approval.
-                            </div>
-                        </details>
-
-                        <details class="faq-cont">
-                            <summary class="faq-question">
-                                Who do I contact if I have questions regarding the animal care and use program or the IACUC?
-                                <span class="faq-icon" aria-hidden="true">
-                                    <span class="faq-icon-line faq-icon-line--v"></span>
-                                    <span class="faq-icon-line faq-icon-line--h"></span>
-                                </span>
-                            </summary>
-                            <div class="faq-answer">
-                                In BSU, you may visit the CCARD office. You may also refer to the <a href="<?= ROOT ?>/contact" class="underlined">contact</a> page for additional contact information.
-                            </div>
-                        </details>
-
-                        <!-- <details class="faq-cont">
-                        <summary class="faq-question">
-                            Where do I get an IACUC protocol from?
-                            <span class="faq-icon" aria-hidden="true">
-                                <span class="faq-icon-line faq-icon-line--v"></span>
-                                <span class="faq-icon-line faq-icon-line--h"></span>
-                            </span>
-                        </summary>
-                        <div class="faq-answer">
-                            The protocol form can be requested from CCARD office or you can personally ask for a soft copy to be emailed to you. Please ensure to always use a new copy every time you submit a protocol.
-                        </div>
-                    </details> -->
+                        <?php if (!empty($faqs)): ?>
+                            <?php foreach ($faqs as $faqItem): ?>
+                                <details class="faq-cont">
+                                    <summary class="faq-question">
+                                        <?= htmlspecialchars($faqItem['question'], ENT_QUOTES) ?>
+                                        <span class="faq-icon" aria-hidden="true">
+                                            <span class="faq-icon-line faq-icon-line--v"></span>
+                                            <span class="faq-icon-line faq-icon-line--h"></span>
+                                        </span>
+                                    </summary>
+                                    <div class="faq-answer">
+                                        <?= nl2br(htmlspecialchars($faqItem['answer'], ENT_QUOTES)) ?>
+                                    </div>
+                                </details>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p class="faq-empty">No FAQs have been added yet.</p>
+                        <?php endif; ?>
                     </div>
                 </article>
 

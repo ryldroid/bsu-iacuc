@@ -5,6 +5,7 @@
 /** @var array  $announcements */
 /** @var array  $settings      */
 /** @var array  $offices       */
+/** @var array  $faqs          */
 /** @var string $activeTab     */
 
 $title = 'Content';
@@ -16,6 +17,7 @@ $csrf          = $csrf          ?? '';
 $announcements = $announcements ?? [];
 $settings      = $settings      ?? [];
 $offices       = $offices       ?? [];
+$faqs          = $faqs          ?? [];
 $activeTab     = $activeTab     ?? 'announcements';
 ?>
 
@@ -202,6 +204,49 @@ $activeTab     = $activeTab     ?? 'announcements';
               <?php endif; ?>
             </div>
           </section>
+          <!-- HOMEPAGE FAQ -->
+          <section class="accounts-card">
+            <div class="dashboard-page-header records-page-header">
+              <div>
+                <h2>Homepage FAQ</h2>
+                <p class="audit-description">These questions appear in the FAQ accordion on the public homepage.</p>
+              </div>
+              <button class="row-btn row-btn-primary" id="addFaqBtn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#add-icon">
+                </svg>
+                Add FAQ
+              </button>
+            </div>
+            <div class="records-table-wrap">
+              <?php if (empty($faqs)): ?>
+                <p style="padding: 1.5rem;">No FAQs yet.</p>
+              <?php else: ?>
+                <div class="ann-list">
+                  <?php foreach ($faqs as $f): ?>
+                    <div class="ann-row">
+                      <div class="ann-row-body">
+                        <div class="ann-row-title"><?= htmlspecialchars($f['question'], ENT_QUOTES) ?></div>
+                        <div class="ann-row-snippet"><?= htmlspecialchars($f['answer'], ENT_QUOTES) ?></div>
+                      </div>
+                      <div class="ann-row-actions">
+                        <button type="button" class="row-btn edit-faq-btn" data-id="<?= (int) $f['id'] ?>" aria-label="Edit FAQ">
+                          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#edit-icon">
+                          </svg>
+                        </button>
+                        <button type="button" class="row-btn delete-faq-btn" data-id="<?= (int) $f['id'] ?>" data-question="<?= htmlspecialchars($f['question'], ENT_QUOTES) ?>" aria-label="Delete FAQ">
+                          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#trash-icon">
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -347,6 +392,34 @@ $activeTab     = $activeTab     ?? 'announcements';
     <div class="records-modal-footer">
       <button type="button" class="row-btn" data-close="officeModal">Cancel</button>
       <button type="button" class="row-btn row-btn-primary" id="officeModalSave">Save Office</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD / EDIT FAQ MODAL (shared) ===== -->
+<div class="modal-backdrop" id="faqModal" role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
+  <div class="modal-card records-modal-card">
+    <div class="records-modal-header">
+      <h2 id="faqModalTitle">Add FAQ</h2>
+      <button type="button" class="records-modal-close" data-close="faqModal" aria-label="Close">✕</button>
+    </div>
+    <div class="records-modal-body">
+      <div class="alert error-messages" id="faqModalError" hidden></div>
+      <input type="hidden" id="faq_id" value="">
+      <div class="records-form-grid">
+        <div class="records-form-group records-form-full">
+          <label for="faq_question">Question *</label>
+          <input type="text" id="faq_question" placeholder="e.g. Who may avail?">
+        </div>
+        <div class="records-form-group records-form-full">
+          <label for="faq_answer">Answer *</label>
+          <textarea id="faq_answer" rows="4"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="records-modal-footer">
+      <button type="button" class="row-btn" data-close="faqModal">Cancel</button>
+      <button type="button" class="row-btn row-btn-primary" id="faqModalSave">Save FAQ</button>
     </div>
   </div>
 </div>
@@ -657,6 +730,10 @@ $activeTab     = $activeTab     ?? 'announcements';
       btn.addEventListener('click', () => closeModal(btn.dataset.close));
     });
 
+    document.querySelectorAll('#faqModal [data-close]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.dataset.close));
+    });
+
     function post(url, body) {
       body.csrf_token = CSRF;
       const fd = new FormData();
@@ -788,6 +865,122 @@ $activeTab     = $activeTab     ?? 'announcements';
         if (!confirmed) return;
 
         post('/personnel/site_content_office_delete', {
+          id
+        }).then(data => {
+          if (data.ok) {
+            location.reload();
+          } else {
+            alert(data.message || 'Delete failed.');
+          }
+        });
+      });
+    });
+
+    // ===== FAQ: shared helpers =====
+    function showFaqErr(msg) {
+      const el = document.getElementById('faqModalError');
+      el.textContent = msg;
+      el.hidden = false;
+    }
+
+    function hideFaqErr() {
+      const el = document.getElementById('faqModalError');
+      el.hidden = true;
+      el.textContent = '';
+    }
+
+    function fillFaqForm(data) {
+      document.getElementById('faq_id').value = data.id ?? '';
+      document.getElementById('faq_question').value = data.question ?? '';
+      document.getElementById('faq_answer').value = data.answer ?? '';
+    }
+
+    // ===== FAQ: ADD =====
+    const addFaqBtn = document.getElementById('addFaqBtn');
+    if (addFaqBtn) {
+      addFaqBtn.addEventListener('click', () => {
+        hideFaqErr();
+        fillFaqForm({});
+        document.getElementById('faqModalTitle').textContent = 'Add FAQ';
+        openModal('faqModal');
+      });
+    }
+
+    // ===== FAQ: EDIT =====
+    document.querySelectorAll('.edit-faq-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        hideFaqErr();
+        const id = btn.dataset.id;
+        const res = await fetch(ROOT + '/personnel/site_content_faq_get?id=' + id).then(r => r.json());
+        if (!res.ok) {
+          alert(res.message || 'Could not load FAQ.');
+          return;
+        }
+        fillFaqForm(res.data);
+        document.getElementById('faqModalTitle').textContent = 'Edit FAQ';
+        openModal('faqModal');
+      });
+    });
+
+    // ===== FAQ: SAVE (add or edit, depending on faq_id) =====
+    const faqSaveBtn = document.getElementById('faqModalSave');
+    if (faqSaveBtn) {
+      faqSaveBtn.addEventListener('click', async () => {
+        hideFaqErr();
+        const id = document.getElementById('faq_id').value;
+        const question = document.getElementById('faq_question').value.trim();
+        const answer = document.getElementById('faq_answer').value.trim();
+        if (!question || !answer) {
+          showFaqErr('Both a question and an answer are required.');
+          return;
+        }
+
+        const confirmed = await confirmAction(
+          id ? 'Save changes to this FAQ?' : 'Add this FAQ to the homepage?', {
+            okText: 'Save',
+            cancelText: 'Cancel'
+          }
+        );
+        if (!confirmed) return;
+
+        setButtonBusy(faqSaveBtn, true, 'Saving...');
+
+        const payload = {
+          question,
+          answer
+        };
+        if (id) payload.id = id;
+
+        post(id ? '/personnel/site_content_faq_edit' : '/personnel/site_content_faq_add', payload)
+          .then(data => {
+            if (data.ok) {
+              closeModal('faqModal');
+              location.reload();
+            } else {
+              setButtonBusy(faqSaveBtn, false);
+              showFaqErr(data.message || 'Save failed.');
+            }
+          }).catch(err => {
+            setButtonBusy(faqSaveBtn, false);
+            showFaqErr(err.message || 'Network error. Please try again.');
+          });
+      });
+    }
+
+    // ===== FAQ: DELETE =====
+    document.querySelectorAll('.delete-faq-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const confirmed = await confirmAction(
+          `Delete "${btn.dataset.question}"? This removes it from the public homepage.`, {
+            okText: 'Delete',
+            cancelText: 'Cancel',
+            danger: true
+          }
+        );
+        if (!confirmed) return;
+
+        post('/personnel/site_content_faq_delete', {
           id
         }).then(data => {
           if (data.ok) {

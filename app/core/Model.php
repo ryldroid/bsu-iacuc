@@ -321,6 +321,17 @@ class Model
 
         $this->seedContactOffices();
 
+        $c->query("CREATE TABLE IF NOT EXISTS `faqs` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `sort_order` int(11)      NOT NULL DEFAULT 0,
+                    `question`   varchar(500) NOT NULL,
+                    `answer`     text         NOT NULL,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seedFaqs();
+
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
@@ -578,6 +589,40 @@ class Model
             [$sortOrder, $name, $logoPath, $address, $phone, $email, $fbUrl, $fbLabel, $dName, $dRole, $dEmail] = $o;
             $stmt->bind_param($types, $sortOrder, $name, $logoPath, $address, $phone, $email, $fbUrl, $fbLabel, $dName, $dRole, $dEmail);
             $stmt->execute();
+        }
+    }
+
+    // One-time seed matching the FAQ entries that used to be hardcoded on the
+    // homepage, so nothing changes visually until staff edits them.
+    private function seedFaqs(): void
+    {
+        $c      = $this->connection;
+        $result = $c->query("SELECT COUNT(*) AS n FROM `faqs`");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if ($row && (int) $row['n'] > 0) {
+            return;
+        }
+
+        $faqs = [
+            'Who may avail?' => 'Students and researchers from BSU and other institutions within the Cordillera Administrative Region.',
+            'What are the requirements?' => 'Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.',
+            'When working in groups, should each member apply for an IACUC protocol review?' => 'No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.',
+            'What kind of IACUC training is required?' => 'Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+            'What type of experiments need IACUC review?' => 'IACUC review is needed for all work involving direct interaction with live animals only.',
+            'Do I need an IACUC protocol to use dead animals or animal parts?' => 'If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).',
+            'How long does it take to get an IACUC review?' => 'Protocols are reviewed as soon as protocols are submitted. However, it may take 1-8 weeks for IACUC review and the issuance of the animal research clearance by BAI.',
+            'Can the investigator begin animal work before receiving IACUC review?' => 'No. The IACUC review shall be part of the thesis proposal when using live animals.',
+            'How much do I pay for an IACUC Protocol Review?' => "There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the Animal Research Clearance, to be paid upon submission of the reviewed IACUC protocol.",
+            'What if I amend my IACUC protocol to add/change procedures / personnel / animals?' => 'All revision must be communicated with the IACUC through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
+            'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'In BSU, you may visit the CCARD office. You may also refer to the contact page for additional contact information.',
+        ];
+
+        $stmt      = $c->prepare("INSERT INTO `faqs` (sort_order, question, answer) VALUES (?, ?, ?)");
+        $sortOrder = 0;
+        foreach ($faqs as $question => $answer) {
+            $stmt->bind_param('iss', $sortOrder, $question, $answer);
+            $stmt->execute();
+            $sortOrder++;
         }
     }
 
