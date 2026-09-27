@@ -776,7 +776,7 @@ main button svg {
     }
 
     .btn-back {
-        padding-left: 0;
+        /* padding-left: 0; */
     }
 }
 
@@ -807,7 +807,7 @@ main button svg {
 
 .error-messages {
     font-size: .85em;
-    margin: .75rem 0 0;
+    margin: .75rem 0;
     justify-content: center;
 }
 

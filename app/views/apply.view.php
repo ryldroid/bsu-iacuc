@@ -161,7 +161,7 @@ include "includes/scroll-top.php";
         clearTimeout(_saveTimer);
         await pushDraftFields();
         confirmAction(
-            'Leave the form? Your progress has been saved. You can continue from any device.', {
+            'Leave the form? Your progress has been saved.', {
                 okText: 'Leave',
                 cancelText: 'Stay'
             }

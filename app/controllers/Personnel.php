@@ -1173,7 +1173,6 @@ class Personnel extends Controller
         if ($ok) {
             $newUserId = $this->model->connection->insert_id;
             $this->model->consumeInviteToken($token, $newUserId);
-            $this->sendEmailVerification(['id' => $newUserId, 'first_name' => $first_name, 'email' => $email]);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
             $this->view('personnel/personnel-register', [
                 'csrf'    => $this->generateCsrfToken(),

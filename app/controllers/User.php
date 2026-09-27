@@ -296,12 +296,6 @@ class User extends Controller
     $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex);
 
     if ($ok) {
-      $this->sendEmailVerification([
-        'id'         => $this->model->connection->insert_id,
-        'first_name' => $first_name,
-        'email'      => $email,
-      ]);
-
       $_SESSION['new_username'] = $username;
       $this->view('user/register', [
         'errors'  => [],

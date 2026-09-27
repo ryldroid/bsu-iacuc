@@ -31,7 +31,7 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <?php if (!empty($success)): ?>
                 <div class="success-message">
-                    Account created successfully! We've sent a link to verify your email. Redirecting...
+                    Account created successfully! You can verify your email anytime from your account page. Redirecting...
                 </div>
             <?php endif; ?>
 

@@ -247,7 +247,8 @@ h2 {
 
 .faq-question:hover {
     /* background: var(--brand-color-active); */
-    background-color: var(--faq-highlight-background);
+    /* background-color: var(--faq-highlight-background); */
+    background-color: var(--brand-color-hover);
 
     color: var(--text-on-brand);
 
@@ -257,7 +258,9 @@ h2 {
 .faq-cont.is-open .faq-question {
     color: var(--text-on-brand);
     /* background: var(--brand-color); */
-    background-color: var(--faq-highlight-background);
+    /* background-color: var(--faq-highlight-background); */
+    background-color: var(--brand-color-hover);
+
     border-bottom: 1px solid var(--brand-color);
     /* border-radius: 8px 8px 0 0;   */
 }
