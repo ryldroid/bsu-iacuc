@@ -1,10 +1,5 @@
 <?php
 
-require_once __DIR__ . '/../models/AnnouncementModel.php';
-$homeAnnouncementModel = new AnnouncementModel();
-$homeLatestAnnouncements = array_slice($homeAnnouncementModel->getAll(), 0, 3);
-
-
 $title = "Home";
 
 $siteSettings    = $siteSettings ?? [];
@@ -132,14 +127,14 @@ include "includes/scroll-top.php";
             </div>
 
             <div class="faq-column">
-                <?php if (!empty($homeLatestAnnouncements)): ?>
+                <?php if (!empty($latestAnnouncements)): ?>
                     <section class="home-announcements-teaser">
                         <div class="home-announcements-teaser-header">
                             <h2>Latest Announcements</h2>
                             <a href="<?= ROOT ?>/announcements" class="underlined see_all">See all ></a>
                         </div>
                         <div class="home-announcements-list">
-                            <?php foreach ($homeLatestAnnouncements as $post):
+                            <?php foreach ($latestAnnouncements as $post):
                                 $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
                                 $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
                                 $hasImage = !empty($post['image_path']);

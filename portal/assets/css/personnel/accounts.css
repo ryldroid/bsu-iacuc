@@ -60,7 +60,7 @@
     /* margin-top: 1.5em; */
     display: flex;
     flex-direction: column;
-    gap: 1.5em;
+    /* gap: 1.5em; */
 }
 
 .sections .accounts-card {

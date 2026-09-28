@@ -4,6 +4,11 @@ class Announcements extends Controller
 {
   public function index()
   {
-    $this->view('announcements');
+    require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
+    $announcementModel = new AnnouncementModel();
+
+    $this->view('announcements', [
+      'officeAnnouncements' => $announcementModel->getAll(),
+    ]);
   }
 }

@@ -237,7 +237,7 @@ header nav a:hover::after {
 }
 
 .header-auth .notif-bell {
-    /* margin-left: 0; */
+    margin-left: 0;
 }
 
 .theme-toggle-wrapper {

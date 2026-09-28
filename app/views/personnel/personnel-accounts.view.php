@@ -16,9 +16,10 @@ $auditPerPage   = $auditPerPage   ?? 10;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditOffset    = ($auditPage - 1) * $auditPerPage;
 
-$activeTab = in_array($_GET['tab'] ?? '', ['registration', 'roles', 'audit-logs'], true)
+$allowedTabs = $isStaff ? ['registration', 'roles', 'audit-logs'] : ['roles', 'audit-logs'];
+$activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
     ? $_GET['tab']
-    : 'registration';
+    : $allowedTabs[0];
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
@@ -51,19 +52,19 @@ $activeTab = in_array($_GET['tab'] ?? '', ['registration', 'roles', 'audit-logs'
             <?php unset($_SESSION['flash_error']); ?>
         <?php endif; ?>
 
-        <?php if ($isStaff): ?>
-            <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
+        <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
+            <?php if ($isStaff): ?>
                 <button type="button" role="tab" id="tab-registration" data-tab="registration"
                     aria-selected="<?= $activeTab === 'registration' ? 'true' : 'false' ?>"
                     aria-controls="panel-registration">Registration</button>
-                <button type="button" role="tab" id="tab-roles" data-tab="roles"
-                    aria-selected="<?= $activeTab === 'roles' ? 'true' : 'false' ?>"
-                    aria-controls="panel-roles">Roles</button>
-                <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
-                    aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
-                    aria-controls="panel-audit-logs">Audit Logs</button>
-            </div>
-        <?php endif; ?>
+            <?php endif; ?>
+            <button type="button" role="tab" id="tab-roles" data-tab="roles"
+                aria-selected="<?= $activeTab === 'roles' ? 'true' : 'false' ?>"
+                aria-controls="panel-roles">Manage Roles</button>
+            <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
+                aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
+                aria-controls="panel-audit-logs">Audit Logs</button>
+        </div>
 
         <div id="accountsTabPanels">
             <?php if ($isStaff): ?>
@@ -176,98 +177,80 @@ $activeTab = in_array($_GET['tab'] ?? '', ['registration', 'roles', 'audit-logs'
                         </section>
                     </div>
                 </div>
-
-                <div class="tab-panel" id="panel-roles" role="tabpanel" aria-labelledby="tab-roles"
-                    data-tab-panel="roles" <?= $activeTab === 'roles' ? '' : 'hidden' ?>>
-                    <!-- MANAGE PERSONNEL & ROLES -->
-                    <section class="accounts-card personnel-manage-section">
-                        <h2>
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#shield-check-icon" />
-                            </svg>
-                            Manage Personnel &amp; Roles
-                        </h2>
-
-                        <?php if (empty($personnel)): ?>
-                            <div class="empty-state">
-                                <h3>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <use href="#check-circle-icon" />
-                                    </svg>
-                                    No personnel yet
-                                </h3>
-                                <p>Approved staff and reviewers will appear here.</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="personnel-table-wrap">
-                                <table class="personnel-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Role</th>
-                                            <th>Status</th>
-                                            <th aria-label="Actions"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($personnel as $p): ?>
-                                            <?php
-                                            $isSelf         = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
-                                            $isDeactivated  = $p['status'] === 'deactivated';
-                                            ?>
-                                            <tr>
-                                                <td>
-                                                    <span class="personnel-name"><?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?></span>
-                                                    <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
-                                                </td>
-                                                <td>
-                                                    <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
-                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                        <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                        <input type="hidden" name="password" class="personnel-role-password">
-                                                        <select name="role" class="personnel-role-select"
-                                                            data-username="<?= htmlspecialchars($p['username']) ?>"
-                                                            data-original-role="<?= htmlspecialchars($p['role']) ?>"
-                                                            <?= $isSelf ? 'disabled' : '' ?>
-                                                            onchange="handleRoleChange(this)">
-                                                            <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
-                                                            <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
-                                                        </select>
-                                                    </form>
-                                                </td>
-                                                <td>
-                                                    <span class="personnel-status-pill <?= $isDeactivated ? 'personnel-status-inactive' : 'personnel-status-active' ?>">
-                                                        <?= $isDeactivated ? 'Deactivated' : 'Active' ?>
-                                                    </span>
-                                                </td>
-                                                <td class="actions-cell">
-                                                    <?php if ($isSelf): ?>
-                                                        <span class="personnel-you-tag">You</span>
-                                                    <?php else: ?>
-                                                        <form method="POST" action="<?= ROOT ?>/personnel/toggle_status"
-                                                            data-confirm-message="<?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?> <?= htmlspecialchars($p['username']) ?>&#39;s account?"
-                                                            data-confirm-ok-text="<?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?>"
-                                                            data-confirm-danger="<?= $isDeactivated ? 'false' : 'true' ?>">
-                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                            <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                            <button type="submit" class="personnel-status-btn <?= $isDeactivated ? 'accounts-btn-primary' : 'reject-btn' ?>">
-                                                                <?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?>
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
-                    </section>
-                </div>
             <?php endif; ?>
 
-            <div class="tab-panel" id="panel-audit-logs" role="tabpanel" <?= $isStaff ? 'aria-labelledby="tab-audit-logs"' : '' ?>
-                data-tab-panel="audit-logs" <?= (!$isStaff || $activeTab === 'audit-logs') ? '' : 'hidden' ?>>
+            <div class="tab-panel" id="panel-roles" role="tabpanel" aria-labelledby="tab-roles"
+                data-tab-panel="roles" <?= $activeTab === 'roles' ? '' : 'hidden' ?>>
+                <!-- MANAGE PERSONNEL & ROLES -->
+                <section class="accounts-card personnel-manage-section">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#shield-check-icon" />
+                        </svg>
+                        CCARD Personnel
+                    </h2>
+
+                    <?php if (empty($personnel)): ?>
+                        <div class="empty-state">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#check-circle-icon" />
+                                </svg>
+                                No personnel yet
+                            </h3>
+                            <p>Approved staff and reviewers will appear here.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="personnel-table-wrap">
+                            <table class="personnel-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Role</th>
+                                        <th aria-label="Actions"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($personnel as $p): ?>
+                                        <?php
+                                        $isSelf = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <span class="personnel-name"><?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?></span>
+                                                <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
+                                            </td>
+                                            <td>
+                                                <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                    <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
+                                                    <input type="hidden" name="password" class="personnel-role-password">
+                                                    <select name="role" class="personnel-role-select"
+                                                        data-username="<?= htmlspecialchars($p['username']) ?>"
+                                                        data-original-role="<?= htmlspecialchars($p['role']) ?>"
+                                                        <?= $isSelf ? 'disabled' : '' ?>
+                                                        onchange="handleRoleChange(this)">
+                                                        <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
+                                                        <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
+                                                    </select>
+                                                </form>
+                                            </td>
+                                            <td class="actions-cell">
+                                                <?php if ($isSelf): ?>
+                                                    <span class="personnel-you-tag">You</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </section>
+            </div>
+
+            <div class="tab-panel" id="panel-audit-logs" role="tabpanel" aria-labelledby="tab-audit-logs"
+                data-tab-panel="audit-logs" <?= $activeTab === 'audit-logs' ? '' : 'hidden' ?>>
                 <div class="sections-column">
                     <!-- AUDIT LOG VIEWER -->
                     <section class="accounts-card audit-viewer-section" id="audit-log-viewer">
@@ -298,7 +281,7 @@ $activeTab = in_array($_GET['tab'] ?? '', ['registration', 'roles', 'audit-logs'
                     <!-- DOWNLOAD AUDIT LOGS -->
                     <section class="accounts-card audit-section">
                         <h2>Download Audit Logs</h2>
-                        <p class="audit-description">Export system activity logs to Excel. Select a date range, with the last 90 days selected by default.</p>
+                        <p class="audit-description">Export system activity logs to Excel (default at 90 days selection)</p>
 
                         <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">

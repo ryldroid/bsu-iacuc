@@ -368,4 +368,11 @@
         <path class="icon-detail" d="M16 19h6" />
         <path class="icon-detail" d="m19 16 3 3-3 3" />
     </symbol>
+
+    <!-- account icon -->
+    <symbol id="account-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user preview-icon">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+    </symbol>
 </svg>

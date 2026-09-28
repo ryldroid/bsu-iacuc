@@ -853,7 +853,7 @@ class Personnel extends Controller
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
             'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
-            'personnel'      => $_SESSION['user']['role'] === 'staff' ? $this->model->getPersonnelAccounts() : [],
+            'personnel'      => in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'], true) ? $this->model->getPersonnelAccounts() : [],
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ], $auditLogPage));
@@ -914,9 +914,6 @@ class Personnel extends Controller
 
     public function downloadAuditLogs(): void
     {
-        ini_set('display_errors', '1');
-        error_reporting(E_ALL);
-
         $this->requirePersonnel();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1400,7 +1397,7 @@ class Personnel extends Controller
 
     public function update_role(): void
     {
-        $this->requireStaff();
+        $this->requirePersonnel();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('personnel/accounts');
@@ -1437,43 +1434,6 @@ class Personnel extends Controller
             $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
         } else {
             $_SESSION['flash_error'] = 'Personnel account not found.';
-        }
-
-        $this->redirect('personnel/accounts');
-    }
-
-    public function toggle_status(): void
-    {
-        $this->requireStaff();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts');
-        }
-
-        $this->verifyCsrfToken();
-
-        $id    = (int) ($_POST['user_id'] ?? 0);
-        $actor = $this->actor();
-
-        if ($id === $actor['id']) {
-            $_SESSION['flash_error'] = 'You cannot deactivate your own account here.';
-            $this->redirect('personnel/accounts');
-        }
-
-        $target = $this->model->getUser($id);
-        if (!$target || !in_array($target['role'], ['staff', 'reviewer'], true)) {
-            $_SESSION['flash_error'] = 'Personnel account not found.';
-            $this->redirect('personnel/accounts');
-        }
-
-        if ($target['status'] === 'deactivated') {
-            $this->model->reactivateUser($id);
-            $this->model->logAudit('user_reactivated', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Reactivated personnel account: ' . $target['username']);
-            $_SESSION['flash_success'] = 'Account reactivated.';
-        } else {
-            $this->model->deactivateUser($id);
-            $this->model->logAudit('user_deactivated', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Deactivated personnel account: ' . $target['username']);
-            $_SESSION['flash_success'] = 'Account deactivated.';
         }
 
         $this->redirect('personnel/accounts');

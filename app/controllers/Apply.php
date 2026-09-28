@@ -993,8 +993,8 @@ class Apply extends Controller
         $statusKeyForAccess = strtolower($protocol['status']);
         $canRename          = ($isOwner || $isPersonnel)
             && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
-        $canRequestDeletion = ($isOwner && !$isPersonnel) || $actor['role'] === 'reviewer';
-        $canDelete          = $actor['role'] === 'staff';
+        $canRequestDeletion = $isOwner && !$isPersonnel;
+        $canDelete          = in_array($actor['role'], ['staff', 'reviewer'], true);
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
             && (int) ($protocol['title_changed_by'] ?? 0) !== $actor['id']
@@ -1359,14 +1359,11 @@ class Apply extends Controller
                 $recordFilePath   = null;
                 $recordFileOriginal = null;
                 $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
-                error_log('DIAG records-link: protocolId=' . $protocolId . ' latestVersion=' . var_export($latestProtocolVersion, true));
                 if ($latestProtocolVersion) {
                     $source = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $latestProtocolVersion['file_path'];
                     $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
-                    error_log('DIAG records-link: source=' . $source . ' is_file=' . (is_file($source) ? '1' : '0') . ' recordsDir=' . $recordsDir);
                     if (!is_dir($recordsDir)) {
-                        $mkdirOk = mkdir($recordsDir, 0750, true);
-                        error_log('DIAG records-link: mkdir result=' . ($mkdirOk ? '1' : '0'));
+                        mkdir($recordsDir, 0750, true);
                     }
                     $ext  = pathinfo($latestProtocolVersion['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
                     $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
@@ -1375,13 +1372,12 @@ class Apply extends Controller
                     if (is_file($source) && link($source, $destination)) {
                         $recordFilePath = $safeName;
                         $recordFileOriginal = $latestProtocolVersion['original_name'] ?: basename($source);
-                        error_log('DIAG records-link: link succeeded, destination=' . $destination);
                     } else {
                         error_log("Failed to hard-link protocol file for record snapshot (protocol #$protocolId).");
                     }
                 }
 
-                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, null, $protocolId, $sex, $recordFilePath, $recordFileOriginal);
+                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, (int) $protocol['user_id'], $protocolId, $sex, $recordFilePath, $recordFileOriginal);
             }
 
             $flashMessages = [
@@ -1725,8 +1721,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if (!in_array($actor['role'], ['researcher', 'reviewer'], true)) {
-            $this->jsonError(403, 'Administrative staff delete protocols directly. Use the Delete button instead.');
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Administrative staff and reviewers delete protocols directly. Use the Delete button instead.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -1767,7 +1763,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== DELETE  (POST /apply/delete): administrative staff only, any status =====
+    // ===== DELETE  (POST /apply/delete): staff and reviewers only, any status =====
 
     public function delete(): void
     {
@@ -1779,8 +1775,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'staff') {
-            $this->jsonError(403, 'Administrative staff access only.');
+        if (!in_array($actor['role'], ['staff', 'reviewer'], true)) {
+            $this->jsonError(403, 'Administrative staff or reviewer access only.');
         }
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];

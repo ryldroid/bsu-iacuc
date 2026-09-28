@@ -580,34 +580,6 @@ class User extends Controller
     @rmdir($dir);
   }
 
-  public function deactivate()
-  {
-    $this->requireLogin();
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('user/account');
-    }
-
-    $this->verifyCsrfToken();
-
-    $id       = (int) $_SESSION['user']['user_id'];
-    $username = $_SESSION['user']['username'] ?? '';
-    $role     = $_SESSION['user']['role'] ?? '';
-    $ok       = $this->model->deactivateUser($id);
-
-    if ($ok) {
-      $this->model->logAudit('account_deactivated', $id, $username, $role, 'user', $id, 'User deactivated their account');
-
-      session_destroy();
-      session_start();
-      $_SESSION['flash_success'] = 'Your account has been deactivated. Submissions have been hidden from personnel. Log in again at any time to reactivate.';
-    } else {
-      $_SESSION['flash_error'] = 'Deactivation failed. Please try again.';
-    }
-
-    $this->redirect('user/login');
-  }
-
   public function forgot_password(): void
   {
     if ($this->isLoggedIn()) {

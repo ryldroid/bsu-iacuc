@@ -95,7 +95,7 @@ $hideHeader     = $hideHeader     ?? false;
               aria-label="Show notifications"
               aria-controls="notif-dropdown">
 
-              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#bell-icon" />
               </svg>
               <span class="notif-badge" hidden>0</span>
@@ -119,7 +119,10 @@ $hideHeader     = $hideHeader     ?? false;
               aria-label="Show account dropdown menu"
               aria-controls="account-dropdown">
 
-              <img src="<?= IMGPATH ?>/scientist.webp" alt="">
+              <!-- <img src="<?= IMGPATH ?>/scientist.webp" alt=""> -->
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#account-icon" />
+              </svg>
 
               <span><?= htmlspecialchars($first_name, ENT_QUOTES, 'UTF-8') ?></span>
 

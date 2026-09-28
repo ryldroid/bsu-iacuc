@@ -4,10 +4,6 @@ $title = 'Announcements';
 include "includes/header.php";
 include "includes/scroll-top.php";
 
-require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-$announcementModel = new AnnouncementModel();
-$officeAnnouncements = $announcementModel->getAll();
-
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">

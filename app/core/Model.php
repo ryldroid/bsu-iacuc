@@ -125,6 +125,7 @@ class Model
         $this->ensureColumn('records', 'file_path', "varchar(255) DEFAULT NULL");
         $this->ensureColumn('records', 'file_original_name', "varchar(255) DEFAULT NULL");
         $this->backfillRecordProtocolLinks();
+        $this->backfillRecordUserLinks();
         $this->migrateAdminRoleToStaff();
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
@@ -439,6 +440,16 @@ class Model
              WHERE r.protocol_id IS NULL
                AND (SELECT COUNT(*) FROM `protocols` p2 WHERE p2.title = r.title_of_research) = 1
                AND (SELECT COUNT(*) FROM `records` r2 WHERE r2.title_of_research = r.title_of_research) = 1"
+        );
+    }
+
+    private function backfillRecordUserLinks(): void
+    {
+        $this->connection->query(
+            "UPDATE `records` r
+             JOIN `protocols` p ON p.id = r.protocol_id
+             SET r.user_id = p.user_id
+             WHERE r.user_id IS NULL"
         );
     }
 
