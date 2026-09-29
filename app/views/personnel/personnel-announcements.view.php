@@ -74,7 +74,7 @@ $first_name    = $user['first_name'] ?? '';
                                 <?php endif; ?>
 
                                 <?php $annRowTs = strtotime($a['created_at']); ?>
-                                <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('M j, Y g:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
+                                <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('m/j/Y, h:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                             </div>
                             <?php if ($role === 'staff'): ?>
                                 <div class="ann-row-actions">

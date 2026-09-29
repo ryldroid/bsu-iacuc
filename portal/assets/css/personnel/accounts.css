@@ -593,6 +593,22 @@
     margin-bottom: 0;
 }
 
+.audit-refresh-btn {
+    display: flex;
+    border: none;
+    background: none;
+    box-shadow: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 0.25rem;
+    margin: 0;
+}
+
+.audit-refresh-btn:hover {
+    color: var(--brand-text);
+    background: none;
+}
+
 .audit-jump-clear:hover {
     text-decoration: underline;
 }
@@ -621,7 +637,7 @@
 .audit-viewer-table thead th {
     background: var(--divider-color-subtle);
     color: var(--muted-text);
-    font-size: .76em;
+    font-size: .85em;
     font-weight: 700;
     letter-spacing: .02em;
     text-align: left;
@@ -669,7 +685,7 @@
 @media (max-width: 768px) {
     .audit-viewer-table thead th {
         padding: 9px 10px;
-        font-size: .68em;
+        font-size: .75em;
     }
 
     .audit-viewer-table tbody td {

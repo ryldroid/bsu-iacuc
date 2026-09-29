@@ -702,7 +702,7 @@ include 'includes/header.php';
             <?php endif; ?>
 
             <div id="paymentInPersonPanel">
-                <p class="modal-notice">Pay the fee in person at the BSU-CCARD office. Once paid, check the box below to confirm.</p>
+                <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
                 <div class="consent-list">
                     <label class="consent-item">
                         <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">

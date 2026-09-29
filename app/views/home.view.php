@@ -8,8 +8,8 @@ $aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
 $aboutParagraph2 = $siteSettings['about_paragraph_2'] ?? '';
 
 // Map card (CCARD office location)
-$ccardMapQuery = 'BSU Cordillera Center for Animal Research and Development, CVM Compound, Km. 5, La Trinidad, Benguet';
-$ccardMapEmbed = 'https://www.google.com/maps?q=' . rawurlencode($ccardMapQuery) . '&z=16&output=embed';
+$ccardMapQuery = '16.4498918694924,120.59184710000001';
+$ccardMapEmbed = 'https://www.google.com/maps?q=' . $ccardMapQuery . '&z=18&output=embed';
 $ccardMapLink  = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($ccardMapQuery);
 
 
@@ -48,11 +48,10 @@ include "includes/scroll-top.php";
                             <?= nl2br(htmlspecialchars($aboutParagraph2, ENT_QUOTES)) ?>
                         </p>
                         <p>
-                            The IACUC reviews and endorses animal research protocols in line with
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank">Republic Act 8485</a></strong> (Animal Welfare Act of 1998) as amended by
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html" class="underlined" target="_blank">Republic Act 10631</a></strong>, which strengthens protections for animals used in scientific
-                            and research activities. All researchers engaging animals must secure IACUC clearance before
-                            commencing any study.
+                            The IACUC reviews and endorses animal research protocols in accordance with
+                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank">Republic Act No. 8485</a></strong> (Animal Welfare Act of 1998), as amended by
+                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html" class="underlined" target="_blank">Republic Act No. 10631</a></strong>, and
+                            <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
                         </p>
                         <div id="apply-actions">
                             <a href="<?= ROOT ?>/apply" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>

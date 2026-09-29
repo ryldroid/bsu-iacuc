@@ -1990,6 +1990,12 @@ class Apply extends Controller
         $target = 'apply/file/' . (int) $version['id'];
         if (isset($_GET['download'])) {
             $target .= '?download=1';
+
+            if ((int) $protocol['user_id'] === (int) $actor['id']) {
+                if ($model->markClearanceClaimed($protocolId)) {
+                    $model->logAudit('clearance_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance claimed');
+                }
+            }
         }
 
         $this->redirect($target);

@@ -213,10 +213,14 @@ $hideHeader     = $hideHeader     ?? false;
               <li><a href="<?= ROOT ?>/personnel/site_content"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#edit-icon" />
                   </svg><span>Site Content</span></a></li>
-              <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#accounts-icon" />
-                  </svg><span>Administration</span></a></li>
+            <?php else: ?>
+              <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#announcement-icon" />
+                  </svg><span>Announcements</span></a></li>
             <?php endif; ?>
+            <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#accounts-icon" />
+                </svg><span>Administration</span></a></li>
           </ul>
         </nav>
       <?php endif; ?>

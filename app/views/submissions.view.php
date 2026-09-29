@@ -37,7 +37,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your Animal Research Clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture – Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your Animal Research Clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -64,8 +64,10 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
 <script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
+<script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
     <?php include 'includes/navigation.php'; ?>
@@ -321,8 +323,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php if ($isApproved):
                                     $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
                                     $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
+                                    $clearanceClaimedOn = !empty($protocol['clearance_claimed_at']) ? date('m/j/Y', strtotime($protocol['clearance_claimed_at'])) : '';
                                 ?>
-                                    <a class="download-clearance-btn button button--primary"
+                                    <a class="download-clearance-btn button button--primary<?= $clearanceClaimedOn ? ' is-claimed' : '' ?>"
                                         href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
                                         data-view-href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>"
                                         data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>"
@@ -330,7 +333,11 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#download-icon" />
                                         </svg>
-                                        Download Clearance
+                                        <span class="claim-label">
+                                            <span class="label-claim">Claim Clearance</span>
+                                            <span class="label-claimed">Clearance claimed!</span>
+                                            <span class="label-claimed-on">Claimed <span class="claimed-date"><?= htmlspecialchars($clearanceClaimedOn, ENT_QUOTES) ?></span></span>
+                                        </span>
                                     </a>
                                 <?php elseif ($canConfirmPayment): ?>
                                     <button class="button button--primary"
@@ -438,7 +445,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <?php endif; ?>
 
         <div id="paymentInPersonPanel">
-            <p class="modal-notice">Pay the fee in person at the BSU-CCARD office. Once paid, check the box below to confirm.</p>
+            <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
             <div class="consent-list">
                 <label class="consent-item">
                     <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
@@ -1079,9 +1086,17 @@ function statusIconSvg(string $iconId, int $size = 14): string
         dismissFlash('flashError', 7000);
     })();
 
-    // ===== Download Clearance: always download, also open images in a new tab =====
+    // ===== Claim Clearance: always download, also open images in a new tab =====
     document.querySelectorAll('.download-clearance-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            if (!btn.classList.contains('is-claimed')) {
+                btn.querySelector('.claimed-date').textContent = new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                btn.classList.add('is-claimed');
+            }
             if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {
                 window.open(btn.dataset.viewHref, '_blank', 'noopener');
             }

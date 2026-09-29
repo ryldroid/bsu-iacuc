@@ -171,6 +171,7 @@ foreach ($protocols as $p) {
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 <?php if ($personnelRole === 'staff'): ?>
     <link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
 <?php else: ?>
@@ -178,6 +179,7 @@ foreach ($protocols as $p) {
 <?php endif; ?>
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
 <script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
+<script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -418,7 +420,7 @@ foreach ($protocols as $p) {
                             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#checkbox-icon" />
                             </svg>
-                            <span id="toggleSelectBtnLabel">Select Protocols</span>
+                            <span id="toggleSelectBtnLabel">Select Paid Protocols</span>
                         </button>
 
                         <div class="bulk-select-controls" id="bulkSelectControls" hidden>
@@ -472,7 +474,7 @@ foreach ($protocols as $p) {
                     ?>
 
                     <?php foreach ($protocols as $protocol):
-                        $submittedDate  = date('M j, Y', strtotime($protocol['submitted_at']));
+                        $submittedDate  = date('m/j/Y', strtotime($protocol['submitted_at']));
                         $statusDisplay  = $protocol['status_display'];
                         $badgeClass     = $protocol['badge_class'];
                         $filterSlug     = $protocol['filter_slug'];
@@ -876,9 +878,9 @@ foreach ($protocols as $p) {
                     </div>
                 </section>
             <?php else: ?>
-                <div class="dashboard-page-header">
+                <!-- <div class="dashboard-page-header">
                     <h1 class="dashboard-page-title">Upload Clearances</h1>
-                </div>
+                </div> -->
 
                 <?php if (!empty($_SESSION['flash_success'])): ?>
                     <div class="alert success-message" id="flashSuccess">
@@ -1102,7 +1104,7 @@ foreach ($protocols as $p) {
 
     toggleSelectBtn?.addEventListener('click', () => {
         const active = protocolsList.classList.toggle('selection-mode');
-        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select Protocols';
+        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select Paid Protocols';
         if (bulkSelectControls) bulkSelectControls.hidden = !active;
         if (!active) {
             protocolsList.querySelectorAll('.protocol-select-checkbox').forEach(cb => cb.checked = false);

@@ -33,7 +33,7 @@ $auditFilterDate = $auditFilterDate ?? null;
       <tbody>
         <?php foreach ($auditLogs as $log): ?>
           <tr>
-            <td data-label="Timestamp"><?= htmlspecialchars(date('M j, Y @ h:i A', strtotime($log['created_at']))) ?></td>
+            <td data-label="Timestamp"><?= htmlspecialchars(date('m/j/Y, h:i A', strtotime($log['created_at']))) ?></td>
             <td data-label="User">
               <?= htmlspecialchars($log['username']) ?>
               <span class="audit-viewer-role"><?= htmlspecialchars(ucfirst($log['role'])) ?></span>

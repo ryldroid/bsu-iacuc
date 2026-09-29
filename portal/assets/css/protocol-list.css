@@ -24,6 +24,37 @@
   color: var(--text-on-brand);
 }
 
+.download-clearance-btn .label-claimed,
+.download-clearance-btn .label-claimed-on {
+  display: none;
+}
+
+.download-clearance-btn.is-claimed {
+  opacity: 0.6;
+}
+
+.download-clearance-btn.is-claimed .claim-label {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.download-clearance-btn.is-claimed .claim-label>span {
+  grid-area: 1 / 1;
+  display: inline;
+}
+
+.download-clearance-btn.is-claimed .label-claim,
+.download-clearance-btn.is-claimed .label-claimed-on,
+.download-clearance-btn.is-claimed:is(:hover, :focus-visible) .label-claimed {
+  visibility: hidden;
+  font-size: .95em;
+}
+
+.download-clearance-btn.is-claimed:is(:hover, :focus-visible) .label-claimed-on {
+  visibility: visible;
+  /* font-size: .9em; */
+}
+
 .btn-apply {
   display: flex;
   align-items: center;
@@ -97,9 +128,9 @@
   flex-direction: column;
   gap: 0;
   border: 1px solid var(--divider-color);
-  border-radius: 10px;
+  border-radius: 0 0 10px 10px;
   overflow: hidden;
-  margin-top: 1em;
+  /* margin-top: 1em; */
 }
 
 .protocol {
@@ -331,12 +362,13 @@
 
 /* ===== Status legend ===== */
 .status-legend-bar {
-  margin: 20px 0 0;
-  background: var(--card-background);
+  margin: 12px 0 0;
+  /* background: var(--card-background); */
+  background: var(--brand-surface-tint);
   border: 1px solid var(--divider-color);
   /* border-radius: var(--btn-radius); */
   border-radius: var(--btn-radius) var(--btn-radius) 0 0;
-  padding: 12px 18px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -386,8 +418,8 @@
 }
 
 .legend-info-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--card-background);
   color: var(--muted-text);
@@ -835,7 +867,7 @@
     background-color: var(--card-background);
     color: var(--primary-text);
 
-    border-radius: var(--radius);
+    border-radius: 10px;
     min-width: 130px;
 
     display: none;

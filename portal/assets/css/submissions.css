@@ -100,3 +100,7 @@
 .success-message {
     margin: 20px auto;
 }
+
+#paymentOnlinePanel .modal-file-row {
+    margin-top: 0;
+}

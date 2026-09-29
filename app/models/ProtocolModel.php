@@ -245,6 +245,21 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    public function markClearanceClaimed(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET clearance_claimed_at = NOW(), updated_at = updated_at
+             WHERE id = ? AND clearance_claimed_at IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
     public function undoMarkPaid(int $protocolId): bool
     {
         $stmt = $this->connection->prepare(
@@ -442,6 +457,7 @@ class ProtocolModel extends Model
                 p.payment_status,
                 p.payment_method,
                 p.paid_at,
+                p.clearance_claimed_at,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id

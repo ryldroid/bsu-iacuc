@@ -56,11 +56,11 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
             <?php if ($isStaff): ?>
                 <button type="button" role="tab" id="tab-registration" data-tab="registration"
                     aria-selected="<?= $activeTab === 'registration' ? 'true' : 'false' ?>"
-                    aria-controls="panel-registration">Registration</button>
+                    aria-controls="panel-registration">Account Registration</button>
             <?php endif; ?>
             <button type="button" role="tab" id="tab-roles" data-tab="roles"
                 aria-selected="<?= $activeTab === 'roles' ? 'true' : 'false' ?>"
-                aria-controls="panel-roles">Manage Roles</button>
+                aria-controls="panel-roles">Role Management</button>
             <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
                 aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
                 aria-controls="panel-audit-logs">Audit Logs</button>
@@ -263,6 +263,11 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
                             </h2>
 
                             <div class="audit-jump-to-date">
+                                <button type="button" id="audit-refresh" class="audit-refresh-btn" aria-label="Refresh audit logs" title="Refresh">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#refresh-icon" />
+                                    </svg>
+                                </button>
                                 <input type="date" id="audit-jump-date"
                                     value="<?= htmlspecialchars($auditFilterDate ?? '') ?>"
                                     <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
@@ -345,6 +350,7 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
 </div>
 
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
+<script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
 
 <script>
     function copyInviteLink() {
@@ -447,6 +453,7 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
         const results = document.getElementById('audit-log-results');
         const jumpDate = document.getElementById('audit-jump-date');
         const jumpClear = document.getElementById('audit-jump-clear');
+        const refreshButton = document.getElementById('audit-refresh');
 
         if (!results) return;
 
@@ -489,6 +496,12 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
         if (jumpDate) {
             jumpDate.addEventListener('change', () => {
                 loadAuditPage(1, jumpDate.value);
+            });
+        }
+
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => {
+                loadAuditPage(results.dataset.page, results.dataset.date);
             });
         }
 

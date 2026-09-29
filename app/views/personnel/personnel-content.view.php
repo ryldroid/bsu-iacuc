@@ -34,7 +34,7 @@ $activeTab     = $activeTab     ?? 'announcements';
   <main class="main-content" id="main-content" tabindex="-1">
 
     <div class="dashboard-page-header">
-      <h1 class="dashboard-page-title">Content</h1>
+      <h1 class="dashboard-page-title">Edit Site Content</h1>
     </div>
 
     <?php if (!empty($_SESSION['flash_success'])): ?>
@@ -55,7 +55,7 @@ $activeTab     = $activeTab     ?? 'announcements';
       <button type="button" role="tab" id="tab-site_content" data-tab="site_content"
         data-tab-href="<?= ROOT ?>/personnel/site_content"
         aria-selected="<?= $activeTab === 'site_content' ? 'true' : 'false' ?>"
-        aria-controls="panel-site_content">Site Content</button>
+        aria-controls="panel-site_content">Homepage</button>
     </div>
 
     <div id="contentTabPanels">
@@ -110,7 +110,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                     <?php endif; ?>
 
                     <?php $annRowTs = strtotime($a['created_at']); ?>
-                    <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('M j, Y g:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
+                    <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('m/j/Y, h:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                   </div>
                   <div class="ann-row-actions">
                     <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>" aria-label="Edit announcement">
@@ -425,6 +425,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 </div>
 
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
+<script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
 
 <script>
   (function() {

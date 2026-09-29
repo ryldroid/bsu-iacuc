@@ -170,6 +170,8 @@ $offices  = $offices  ?? [];
   </div>
 </div>
 
+<script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
+
 <script>
   (function() {
     const ROOT = '<?= ROOT ?>';

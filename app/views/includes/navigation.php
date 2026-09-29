@@ -43,7 +43,7 @@ $role = $user['role'] ?? '';
                             </svg>
                         </a>
                         <div>
-                            <span>Content</span>
+                            <span>Site Content</span>
                         </div>
                     </li>
                 <?php endif; ?>

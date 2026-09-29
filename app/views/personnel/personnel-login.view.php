@@ -15,6 +15,13 @@ include dirname(__DIR__) . '/includes/sprites.php';
         <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating theme-toggle--personnel-login'; ?>
         <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
 
+        <a class="btn-back button btn-back--pinned" href="<?= ROOT ?>/home">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#back-icon">
+            </svg>
+            Visit public page
+        </a>
+
         <form method="POST" action="<?= ROOT ?>/personnel/login_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 

@@ -162,6 +162,7 @@ class Model
         $this->ensureColumn('protocols', 'payment_method', "enum('in_person','online') DEFAULT NULL AFTER `payment_status`");
         $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
+        $this->ensureColumn('protocols', 'clearance_claimed_at', "timestamp NULL DEFAULT NULL AFTER `paid_by`");
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
                     `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -526,8 +527,8 @@ class Model
 
         $defaults = [
             'banner_title' => 'Benguet State University - Institutional Animal Care and Use Committee',
-            'about_paragraph_1' => 'The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate University and National and International policies and regulations. The IACUC, under the Office of the Research and Extension (R and E) specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).',
-            'about_paragraph_2' => 'IACUC protocol forms must be reviewed by the IACUC and endorse for issuance of Animal Research Clearance by the Bureau of Animal Industry (BAI).',
+            'about_paragraph_1' => 'The Institutional Animal Care and Use Committee (IACUC) is mandated with the responsibility for ensuring adherence to appropriate university, national, and international policies and regulations. The IACUC, under the Office of the Research and Extension, specifically the Cordillera Center for Animal Research and Development (CCARD), serves as the oversight committee in the care and use of live animals in research and teaching activities in Benguet State University (BSU).',
+            'about_paragraph_2' => 'IACUC protocols must be reviewed by the IACUC and endorsed for the issuance of an animal research clearance (ARC) by the Bureau of Animal Industry (BAI).',
         ];
 
         $stmt = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
@@ -579,7 +580,7 @@ class Model
                 2,
                 'Bureau of Animal Industry',
                 'bai.webp',
-                'BPI Compound, Guisad, Baguio City, Benguet',
+                'BPI Compound, Easter Road, Guisad, Baguio City, Benguet',
                 "(074) 444-9872\n+63 956 659 5110",
                 "regulatorydivision.car@gmail.com\nlivestock.cordillera@gmail.com",
                 null,
