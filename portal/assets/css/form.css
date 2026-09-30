@@ -123,14 +123,6 @@
   .input-group {
     width: 90%;
   }
-
-  .input-group #first_name {
-    margin-bottom: 1.4em;
-  }
-
-  .input-group #first_name_label {
-    top: 35%;
-  }
 }
 
 .personnel-login-h1 {

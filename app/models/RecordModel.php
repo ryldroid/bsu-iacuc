@@ -9,7 +9,8 @@ class RecordModel extends Model
     string $school,
     string $animalType,
     string $sex,
-    string $researcherType
+    string $researcherType,
+    ?array $period = null
   ): array {
     $conditions = [];
     $params     = [];
@@ -48,8 +49,119 @@ class RecordModel extends Model
       $types .= 's';
     }
 
+    if ($period !== null) {
+      $conditions[] = $period['sql'];
+    }
+
     $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
     return [$where, $params, $types];
+  }
+
+  public const PERIOD_PRESETS = [
+    'all'            => 'All time',
+    'this_month'     => 'This month',
+    'last_month'     => 'Last month',
+    'this_quarter'   => 'This quarter',
+    'this_year'      => 'This year',
+    'last_year'      => 'Last year',
+    'last_12_months' => 'Last 12 months',
+    'custom'         => 'Custom range',
+  ];
+
+  public const PERIOD_BASES = [
+    'released' => 'Date Released',
+    'duration' => 'Research Duration',
+  ];
+
+  /**
+   * Turns the statistics period inputs into a validated SQL condition.
+   * Returns null for "all time" (no filtering).
+   *
+   * 'released' matches records whose Date Released falls inside the period.
+   * 'duration' matches records whose research duration overlaps the period; the end date
+   * is required (it is also the clearance expiry) and a missing start date is treated as open.
+   * Dates are validated as Y-m-d before being embedded, so nothing user-typed reaches the SQL.
+   */
+  public function resolvePeriod(string $preset, string $basis, string $from = '', string $to = ''): ?array
+  {
+    if (! isset(self::PERIOD_PRESETS[$preset]) || $preset === 'all') return null;
+    if (! isset(self::PERIOD_BASES[$basis])) $basis = 'released';
+
+    $today = strtotime('today');
+    $qStartMonth = (int) ((ceil((int) date('n', $today) / 3) - 1) * 3 + 1);
+
+    switch ($preset) {
+      case 'this_month':
+        $start = date('Y-m-01', $today);
+        $end   = date('Y-m-t', $today);
+        break;
+      case 'last_month':
+        $ref   = strtotime('first day of last month', $today);
+        $start = date('Y-m-01', $ref);
+        $end   = date('Y-m-t', $ref);
+        break;
+      case 'this_quarter':
+        $start = date('Y-') . str_pad((string) $qStartMonth, 2, '0', STR_PAD_LEFT) . '-01';
+        $end   = date('Y-m-t', strtotime($start . ' +2 months'));
+        break;
+      case 'this_year':
+        $start = date('Y-01-01', $today);
+        $end   = date('Y-12-31', $today);
+        break;
+      case 'last_year':
+        $start = date('Y-01-01', strtotime('-1 year', $today));
+        $end   = date('Y-12-31', strtotime('-1 year', $today));
+        break;
+      case 'last_12_months':
+        $start = date('Y-m-01', strtotime('-11 months', $today));
+        $end   = date('Y-m-t', $today);
+        break;
+      default: // custom
+        $start = $this->validDate($from);
+        $end   = $this->validDate($to);
+        if ($start !== null && $end !== null && $start > $end) {
+          [$start, $end] = [$end, $start];
+        }
+        if ($start === null && $end === null) return null;
+    }
+
+    if ($basis === 'released') {
+      $parts = ['date_released IS NOT NULL'];
+      if ($start !== null) $parts[] = "date_released >= '$start'";
+      if ($end !== null)   $parts[] = "date_released <= '$end'";
+      $missing = 'date_released IS NULL';
+    } else {
+      $parts = ['research_duration_end IS NOT NULL'];
+      if ($start !== null) $parts[] = "research_duration_end >= '$start'";
+      if ($end !== null)   $parts[] = "(research_duration_start IS NULL OR research_duration_start <= '$end')";
+      $missing = 'research_duration_end IS NULL';
+    }
+
+    $fmt = fn(string $d) => date('M j, Y', strtotime($d));
+    if ($start !== null && $end !== null) {
+      $range = $fmt($start) . ' to ' . $fmt($end);
+    } elseif ($start !== null) {
+      $range = 'From ' . $fmt($start);
+    } else {
+      $range = 'Until ' . $fmt($end);
+    }
+
+    return [
+      'preset'      => $preset,
+      'basis'       => $basis,
+      'from'        => $start,
+      'to'          => $end,
+      'sql'         => '(' . implode(' AND ', $parts) . ')',
+      'missing_sql' => $missing,
+      'label'       => $range . ' (' . self::PERIOD_BASES[$basis] . ')',
+      'missing_by'  => $basis === 'released' ? 'a release date' : 'a research end date',
+    ];
+  }
+
+  private function validDate(string $value): ?string
+  {
+    $d = DateTime::createFromFormat('Y-m-d', trim($value));
+    return ($d && $d->format('Y-m-d') === trim($value)) ? $d->format('Y-m-d') : null;
   }
 
   public const SORT_OPTIONS = [
@@ -76,9 +188,10 @@ class RecordModel extends Model
     string $researcherType = '',
     string $sort = 'newest',
     int $limit = 25,
-    int $offset = 0
+    int $offset = 0,
+    ?array $period = null
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period);
 
     $stmt = $this->connection->prepare(
       "SELECT * FROM `records` $where ORDER BY {$this->sortClause($sort)} LIMIT ? OFFSET ?"
@@ -126,9 +239,21 @@ class RecordModel extends Model
     string $school = '',
     string $animalType = '',
     string $sex = '',
-    string $researcherType = ''
+    string $researcherType = '',
+    ?array $period = null
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period);
+
+    // Records that the period filter can't place because they lack the relevant date.
+    $excludedByPeriod = 0;
+    if ($period !== null) {
+      [$baseWhere, $baseParams, $baseTypes] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
+      $excludedByPeriod = (int) ($this->scalarQuery(
+        "SELECT COUNT(*) FROM `records` " . $this->andClause($baseWhere, $period['missing_sql']),
+        $baseParams,
+        $baseTypes
+      ) ?? 0);
+    }
 
     $total = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
 
@@ -235,6 +360,56 @@ class RecordModel extends Model
 
     $monthlyTrend = $this->quarterMonthlyTrend($where, $params, $types);
 
+    // The end date doubles as the clearance's expiry (see the Add/Edit Record helper text).
+    $activeClearances = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()"),
+      $params,
+      $types
+    ) ?? 0);
+
+    $expiringSoon = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause(
+        $where,
+        "research_duration_end IS NOT NULL AND research_duration_end >= CURDATE() AND research_duration_end <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)"
+      ),
+      $params,
+      $types
+    ) ?? 0);
+
+    $expiredClearances = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NOT NULL AND research_duration_end < CURDATE()"),
+      $params,
+      $types
+    ) ?? 0);
+
+    $noDurationCount = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NULL"),
+      $params,
+      $types
+    ) ?? 0);
+
+    $releasedThisYear = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE())"),
+      $params,
+      $types
+    ) ?? 0);
+
+    $speciesBreakdown = $this->groupedQuery(
+      'animal_type',
+      $this->andClause($where, "animal_type IS NOT NULL AND animal_type != ''"),
+      $params,
+      $types,
+      'COALESCE(SUM(animal_count), 0)',
+      ', COUNT(*) AS protocols'
+    );
+
+    $adviserBreakdown = $this->groupedQuery(
+      'research_adviser',
+      $this->andClause($where, "research_adviser IS NOT NULL AND research_adviser != ''"),
+      $params,
+      $types
+    );
+
     return [
       'total'                      => $total,
       'processed_this_month'       => $processedThisMonth,
@@ -253,6 +428,15 @@ class RecordModel extends Model
       'ongoing_studies'            => $ongoingStudies,
       'completed_studies'          => $completedStudies,
       'monthly_trend'              => $monthlyTrend,
+      'active_clearances'          => $activeClearances,
+      'expiring_soon'              => $expiringSoon,
+      'expired_clearances'         => $expiredClearances,
+      'no_duration_count'          => $noDurationCount,
+      'released_this_year'         => $releasedThisYear,
+      'species_breakdown'          => $speciesBreakdown,
+      'adviser_breakdown'          => $adviserBreakdown,
+      'release_trend'              => $this->releaseTrend($where, $params, $types),
+      'excluded_by_period'         => $excludedByPeriod,
     ];
   }
 
@@ -290,6 +474,41 @@ class RecordModel extends Model
     return $trend;
   }
 
+  /** Records released per month for the last 12 months (oldest first), zero-filled. */
+  private function releaseTrend(string $where, array $params, string $types): array
+  {
+    $sql = "SELECT DATE_FORMAT(date_released, '%Y-%m') AS ym, COUNT(*) AS total FROM `records` " . $this->andClause(
+      $where,
+      "date_released IS NOT NULL AND date_released >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH)"
+    ) . " GROUP BY ym";
+
+    $stmt = $this->connection->prepare($sql);
+    if (! $stmt) return [];
+
+    if ($types) {
+      $bound = $params;
+      array_unshift($bound, $types);
+      call_user_func_array([$stmt, 'bind_param'], $bound);
+    }
+
+    $stmt->execute();
+    $counts = [];
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+      $counts[$row['ym']] = (int) $row['total'];
+    }
+
+    $trend = [];
+    for ($i = 11; $i >= 0; $i--) {
+      $ts = strtotime(date('Y-m-01') . " -$i months");
+      $trend[] = [
+        'month' => date('M', $ts),
+        'year'  => date('Y', $ts),
+        'total' => $counts[date('Y-m', $ts)] ?? 0,
+      ];
+    }
+    return $trend;
+  }
+
   private function andClause(string $where, string $extra): string
   {
     return $where === '' ? "WHERE $extra" : "$where AND $extra";
@@ -311,10 +530,10 @@ class RecordModel extends Model
     return $row ? $row[0] : null;
   }
 
-  private function groupedQuery(string $column, string $where, array $params, string $types, string $aggExpr = 'COUNT(*)'): array
+  private function groupedQuery(string $column, string $where, array $params, string $types, string $aggExpr = 'COUNT(*)', string $extraSelect = ''): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT `$column` AS label, $aggExpr AS total FROM `records` $where GROUP BY `$column` ORDER BY total DESC"
+      "SELECT `$column` AS label, $aggExpr AS total$extraSelect FROM `records` $where GROUP BY `$column` ORDER BY total DESC"
     );
     if (! $stmt) return [];
 

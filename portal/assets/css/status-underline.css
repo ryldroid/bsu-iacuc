@@ -35,6 +35,6 @@
   }
 
   .status-filters.has-underline .status-card.active {
-    border-bottom-color: initial;
+    border-bottom-color: var(--tab-underline);
   }
 }

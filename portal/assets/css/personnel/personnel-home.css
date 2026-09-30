@@ -55,12 +55,13 @@ main {
     padding: 12px 18px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: right;
     gap: 12px;
     flex-wrap: wrap;
     /* background: var(--brand-surface-faint); */
-    border: 1px dashed var(--brand-color);
-    border-radius: var(--btn-radius);
+    /* border: 1px dashed var(--brand-color); */
+    /* border-radius: var(--btn-radius); */
+    border: 1px solid var(--divider-color);
 }
 
 .bulk-actions-bar[hidden] {
@@ -130,6 +131,20 @@ main {
     box-shadow: none;
 }
 
+.bulk-paid-only {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .85em;
+    font-weight: 600;
+    color: var(--brand-text);
+    cursor: pointer;
+}
+
+.bulk-paid-only[hidden] {
+    display: none;
+}
+
 .bulk-select-controls {
     display: flex;
     align-items: center;
@@ -196,34 +211,6 @@ main {
     line-height: 1.2;
 }
 
-.metric-card-value .metric-unit {
-    font-size: 0.55em;
-    font-weight: 400;
-    color: var(--muted-text);
-    margin-left: 4px;
-}
-
-.dashboard-metrics .metric-card {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.dashboard-metrics .metric-card-value {
-    font-weight: 700;
-    margin-bottom: 0;
-}
-
-.dashboard-metrics .metric-card-label {
-    font-size: 0.95em;
-    font-weight: 500;
-    color: var(--secondary-text);
-    margin-bottom: 0;
-    letter-spacing: normal;
-}
-
 /* ===== Search toolbar ===== */
 .inbox-toolbar {
     display: flex;
@@ -240,7 +227,7 @@ main {
     margin-left: auto;
 }
 
-.inbox-search-wrap svg {
+.inbox-search-wrap > svg {
     position: absolute;
     left: 10px;
     top: 50%;
@@ -284,13 +271,11 @@ main {
     border: none;
     box-shadow: none;
     padding: 2px 4px;
-    font-size: 0.8em;
     margin: 0;
-    line-height: 1;
 }
 
 .inbox-search-clear.visible {
-    display: block;
+    display: flex;
 }
 
 .inbox-search-clear:hover {
@@ -464,16 +449,8 @@ main {
     .metric-card-value {
         font-size: 1.1em;
     }
+}
 
-    .dashboard-metrics .metric-card {
-        gap: 4px;
-    }
-
-    .dashboard-metrics .metric-card-label {
-        font-size: 0.78em;
-    }
-
-    .dashboard-metrics .metric-card-value {
-        font-size: 1.15em;
-    }
+.consent-checkbox {
+    margin-bottom: 0;
 }

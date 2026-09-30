@@ -98,51 +98,31 @@
 [data-theme="dark"] {
     color-scheme: dark;
 
-    --page-background: #12181f;
-    --card-background: #1c242d;
-    --card-background-translucent: rgba(28, 36, 45, 0.93);
-    --sidebar-background: #1a2129;
+    --page-background: #202124;
+    --card-background: #2a2b2f;
+    --card-background-translucent: rgba(42, 43, 47, 0.93);
+    --sidebar-background: #1a1b1e;
     --backdrop-color: rgba(0, 0, 0, 0.65);
 
-    --primary-text: #e8eaedc9;
-    --secondary-text: #a3adb8;
+    --primary-text: #e8eaed;
+    --secondary-text: #bdc1c6;
 
-    --divider-color: #333d47;
-    --divider-color-subtle: #262e37;
-    --divider-color-strong: #6c7785;
-    --hover-surface: #2a3339;
-    --hover-surface-soft: #212a30;
+    --divider-color: #3c4043;
+    --divider-color-subtle: #313235;
+    --divider-color-strong: #80868b;
+    --hover-surface: #38393d;
+    --hover-surface-soft: #303134;
 
     --heading-fill: rgba(255, 255, 255, 0.534);
     --heading-fill-main: #d0d5dbd8;
     --heading-shadow: rgba(255, 255, 255, 0.45);
 
-    --brand-surface-tint: rgba(30, 41, 36, 0.75);
-    /* Same low-contrast issue as --brand-color-hover below: the
-       light-mode --brand-color is a dark, saturated green that reads
-       fine on white but, even brightened a little (the old value
-       here), still blends toward the dark background and falls short
-       of readable contrast for text, links and headings. Needs its
-       own solid, brighter value here — kept distinct from
-       --nav-icons (below) since that's the *inactive* sidebar icon
-       color and --brand-text marks the active one; if the two match,
-       the active indicator disappears in dark mode. */
-    --brand-text: #63c97d;
-    /* --brand-color-hover doubles as both a hover background (fine on
-       dark backgrounds, since it always sits under light button text)
-       and a hover *text* color (contact links, "expand all", account
-       page, etc). The light-mode value is a dark, muted green that
-       reads fine on white but is nearly invisible as plain text on a
-       dark background, so it needs its own brighter value here. */
-    --brand-color-hover: #3f9d5da8;
-    --nav-icons: #8dd188ca;
-
-    /* Tabs invert the usual brand pairing here: --brand-text is tuned
-       bright for body text/icons, which reads as too loud for a tab
-       label, while --brand-color stays the light-mode dark green and
-       nearly disappears as a 2px underline on a dark background. */
-    --tab-text-active: #4d8f5e;
-    --tab-underline: #8dd188;
+    --brand-surface-tint: rgba(129, 201, 149, 0.1);
+    --brand-text: #81c995;
+    /* Doubles as hover background and hover text color, so it stays solid */
+    --brand-color-hover: #47a267;
+    --nav-icons: #9aa0a6;
+    --tab-underline: var(--brand-text);
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);
@@ -172,13 +152,13 @@
     --warning-text: #f0a868;
     --brand-surface-faint: rgba(200, 230, 192, 0.05);
 
-    --muted-text: #818d97;
-    --input-border: #6a7884;
+    --muted-text: #9aa0a6;
+    --input-border: #80868b;
     --success-background-soft: #163a22;
     --success-border-soft: #2d5a3d;
     --danger-tint-strong: rgba(239, 68, 68, 0.55);
 
-    --body-background-tint: rgba(18, 42, 24, 0.5);
+    --body-background-tint: transparent;
     --faq-highlight-background: rgba(71, 106, 79, 0.706);
     --faq-card-background: var(--hover-surface);
     --faq-border-default: var(--divider-color-strong);
@@ -433,12 +413,6 @@ main a.underlined:hover {
 .filter-wrapper {
     position: relative;
     width: fit-content;
-}
-
-/* Desktop shows the status tabs only; the "Filter Status:" label is a
-   mobile-only companion to the dropdown trigger (see protocol-list.css). */
-.filter-wrapper>.sort-filter-label {
-    display: none;
 }
 
 /* Positions the mobile sort dropdown panel; "Sort by:" stays outside it

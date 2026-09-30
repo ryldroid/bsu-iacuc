@@ -16,10 +16,10 @@ $auditPerPage   = $auditPerPage   ?? 10;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditOffset    = ($auditPage - 1) * $auditPerPage;
 
-$allowedTabs = $isStaff ? ['registration', 'roles', 'audit-logs'] : ['roles', 'audit-logs'];
-$activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
+$allowedTabs = ['audit-logs', 'accounts'];
+$activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', $allowedTabs, true)
     ? $_GET['tab']
-    : $allowedTabs[0];
+    : $allowedTabs[0]);
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
@@ -53,202 +53,15 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
         <?php endif; ?>
 
         <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
-            <?php if ($isStaff): ?>
-                <button type="button" role="tab" id="tab-registration" data-tab="registration"
-                    aria-selected="<?= $activeTab === 'registration' ? 'true' : 'false' ?>"
-                    aria-controls="panel-registration">Account Registration</button>
-            <?php endif; ?>
-            <button type="button" role="tab" id="tab-roles" data-tab="roles"
-                aria-selected="<?= $activeTab === 'roles' ? 'true' : 'false' ?>"
-                aria-controls="panel-roles">Role Management</button>
             <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
                 aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
                 aria-controls="panel-audit-logs">Audit Logs</button>
+            <button type="button" role="tab" id="tab-accounts" data-tab="accounts"
+                aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
+                aria-controls="panel-accounts">Manage Accounts</button>
         </div>
 
         <div id="accountsTabPanels">
-            <?php if ($isStaff): ?>
-                <div class="tab-panel" id="panel-registration" role="tabpanel" aria-labelledby="tab-registration"
-                    data-tab-panel="registration" <?= $activeTab === 'registration' ? '' : 'hidden' ?>>
-                    <div class="sections">
-                        <!-- PENDING ACCOUNTS -->
-                        <section class="accounts-card pending-section">
-                            <h2>Pending Personnel Approvals</h2>
-
-                            <?php if (empty($pending)): ?>
-                                <div class="empty-state">
-                                    <h3>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#check-circle-icon" />
-                                        </svg>
-                                        All caught up
-                                    </h3>
-                                    <p>No pending applications right now.</p>
-                                </div>
-
-                            <?php else: ?>
-                                <p class="pending-count"><?= count($pending); ?> pending application(s)</p>
-
-                                <?php foreach ($pending as $applicant): ?>
-                                    <div class="pending-box">
-                                        <div>
-                                            <span class="bold"><?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></span>
-                                            &nbsp;&middot;
-                                            <span class="username">@<?= htmlspecialchars($applicant['username']); ?></span>
-                                            &nbsp;&middot;
-                                            <span><?= htmlspecialchars($applicant['email']); ?></span>
-                                        </div>
-
-                                        <div>
-                                            <p>Applying as <span class="bold"><?= htmlspecialchars($applicant['role']); ?></span></p>
-                                            &nbsp;&middot;
-
-                                            <?php $date = date('M j, Y @ h:i A', strtotime($applicant['created_at'])); ?>
-                                            <span class="application-date"><?= $date ?></span>
-                                        </div>
-
-                                        <div class="actions">
-                                            <form method="POST" action="<?= ROOT ?>/personnel/approve"
-                                                data-confirm-message="Approve this application?"
-                                                data-confirm-ok-text="Approve">
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
-                                                <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
-                                                <button type="submit" class="accounts-btn-primary">Approve</button>
-                                            </form>
-
-                                            <form method="POST" action="<?= ROOT ?>/personnel/reject"
-                                                data-confirm-message="Reject and delete this application?"
-                                                data-confirm-ok-text="Reject"
-                                                data-confirm-danger="true">
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
-                                                <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
-                                                <button type="submit" class="reject-btn">Reject</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </section>
-
-                        <!-- GENERATE INVITE LINK -->
-                        <section class="accounts-card invite-section">
-                            <h2>Personnel Registration Link</h2>
-
-                            <form class="invite-form" action="<?= ROOT ?>/personnel/generate_invite" method="POST">
-                                <input type="hidden"
-                                    name="csrf_token"
-                                    value="<?= htmlspecialchars($csrf) ?>">
-
-                                <div class="form-section">
-                                    <label for="invite-role">Select Role:</label>
-                                    <select name="invite_role" id="invite-role">
-                                        <option value="staff">Administrative Staff</option>
-                                        <option value="reviewer">Reviewer</option>
-                                    </select>
-                                </div>
-
-                                <button type="submit" class="accounts-btn-primary">
-                                    Generate Invite Link
-                                </button>
-                            </form>
-
-                            <?php if (!empty($invite_url)): ?>
-                                <div class="invite-link-container">
-                                    <label for="invite-link">Invite Link</label>
-
-                                    <div class="invite-link-row">
-                                        <input
-                                            id="invite-link"
-                                            type="text"
-                                            readonly
-                                            value="<?= htmlspecialchars($invite_url) ?>">
-
-                                        <button
-                                            type="button"
-                                            class="accounts-btn-primary"
-                                            onclick="copyInviteLink()">
-                                            Copy
-                                        </button>
-                                    </div>
-
-                                    <p id="copy-message"></p>
-                                </div>
-                            <?php endif; ?>
-                        </section>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <div class="tab-panel" id="panel-roles" role="tabpanel" aria-labelledby="tab-roles"
-                data-tab-panel="roles" <?= $activeTab === 'roles' ? '' : 'hidden' ?>>
-                <!-- MANAGE PERSONNEL & ROLES -->
-                <section class="accounts-card personnel-manage-section">
-                    <h2>
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#shield-check-icon" />
-                        </svg>
-                        CCARD Personnel
-                    </h2>
-
-                    <?php if (empty($personnel)): ?>
-                        <div class="empty-state">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#check-circle-icon" />
-                                </svg>
-                                No personnel yet
-                            </h3>
-                            <p>Approved staff and reviewers will appear here.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="personnel-table-wrap">
-                            <table class="personnel-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                        <th aria-label="Actions"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($personnel as $p): ?>
-                                        <?php
-                                        $isSelf = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
-                                        ?>
-                                        <tr>
-                                            <td>
-                                                <span class="personnel-name"><?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?></span>
-                                                <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
-                                            </td>
-                                            <td>
-                                                <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
-                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                    <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                    <input type="hidden" name="password" class="personnel-role-password">
-                                                    <select name="role" class="personnel-role-select"
-                                                        data-username="<?= htmlspecialchars($p['username']) ?>"
-                                                        data-original-role="<?= htmlspecialchars($p['role']) ?>"
-                                                        <?= $isSelf ? 'disabled' : '' ?>
-                                                        onchange="handleRoleChange(this)">
-                                                        <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
-                                                        <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
-                                                    </select>
-                                                </form>
-                                            </td>
-                                            <td class="actions-cell">
-                                                <?php if ($isSelf): ?>
-                                                    <span class="personnel-you-tag">You</span>
-                                                <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-                </section>
-            </div>
-
             <div class="tab-panel" id="panel-audit-logs" role="tabpanel" aria-labelledby="tab-audit-logs"
                 data-tab-panel="audit-logs" <?= $activeTab === 'audit-logs' ? '' : 'hidden' ?>>
                 <div class="sections-column">
@@ -323,6 +136,183 @@ $activeTab   = in_array($_GET['tab'] ?? '', $allowedTabs, true)
                         </form>
                     </section>
                 </div>
+            </div>
+
+            <div class="tab-panel" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts"
+                data-tab-panel="accounts" <?= $activeTab === 'accounts' ? '' : 'hidden' ?>>
+                <?php if ($isStaff): ?>
+                    <!-- PENDING ACCOUNTS -->
+                    <section class="accounts-card pending-section">
+                        <h2>Pending Personnel Approvals</h2>
+
+                        <?php if (empty($pending)): ?>
+                            <div class="empty-state">
+                                <h3>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#check-circle-icon" />
+                                    </svg>
+                                    All caught up
+                                </h3>
+                                <p>No pending applications right now.</p>
+                            </div>
+
+                        <?php else: ?>
+                            <p class="pending-count"><?= count($pending); ?> pending application(s)</p>
+
+                            <?php foreach ($pending as $applicant): ?>
+                                <div class="pending-box">
+                                    <div>
+                                        <span class="bold"><?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></span>
+                                        &nbsp;&middot;
+                                        <span class="username">@<?= htmlspecialchars($applicant['username']); ?></span>
+                                        &nbsp;&middot;
+                                        <span><?= htmlspecialchars($applicant['email']); ?></span>
+                                    </div>
+
+                                    <div>
+                                        <p>Applying as <span class="bold"><?= htmlspecialchars($applicant['role']); ?></span></p>
+                                        &nbsp;&middot;
+
+                                        <?php $date = date('M j, Y @ h:i A', strtotime($applicant['created_at'])); ?>
+                                        <span class="application-date"><?= $date ?></span>
+                                    </div>
+
+                                    <div class="actions">
+                                        <form method="POST" action="<?= ROOT ?>/personnel/approve"
+                                            data-confirm-message="Approve this application?"
+                                            data-confirm-ok-text="Approve">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
+                                            <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
+                                            <button type="submit" class="accounts-btn-primary">Approve</button>
+                                        </form>
+
+                                        <form method="POST" action="<?= ROOT ?>/personnel/reject"
+                                            data-confirm-message="Reject and delete this application?"
+                                            data-confirm-ok-text="Reject"
+                                            data-confirm-danger="true">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
+                                            <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
+                                            <button type="submit" class="reject-btn">Reject</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </section>
+
+                    <!-- GENERATE INVITE LINK -->
+                    <section class="accounts-card invite-section">
+                        <h2>Personnel Registration Link</h2>
+
+                        <form class="invite-form" action="<?= ROOT ?>/personnel/generate_invite" method="POST">
+                            <input type="hidden"
+                                name="csrf_token"
+                                value="<?= htmlspecialchars($csrf) ?>">
+
+                            <div class="form-section">
+                                <label for="invite-role">Select Role:</label>
+                                <select name="invite_role" id="invite-role">
+                                    <option value="staff">Administrative Staff</option>
+                                    <option value="reviewer">Reviewer</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="accounts-btn-primary">
+                                Generate Invite Link
+                            </button>
+                        </form>
+
+                        <?php if (!empty($invite_url)): ?>
+                            <div class="invite-link-container">
+                                <label for="invite-link">Invite Link</label>
+
+                                <div class="invite-link-row">
+                                    <input
+                                        id="invite-link"
+                                        type="text"
+                                        readonly
+                                        value="<?= htmlspecialchars($invite_url) ?>">
+
+                                    <button
+                                        type="button"
+                                        class="accounts-btn-primary"
+                                        onclick="copyInviteLink()">
+                                        Copy
+                                    </button>
+                                </div>
+
+                                <p id="copy-message"></p>
+                            </div>
+                        <?php endif; ?>
+                    </section>
+                <?php endif; ?>
+
+                <!-- MANAGE PERSONNEL & ROLES -->
+                <section class="accounts-card personnel-manage-section">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#shield-check-icon" />
+                        </svg>
+                        CCARD Personnel
+                    </h2>
+
+                    <?php if (empty($personnel)): ?>
+                        <div class="empty-state">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#check-circle-icon" />
+                                </svg>
+                                No personnel yet
+                            </h3>
+                            <p>Approved staff and reviewers will appear here.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="personnel-table-wrap">
+                            <table class="personnel-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Role</th>
+                                        <th aria-label="Actions"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($personnel as $p): ?>
+                                        <?php
+                                        $isSelf = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <span class="personnel-name"><?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?></span>
+                                                <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
+                                            </td>
+                                            <td>
+                                                <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                    <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
+                                                    <input type="hidden" name="password" class="personnel-role-password">
+                                                    <select name="role" class="personnel-role-select"
+                                                        data-username="<?= htmlspecialchars($p['username']) ?>"
+                                                        data-original-role="<?= htmlspecialchars($p['role']) ?>"
+                                                        <?= $isSelf ? 'disabled' : '' ?>
+                                                        onchange="handleRoleChange(this)">
+                                                        <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
+                                                        <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
+                                                    </select>
+                                                </form>
+                                            </td>
+                                            <td class="actions-cell">
+                                                <?php if ($isSelf): ?>
+                                                    <span class="personnel-you-tag">You</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </section>
             </div>
         </div>
 

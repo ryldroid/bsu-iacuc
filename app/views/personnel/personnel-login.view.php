@@ -17,7 +17,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
 
         <a class="btn-back button btn-back--pinned" href="<?= ROOT ?>/home">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#back-icon">
+                <use href="#home-icon">
             </svg>
             Visit public page
         </a>

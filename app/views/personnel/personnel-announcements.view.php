@@ -101,9 +101,13 @@ $first_name    = $user['first_name'] ?? '';
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="addAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
     <div class="modal-card records-modal-card">
-        <div class="records-modal-header">
+        <div class="modal-header records-modal-header">
             <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
-            <button type="button" class="records-modal-close" data-close="addAnnouncementModal" aria-label="Close">✕</button>
+            <button type="button" class="modal-close" data-close="addAnnouncementModal" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
         </div>
         <div class="records-modal-body">
             <div class="alert error-messages" id="addAnnouncementError" hidden></div>
@@ -141,9 +145,13 @@ $first_name    = $user['first_name'] ?? '';
 <!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="editAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
     <div class="modal-card records-modal-card">
-        <div class="records-modal-header">
+        <div class="modal-header records-modal-header">
             <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>
-            <button type="button" class="records-modal-close" data-close="editAnnouncementModal" aria-label="Close">✕</button>
+            <button type="button" class="modal-close" data-close="editAnnouncementModal" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
         </div>
         <div class="records-modal-body">
             <div class="alert error-messages" id="editAnnouncementError" hidden></div>

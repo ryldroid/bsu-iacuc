@@ -146,12 +146,12 @@
 
     panelEl.innerHTML = [
       '<div class="modal-card iq-panel-card">',
-      '  <div class="history-modal-header">',
+      '  <div class="modal-header">',
       "    <div>",
-      '      <p class="history-modal-label">Offline Queue</p>',
-      '      <p class="history-modal-title" id="iq-panel-title">Queued actions</p>',
+      '      <p class="modal-label">Offline Queue</p>',
+      '      <p class="modal-title" id="iq-panel-title">Queued actions</p>',
       "    </div>",
-      '    <button class="button history-modal-close" id="iq-panel-close" aria-label="Close">',
+      '    <button class="modal-close" id="iq-panel-close" aria-label="Close">',
       '      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
       '        <use href="#close-icon"/>',
       "      </svg>",

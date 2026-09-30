@@ -235,11 +235,10 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     <div class="modal-card file-popup-card">
         <div class="file-popup-header">
             <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="button file-popup-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
-                Close
             </button>
         </div>
         <div class="file-popup-frame" id="filePopupFrame">

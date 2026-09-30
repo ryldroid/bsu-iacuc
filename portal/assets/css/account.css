@@ -204,9 +204,9 @@ main button:hover {
 }
 
 .btn-logout {
-    background-color: var(--page-background);
-    color: green;
-    border: 1px solid green;
+    background-color: var(--card-background);
+    color: var(--brand-text);
+    border: 1px solid var(--brand-text);
     margin-right: 25.4px;
 
 }
@@ -503,7 +503,7 @@ main button:hover {
     .label-group {
         flex-direction: column;
         width: 90%;
-        gap: 0;
+        gap: 1.4em;
     }
 
     .certificate-section {

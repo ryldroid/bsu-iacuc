@@ -262,7 +262,7 @@
     zoomBackdrop.className = "modal-backdrop image-zoom-backdrop";
     zoomBackdrop.innerHTML = `
       <div class="image-zoom-card">
-        <button type="button" class="image-zoom-close" aria-label="Close">&times;</button>
+        <button type="button" class="image-zoom-close" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg></button>
         <img class="image-zoom-img" src="" alt="">
       </div>
     `;

@@ -539,29 +539,6 @@
   }
 }
 
-.close-modal {
-  background: none;
-  border: none;
-  box-shadow: none;
-  color: black;
-}
-
-.close-modal svg {
-  transition: none;
-}
-
-.close-modal:hover {
-  color: var(--danger-color);
-  background: none;
-  border: 1px solid var(--danger-color);
-}
-
-.close-modal:active {
-  transform: none;
-  color: var(--danger-color-hover);
-  box-shadow: none;
-}
-
 /* ===== Main layout: PDF column + sidebar ===== */
 .viewer-layout {
   display: flex;
@@ -803,8 +780,8 @@
   border: none;
   color: #64748b;
   cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
   padding: 0 2px;
   margin-left: auto;
 }
@@ -1098,34 +1075,13 @@
 }
 
 /* ===== File popup modal (cert / auth letter) ===== */
-.viewer-body .file-popup-card {
-  max-width: 1200px;
-  width: 94vw;
-  padding: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  max-height: 96vh;
-}
-
 .file-popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
   background: #1a1a2e;
   border-bottom: 1px solid #333;
-  flex-shrink: 0;
 }
 
 .file-popup-title {
-  font-size: 0.85rem;
-  font-weight: 600;
   color: #e2e8f0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .file-popup-frame {
@@ -1218,32 +1174,6 @@
   max-height: 90vh;
   overflow-y: auto;
   padding: 0;
-}
-
-.panel-modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem 1rem;
-  border-bottom: 1px solid var(--divider-color);
-}
-
-.panel-modal-label {
-  font-size: 0.65em;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted-text);
-  margin: 0 0 0.2rem;
-}
-
-.panel-modal-title {
-  font-size: 0.9em;
-  font-weight: 600;
-  color: var(--primary-text);
-  line-height: 1.4;
-  margin: 0;
 }
 
 .panel-modal-body {

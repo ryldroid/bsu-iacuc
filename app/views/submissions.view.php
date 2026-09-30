@@ -114,20 +114,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <!-- Status filter bar -->
         <div class="dashboard-filter-row">
             <div class="filter-wrapper">
-                <p class="sort-filter-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#filter-icon" />
-                    </svg>
-                    Status:
-                </p>
-
-                <button type="button" class="mobile-status-filters dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                    <span id="mobileFilterLabel" class="mobile-filter-label">All</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#chev-down-icon" />
-                    </svg>
-                </button>
-
                 <div class="status-filters">
                     <button class="status-card active" data-status="all" data-label="All">
                         <p>All <span class="status-count"><?= $totalProtocolCount ?></span></p>
@@ -378,11 +364,11 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <!-- History modal -->
 <div class="modal-backdrop" id="historyModalBackdrop">
     <div class="modal-card history-modal-card">
-        <div class="history-modal-header">
+        <div class="modal-header">
             <div class="history-modal-title-wrapper">
-                <p class="history-modal-label">Submission History</p>
+                <p class="modal-label">Submission History</p>
                 <div class="history-modal-title-row">
-                    <p class="history-modal-title" id="historyModalTitle"></p>
+                    <p class="modal-title" id="historyModalTitle"></p>
                     <button type="button" class="rename-history-toggle" id="renameHistoryToggle" hidden
                         aria-expanded="false" aria-controls="renameHistoryPanel" aria-label="Show rename history">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -392,7 +378,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 </div>
                 <div class="rename-history-panel" id="renameHistoryPanel" hidden></div>
             </div>
-            <button class="history-modal-close button" onclick="closeHistoryModal()" aria-label="Close">
+            <button class="modal-close" onclick="closeHistoryModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
@@ -409,11 +395,10 @@ function statusIconSvg(string $iconId, int $size = 14): string
     <div class="modal-card file-popup-card">
         <div class="file-popup-header">
             <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="button file-popup-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
-                Close
             </button>
         </div>
         <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
@@ -620,8 +605,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
     const statusMeta = <?= json_encode($statusMeta) ?>;
     const filterBtns = document.querySelectorAll('.status-filters .status-card');
     const protocolCards = document.querySelectorAll('.protocol');
-    const mobileFilter = document.querySelector('.mobile-status-filters');
-    const statusFilters = document.querySelector('.status-filters');
     const sortSelect = document.getElementById('submissionsSortSelect');
     const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
     const mobileSortOptions = document.getElementById('mobileSortOptions');
@@ -671,9 +654,10 @@ function statusIconSvg(string $iconId, int $size = 14): string
         filterBtns.forEach(b => b.classList.toggle('active', b.dataset.status === selected));
         updateStatusGuide(selected);
 
-        const activeBtn = [...filterBtns].find(b => b.dataset.status === selected);
-        const mobileFilterLabel = document.getElementById('mobileFilterLabel');
-        if (mobileFilterLabel && activeBtn) mobileFilterLabel.textContent = activeBtn.dataset.label;
+        [...filterBtns].find(b => b.dataset.status === selected)?.scrollIntoView({
+            block: 'nearest',
+            inline: 'center'
+        });
 
         const url = new URL(window.location);
         if (selected === 'all') {
@@ -692,14 +676,14 @@ function statusIconSvg(string $iconId, int $size = 14): string
         if (emptyMsg) emptyMsg.style.display = visibleCards.length === 0 ? 'block' : 'none';
     }
 
-    // ===== Mobile dropdown open/close (filter + sort share this behavior) =====
+    // ===== Mobile sort dropdown open/close =====
     function openDropdown(trigger, panel) {
         if (!trigger || !panel) return;
         const isOpen = panel.classList.toggle('active');
         trigger.classList.toggle('open', isOpen);
         trigger.setAttribute('aria-expanded', isOpen);
         if (isOpen) {
-            positionEdgeAwareDropdown(panel.closest('.filter-wrapper, .sort-wrapper'), panel);
+            positionEdgeAwareDropdown(panel.closest('.sort-wrapper'), panel);
         }
     }
 
@@ -710,22 +694,12 @@ function statusIconSvg(string $iconId, int $size = 14): string
         trigger.setAttribute('aria-expanded', 'false');
     }
 
-    mobileFilter?.addEventListener('click', e => {
-        e.stopPropagation();
-        closeDropdown(mobileSortTrigger, mobileSortOptions);
-        openDropdown(mobileFilter, statusFilters);
-    });
-
     mobileSortTrigger?.addEventListener('click', e => {
         e.stopPropagation();
-        closeDropdown(mobileFilter, statusFilters);
         openDropdown(mobileSortTrigger, mobileSortOptions);
     });
 
     document.addEventListener('click', e => {
-        if (!statusFilters?.contains(e.target) && !mobileFilter?.contains(e.target)) {
-            closeDropdown(mobileFilter, statusFilters);
-        }
         if (!mobileSortOptions?.contains(e.target) && !mobileSortTrigger?.contains(e.target)) {
             closeDropdown(mobileSortTrigger, mobileSortOptions);
         }
@@ -734,7 +708,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             applySubmissionsFilter(btn.dataset.status);
-            closeDropdown(mobileFilter, statusFilters);
         });
     });
 

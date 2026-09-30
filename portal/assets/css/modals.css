@@ -69,30 +69,54 @@
     padding-right: 30px;
 }
 
-.announcement-modal-close {
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--divider-color);
+}
+
+.modal-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--muted-text);
+    margin-bottom: .2rem;
+}
+
+.modal-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    line-height: 1.4;
+    min-width: 0;
+}
+
+.modal-close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    margin-top: 0;
+    background: transparent;
+    color: var(--muted-text);
+    box-shadow: none;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+    background: var(--divider-color-subtle);
+    color: var(--primary-text);
+}
+
+.announcement-modal-card>.modal-close,
+.welcome-modal-card>.modal-close {
     position: absolute;
     top: 12px;
     right: 12px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    background-color: var(--divider-color-subtle);
-    color: var(--secondary-text);
-    font-size: .9rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color 0.15s, color 0.15s;
-    margin-top: 0;
-}
-
-.announcement-modal-close:hover,
-.announcement-modal-close:focus-visible {
-    background-color: var(--hover-surface);
-    color: var(--primary-text);
 }
 
 .announcement-modal-image-wrap {
@@ -202,8 +226,9 @@
     border: none;
     background: rgba(0, 0, 0, 0.7);
     color: #fff;
-    font-size: 20px;
-    line-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     padding: 0;
     margin-top: 0;
@@ -252,15 +277,6 @@
 
 #reviewPaymentTitle {
     visibility: hidden;
-}
-
-.file-popup-close {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-    padding: 6px 10px;
 }
 
 .file-popup-frame {

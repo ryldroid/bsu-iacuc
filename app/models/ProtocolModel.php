@@ -341,7 +341,7 @@ class ProtocolModel extends Model
         return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
 
-    public function getReviewedPaidWithLatestFile(): array
+    public function getReviewedWithLatestFile(): array
     {
         $sql = "SELECT
                     p.id, p.reference_no, p.title AS research_title,
@@ -352,7 +352,7 @@ class ProtocolModel extends Model
                      ORDER BY pv.version_number DESC
                      LIMIT 1) AS file_path
                 FROM `protocols` p
-                WHERE p.status = 'Reviewed' AND p.payment_status = 'paid'
+                WHERE p.status = 'Reviewed'
                 ORDER BY p.reference_no ASC";
 
         $result = $this->connection->query($sql);

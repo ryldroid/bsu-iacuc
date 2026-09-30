@@ -259,7 +259,7 @@ $hideHeader     = $hideHeader     ?? false;
         </form>
       </div>
       <button type="button" class="verify-banner-close" id="verifyEmailBannerClose" aria-label="Dismiss">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
         </svg>
       </button>
@@ -269,8 +269,8 @@ $hideHeader     = $hideHeader     ?? false;
   <?php if ($user && !empty($user['show_welcome'])): ?>
     <div class="modal-backdrop open" id="welcomeModal">
       <div class="modal-card welcome-modal-card">
-        <button type="button" class="announcement-modal-close" id="welcomeModalClose" aria-label="Close">
-          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <button type="button" class="modal-close" id="welcomeModalClose" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#close-icon" />
           </svg>
         </button>

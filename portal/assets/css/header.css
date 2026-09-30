@@ -554,6 +554,21 @@ header nav a:hover::after {
         height: 24px;
     }
 
+    .header-auth .notif-bell svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .header-auth .theme-toggle-icon {
+        width: 29px;
+        height: 29px;
+    }
+
+    .header-auth .theme-toggle-icon {
+        width: 29px;
+        height: 29px;
+    }
+
     .active-link {
         background-color: var(--brand-tint-strong);
     }

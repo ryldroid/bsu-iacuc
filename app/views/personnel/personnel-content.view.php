@@ -257,9 +257,13 @@ $activeTab     = $activeTab     ?? 'announcements';
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="addAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="records-modal-header">
+    <div class="modal-header records-modal-header">
       <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
-      <button type="button" class="records-modal-close" data-close="addAnnouncementModal" aria-label="Close">✕</button>
+      <button type="button" class="modal-close" data-close="addAnnouncementModal" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#close-icon" />
+          </svg>
+      </button>
     </div>
     <div class="records-modal-body">
       <div class="alert error-messages" id="addAnnouncementError" hidden></div>
@@ -297,9 +301,13 @@ $activeTab     = $activeTab     ?? 'announcements';
 <!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="editAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="records-modal-header">
+    <div class="modal-header records-modal-header">
       <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>
-      <button type="button" class="records-modal-close" data-close="editAnnouncementModal" aria-label="Close">✕</button>
+      <button type="button" class="modal-close" data-close="editAnnouncementModal" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#close-icon" />
+          </svg>
+      </button>
     </div>
     <div class="records-modal-body">
       <div class="alert error-messages" id="editAnnouncementError" hidden></div>
@@ -343,9 +351,13 @@ $activeTab     = $activeTab     ?? 'announcements';
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
 <div class="modal-backdrop" id="officeModal" role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="records-modal-header">
+    <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
-      <button type="button" class="records-modal-close" data-close="officeModal" aria-label="Close">✕</button>
+      <button type="button" class="modal-close" data-close="officeModal" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#close-icon" />
+          </svg>
+      </button>
     </div>
     <div class="records-modal-body">
       <div class="alert error-messages" id="officeModalError" hidden></div>
@@ -399,9 +411,13 @@ $activeTab     = $activeTab     ?? 'announcements';
 <!-- ===== ADD / EDIT FAQ MODAL (shared) ===== -->
 <div class="modal-backdrop" id="faqModal" role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="records-modal-header">
+    <div class="modal-header records-modal-header">
       <h2 id="faqModalTitle">Add FAQ</h2>
-      <button type="button" class="records-modal-close" data-close="faqModal" aria-label="Close">✕</button>
+      <button type="button" class="modal-close" data-close="faqModal" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#close-icon" />
+          </svg>
+      </button>
     </div>
     <div class="records-modal-body">
       <div class="alert error-messages" id="faqModalError" hidden></div>

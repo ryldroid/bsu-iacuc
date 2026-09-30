@@ -117,8 +117,8 @@ include 'includes/header.php';
    confirmAction(
        'Leave this review and return to the dashboard? Your comments have been saved.',
        {
-           okText: 'Go Back',
-           cancelText: 'Stay Here'
+           okText: 'Leave',
+           cancelText: 'Cancel'
        }
    ).then(ok => {
        if (ok) window.location.href = this.href;
@@ -434,7 +434,11 @@ include 'includes/header.php';
         <div class="annot-item-header">
             <span class="annot-num" id="annotPopupNum"></span>
             <span class="annot-page" id="annotPopupPage"></span>
-            <button class="annot-popup-close" id="annotPopupClose" aria-label="Close">&times;</button>
+            <button class="annot-popup-close" id="annotPopupClose" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
         </div>
         <p class="annot-comment" id="annotPopupComment"></p>
         <p class="annot-date" id="annotPopupDate"></p>
@@ -474,16 +478,15 @@ include 'includes/header.php';
     <!-- ===== Finish Review decision modal ===== -->
     <div class="modal-backdrop" id="reviewDecisionBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label">Finish Review</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label">Finish Review</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn" onclick="closeReviewDecisionModal()" aria-label="Close">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeReviewDecisionModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
-                    Close
                 </button>
             </div>
             <div class="panel-modal-body">
@@ -506,16 +509,15 @@ include 'includes/header.php';
     <!-- ===== Return for Revision modal ===== -->
     <div class="modal-backdrop" id="returnRevisionBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label">Return for Revision</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label">Return for Revision</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn" onclick="closeReturnModal()" aria-label="Close">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeReturnModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
-                    Close
                 </button>
             </div>
             <div class="panel-modal-body">
@@ -560,16 +562,15 @@ include 'includes/header.php';
     <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
     <div class="modal-backdrop" id="reuploadModalBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label">Re-submit Protocol</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label">Re-submit Protocol</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn close-modal" onclick="closeReuploadModal()" aria-label="Close">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeReuploadModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
-                    <!-- Close -->
                 </button>
             </div>
             <div class="panel-modal-body">
@@ -600,13 +601,13 @@ include 'includes/header.php';
     <!-- ===== Rename protocol modal ===== -->
     <div class="modal-backdrop" id="renameModalBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label">Rename Protocol</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label">Rename Protocol</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn close-modal" onclick="closeRenameModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeRenameModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
                 </button>
@@ -636,13 +637,13 @@ include 'includes/header.php';
     <!-- ===== Delete / request deletion modal ===== -->
     <div class="modal-backdrop" id="deleteModalBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label"><?= $canDelete ? 'Delete Protocol' : 'Request Deletion' ?></p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label"><?= $canDelete ? 'Delete Protocol' : 'Request Deletion' ?></p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn close-modal" onclick="closeDeleteModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeDeleteModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
                 </button>
@@ -754,13 +755,13 @@ include 'includes/header.php';
     <!-- ===== Approve / reject deletion request modal ===== -->
     <div class="modal-backdrop" id="deletionReviewModalBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-label" id="deletionReviewLabel">Deletion Requested</p>
-                    <p class="panel-modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-label" id="deletionReviewLabel">Deletion Requested</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <button class="tool-btn close-modal" onclick="closeDeletionReviewModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <button class="modal-close" onclick="closeDeletionReviewModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
                     </svg>
                 </button>
@@ -818,9 +819,9 @@ include 'includes/header.php';
     <!-- ===== Deletion request rejected modal ===== -->
     <div class="modal-backdrop" id="deletionRejectedModalBackdrop">
         <div class="modal-card panel-modal-card">
-            <div class="panel-modal-header">
+            <div class="modal-header">
                 <div>
-                    <p class="panel-modal-title">Deletion Request Rejected</p>
+                    <p class="modal-title">Deletion Request Rejected</p>
                 </div>
             </div>
             <div class="panel-modal-body">
@@ -838,11 +839,10 @@ include 'includes/header.php';
     <div class="modal-card file-popup-card">
         <div class="file-popup-header">
             <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="tool-btn" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
-                Close
             </button>
         </div>
         <div class="file-popup-frame" id="filePopupFrame">

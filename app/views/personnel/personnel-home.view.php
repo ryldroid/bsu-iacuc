@@ -111,7 +111,7 @@ foreach ($protocols as &$protocol) {
 }
 unset($protocol);
 
-// ===== Compute per-status counts for metric cards and filter pill badges =====
+// ===== Compute per-status counts for filter pill badges =====
 $countsBySlug = [];
 foreach ($protocols as $p) {
     $slug = $p['filter_slug'];
@@ -123,26 +123,20 @@ $toReviewCount  = $countsBySlug['to-review']             ?? 0;
 $revisionCount  = $countsBySlug['returned-for-revision'] ?? 0;
 $reviewedCount  = $countsBySlug['reviewed']              ?? 0;
 $endorsedCount  = $countsBySlug['endorsed']              ?? 0;
-$approvedCount  = $countsBySlug['approved']              ?? 0;
 
-$approvedThisMonth = 0;
-$currentMonth = date('Y-m');
-foreach ($protocols as $p) {
-    if ($p['filter_slug'] === 'approved' && str_starts_with($p['submitted_at'], $currentMonth)) {
-        $approvedThisMonth++;
-    }
-}
+$paymentLabels = [
+    'unpaid'          => 'Unpaid',
+    'proof_submitted' => 'Awaiting Confirmation',
+    'rejected'        => 'Payment Rejected',
+    'paid'            => 'Paid',
+];
 
-// ===== Count reviewed + paid protocols with a file to download, so the =====
-// "Download All Paid" button can stay hidden when there's nothing to zip.
-$reviewedPaidCount = 0;
+// ===== Count reviewed protocols with a file to download, so the =====
+// payment filter and "Select Protocols" button can stay hidden when there's nothing to select.
+$reviewedDownloadableCount = 0;
 foreach ($protocols as $p) {
-    if (
-        $p['filter_slug'] === 'reviewed'
-        && ($p['payment_status'] ?? 'unpaid') === 'paid'
-        && !empty($p['latest_protocol_version_id'])
-    ) {
-        $reviewedPaidCount++;
+    if ($p['filter_slug'] === 'reviewed' && !empty($p['latest_protocol_version_id'])) {
+        $reviewedDownloadableCount++;
     }
 }
 
@@ -152,17 +146,6 @@ $endorsedNeedingClearanceCount = 0;
 foreach ($protocols as $p) {
     if ($p['filter_slug'] === 'endorsed' && empty($p['latest_clearance_version_id'])) {
         $endorsedNeedingClearanceCount++;
-    }
-}
-
-$endorseEligibleCount = 0;
-foreach ($protocols as $p) {
-    if (
-        $p['filter_slug'] === 'reviewed'
-        && ($p['payment_status'] ?? 'unpaid') === 'paid'
-        && !empty($p['latest_signed_scan_version_id'])
-    ) {
-        $endorseEligibleCount++;
     }
 }
 
@@ -214,7 +197,9 @@ foreach ($protocols as $p) {
                     <input type="text" id="inboxSearchInput" class="inbox-search-input"
                         placeholder="Search by title or researcher..." autocomplete="off">
                     <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
-                        &#x2715;
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#close-icon" />
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -236,26 +221,6 @@ foreach ($protocols as $p) {
                 </div>
                 <?php unset($_SESSION['flash_error']); ?>
             <?php endif; ?>
-
-            <!-- ===== Metric cards ===== -->
-            <div class="metrics-row dashboard-metrics">
-                <div class="metric-card">
-                    <span class="metric-card-value"><?= $toReviewCount ?></span>
-                    <span class="metric-card-label">to review</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-card-value"><?= $revisionCount ?></span>
-                    <span class="metric-card-label">awaiting revision</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-card-value"><?= $reviewedCount ?></span>
-                    <span class="metric-card-label">reviewed</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-card-value"><?= $approvedThisMonth ?></span>
-                    <span class="metric-card-label">approved this month</span>
-                </div>
-            </div>
 
             <?php if (empty($protocols)): ?>
                 <!-- ===== Empty state ===== -->
@@ -279,23 +244,9 @@ foreach ($protocols as $p) {
                 <!-- ===== Status filter tabs ===== -->
                 <div class="dashboard-filter-row">
                     <div class="filter-wrapper">
-                        <p class="sort-filter-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#filter-icon" />
-                            </svg>
-                            Status:
-                        </p>
-
-                        <button type="button" class="mobile-status-filters dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                            <span id="mobileFilterLabel" class="mobile-filter-label">To review</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </button>
-
                         <div class="status-filters" id="filterPillsRow">
                             <button class="status-card" data-filter="all" data-label="All">
-                                <p>All <span class="status-count"><?= $totalCount ?></span></p>
+                                <p>All</p>
                             </button>
                             <button class="status-card active" data-filter="to-review" data-label="To review">
                                 <p>To review <span class="status-count"><?= $toReviewCount ?></span></p>
@@ -310,7 +261,7 @@ foreach ($protocols as $p) {
                                 <p>Endorsed <span class="status-count"><?= $endorsedCount ?></span></p>
                             </button>
                             <button class="status-card" data-filter="approved" data-label="Approved">
-                                <p>Approved <span class="status-count"><?= $approvedCount ?></span></p>
+                                <p>Approved</p>
                             </button>
                         </div>
                     </div>
@@ -398,13 +349,22 @@ foreach ($protocols as $p) {
                 <?php if (($user['role'] ?? '') === 'staff'): ?>
                     <!-- ===== Bulk actions: apply to every matching protocol in the current tab, not just one row ===== -->
                     <div class="bulk-actions-bar" id="bulkActionsBar" hidden>
-                        <a class="row-btn row-btn-primary" id="downloadAllPaidBtn" hidden
-                            href="<?= ROOT ?>/apply/download_all_paid" title="Download the latest protocol PDF for every reviewed, paid protocol">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#download-icon" />
-                            </svg>
-                            Download All Paid
-                        </a>
+                        <div id="paymentFilterWrapper" hidden>
+                            <div class="dashboard-field-group">
+                                <label class="sort-filter-label" for="paymentFilterSelect">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#filter-icon" />
+                                    </svg>
+                                    Payment:
+                                </label>
+                                <select id="paymentFilterSelect" class="dashboard-select-trigger">
+                                    <option value="">All payments</option>
+                                    <?php foreach ($paymentLabels as $paymentValue => $paymentLabel): ?>
+                                        <option value="<?= $paymentValue ?>"><?= $paymentLabel ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
 
                         <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
                             href="<?= ROOT ?>/personnel/clearances" title="Sort and attach uploaded clearances for every endorsed protocol"
@@ -416,17 +376,23 @@ foreach ($protocols as $p) {
                         </a>
 
                         <button type="button" class="row-btn row-btn-outline" id="toggleSelectBtn" hidden
-                            title="Select multiple reviewed protocols to endorse at once">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            title="Select protocols to download or endorse at once">
+                            <svg id="toggleSelectBtnIcon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#checkbox-icon" />
                             </svg>
-                            <span id="toggleSelectBtnLabel">Select Paid Protocols</span>
+                            <span id="toggleSelectBtnLabel">Select Protocols</span>
                         </button>
 
                         <div class="bulk-select-controls" id="bulkSelectControls" hidden>
                             <span class="bulk-select-count" id="bulkSelectCount">0 selected</span>
                             <button type="button" class="row-btn row-btn-outline" id="selectAllBtn">
                                 Select All
+                            </button>
+                            <button type="button" class="row-btn row-btn-primary" id="bulkDownloadBtn" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#download-icon" />
+                                </svg>
+                                Download Selected
                             </button>
                             <button type="button" class="row-btn row-btn-primary" id="bulkEndorseBtn" disabled>
                                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -464,12 +430,6 @@ foreach ($protocols as $p) {
                         'back'     => '#back-icon',
                         'reject'   => '#close-icon',
                         'undo'     => '#back-icon',
-                    ];
-                    $paymentLabels = [
-                        'unpaid'         => 'Unpaid',
-                        'proof_submitted' => 'Awaiting Confirmation',
-                        'rejected'       => 'Payment Rejected',
-                        'paid'           => 'Paid',
                     ];
                     ?>
 
@@ -729,19 +689,20 @@ foreach ($protocols as $p) {
                             }
                         }
                     ?>
-                        <?php $canEndorse = $userRole === 'staff' && $statusLower === 'reviewed' && $paymentStatus === 'paid' && $hasSignedScan; ?>
                         <div class="protocol"
                             data-protocol-id="<?= $protocolId ?>"
                             data-filter-slug="<?= $filterSlug ?>"
+                            data-payment="<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>"
                             data-researcher="<?= strtolower(htmlspecialchars($protocol['first_name'] . ' ' . $protocol['last_name'], ENT_QUOTES, 'UTF-8')) ?>"
                             data-submitted="<?= htmlspecialchars(date('c', strtotime($protocol['submitted_at'])), ENT_QUOTES, 'UTF-8') ?>"
                             data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
                             <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
-                                <label class="protocol-select-label" title="<?= $canEndorse ? 'Select this protocol' : 'Not eligible for endorsement yet' ?>">
+                                <label class="protocol-select-label" title="Select this protocol">
                                     <input type="checkbox" class="consent-checkbox protocol-select-checkbox"
-                                        aria-label="Select protocol for bulk endorsement"
-                                        <?= $canEndorse ? '' : 'disabled' ?>>
+                                        aria-label="Select protocol"
+                                        <?= $protocol['can_endorse'] ? 'data-can-endorse' : '' ?>
+                                        <?= empty($protocol['latest_protocol_version_id']) ? 'disabled' : '' ?>>
                                 </label>
                             <?php endif; ?>
 
@@ -988,7 +949,11 @@ foreach ($protocols as $p) {
     <!-- Image zoom lightbox -->
     <div class="modal-backdrop clearance-zoom-backdrop" id="clearanceZoomBackdrop">
         <div class="clearance-zoom-card">
-            <button type="button" class="clearance-zoom-close" onclick="closeZoom()" title="Close">&times;</button>
+            <button type="button" class="image-zoom-close" onclick="closeZoom()" title="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
             <img id="clearanceZoomImg" src="" alt="">
             <p class="clearance-zoom-caption" id="clearanceZoomCaption"></p>
         </div>
@@ -1010,15 +975,13 @@ foreach ($protocols as $p) {
 
     // ===== Status metadata (mirrors My Protocols) =====
     const statusMeta = <?= json_encode($statusMeta) ?>;
-    const REVIEWED_PAID_COUNT = <?= (int) $reviewedPaidCount ?>;
+    const REVIEWED_DOWNLOADABLE_COUNT = <?= (int) $reviewedDownloadableCount ?>;
     const ENDORSED_NEEDING_CLEARANCE_COUNT = <?= (int) $endorsedNeedingClearanceCount ?>;
 
     // ===== DOM refs =====
     const protocolsList = document.getElementById('protocolsList');
     const noResultsMsg = document.getElementById('noResultsMsg');
     const filterPills = document.querySelectorAll('#filterPillsRow .status-card');
-    const mobileFilter = document.querySelector('.mobile-status-filters');
-    const statusFiltersEl = document.getElementById('filterPillsRow');
     const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
     const mobileSortOptions = document.getElementById('mobileSortOptions');
     const mobileSortLabel = document.getElementById('mobileSortLabel');
@@ -1028,16 +991,19 @@ foreach ($protocols as $p) {
     const paginationBtns = document.getElementById('paginationButtons');
     const rowsPerPageSel = document.getElementById('rowsPerPageSelect');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
-    const downloadAllPaidBtn = document.getElementById('downloadAllPaidBtn');
+    const paymentFilterWrapper = document.getElementById('paymentFilterWrapper');
+    const paymentFilterSelect = document.getElementById('paymentFilterSelect');
     const goToClearancePoolBtn = document.getElementById('goToClearancePoolBtn');
     const toggleSelectBtn = document.getElementById('toggleSelectBtn');
     const toggleSelectBtnLabel = document.getElementById('toggleSelectBtnLabel');
+    const toggleSelectBtnIcon = document.getElementById('toggleSelectBtnIcon');
+    const VISIBLE_SELECTABLE = '.protocol:not(.protocol-row-hidden) .protocol-select-checkbox:not(:disabled)';
     const bulkSelectControls = document.getElementById('bulkSelectControls');
     const bulkSelectCount = document.getElementById('bulkSelectCount');
     const selectAllBtn = document.getElementById('selectAllBtn');
+    const bulkDownloadBtn = document.getElementById('bulkDownloadBtn');
     const bulkEndorseBtn = document.getElementById('bulkEndorseBtn');
     const sortSelect = document.getElementById('inboxSortSelect');
-    const ENDORSE_ELIGIBLE_COUNT = <?= (int) $endorseEligibleCount ?>;
 
     const allRows = protocolsList ? [...protocolsList.querySelectorAll('.protocol')] : [];
 
@@ -1054,24 +1020,27 @@ foreach ($protocols as $p) {
         renderTable();
     });
 
-    // ===== Only show "Download All Paid" while viewing the Reviewed tab, and
+    // ===== Only show the payment filter and select button while viewing the Reviewed tab, and
     // "Go to Clearance Pool" while viewing the Endorsed tab; hide the whole
-    // bar when neither button has anything to do =====
+    // bar when none of them has anything to do =====
     function updateBulkActionsBarVisibility() {
-        if (downloadAllPaidBtn) {
-            downloadAllPaidBtn.hidden = activeFilter !== 'reviewed' || REVIEWED_PAID_COUNT === 0;
+        const canSelect = activeFilter === 'reviewed' && REVIEWED_DOWNLOADABLE_COUNT > 0;
+
+        if (paymentFilterWrapper) {
+            paymentFilterWrapper.hidden = !canSelect;
+            if (!canSelect) paymentFilterSelect.value = '';
         }
         if (goToClearancePoolBtn) {
             goToClearancePoolBtn.hidden = activeFilter !== 'endorsed' || ENDORSED_NEEDING_CLEARANCE_COUNT === 0;
         }
         if (toggleSelectBtn) {
-            toggleSelectBtn.hidden = activeFilter !== 'reviewed' || ENDORSE_ELIGIBLE_COUNT === 0;
+            toggleSelectBtn.hidden = !canSelect;
             if (toggleSelectBtn.hidden) {
                 exitSelectionMode();
             }
         }
         if (bulkActionsBar) {
-            bulkActionsBar.hidden = (downloadAllPaidBtn?.hidden ?? true) &&
+            bulkActionsBar.hidden = (paymentFilterWrapper?.hidden ?? true) &&
                 (goToClearancePoolBtn?.hidden ?? true) &&
                 (toggleSelectBtn?.hidden ?? true);
         }
@@ -1080,20 +1049,24 @@ foreach ($protocols as $p) {
     function exitSelectionMode() {
         protocolsList?.classList.remove('selection-mode');
         if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = 'Select Protocols';
+        if (toggleSelectBtnIcon) toggleSelectBtnIcon.hidden = false;
         if (bulkSelectControls) bulkSelectControls.hidden = true;
         protocolsList?.querySelectorAll('.protocol-select-checkbox').forEach(cb => cb.checked = false);
         updateBulkSelectUI();
     }
 
     function updateBulkSelectUI() {
-        const checkboxes = [...(protocolsList?.querySelectorAll('.protocol-select-checkbox:not(:disabled)') ?? [])];
+        const checkboxes = [...(protocolsList?.querySelectorAll(VISIBLE_SELECTABLE) ?? [])];
         const selected = checkboxes.filter(cb => cb.checked);
 
         if (bulkSelectCount) {
             bulkSelectCount.textContent = `${selected.length} selected`;
         }
+        if (bulkDownloadBtn) {
+            bulkDownloadBtn.disabled = selected.length === 0;
+        }
         if (bulkEndorseBtn) {
-            bulkEndorseBtn.disabled = selected.length === 0;
+            bulkEndorseBtn.disabled = !selected.some(cb => cb.hasAttribute('data-can-endorse'));
         }
         if (selectAllBtn) {
             selectAllBtn.textContent = (checkboxes.length > 0 && selected.length === checkboxes.length) ?
@@ -1104,7 +1077,8 @@ foreach ($protocols as $p) {
 
     toggleSelectBtn?.addEventListener('click', () => {
         const active = protocolsList.classList.toggle('selection-mode');
-        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select Paid Protocols';
+        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select Protocols';
+        if (toggleSelectBtnIcon) toggleSelectBtnIcon.hidden = active;
         if (bulkSelectControls) bulkSelectControls.hidden = !active;
         if (!active) {
             protocolsList.querySelectorAll('.protocol-select-checkbox').forEach(cb => cb.checked = false);
@@ -1118,21 +1092,36 @@ foreach ($protocols as $p) {
     });
 
     selectAllBtn?.addEventListener('click', () => {
-        const checkboxes = [...(protocolsList?.querySelectorAll('.protocol-select-checkbox:not(:disabled)') ?? [])];
+        const checkboxes = [...(protocolsList?.querySelectorAll(VISIBLE_SELECTABLE) ?? [])];
         const allSelected = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
         checkboxes.forEach(cb => cb.checked = !allSelected);
         updateBulkSelectUI();
     });
 
-    bulkEndorseBtn?.addEventListener('click', () => {
-        const protocolIds = [...(protocolsList?.querySelectorAll('.protocol-select-checkbox:checked') ?? [])]
+    function selectedProtocolIds(selector) {
+        return [...(protocolsList?.querySelectorAll(selector) ?? [])]
             .map(cb => parseInt(cb.closest('.protocol').dataset.protocolId, 10))
             .filter(Boolean);
+    }
+
+    bulkDownloadBtn?.addEventListener('click', () => {
+        const protocolIds = selectedProtocolIds('.protocol-select-checkbox:checked');
+        if (protocolIds.length === 0) return;
+        window.location.href = ROOT_URL + '/apply/download_selected?ids=' + protocolIds.join(',');
+    });
+
+    bulkEndorseBtn?.addEventListener('click', () => {
+        const protocolIds = selectedProtocolIds('.protocol-select-checkbox[data-can-endorse]:checked');
+        const skippedCount = selectedProtocolIds('.protocol-select-checkbox:checked').length - protocolIds.length;
 
         if (protocolIds.length === 0) return;
 
+        const skippedNote = skippedCount > 0 ?
+            ` ${skippedCount} selected protocol${skippedCount === 1 ? ' is' : 's are'} not paid with a signed scan and will be skipped.` :
+            '';
+
         confirmAction(
-            `Mark ${protocolIds.length} selected protocol${protocolIds.length === 1 ? '' : 's'} as endorsed? Double-check that payment is verified and the signed scans are correct before proceeding.`, {
+            `Mark ${protocolIds.length} selected protocol${protocolIds.length === 1 ? '' : 's'} as endorsed? Double-check that payment is verified and the signed scans are correct before proceeding.${skippedNote}`, {
                 okText: 'Mark as Endorsed',
                 cancelText: 'Cancel'
             }
@@ -1212,14 +1201,14 @@ foreach ($protocols as $p) {
         guide.classList.add('open');
     }
 
-    // ===== Mobile dropdown open/close (filter + sort share this behavior) =====
+    // ===== Mobile sort dropdown open/close =====
     function openDropdown(trigger, panel) {
         if (!trigger || !panel) return;
         const isOpen = panel.classList.toggle('active');
         trigger.classList.toggle('open', isOpen);
         trigger.setAttribute('aria-expanded', isOpen);
         if (isOpen) {
-            positionEdgeAwareDropdown(panel.closest('.filter-wrapper, .sort-wrapper'), panel);
+            positionEdgeAwareDropdown(panel.closest('.sort-wrapper'), panel);
         }
     }
 
@@ -1230,20 +1219,12 @@ foreach ($protocols as $p) {
         trigger.setAttribute('aria-expanded', 'false');
     }
 
-    mobileFilter?.addEventListener('click', e => {
-        e.stopPropagation();
-        openDropdown(mobileFilter, statusFiltersEl);
-    });
-
     mobileSortTrigger?.addEventListener('click', e => {
         e.stopPropagation();
         openDropdown(mobileSortTrigger, mobileSortOptions);
     });
 
     document.addEventListener('click', e => {
-        if (!statusFiltersEl?.contains(e.target) && !mobileFilter?.contains(e.target)) {
-            closeDropdown(mobileFilter, statusFiltersEl);
-        }
         if (!mobileSortOptions?.contains(e.target) && !mobileSortTrigger?.contains(e.target)) {
             closeDropdown(mobileSortTrigger, mobileSortOptions);
         }
@@ -1271,11 +1252,12 @@ foreach ($protocols as $p) {
             activeFilter = pill.dataset.filter;
             currentPage = 1;
 
-            const mobileFilterLabel = document.getElementById('mobileFilterLabel');
-            if (mobileFilterLabel) mobileFilterLabel.textContent = pill.dataset.label;
+            pill.scrollIntoView({
+                block: 'nearest',
+                inline: 'center'
+            });
 
             updateStatusGuide(activeFilter);
-            closeDropdown(mobileFilter, statusFiltersEl);
 
             const url = new URL(window.location);
             url.searchParams.set('status', activeFilter);
@@ -1283,6 +1265,12 @@ foreach ($protocols as $p) {
             updateBulkActionsBarVisibility();
             renderTable();
         });
+    });
+
+    // ===== Payment status filter =====
+    paymentFilterSelect?.addEventListener('change', () => {
+        currentPage = 1;
+        renderTable();
     });
 
     // ===== Search =====
@@ -1318,8 +1306,10 @@ foreach ($protocols as $p) {
                 filterPills.forEach(p => p.classList.remove('active'));
                 matchingPill.classList.add('active');
                 activeFilter = requestedStatus;
-                const mobileFilterLabel = document.getElementById('mobileFilterLabel');
-                if (mobileFilterLabel) mobileFilterLabel.textContent = matchingPill.dataset.label;
+                matchingPill.scrollIntoView({
+                    block: 'nearest',
+                    inline: 'center'
+                });
             }
         } else {
             const url = new URL(window.location);
@@ -1345,7 +1335,10 @@ foreach ($protocols as $p) {
                 title.includes(searchQuery) ||
                 researcher.includes(searchQuery);
 
-            return matchesFilter && matchesSearch;
+            const matchesPayment = !paymentFilterSelect?.value ||
+                row.dataset.payment === paymentFilterSelect.value;
+
+            return matchesFilter && matchesSearch && matchesPayment;
         });
 
         allRows.forEach(row => row.classList.add('protocol-row-hidden'));
@@ -1358,6 +1351,10 @@ foreach ($protocols as $p) {
         const pageRows = visibleRows.slice(startIndex, startIndex + rowsPerPage);
 
         pageRows.forEach(row => row.classList.remove('protocol-row-hidden'));
+
+        allRows.filter(row => row.classList.contains('protocol-row-hidden'))
+            .forEach(row => row.querySelectorAll('.protocol-select-checkbox').forEach(cb => cb.checked = false));
+        updateBulkSelectUI();
 
         if (noResultsMsg) {
             noResultsMsg.style.display = totalRows === 0 ? 'flex' : 'none';
@@ -1663,11 +1660,11 @@ foreach ($protocols as $p) {
 <!-- ===== History modal ===== -->
 <div class="modal-backdrop" id="historyModalBackdrop">
     <div class="modal-card history-modal-card">
-        <div class="history-modal-header">
+        <div class="modal-header">
             <div>
-                <p class="history-modal-label">Submission History</p>
+                <p class="modal-label">Submission History</p>
                 <div class="history-modal-title-row">
-                    <p class="history-modal-title" id="historyModalTitle"></p>
+                    <p class="modal-title" id="historyModalTitle"></p>
                     <button type="button" class="rename-history-toggle" id="renameHistoryToggle" hidden
                         aria-expanded="false" aria-controls="renameHistoryPanel" aria-label="Show rename history">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1677,7 +1674,7 @@ foreach ($protocols as $p) {
                 </div>
                 <div class="rename-history-panel" id="renameHistoryPanel" hidden></div>
             </div>
-            <button class="button history-modal-close" onclick="closeHistoryModal()" aria-label="Close">
+            <button class="modal-close" onclick="closeHistoryModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
@@ -1869,12 +1866,12 @@ foreach ($protocols as $p) {
 <!-- ===== Researcher details modal ===== -->
 <div class="modal-backdrop" id="researcherModalBackdrop">
     <div class="modal-card history-modal-card researcher-modal-card">
-        <div class="history-modal-header">
+        <div class="modal-header">
             <div>
-                <p class="history-modal-label">Researcher</p>
-                <p class="history-modal-title" id="researcherModalName"></p>
+                <p class="modal-label">Researcher</p>
+                <p class="modal-title" id="researcherModalName"></p>
             </div>
-            <button class="button history-modal-close" onclick="closeResearcherModal()" aria-label="Close">
+            <button class="modal-close" onclick="closeResearcherModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
@@ -1987,11 +1984,10 @@ foreach ($protocols as $p) {
     <div class="modal-card file-popup-card">
         <div class="file-popup-header">
             <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="button file-popup-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
-                Close
             </button>
         </div>
         <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
@@ -2151,11 +2147,10 @@ foreach ($protocols as $p) {
     <div class="modal-card file-popup-card review-payment-card">
         <div class="file-popup-header">
             <span class="file-popup-title" id="reviewPaymentTitle"></span>
-            <button class="button file-popup-close" type="button" onclick="closeReviewPaymentModal()" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <button class="modal-close" type="button" onclick="closeReviewPaymentModal()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
                 </svg>
-                Close
             </button>
         </div>
 
@@ -2461,34 +2456,93 @@ foreach ($protocols as $p) {
             }
             renderTray();
             renderProtocols();
+            applySelection();
             renderConfirmed();
             updateConfirmButton();
         }
 
+        // Selecting a screenshot only toggles classes. Re-rendering the grids would rebuild every
+        // <img> and make the thumbnails flash and reload on each tap.
         function toggleSelectThumb(poolId) {
             poolId = Number(poolId);
             selectedPoolId = selectedPoolId === poolId ? null : poolId;
-            renderTray();
-            renderProtocols();
+            applySelection();
+        }
+
+        function applySelection() {
+            document.querySelectorAll('#trayGrid .clearance-thumb').forEach(el => {
+                el.classList.toggle('is-selected', selectedPoolId !== null && Number(el.dataset.poolId) === selectedPoolId);
+            });
+            document.querySelectorAll('#protocolGrid .clearance-protocol-card').forEach(el => {
+                el.classList.toggle('is-target', selectedPoolId !== null && el.dataset.canReceive === '1');
+            });
+        }
+
+        // Keyed list update: an entry whose markup is unchanged keeps its existing DOM node (and loaded
+        // image); only new, changed, or removed entries touch the DOM.
+        const listCaches = new Map();
+
+        function reconcileList(container, entries, emptyHtml) {
+            let cache = listCaches.get(container.id);
+            if (!cache) {
+                cache = new Map();
+                listCaches.set(container.id, cache);
+            }
+
+            if (!entries.length) {
+                cache.clear();
+                container.innerHTML = emptyHtml;
+                return;
+            }
+
+            container.querySelectorAll(':scope > .clearance-empty').forEach(el => el.remove());
+
+            const seen = new Set();
+            let prev = null;
+            entries.forEach(({
+                key,
+                html
+            }) => {
+                seen.add(key);
+                let rec = cache.get(key);
+                if (!rec || rec.html !== html) {
+                    const tpl = document.createElement('template');
+                    tpl.innerHTML = html.trim();
+                    const el = tpl.content.firstElementChild;
+                    if (rec) rec.el.replaceWith(el);
+                    rec = {
+                        el,
+                        html
+                    };
+                    cache.set(key, rec);
+                }
+                const expected = prev ? prev.nextElementSibling : container.firstElementChild;
+                if (rec.el !== expected) container.insertBefore(rec.el, expected);
+                prev = rec.el;
+            });
+
+            cache.forEach((rec, key) => {
+                if (!seen.has(key)) {
+                    rec.el.remove();
+                    cache.delete(key);
+                }
+            });
         }
 
         function renderTray() {
             const grid = document.getElementById('trayGrid');
             const items = boardData.unassigned || [];
 
-            if (!items.length) {
-                grid.innerHTML = '<p class="helper clearance-empty">No unsorted screenshots.</p>';
-                return;
-            }
-
-            grid.innerHTML = items.map(item => `
-            <div class="clearance-thumb${selectedPoolId === Number(item.id) ? ' is-selected' : ''}" draggable="true" data-pool-id="${item.id}"
+            reconcileList(grid, items.map(item => ({
+                key: item.id,
+                html: `
+            <div class="clearance-thumb" draggable="true" data-pool-id="${item.id}"
                 ondragstart="onDragStart(event, ${item.id})"
                 onclick="toggleSelectThumb(${item.id})">
                 ${thumbHtml(item)}
                 <span class="clearance-thumb-name">${escapeHtml(item.original_name)}</span>
-            </div>
-        `).join('');
+            </div>`
+            })), '<p class="helper clearance-empty">No unsorted screenshots.</p>');
         }
 
         function stagedFor(protocolId) {
@@ -2499,23 +2553,21 @@ foreach ($protocols as $p) {
             const grid = document.getElementById('protocolGrid');
             const items = boardData.endorsed_protocols || [];
 
-            if (!items.length) {
-                grid.innerHTML = '<p class="helper clearance-empty">No endorsed protocols waiting on a clearance.</p>';
-                return;
-            }
-
-            grid.innerHTML = items.map(p => {
+            reconcileList(grid, items.map(p => {
                 const staged = stagedFor(p.protocol_id);
                 const already = p.latest_clearance_version_id && !staged;
                 const hasIpn = !!p.reference_no;
-                const isTarget = selectedPoolId !== null && !already && hasIpn;
+                const canReceive = !already && hasIpn;
                 const dragHandlers = hasIpn ?
                     `ondragover="event.preventDefault()" ondrop="onDrop(event, ${p.protocol_id})"` :
                     '';
 
-                return `
-            <div class="clearance-protocol-card${staged ? ' has-staged' : ''}${isTarget ? ' is-target' : ''}${!hasIpn ? ' no-ipn' : ''}"
+                return {
+                    key: p.protocol_id,
+                    html: `
+            <div class="clearance-protocol-card${staged ? ' has-staged' : ''}${!hasIpn ? ' no-ipn' : ''}"
                 data-protocol-id="${p.protocol_id}"
+                data-can-receive="${canReceive ? '1' : '0'}"
                 ${dragHandlers}
                 onclick="onCardTap(${p.protocol_id}, ${hasIpn})">
                 <div class="clearance-protocol-info">
@@ -2531,8 +2583,8 @@ foreach ($protocols as $p) {
                     ${staged ? `
                         <div class="clearance-thumb clearance-thumb--staged">
                             ${thumbHtml(staged, { allowDelete: false })}
-                            <button type="button" class="clearance-unstage-btn" title="Remove"
-                                onclick="event.stopPropagation(); unstage(${staged.id})">&times;</button>
+                            <button type="button" class="clearance-unstage-btn" title="Remove" aria-label="Remove"
+                                onclick="event.stopPropagation(); unstage(${staged.id})"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg></button>
                         </div>
                     ` : already ? `
                         <span class="helper">Already has a clearance on file.</span>
@@ -2542,8 +2594,9 @@ foreach ($protocols as $p) {
                         <span class="helper clearance-drop-hint">Drop a screenshot here, or tap it after selecting one</span>
                     `}
                 </div>
-            </div>`;
-            }).join('');
+            </div>`
+                };
+            }), '<p class="helper clearance-empty">No endorsed protocols waiting on a clearance.</p>');
         }
 
         function renderConfirmed() {
@@ -2586,6 +2639,7 @@ foreach ($protocols as $p) {
             if (!hasIpn || selectedPoolId === null) return;
             const poolId = selectedPoolId;
             selectedPoolId = null;
+            applySelection();
             stageItem(poolId, protocolId);
         }
 
@@ -2693,12 +2747,12 @@ foreach ($protocols as $p) {
             document.getElementById('ipnModalTitle').textContent = currentValue ? 'Edit IPN' : 'Add IPN';
             document.getElementById('ipnModalInput').value = currentValue || '';
             document.getElementById('ipnModalError').hidden = true;
-            ipnModalBackdrop.classList.add('active');
+            ipnModalBackdrop.classList.add('open');
             document.getElementById('ipnModalInput').focus();
         }
 
         function closeIpnModal() {
-            ipnModalBackdrop.classList.remove('active');
+            ipnModalBackdrop.classList.remove('open');
             ipnModalProtocolId = null;
         }
 
@@ -2757,11 +2811,11 @@ foreach ($protocols as $p) {
             if (staged.length === 0) return;
 
             document.getElementById('confirmReviewError').hidden = true;
-            confirmReviewBackdrop.classList.add('active');
+            confirmReviewBackdrop.classList.add('open');
         });
 
         function closeConfirmReview() {
-            confirmReviewBackdrop.classList.remove('active');
+            confirmReviewBackdrop.classList.remove('open');
         }
 
         confirmReviewBackdrop.addEventListener('click', e => {
@@ -2812,11 +2866,11 @@ foreach ($protocols as $p) {
             zoomImg.src = url;
             zoomImg.alt = caption;
             zoomCaption.textContent = caption;
-            zoomBackdrop.classList.add('active');
+            zoomBackdrop.classList.add('open');
         }
 
         function closeZoom() {
-            zoomBackdrop.classList.remove('active');
+            zoomBackdrop.classList.remove('open');
             zoomImg.src = '';
         }
 
@@ -2825,7 +2879,7 @@ foreach ($protocols as $p) {
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape' && zoomBackdrop.classList.contains('active')) closeZoom();
+            if (e.key === 'Escape' && zoomBackdrop.classList.contains('open')) closeZoom();
         });
     </script>
 <?php endif; ?>

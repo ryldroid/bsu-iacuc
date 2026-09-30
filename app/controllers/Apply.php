@@ -1088,9 +1088,9 @@ class Apply extends Controller
         $this->streamFile($filePath, $displayName, $forceDownload);
     }
 
-    // ===== DOWNLOAD ALL PAID  (GET /apply/download_all_paid) =====
+    // ===== DOWNLOAD SELECTED  (GET /apply/download_selected?ids=1,2,3) =====
 
-    public function download_all_paid(): void
+    public function download_selected(): void
     {
         $this->requireLogin();
 
@@ -1107,17 +1107,18 @@ class Apply extends Controller
             ]);
         }
 
-        $rows = (new ProtocolModel())->getReviewedPaidWithLatestFile();
-        $rows = array_filter($rows, fn($r) => !empty($r['file_path']));
+        $rows = (new ProtocolModel())->getReviewedWithLatestFile();
+        $ids  = array_map('intval', explode(',', (string) ($_GET['ids'] ?? '')));
+        $rows = array_filter($rows, fn($r) => !empty($r['file_path']) && in_array((int) $r['id'], $ids, true));
 
         if (empty($rows)) {
             $this->renderError(404, 'Nothing To Download', [
-                'There are no paid, reviewed protocols to download.',
+                'None of the selected protocols are reviewed.',
             ]);
         }
 
         $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
-        $zipPath = tempnam(sys_get_temp_dir(), 'reviewed_paid_') . '.zip';
+        $zipPath = tempnam(sys_get_temp_dir(), 'reviewed_') . '.zip';
 
         $zip = new ZipArchive();
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
@@ -1143,10 +1144,10 @@ class Apply extends Controller
         }
         $zip->close();
 
-        (new ProtocolModel())->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed & paid protocol(s) downloaded as ZIP');
+        (new ProtocolModel())->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed protocol(s) downloaded as ZIP');
 
         header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="reviewed_paid_protocols.zip"');
+        header('Content-Disposition: attachment; filename="reviewed_protocols.zip"');
         header('Content-Length: ' . filesize($zipPath));
         readfile($zipPath);
         unlink($zipPath);

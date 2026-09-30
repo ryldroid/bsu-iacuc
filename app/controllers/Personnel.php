@@ -54,6 +54,13 @@ class Personnel extends Controller
         $model     = new ProtocolModel();
         $protocols = $model->getAll();
 
+        foreach ($protocols as &$protocol) {
+            $protocol['can_endorse'] = $protocol['status'] === 'Reviewed'
+                && ($protocol['payment_status'] ?? 'unpaid') === 'paid'
+                && !empty($protocol['latest_signed_scan_version_id']);
+        }
+        unset($protocol);
+
         $statuses = ['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'];
 
         $activityTimestamps = array_column($protocols, 'last_activity_at');
@@ -149,6 +156,11 @@ class Personnel extends Controller
         $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
+        $periodPreset   = trim($_GET['period'] ?? '') ?: 'all';
+        $periodBasis    = trim($_GET['basis']  ?? '') ?: 'released';
+        $periodFrom     = trim($_GET['from']   ?? '');
+        $periodTo       = trim($_GET['to']     ?? '');
+        $period         = $model->resolvePeriod($periodPreset, $periodBasis, $periodFrom, $periodTo);
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
@@ -175,7 +187,12 @@ class Personnel extends Controller
             'animalTypes'     => $model->distinctValues('animal_type'),
             'sexes'         => $model->distinctValues('sex'),
             'researcherTypes' => $model->distinctValues('researcher_type'),
-            'stats'           => $model->stats(),
+            'stats'           => $model->stats($search, $school, $animalType, $sex, $researcherType, $period),
+            'period'          => $period,
+            'periodPreset'    => isset(RecordModel::PERIOD_PRESETS[$periodPreset]) ? $periodPreset : 'all',
+            'periodBasis'     => isset(RecordModel::PERIOD_BASES[$periodBasis]) ? $periodBasis : 'released',
+            'periodFrom'      => $period['from'] ?? $periodFrom,
+            'periodTo'        => $period['to'] ?? $periodTo,
             'flash_success'   => $_SESSION['flash_success'] ?? '',
             'flash_error'     => $_SESSION['flash_error']   ?? '',
         ]);
@@ -330,9 +347,15 @@ class Personnel extends Controller
         $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
+        $period         = $model->resolvePeriod(
+            trim($_GET['period'] ?? '') ?: 'all',
+            trim($_GET['basis']  ?? '') ?: 'released',
+            trim($_GET['from']   ?? ''),
+            trim($_GET['to']     ?? '')
+        );
 
-        $records = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, 1000000, 0);
-        $stats   = $model->stats($search, $school, $animalType, $sex, $researcherType);
+        $records = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, 1000000, 0, $period);
+        $stats   = $model->stats($search, $school, $animalType, $sex, $researcherType, $period);
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
@@ -344,6 +367,7 @@ class Personnel extends Controller
             'Animal Type'     => $animalType,
             'Researcher Sex'  => $sex,
             'Researcher Type' => $researcherType,
+            'Period'          => $period['label'] ?? '',
         ]);
 
         $recordsSheet = $spreadsheet->createSheet();
@@ -440,6 +464,10 @@ class Personnel extends Controller
                 ['Distinct Research Advisers', $stats['distinct_advisers']],
                 ['Ongoing Studies', $stats['ongoing_studies']],
                 ['Completed Studies', $stats['completed_studies']],
+                ['Active Clearances', $stats['active_clearances']],
+                ['Clearances Expiring Within 30 Days', $stats['expiring_soon']],
+                ['Expired Clearances', $stats['expired_clearances']],
+                ['Records Missing Details', $stats['incomplete_count']],
             ] as [$label, $value]
         ) {
             $sheet->setCellValue("A$row", $label);
@@ -452,6 +480,7 @@ class Personnel extends Controller
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by School', $stats['school_breakdown'], 'School');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Research Adviser', $stats['adviser_breakdown'], 'Research Adviser');
 
         $sheet->setCellValue("A$row", 'Records Processed by Month (This Quarter)');
         $sheet->getStyle("A$row")->getFont()->setBold(true);
@@ -1305,7 +1334,7 @@ class Personnel extends Controller
         $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $this->verifyCsrfToken();
@@ -1333,7 +1362,7 @@ class Personnel extends Controller
         $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $this->verifyCsrfToken();
@@ -1365,7 +1394,7 @@ class Personnel extends Controller
         }
 
         $_SESSION['flash_success'] = 'Account approved.';
-        $this->redirect('personnel/accounts');
+        $this->redirect('personnel/accounts?tab=accounts');
     }
 
     public function reject(): void
@@ -1373,7 +1402,7 @@ class Personnel extends Controller
         $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $this->verifyCsrfToken();
@@ -1392,7 +1421,7 @@ class Personnel extends Controller
         }
 
         $_SESSION['flash_success'] = 'Account rejected and removed.';
-        $this->redirect('personnel/accounts');
+        $this->redirect('personnel/accounts?tab=accounts');
     }
 
     public function update_role(): void
@@ -1400,7 +1429,7 @@ class Personnel extends Controller
         $this->requirePersonnel();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $this->verifyCsrfToken();
@@ -1412,19 +1441,19 @@ class Personnel extends Controller
 
         if ($id === $actor['id']) {
             $_SESSION['flash_error'] = 'You cannot change your own role.';
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         if (!in_array($role, ['staff', 'reviewer'], true)) {
             $_SESSION['flash_error'] = 'Invalid role selected.';
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $actorRecord = $this->model->getUser($actor['id']);
         if (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
             $this->model->logAudit('user_role_change_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting a role change');
             $_SESSION['flash_error'] = 'Incorrect password. Role not changed.';
-            $this->redirect('personnel/accounts');
+            $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $target = $this->model->getUser($id);
@@ -1436,7 +1465,7 @@ class Personnel extends Controller
             $_SESSION['flash_error'] = 'Personnel account not found.';
         }
 
-        $this->redirect('personnel/accounts');
+        $this->redirect('personnel/accounts?tab=accounts');
     }
 
     public function forgot_password(): void

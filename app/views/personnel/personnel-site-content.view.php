@@ -117,9 +117,13 @@ $offices  = $offices  ?? [];
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
 <div class="modal-backdrop" id="officeModal" role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="records-modal-header">
+    <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
-      <button type="button" class="records-modal-close" data-close="officeModal" aria-label="Close">✕</button>
+      <button type="button" class="modal-close" data-close="officeModal" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#close-icon" />
+          </svg>
+      </button>
     </div>
     <div class="records-modal-body">
       <div class="alert error-messages" id="officeModalError" hidden></div>

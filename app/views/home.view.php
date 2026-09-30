@@ -277,7 +277,11 @@ include "includes/scroll-top.php";
 
                     <div class="modal-backdrop" id="homeAnnouncementModal" role="dialog" aria-modal="true">
                         <div class="modal-card announcement-modal-card">
-                            <button type="button" class="announcement-modal-close" id="homeAnnouncementModalClose" aria-label="Close">✕</button>
+                            <button type="button" class="modal-close" id="homeAnnouncementModalClose" aria-label="Close">
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#close-icon" />
+                                </svg>
+                            </button>
                             <div id="homeAnnouncementModalBody"></div>
                         </div>
                     </div>

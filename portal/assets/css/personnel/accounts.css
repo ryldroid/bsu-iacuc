@@ -67,9 +67,9 @@
     max-width: 100%;
 }
 
-/* The Roles and Audit Logs tabs hold tables, not the narrow invite
-   form/pending-list cards, so they shouldn't be capped at 800px like
-   the Registration tab's cards are. */
+/* Cards inside the tabs span the full width. */
+.pending-section,
+.invite-section,
 .personnel-manage-section,
 .audit-viewer-section,
 .audit-section {
@@ -98,19 +98,13 @@
 }
 
 .invite-form select {
-    flex: 1;
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.8rem;
     border: 1px solid var(--input-border);
     border-radius: var(--radius);
     font-size: 0.9rem;
     background: var(--card-background);
     color: var(--primary-text);
-    width: 70%;
     margin-left: .3em;
-}
-
-.invite-form .form-section {
-    flex: 1;
 }
 
 .invite-form select:focus {

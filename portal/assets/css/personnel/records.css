@@ -87,111 +87,61 @@
   color: var(--brand-color);
 }
 
-.records-pie-card .metric-card-label {
-  margin-bottom: 12px;
-}
-
-.records-pie-body {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.records-pie-chart {
-  flex-shrink: 0;
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--divider-color);
-}
-
-.records-pie-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: .76em;
-  font-weight: 500;
-  color: var(--brand-text);
-  min-width: 0;
-}
-
-.records-pie-legend li {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
-  column-gap: 6px;
-  row-gap: 2px;
-}
-
-.records-pie-label {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.records-pie-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-
-.records-pie-pct {
-  color: var(--muted-text);
-  white-space: nowrap;
-}
-
-.records-pie-empty {
-  font-size: .8em;
+/* ===== Statistics: KPI card extras ===== */
+.records-stat-hint {
+  margin-top: 2px;
+  font-size: .74em;
   color: var(--muted-text);
 }
 
-.records-stats-section {
-  margin-top: 4px;
+.records-stat-card--warn .records-stat-icon {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
 }
 
-.records-stats-toggle {
-  display: inline-flex;
+.records-stat-card--warn .metric-card-value {
+  color: var(--status-warning-text);
+}
+
+/* ===== Statistics: notices ===== */
+.records-data-note,
+.records-filter-note {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
-  padding: 8px 14px;
-  font-size: .82em;
-  font-weight: 700;
-  letter-spacing: .02em;
-  font-family: var(--font-body);
-  color: var(--brand-text);
-  background: var(--card-background);
-  border: 1px solid var(--divider-color);
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
   border-radius: var(--btn-radius);
-  box-shadow: none;
-  cursor: pointer;
+  font-size: .82em;
+  line-height: 1.4;
 }
 
-.records-stats-toggle:hover {
-  background: var(--divider-color-subtle);
-  border-color: var(--brand-color-hover);
+.records-data-note {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.records-data-note svg {
+  flex-shrink: 0;
+}
+
+.records-filter-note {
+  margin: 0 0 14px;
+  background: var(--brand-surface-tint);
+  color: var(--brand-text);
+  flex-wrap: wrap;
+}
+
+.records-filter-note a {
+  margin-left: auto;
+  font-weight: 600;
   color: var(--brand-text);
 }
 
-.records-stats-toggle svg {
-  transition: transform .2s ease;
-}
-
-.records-stats-toggle[aria-expanded="true"] svg {
-  transform: rotate(180deg);
-}
-
-.records-stats-panel[hidden] {
-  display: none;
-}
-
+/* ===== Statistics: chart cards ===== */
 .records-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -207,7 +157,16 @@
 
 .records-bar-card .metric-card-label,
 .records-trend-card .metric-card-label {
-  margin-bottom: 14px;
+  margin-bottom: 0;
+  font-size: .82em;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.records-card-hint {
+  margin: 2px 0 14px;
+  font-size: .74em;
+  color: var(--muted-text);
 }
 
 .records-bar-chart {
@@ -221,7 +180,7 @@
 
 .records-bar-row {
   display: grid;
-  grid-template-columns: 130px 1fr 44px;
+  grid-template-columns: minmax(90px, 38%) 1fr auto;
   align-items: center;
   gap: 10px;
   font-size: .82em;
@@ -229,9 +188,8 @@
 
 .records-bar-label {
   color: var(--secondary-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 
 .records-bar-track {
@@ -251,22 +209,263 @@
   border-radius: 4px;
 }
 
+.records-bar-fill--ok {
+  background: var(--brand-color-hover);
+}
+
+.records-bar-fill--warn {
+  background: var(--status-warning-text);
+}
+
+.records-bar-fill--danger {
+  background: var(--status-danger-text);
+}
+
+.records-bar-fill--muted {
+  background: var(--muted-text);
+}
+
 .records-bar-count {
+  min-width: 64px;
   text-align: right;
+  color: var(--primary-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.records-bar-count small {
+  margin-left: 4px;
+  font-weight: 500;
   color: var(--muted-text);
+}
+
+.records-card-empty {
+  font-size: .8em;
+  color: var(--muted-text);
+}
+
+/* ===== Statistics: donut charts ===== */
+.records-charts-grid {
+  --chart-1: #2f6f4e;
+  --chart-2: #5b9c78;
+  --chart-3: #8bc4a3;
+  --chart-4: #c9a227;
+  --chart-5: #b5651d;
+  --chart-6: #6d597a;
+  --chart-7: #457b9d;
+  --chart-8: #9d9d9d;
+  --chart-ok: var(--brand-color-hover);
+  --chart-warn: var(--status-warning-text);
+  --chart-danger: var(--status-danger-text);
+  --chart-muted: var(--muted-text);
+}
+
+.records-donut-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.records-donut {
+  position: relative;
+  flex-shrink: 0;
+  width: 132px;
+  height: 132px;
+}
+
+.records-donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.records-donut-ring,
+.records-donut-seg {
+  fill: none;
+  stroke-width: 6;
+}
+
+.records-donut-ring {
+  stroke: var(--divider-color-subtle);
+}
+
+.records-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  pointer-events: none;
+}
+
+.records-donut-center strong {
+  font-size: 1.5em;
+  color: var(--primary-text);
+}
+
+.records-donut-center span {
+  font-size: .68em;
+  color: var(--muted-text);
+}
+
+.records-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: .82em;
+}
+
+.records-legend li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  column-gap: 8px;
+}
+
+.records-legend-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+}
+
+.records-legend-label {
+  color: var(--secondary-text);
+  overflow-wrap: anywhere;
+}
+
+.records-legend-value {
+  color: var(--primary-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.records-legend-value small {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--muted-text);
+}
+
+/* Segment and legend colors, shared by the donut ring and its legend dots */
+.records-donut-seg--1 {
+  stroke: var(--chart-1);
+  background: var(--chart-1);
+}
+
+.records-donut-seg--2 {
+  stroke: var(--chart-2);
+  background: var(--chart-2);
+}
+
+.records-donut-seg--3 {
+  stroke: var(--chart-3);
+  background: var(--chart-3);
+}
+
+.records-donut-seg--4 {
+  stroke: var(--chart-4);
+  background: var(--chart-4);
+}
+
+.records-donut-seg--5 {
+  stroke: var(--chart-5);
+  background: var(--chart-5);
+}
+
+.records-donut-seg--6 {
+  stroke: var(--chart-6);
+  background: var(--chart-6);
+}
+
+.records-donut-seg--7 {
+  stroke: var(--chart-7);
+  background: var(--chart-7);
+}
+
+.records-donut-seg--8 {
+  stroke: var(--chart-8);
+  background: var(--chart-8);
+}
+
+.records-donut-seg--ok {
+  stroke: var(--chart-ok);
+  background: var(--chart-ok);
+}
+
+.records-donut-seg--warn {
+  stroke: var(--chart-warn);
+  background: var(--chart-warn);
+}
+
+.records-donut-seg--danger {
+  stroke: var(--chart-danger);
+  background: var(--chart-danger);
+}
+
+.records-donut-seg--muted {
+  stroke: var(--chart-muted);
+  background: var(--chart-muted);
+}
+
+[data-theme="dark"] .records-charts-grid {
+  --chart-1: #63c97d;
+  --chart-2: #4aa564;
+  --chart-3: #8bc4a3;
+  --chart-4: #e0b93a;
+  --chart-5: #d98a45;
+  --chart-6: #a58bb5;
+  --chart-7: #6aa5c9;
+  --chart-8: #a8a8a8;
+}
+
+/* ===== Statistics: period filter ===== */
+.records-period-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.records-period-custom[hidden] {
+  display: none;
+}
+
+.records-period-apply {
+  padding: 7px 14px;
+  font-size: .82em;
   font-weight: 600;
+  border-radius: var(--radius);
+  background: var(--brand-color);
+  color: var(--text-on-brand);
+  border: none;
+  cursor: pointer;
+}
+
+.records-period-apply:hover {
+  background: var(--brand-color-hover);
+}
+
+.records-trend-card {
+  grid-column: 1 / -1;
 }
 
 .records-trend-chart {
   display: flex;
   align-items: flex-end;
-  gap: 18px;
-  height: 130px;
-  padding-top: 10px;
+  gap: 8px;
+  padding-top: 4px;
 }
 
 .records-trend-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -275,7 +474,7 @@
 
 .records-trend-bar-track {
   width: 100%;
-  height: 80px;
+  height: 110px;
   display: flex;
   align-items: flex-end;
   background: var(--divider-color-subtle);
@@ -286,7 +485,6 @@
 .records-trend-bar-fill {
   width: 100%;
   height: var(--trend-pct);
-  min-height: 2px;
   background: var(--brand-color);
   border-radius: 4px;
 }
@@ -298,7 +496,7 @@
 }
 
 .records-trend-month {
-  font-size: .76em;
+  font-size: .72em;
   font-weight: 600;
   color: var(--muted-text);
 }
@@ -358,6 +556,9 @@
 }
 
 .records-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   white-space: nowrap;
   color: var(--brand-text);
   font-size: 0.78em;
@@ -423,7 +624,13 @@
 }
 
 .records-table tbody tr:hover td {
-  background: var(--hover-surface-soft);
+  background: color-mix(in srgb, var(--brand-color) 9%, var(--card-background));
+}
+
+/* Keep the pinned IPN cell's green tint on hover instead of flattening it */
+.records-table tbody tr:hover .records-ref {
+  background-color: color-mix(in srgb, var(--brand-color) 9%, var(--card-background));
+  background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
 }
 
 
@@ -545,7 +752,7 @@
   gap: 6px;
   padding: 6px;
   border-radius: var(--radius);
-  background: var(--hover-surface-soft);
+  background: var(--brand-color);
   box-shadow: 0 1px 3px var(--shadow-color-soft);
   opacity: 0;
   transition: opacity 0.12s;
@@ -580,9 +787,9 @@
 }
 
 .records-table .row-actions .row-btn:hover {
-  background: var(--brand-color-hover);
-  border-color: var(--brand-color-hover);
-  color: var(--text-on-brand);
+  background: var(--brand-surface-tint);
+  border-color: var(--brand-surface-tint);
+  color: var(--brand-text);
 }
 
 .delete-record-btn:hover {
@@ -609,11 +816,8 @@
 }
 
 .records-modal-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1.1rem 1.4rem;
-  border-bottom: 1px solid var(--divider-color);
   background: var(--divider-color-subtle);
   flex-shrink: 0;
 }
@@ -623,22 +827,6 @@
   font-weight: 700;
   color: var(--brand-text);
   margin: 0;
-}
-
-.records-modal-close {
-  background: none;
-  border: none;
-  box-shadow: none;
-  font-size: 1.1em;
-  color: var(--muted-text);
-  cursor: pointer;
-  padding: 4px 8px;
-  margin: 0;
-  line-height: 1;
-}
-
-.records-modal-close:hover {
-  color: var(--primary-text);
 }
 
 .records-modal-body {
@@ -747,17 +935,27 @@
   font-size: 0.82em;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
   .records-metrics {
     grid-template-columns: 1fr 1fr;
   }
+}
 
+@media (max-width: 600px) {
   .records-charts-grid {
     grid-template-columns: 1fr;
   }
 
   .records-bar-row {
-    grid-template-columns: 90px 1fr 34px;
+    grid-template-columns: 90px 1fr auto;
+  }
+
+  .records-trend-chart {
+    gap: 4px;
+  }
+
+  .records-trend-count {
+    font-size: .7em;
   }
 
   .records-form-grid {
