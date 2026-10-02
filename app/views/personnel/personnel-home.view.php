@@ -46,14 +46,14 @@ $statusDescByRole = [
         'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "The reviewer has finished the assessment. Confirm payment and upload the scan with the IACUC Chair's sign to move it to Endorsed.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. You will be notified once the reviewer has uploaded the Animal Research Clearances. View through the Clearance Pool.',
+        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances below, match each one to its protocol, then confirm to mark them Approved.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments and upload the scan with the IACUC Chair's sign.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances through the Clearance Pool. Administrative staff will sort and release them to the researchers.',
+        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released Animal Research Clearances and release them to the researchers.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
 ];
@@ -140,25 +140,13 @@ foreach ($protocols as $p) {
     }
 }
 
-// ===== Count endorsed protocols still waiting on a clearance, so the =====
-// "Go to Clearance Pool" button can stay hidden when there's nothing to sort.
-$endorsedNeedingClearanceCount = 0;
-foreach ($protocols as $p) {
-    if ($p['filter_slug'] === 'endorsed' && empty($p['latest_clearance_version_id'])) {
-        $endorsedNeedingClearanceCount++;
-    }
-}
-
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 <?php if ($personnelRole === 'staff'): ?>
     <link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
-<?php else: ?>
-    <link rel="stylesheet" href="<?= asset_css('personnel/reviewer-clearances.css') ?>">
 <?php endif; ?>
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
 <script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
@@ -170,24 +158,11 @@ foreach ($protocols as $p) {
     <main class="main-content" id="main-content" tabindex="-1">
         <?php include dirname(__DIR__) . '/includes/update-banner.php'; ?>
 
-        <!-- ===== Dashboard tabs: Overview / Clearance ===== -->
-        <div class="tab-strip" role="tablist" aria-label="Dashboard sections">
-            <button type="button" id="tabBtnOverview" role="tab"
-                aria-selected="true" aria-controls="tabPanelOverview" onclick="switchDashboardTab('overview')">
-                Overview
-            </button>
-            <button type="button" id="tabBtnClearance" role="tab"
-                aria-selected="false" aria-controls="tabPanelClearance" onclick="switchDashboardTab('clearance')">
-                <?= $personnelRole === 'staff' ? 'Clearance Pool' : 'Upload Clearances' ?>
-            </button>
-        </div>
+        <div class="dashboard-panel">
 
-        <div id="tabPanelOverview" class="tab-panel">
-
-            <!-- ===== Page header with search bar ===== -->
-            <div class="dashboard-page-header">
+            <!-- ===== Search bar ===== -->
+            <div class="dashboard-search-row">
                 <h1 class="dashboard-page-title">Protocol Inbox</h1>
-
                 <div class="inbox-search-wrap">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -366,15 +341,6 @@ foreach ($protocols as $p) {
                             </div>
                         </div>
 
-                        <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
-                            href="<?= ROOT ?>/personnel/clearances" title="Sort and attach uploaded clearances for every endorsed protocol"
-                            onclick="event.preventDefault(); switchDashboardTab('clearance');">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            Go to Clearance Pool
-                        </a>
-
                         <button type="button" class="row-btn row-btn-outline" id="toggleSelectBtn" hidden
                             title="Select protocols to download or endorse at once">
                             <svg id="toggleSelectBtnIcon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -404,17 +370,43 @@ foreach ($protocols as $p) {
                     </div>
                 <?php endif; ?>
 
-                <?php if (($user['role'] ?? '') === 'reviewer'): ?>
-                    <div class="bulk-actions-bar" id="bulkActionsBar">
-                        <a class="row-btn row-btn-primary" id="goToClearancePoolBtn" hidden
-                            href="<?= ROOT ?>/personnel/home?tab=clearance" title="Upload Animal Research Clearances"
-                            onclick="event.preventDefault(); switchDashboardTab('clearance');">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            Go to Clearance Pool
-                        </a>
-                    </div>
+                <?php if ($personnelRole === 'staff'): ?>
+                    <!-- ===== Clearances: upload screenshots and match them to endorsed protocols (Endorsed filter only) ===== -->
+                    <section class="clearance-panel" id="clearancePanel" hidden>
+                        <div class="clearance-panel-head">
+                            <h2>Clearances</h2>
+                            <p class="helper">Upload the released Animal Research Clearances, then drag each screenshot onto its protocol below. On a touch screen, tap a screenshot, then tap the clearance box of its protocol. Confirm to mark the matched protocols as Approved.</p>
+                        </div>
+
+                        <div class="bulk-actions-bar clearance-actions">
+                            <input type="file" id="clearanceFileInput" multiple
+                                accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
+
+                            <button type="button" class="row-btn row-btn-outline" id="clearanceUploadBtn"
+                                title="Upload clearance screenshots (JPG or PNG, several at once)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#upload-icon" />
+                                </svg>
+                                Upload Clearances
+                            </button>
+
+                            <button type="button" class="row-btn row-btn-primary" id="confirmBtn" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#check-icon" />
+                                </svg>
+                                Confirm (<span id="stagedCount">0</span>)
+                            </button>
+                        </div>
+
+                        <div class="upload-progress-container" id="clearanceUploadProgress"></div>
+
+                        <div class="clearance-tray" id="clearanceTrayCard">
+                            <h3>Unsorted Screenshots</h3>
+                            <div class="clearance-tray-grid" id="trayGrid">
+                                <p class="helper clearance-empty">Loading&hellip;</p>
+                            </div>
+                        </div>
+                    </section>
                 <?php endif; ?>
 
                 <!-- ===== Protocol list ===== -->
@@ -723,6 +715,10 @@ foreach ($protocols as $p) {
                                     <p class="protocol-meta-line">
                                         <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?>
                                     </p>
+                                    <?php if ($userRole === 'staff' && $statusLower === 'endorsed' && empty($protocol['latest_clearance_version_id'])): ?>
+                                        <!-- Filled by the clearance board script: drop target for an unsorted screenshot -->
+                                        <div class="clearance-slot" data-protocol-id="<?= $protocolId ?>"></div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <div class="actions">
@@ -799,109 +795,6 @@ foreach ($protocols as $p) {
 
         </div>
 
-        <div id="tabPanelClearance" class="tab-panel" hidden>
-            <?php if ($personnelRole === 'staff'): ?>
-                <div class="dashboard-page-header">
-                    <div>
-                        <h1 class="dashboard-page-title">Clearance Pool</h1>
-                        <p>Drag a screenshot onto its protocol, then confirm. On a touch screen, tap a screenshot then tap its protocol.</p>
-                    </div>
-
-                    <button class="row-btn row-btn-primary" id="confirmBtn" type="button" disabled>
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-icon" />
-                        </svg>
-                        Confirm (<span id="stagedCount">0</span>)
-                    </button>
-                </div>
-
-                <div class="clearance-board">
-                    <section class="clearance-tray" id="clearanceTrayCard">
-                        <h2>Unsorted Screenshots</h2>
-                        <p class="helper">Drag-and-drop or tap on an ARC then assign it to an endorsed protocol.</p>
-                        <div class="clearance-tray-grid" id="trayGrid">
-                            <p class="helper clearance-empty">Loading&hellip;</p>
-                        </div>
-                    </section>
-
-                    <section class="clearance-protocols">
-                        <h2>Endorsed Protocols</h2>
-                        <div class="clearance-protocol-grid" id="protocolGrid">
-                            <p class="helper clearance-empty">Loading&hellip;</p>
-                        </div>
-                    </section>
-                </div>
-
-                <section class="clearance-confirmed">
-                    <h2>Recently Confirmed</h2>
-                    <div class="clearance-confirmed-list" id="confirmedList">
-                        <p class="helper clearance-empty">Nothing confirmed yet.</p>
-                    </div>
-                </section>
-            <?php else: ?>
-                <!-- <div class="dashboard-page-header">
-                    <h1 class="dashboard-page-title">Upload Clearances</h1>
-                </div> -->
-
-                <?php if (!empty($_SESSION['flash_success'])): ?>
-                    <div class="alert success-message" id="flashSuccess">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-icon" />
-                        </svg>
-                        <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-                    </div>
-                    <?php unset($_SESSION['flash_success']); ?>
-                <?php endif; ?>
-
-                <?php if (!empty($_SESSION['flash_error'])): ?>
-                    <div class="alert error-messages" id="flashError">
-                        <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
-                    </div>
-                    <?php unset($_SESSION['flash_error']); ?>
-                <?php endif; ?>
-
-                <section class="clearance-upload-card">
-                    <h2>Upload Clearances</h2>
-                    <p class="modal-notice">Upload the released Animal Research Clearances here. Administrative staff will sort and release them to the researchers.</p>
-
-                    <div id="clearanceScreenshotError" class="alert error-messages" hidden></div>
-
-                    <div class="modal-file-row">
-                        <div class="modal-file-info">
-                            <div class="modal-file-title">Screenshots <span class="required-asterisk">*</span></div>
-                            <div class="modal-file-subtitle" id="clearanceScreenshotFileSubtitle">Image, you can select several at once &middot; max 10 MB each</div>
-                        </div>
-                        <label class="modal-file-picker">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            <span id="clearanceScreenshotFilePickerLabel">Upload</span>
-                            <input type="file" id="clearance_screenshots" name="clearance_screenshots[]" multiple
-                                accept=".jpg,.jpeg,.png,image/jpeg,image/png" required
-                                onchange="handleClearanceScreenshotFileChange(this)">
-                        </label>
-                    </div>
-
-                    <input type="file" id="clearance_screenshots_add" multiple
-                        accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
-
-                    <div class="modal-file-previews" id="clearanceScreenshotPreviews" hidden></div>
-
-                    <div class="upload-progress-container" id="clearanceScreenshotProgress"></div>
-
-                    <div class="modal-actions">
-                        <button class="button btn-apply" type="button" id="clearanceScreenshotSubmitBtn"
-                            onclick="submitClearanceScreenshots()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            Upload
-                        </button>
-                    </div>
-                </section>
-            <?php endif; ?>
-        </div>
-
     </main>
 </div>
 
@@ -976,7 +869,6 @@ foreach ($protocols as $p) {
     // ===== Status metadata (mirrors My Protocols) =====
     const statusMeta = <?= json_encode($statusMeta) ?>;
     const REVIEWED_DOWNLOADABLE_COUNT = <?= (int) $reviewedDownloadableCount ?>;
-    const ENDORSED_NEEDING_CLEARANCE_COUNT = <?= (int) $endorsedNeedingClearanceCount ?>;
 
     // ===== DOM refs =====
     const protocolsList = document.getElementById('protocolsList');
@@ -993,7 +885,7 @@ foreach ($protocols as $p) {
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const paymentFilterWrapper = document.getElementById('paymentFilterWrapper');
     const paymentFilterSelect = document.getElementById('paymentFilterSelect');
-    const goToClearancePoolBtn = document.getElementById('goToClearancePoolBtn');
+    const clearancePanel = document.getElementById('clearancePanel');
     const toggleSelectBtn = document.getElementById('toggleSelectBtn');
     const toggleSelectBtnLabel = document.getElementById('toggleSelectBtnLabel');
     const toggleSelectBtnIcon = document.getElementById('toggleSelectBtnIcon');
@@ -1021,7 +913,7 @@ foreach ($protocols as $p) {
     });
 
     // ===== Only show the payment filter and select button while viewing the Reviewed tab, and
-    // "Go to Clearance Pool" while viewing the Endorsed tab; hide the whole
+    // the clearance panel while viewing the Endorsed tab; hide the whole
     // bar when none of them has anything to do =====
     function updateBulkActionsBarVisibility() {
         const canSelect = activeFilter === 'reviewed' && REVIEWED_DOWNLOADABLE_COUNT > 0;
@@ -1030,8 +922,12 @@ foreach ($protocols as $p) {
             paymentFilterWrapper.hidden = !canSelect;
             if (!canSelect) paymentFilterSelect.value = '';
         }
-        if (goToClearancePoolBtn) {
-            goToClearancePoolBtn.hidden = activeFilter !== 'endorsed' || ENDORSED_NEEDING_CLEARANCE_COUNT === 0;
+        if (clearancePanel) {
+            const showClearances = activeFilter === 'endorsed';
+            clearancePanel.hidden = !showClearances;
+            // ensureClearanceBoard() lives in the staff-only script further down; on first
+            // page load it isn't defined yet, and that script starts the board itself.
+            if (showClearances && typeof ensureClearanceBoard === 'function') ensureClearanceBoard();
         }
         if (toggleSelectBtn) {
             toggleSelectBtn.hidden = !canSelect;
@@ -1041,7 +937,6 @@ foreach ($protocols as $p) {
         }
         if (bulkActionsBar) {
             bulkActionsBar.hidden = (paymentFilterWrapper?.hidden ?? true) &&
-                (goToClearancePoolBtn?.hidden ?? true) &&
                 (toggleSelectBtn?.hidden ?? true);
         }
     }
@@ -1299,7 +1194,9 @@ foreach ($protocols as $p) {
 
     // ===== Restore filter from URL param (?status=...) =====
     (function restoreFilterFromUrl() {
-        const requestedStatus = new URLSearchParams(window.location.search).get('status');
+        const urlParams = new URLSearchParams(window.location.search);
+        // Old links used ?tab=clearance; clearances now live under the Endorsed filter.
+        const requestedStatus = urlParams.get('status') || (urlParams.get('tab') === 'clearance' ? 'endorsed' : null);
         if (requestedStatus) {
             const matchingPill = [...filterPills].find(p => p.dataset.filter === requestedStatus);
             if (matchingPill) {
@@ -2347,56 +2244,30 @@ foreach ($protocols as $p) {
     }
 </script>
 
-<script>
-    let clearanceBoardLoaded = false;
-
-    function switchDashboardTab(tab) {
-        const isClearance = tab === 'clearance';
-
-        document.getElementById('tabPanelOverview').hidden = isClearance;
-        document.getElementById('tabPanelClearance').hidden = !isClearance;
-        document.getElementById('tabBtnOverview').setAttribute('aria-selected', String(!isClearance));
-        document.getElementById('tabBtnClearance').setAttribute('aria-selected', String(isClearance));
-
-        const url = new URL(window.location);
-        if (isClearance) {
-            url.searchParams.set('tab', 'clearance');
-        } else {
-            url.searchParams.delete('tab');
-        }
-        history.pushState({}, '', url);
-
-        if (isClearance && USER_ROLE === 'staff' && !clearanceBoardLoaded) {
-            clearanceBoardLoaded = true;
-            loadBoard();
-        }
-    }
-
-    (function initDashboardTab() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('tab') === 'clearance') {
-            switchDashboardTab('clearance');
-        }
-    })();
-</script>
-
-<?php if ($personnelRole === 'staff'): ?>
+<?php if ($personnelRole === 'staff' && !empty($protocols)): ?>
     <script>
         const CLEARANCE_POOL_API = ROOT_URL + '/apply/clearance_pool';
+        const CLEARANCE_POOL_UPLOAD_API = ROOT_URL + '/apply/clearance_pool_upload';
         const CLEARANCE_STAGE_API = ROOT_URL + '/apply/clearance_stage';
         const CLEARANCE_UNSTAGE_API = ROOT_URL + '/apply/clearance_unstage';
         const CLEARANCE_CONFIRM_API = ROOT_URL + '/apply/clearance_confirm';
-        const CLEARANCE_UNASSIGN_API = ROOT_URL + '/apply/clearance_unassign';
         const CLEARANCE_DELETE_API = ROOT_URL + '/apply/clearance_delete';
         const CLEARANCE_ASSIGN_IPN_API = ROOT_URL + '/apply/clearance_assign_ipn';
 
         let boardData = {
             unassigned: [],
             staged: [],
-            confirmed: [],
             endorsed_protocols: [],
         };
         let selectedPoolId = null;
+        let clearanceBoardLoaded = false;
+
+        // The board is only fetched the first time the Endorsed filter is shown.
+        function ensureClearanceBoard() {
+            if (clearanceBoardLoaded) return;
+            clearanceBoardLoaded = true;
+            loadBoard();
+        }
 
         function showFlash(message, isError = false) {
             const existing = document.getElementById('flashSuccess');
@@ -2448,16 +2319,15 @@ foreach ($protocols as $p) {
                 const res = await fetch(CLEARANCE_POOL_API);
                 boardData = await res.json();
             } catch (err) {
-                showFlash('Could not load the clearance pool. Please refresh.', true);
+                showFlash('Could not load the clearances. Please refresh.', true);
                 return;
             }
             if (selectedPoolId !== null && !(boardData.unassigned || []).some(item => Number(item.id) === selectedPoolId)) {
                 selectedPoolId = null;
             }
             renderTray();
-            renderProtocols();
+            renderSlots();
             applySelection();
-            renderConfirmed();
             updateConfirmButton();
         }
 
@@ -2473,7 +2343,7 @@ foreach ($protocols as $p) {
             document.querySelectorAll('#trayGrid .clearance-thumb').forEach(el => {
                 el.classList.toggle('is-selected', selectedPoolId !== null && Number(el.dataset.poolId) === selectedPoolId);
             });
-            document.querySelectorAll('#protocolGrid .clearance-protocol-card').forEach(el => {
+            document.querySelectorAll('.clearance-slot').forEach(el => {
                 el.classList.toggle('is-target', selectedPoolId !== null && el.dataset.canReceive === '1');
             });
         }
@@ -2542,79 +2412,53 @@ foreach ($protocols as $p) {
                 ${thumbHtml(item)}
                 <span class="clearance-thumb-name">${escapeHtml(item.original_name)}</span>
             </div>`
-            })), '<p class="helper clearance-empty">No unsorted screenshots.</p>');
+            })), '<p class="helper clearance-empty">No unsorted screenshots. Use Upload Clearances to add some.</p>');
         }
 
         function stagedFor(protocolId) {
             return (boardData.staged || []).find(s => Number(s.protocol_id) === Number(protocolId));
         }
 
-        function renderProtocols() {
-            const grid = document.getElementById('protocolGrid');
-            const items = boardData.endorsed_protocols || [];
+        // Fills the clearance box on each Endorsed row. A box is only rewritten when its markup
+        // changed, so a staged thumbnail doesn't reload on every board refresh.
+        function renderSlots() {
+            const endorsedById = new Map((boardData.endorsed_protocols || []).map(p => [Number(p.protocol_id), p]));
 
-            reconcileList(grid, items.map(p => {
-                const staged = stagedFor(p.protocol_id);
-                const already = p.latest_clearance_version_id && !staged;
-                const hasIpn = !!p.reference_no;
-                const canReceive = !already && hasIpn;
-                const dragHandlers = hasIpn ?
-                    `ondragover="event.preventDefault()" ondrop="onDrop(event, ${p.protocol_id})"` :
-                    '';
+            document.querySelectorAll('.clearance-slot').forEach(slot => {
+                const protocolId = Number(slot.dataset.protocolId);
+                const p = endorsedById.get(protocolId);
+                const staged = stagedFor(protocolId);
+                const hasIpn = !!(p && p.reference_no);
+                const ipn = p ? (p.reference_no || '') : '';
 
-                return {
-                    key: p.protocol_id,
-                    html: `
-            <div class="clearance-protocol-card${staged ? ' has-staged' : ''}${!hasIpn ? ' no-ipn' : ''}"
-                data-protocol-id="${p.protocol_id}"
-                data-can-receive="${canReceive ? '1' : '0'}"
-                ${dragHandlers}
-                onclick="onCardTap(${p.protocol_id}, ${hasIpn})">
-                <div class="clearance-protocol-info">
-                    <span class="clearance-protocol-ref">${escapeHtml(p.reference_no)}</span>
-                    <span class="clearance-protocol-title">${escapeHtml(p.research_title)}</span>
-                    <span class="helper">Researcher: ${escapeHtml(p.first_name)} ${escapeHtml(p.last_name || '')}</span>
-                    <span class="clearance-protocol-ipn">
-                        IPN: ${hasIpn ? escapeHtml(p.reference_no) : '<em>not yet assigned</em>'}
-                        <a href="#" class="clearance-ipn-link" onclick="event.preventDefault(); event.stopPropagation(); openIpnModal(${p.protocol_id}, '${escapeHtml(p.reference_no || '').replace(/'/g, "\\'")}')">${hasIpn ? 'Edit IPN' : 'Add IPN'}</a>
-                    </span>
-                </div>
-                <div class="clearance-drop-zone">
-                    ${staged ? `
+                let html = '';
+                if (p && staged) {
+                    html = `
                         <div class="clearance-thumb clearance-thumb--staged">
                             ${thumbHtml(staged, { allowDelete: false })}
-                            <button type="button" class="clearance-unstage-btn" title="Remove" aria-label="Remove"
-                                onclick="event.stopPropagation(); unstage(${staged.id})"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg></button>
+                            <button type="button" class="clearance-unstage-btn" data-pool-id="${staged.id}" title="Remove" aria-label="Remove">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg>
+                            </button>
                         </div>
-                    ` : already ? `
-                        <span class="helper">Already has a clearance on file.</span>
-                    ` : !hasIpn ? `
-                        <span class="helper clearance-drop-hint">Assign an IPN before attaching a clearance</span>
-                    ` : `
-                        <span class="helper clearance-drop-hint">Drop a screenshot here, or tap it after selecting one</span>
-                    `}
-                </div>
-            </div>`
-                };
-            }), '<p class="helper clearance-empty">No endorsed protocols waiting on a clearance.</p>');
-        }
+                        <span class="helper clearance-slot-hint">Ready to confirm.</span>`;
+                } else if (p && !p.latest_clearance_version_id) {
+                    html = hasIpn ?
+                        `<span class="helper clearance-slot-hint">Drop a screenshot here, or tap it after selecting one.
+                            IPN: ${escapeHtml(ipn)}
+                            <a href="#" class="clearance-ipn-link" data-protocol-id="${protocolId}" data-ipn="${escapeHtml(ipn)}">Edit IPN</a></span>` :
+                        `<span class="helper clearance-slot-hint">Assign an IPN before attaching a clearance.
+                            <a href="#" class="clearance-ipn-link" data-protocol-id="${protocolId}" data-ipn="">Add IPN</a></span>`;
+                }
 
-        function renderConfirmed() {
-            const list = document.getElementById('confirmedList');
-            const items = boardData.confirmed || [];
+                slot.dataset.canReceive = p && hasIpn && !p.latest_clearance_version_id ? '1' : '0';
+                slot.classList.toggle('has-staged', !!staged);
+                slot.classList.toggle('no-ipn', !!p && !hasIpn);
 
-            if (!items.length) {
-                list.innerHTML = '<p class="helper clearance-empty">Nothing confirmed yet.</p>';
-                return;
-            }
-
-            list.innerHTML = items.map(item => `
-            <div class="clearance-confirmed-row">
-                <span class="clearance-confirmed-ref">${escapeHtml(item.reference_no)}</span>
-                <span class="clearance-confirmed-title">${escapeHtml(item.protocol_title)}</span>
-                <button type="button" class="button" onclick="detach(${item.id}, this)">Detach</button>
-            </div>
-        `).join('');
+                if (slot.dataset.render !== html) {
+                    slot.innerHTML = html;
+                    slot.dataset.render = html;
+                }
+            });
         }
 
         function updateConfirmButton() {
@@ -2623,25 +2467,103 @@ foreach ($protocols as $p) {
             document.getElementById('confirmBtn').disabled = count === 0;
         }
 
+        // ===== Upload: staff adds screenshots straight into the unsorted tray =====
+        const clearanceFileInput = document.getElementById('clearanceFileInput');
+        const clearanceUploadBtn = document.getElementById('clearanceUploadBtn');
+
+        clearanceUploadBtn.addEventListener('click', () => clearanceFileInput.click());
+        clearanceFileInput.addEventListener('change', () => uploadClearances(clearanceFileInput.files));
+
+        async function uploadClearances(fileList) {
+            if (!fileList.length) return;
+
+            const progressContainer = document.getElementById('clearanceUploadProgress');
+            progressContainer.innerHTML = '';
+            const bar = createUploadProgressBar(progressContainer);
+            setButtonBusy(clearanceUploadBtn, true, 'Uploading...');
+
+            const formData = new FormData();
+            for (const file of fileList) {
+                formData.append('clearance_screenshots[]', file);
+            }
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            try {
+                const data = await uploadWithProgress(CLEARANCE_POOL_UPLOAD_API, formData, {
+                    headers: {
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    onProgress: pct => bar.update(pct)
+                });
+
+                if (data.success) {
+                    const skipped = (data.failures && data.failures.length) ? ' Some files were skipped: ' + data.failures.join(' ') : '';
+                    showFlash(`${data.inserted} screenshot(s) uploaded.${skipped}`, !!skipped);
+                } else {
+                    showFlash((data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.'), true);
+                }
+            } catch (err) {
+                showFlash(err.message || 'Network error. Please try again.', true);
+            }
+
+            bar.remove();
+            setButtonBusy(clearanceUploadBtn, false);
+            clearanceFileInput.value = '';
+            loadBoard();
+        }
+
         // ===== Drag and drop, and tap-to-place (for touch screens) =====
         function onDragStart(e, poolId) {
             e.dataTransfer.setData('text/plain', String(poolId));
         }
 
-        function onDrop(e, protocolId) {
-            e.preventDefault();
-            const poolId = Number(e.dataTransfer.getData('text/plain'));
-            if (!poolId) return;
-            stageItem(poolId, protocolId);
+        function receivingSlot(e) {
+            const slot = e.target.closest('.clearance-slot');
+            return slot && slot.dataset.canReceive === '1' ? slot : null;
         }
 
-        function onCardTap(protocolId, hasIpn) {
-            if (!hasIpn || selectedPoolId === null) return;
+        protocolsList.addEventListener('dragover', e => {
+            const slot = receivingSlot(e);
+            if (!slot) return;
+            e.preventDefault();
+            slot.classList.add('is-drag-over');
+        });
+
+        protocolsList.addEventListener('dragleave', e => {
+            e.target.closest?.('.clearance-slot')?.classList.remove('is-drag-over');
+        });
+
+        protocolsList.addEventListener('drop', e => {
+            const slot = receivingSlot(e);
+            if (!slot) return;
+            e.preventDefault();
+            slot.classList.remove('is-drag-over');
+            const poolId = Number(e.dataTransfer.getData('text/plain'));
+            if (!poolId) return;
+            stageItem(poolId, Number(slot.dataset.protocolId));
+        });
+
+        protocolsList.addEventListener('click', e => {
+            const ipnLink = e.target.closest('.clearance-ipn-link');
+            if (ipnLink) {
+                e.preventDefault();
+                openIpnModal(Number(ipnLink.dataset.protocolId), ipnLink.dataset.ipn || '');
+                return;
+            }
+
+            const unstageBtn = e.target.closest('.clearance-unstage-btn');
+            if (unstageBtn) {
+                unstage(Number(unstageBtn.dataset.poolId));
+                return;
+            }
+
+            const slot = receivingSlot(e);
+            if (!slot || selectedPoolId === null) return;
             const poolId = selectedPoolId;
             selectedPoolId = null;
             applySelection();
-            stageItem(poolId, protocolId);
-        }
+            stageItem(poolId, Number(slot.dataset.protocolId));
+        });
 
         async function stageItem(poolId, protocolId) {
             try {
@@ -2706,33 +2628,6 @@ foreach ($protocols as $p) {
                 });
                 const data = await res.json();
                 if (!data.success) showFlash(data.error || 'Could not delete that screenshot.', true);
-            } catch (err) {
-                showFlash('Network error. Please try again.', true);
-            }
-            loadBoard();
-        }
-
-        async function detach(poolId, btn) {
-            const ok = await confirmAction('Detach this clearance? The protocol will revert to Endorsed and the screenshot goes back to the pool.', {
-                okText: 'Detach',
-            });
-            if (!ok) return;
-
-            setButtonBusy(btn, true, 'Detaching...');
-
-            try {
-                const res = await fetch(CLEARANCE_UNASSIGN_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        pool_id: poolId
-                    }),
-                });
-                const data = await res.json();
-                if (!data.success) showFlash(data.error || 'Could not detach this clearance.', true);
             } catch (err) {
                 showFlash('Network error. Please try again.', true);
             }
@@ -2839,16 +2734,22 @@ foreach ($protocols as $p) {
                 });
                 const data = await res.json();
 
+                // Approved protocols leave the Endorsed list, so reload to refresh the rows and
+                // counts (the server already queued the success message).
+                if (data.confirmed > 0) {
+                    window.location.reload();
+                    return;
+                }
+
                 if (data.failures && data.failures.length > 0) {
                     errBox.textContent = data.failures.join(' ');
                     errBox.hidden = false;
+                } else if (data.error) {
+                    errBox.textContent = data.error;
+                    errBox.hidden = false;
+                } else {
+                    closeConfirmReview();
                 }
-
-                if (data.confirmed > 0) {
-                    showFlash(`${data.confirmed} protocol(s) approved.`);
-                }
-
-                closeConfirmReview();
                 loadBoard();
             } catch (err) {
                 errBox.textContent = 'Network error. Please try again.';
@@ -2881,163 +2782,10 @@ foreach ($protocols as $p) {
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape' && zoomBackdrop.classList.contains('open')) closeZoom();
         });
-    </script>
-<?php endif; ?>
 
-<?php if ($personnelRole === 'reviewer'): ?>
-    <script>
-        const CLEARANCE_POOL_UPLOAD_API = ROOT_URL + '/apply/clearance_pool_upload';
-        let clearanceScreenshotPreviewUrls = [];
-
-        function resetClearanceScreenshotFilePicker() {
-            document.getElementById('clearanceScreenshotFilePickerLabel').textContent = 'Upload';
-            const subtitle = document.getElementById('clearanceScreenshotFileSubtitle');
-            subtitle.textContent = 'Image, you can select several at once · max 10 MB each';
-            subtitle.classList.remove('done');
-        }
-
-        function handleClearanceScreenshotFileChange(input) {
-            const subtitle = document.getElementById('clearanceScreenshotFileSubtitle');
-            if (input.files.length) {
-                document.getElementById('clearanceScreenshotFilePickerLabel').textContent = 'Replace';
-                subtitle.textContent = input.files.length === 1 ?
-                    input.files[0].name :
-                    input.files.length + ' files selected';
-                subtitle.classList.add('done');
-            } else {
-                resetClearanceScreenshotFilePicker();
-            }
-            renderClearanceScreenshotPreviews(input.files);
-        }
-
-        function clearClearanceScreenshotPreviews() {
-            clearanceScreenshotPreviewUrls.forEach(url => URL.revokeObjectURL(url));
-            clearanceScreenshotPreviewUrls = [];
-            const container = document.getElementById('clearanceScreenshotPreviews');
-            container.innerHTML = '';
-            container.hidden = true;
-        }
-
-        function renderClearanceScreenshotPreviews(fileList) {
-            clearanceScreenshotPreviewUrls.forEach(url => URL.revokeObjectURL(url));
-            clearanceScreenshotPreviewUrls = [];
-
-            const container = document.getElementById('clearanceScreenshotPreviews');
-            container.innerHTML = '';
-
-            if (!fileList.length) {
-                container.hidden = true;
-                return;
-            }
-            container.hidden = false;
-
-            [...fileList].forEach((file, index) => {
-                const url = URL.createObjectURL(file);
-                clearanceScreenshotPreviewUrls.push(url);
-
-                const card = document.createElement('div');
-                card.className = 'modal-file-preview-card';
-
-                const img = document.createElement('img');
-                img.className = 'modal-file-preview-img';
-                img.src = url;
-                img.alt = file.name;
-
-                const name = document.createElement('span');
-                name.className = 'modal-file-preview-name';
-                name.textContent = file.name;
-                name.title = file.name;
-
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'modal-file-preview-remove';
-                removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
-                removeBtn.textContent = '\u00d7';
-                removeBtn.addEventListener('click', () => removeClearanceScreenshotFile(index));
-
-                card.append(img, name, removeBtn);
-                container.appendChild(card);
-            });
-
-            const addTile = document.createElement('button');
-            addTile.type = 'button';
-            addTile.className = 'modal-file-preview-add';
-            addTile.setAttribute('aria-label', 'Add more screenshots');
-            addTile.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#add-icon"></use></svg>';
-            addTile.addEventListener('click', () => document.getElementById('clearance_screenshots_add').click());
-            container.appendChild(addTile);
-        }
-
-        function removeClearanceScreenshotFile(index) {
-            const input = document.getElementById('clearance_screenshots');
-            const dataTransfer = new DataTransfer();
-            [...input.files].forEach((file, i) => {
-                if (i !== index) dataTransfer.items.add(file);
-            });
-            input.files = dataTransfer.files;
-            handleClearanceScreenshotFileChange(input);
-        }
-
-        document.getElementById('clearance_screenshots_add').addEventListener('change', function() {
-            if (!this.files.length) return;
-
-            const mainInput = document.getElementById('clearance_screenshots');
-            const dataTransfer = new DataTransfer();
-            [...mainInput.files].forEach(file => dataTransfer.items.add(file));
-            [...this.files].forEach(file => dataTransfer.items.add(file));
-            mainInput.files = dataTransfer.files;
-
-            this.value = '';
-            handleClearanceScreenshotFileChange(mainInput);
-        });
-
-        async function submitClearanceScreenshots() {
-            const fileInput = document.getElementById('clearance_screenshots');
-            const errBox = document.getElementById('clearanceScreenshotError');
-            const btn = document.getElementById('clearanceScreenshotSubmitBtn');
-
-            if (!fileInput.files.length) {
-                errBox.textContent = 'Please select at least one file.';
-                errBox.hidden = false;
-                return;
-            }
-
-            setButtonBusy(btn, true, 'Uploading...');
-            errBox.hidden = true;
-
-            const progressContainer = document.getElementById('clearanceScreenshotProgress');
-            progressContainer.innerHTML = '';
-            const bar = createUploadProgressBar(progressContainer);
-
-            const formData = new FormData();
-            for (const file of fileInput.files) {
-                formData.append('clearance_screenshots[]', file);
-            }
-            formData.append('csrf_token', CSRF_TOKEN);
-
-            try {
-                const data = await uploadWithProgress(CLEARANCE_POOL_UPLOAD_API, formData, {
-                    headers: {
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    onProgress: pct => bar.update(pct)
-                });
-
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    errBox.textContent = (data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.');
-                    errBox.hidden = false;
-                    setButtonBusy(btn, false);
-                    bar.remove();
-                }
-            } catch (err) {
-                errBox.textContent = err.message || 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(btn, false);
-                bar.remove();
-            }
-        }
+        // The page may already be on the Endorsed filter (e.g. ?status=endorsed), in which case the
+        // filter script ran before ensureClearanceBoard() existed.
+        if (activeFilter === 'endorsed') ensureClearanceBoard();
     </script>
 <?php endif; ?>
 

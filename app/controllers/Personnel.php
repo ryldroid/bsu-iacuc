@@ -126,21 +126,12 @@ class Personnel extends Controller
         exit;
     }
 
+    // Old bookmark: clearances now live under the Endorsed filter of the dashboard.
     public function clearances(): void
     {
         $this->requireStaff();
 
-        $this->redirect('personnel/home?tab=clearance');
-    }
-
-    public function reviewer_clearances(): void
-    {
-        $this->requirePersonnel();
-        if ($_SESSION['user']['role'] !== 'reviewer') {
-            $this->redirect('personnel/home');
-        }
-
-        $this->redirect('personnel/home?tab=clearance');
+        $this->redirect('personnel/home?status=endorsed');
     }
 
     public function records(): void
@@ -864,7 +855,7 @@ class Personnel extends Controller
 
     public function accounts(): void
     {
-        $this->requirePersonnel();
+        $this->requireStaff();
 
         $auditDateRange = $this->model->getAuditLogDateRange();
 
@@ -881,8 +872,8 @@ class Personnel extends Controller
         $this->view('personnel/personnel-accounts', array_merge([
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
-            'pending'        => $_SESSION['user']['role'] === 'staff' ? $this->model->getPendingUsers() : [],
-            'personnel'      => in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'], true) ? $this->model->getPersonnelAccounts() : [],
+            'pending'        => $this->model->getPendingUsers(),
+            'personnel'      => $this->model->getPersonnelAccounts(),
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ], $auditLogPage));
@@ -890,7 +881,7 @@ class Personnel extends Controller
 
     public function auditLogResults(): void
     {
-        $this->requirePersonnel(true);
+        $this->requireStaff(true);
 
         $auditFilterDate = $this->sanitizeDate($_GET['audit_date'] ?? '');
         $requestedPage   = (int) ($_GET['audit_page'] ?? 1);
@@ -943,7 +934,7 @@ class Personnel extends Controller
 
     public function downloadAuditLogs(): void
     {
-        $this->requirePersonnel();
+        $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('personnel/accounts');
@@ -1426,7 +1417,7 @@ class Personnel extends Controller
 
     public function update_role(): void
     {
-        $this->requirePersonnel();
+        $this->requireStaff();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('personnel/accounts?tab=accounts');

@@ -218,9 +218,11 @@ $hideHeader     = $hideHeader     ?? false;
                     <use href="#announcement-icon" />
                   </svg><span>Announcements</span></a></li>
             <?php endif; ?>
-            <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#accounts-icon" />
-                </svg><span>Administration</span></a></li>
+            <?php if ($role === 'staff'): ?>
+              <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#accounts-icon" />
+                  </svg><span>Administration</span></a></li>
+            <?php endif; ?>
           </ul>
         </nav>
       <?php endif; ?>

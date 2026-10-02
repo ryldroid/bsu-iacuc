@@ -670,7 +670,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
                     <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Records by Researcher Type</div>
-                        <p class="records-card-hint">Student, faculty, staff, or external</p>
+                        <p class="records-card-hint">Student, faculty, staff, or researcher</p>
                         <?php renderDonut($researcherRows, 'records', 'No researcher type data yet.'); ?>
                     </div>
 
@@ -763,7 +763,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         <option>Student</option>
                         <option>Faculty</option>
                         <option>Staff</option>
-                        <option>External</option>
+                        <option>Researcher</option>
                     </select>
                 </div>
                 <div class="records-form-group">
@@ -854,7 +854,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         <option>Student</option>
                         <option>Faculty</option>
                         <option>Staff</option>
-                        <option>External</option>
+                        <option>Researcher</option>
                     </select>
                 </div>
                 <div class="records-form-group">

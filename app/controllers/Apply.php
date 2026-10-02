@@ -347,22 +347,6 @@ class Apply extends Controller
         );
     }
 
-    private function notifyClearancePoolUploaded(array $actor, int $count): void
-    {
-        Notifier::sendToRole(
-            'staff',
-            'clearance_pool_uploaded',
-            'New Clearance Screenshots',
-            "{$actor['name']} added $count clearance screenshot(s) for sorting.",
-            'personnel/home?tab=clearance',
-            [
-                'template' => 'clearance_pool_uploaded',
-                'vars'     => ['actor_name' => $actor['name'], 'count' => $count],
-                'subject'  => 'New Clearance Screenshots',
-            ]
-        );
-    }
-
     private function addFileUrls(array $versions): array
     {
         return array_map(fn($v) => $v + ['file_url' => ROOT . '/apply/file/' . (int) $v['id']], $versions);
@@ -2010,8 +1994,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'reviewer') {
-            $this->jsonError(403, 'Reviewer only.');
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
         }
 
         $this->requirePostMethod();
@@ -2057,10 +2041,8 @@ class Apply extends Controller
 
         if ($inserted > 0) {
             $model->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "$inserted screenshot(s) uploaded");
-            $this->notifyClearancePoolUploaded($actor, $inserted);
         }
 
-        $_SESSION['flash_success'] = $inserted . ' clearance screenshot(s) uploaded for administrative staff to view' . ($failures ? '; some files were skipped.' : '.');
         echo json_encode(['success' => $inserted > 0, 'inserted' => $inserted, 'failures' => $failures]);
         exit;
     }
@@ -2090,7 +2072,6 @@ class Apply extends Controller
         echo json_encode([
             'unassigned' => $unassigned,
             'staged' => $staged,
-            'confirmed' => $model->getConfirmedClearanceItems(),
             'endorsed_protocols' => $model->getEndorsedProtocols(),
         ]);
         exit;
@@ -2103,9 +2084,9 @@ class Apply extends Controller
         $this->requireLogin();
 
         $actor = $this->actor();
-        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+        if ($actor['role'] !== 'staff') {
             $this->renderError(403, 'Access Denied', [
-                'This page is for CCARD personnel only.',
+                'This page is for administrative staff only.',
             ]);
         }
 

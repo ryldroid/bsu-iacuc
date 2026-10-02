@@ -1,35 +1,49 @@
-.clearance-board {
-  display: grid;
-  grid-template-columns: 540px 1fr;
-  gap: 24px;
-  align-items: start;
-  margin-top: 16px;
-}
-
-@media (max-width: 900px) {
-  .clearance-board {
-    grid-template-columns: 1fr;
-  }
-}
-
-.clearance-tray,
-.clearance-protocols,
-.clearance-confirmed {
-  background: var(--card-background);
-  border-radius: var(--radius);
+/* ===== Clearance panel (shown above the list while the Endorsed filter is active) ===== */
+.clearance-panel {
+  margin: 0 0 1rem;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
 }
 
-.clearance-confirmed {
-  margin-top: 24px;
+.clearance-panel[hidden] {
+  display: none;
 }
 
-.clearance-tray h2,
-.clearance-protocols h2,
-.clearance-confirmed h2 {
+.clearance-panel-head h2 {
   font-size: 1em;
   margin: 0 0 4px;
+  color: var(--primary-text);
+}
+
+.clearance-panel-head .helper {
+  font-size: 0.8em;
+  font-style: normal;
+  margin: 0 0 12px;
+}
+
+.clearance-panel .clearance-actions {
+  justify-content: flex-start;
+  padding: 0;
+  border: none;
+}
+
+.clearance-actions input[type="file"] {
+  display: none;
+}
+
+.clearance-tray {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed var(--divider-color);
+  border-radius: var(--btn-radius);
+}
+
+.clearance-tray h3 {
+  font-size: 0.85em;
+  font-weight: 700;
+  margin: 0;
   color: var(--primary-text);
 }
 
@@ -43,6 +57,8 @@
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 12px;
   margin-top: 12px;
+  max-height: 340px;
+  overflow-y: auto;
 }
 
 .clearance-thumb {
@@ -101,72 +117,54 @@
   color: var(--muted-text);
 }
 
-.clearance-protocol-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-  margin-top: 12px;
-}
-
-.clearance-protocol-card {
-  border: 1px dashed rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius);
-  padding: 12px;
+/* ===== Clearance box on each Endorsed row (drop target for an unsorted screenshot) ===== */
+.clearance-slot {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  min-height: 56px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 160px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px dashed var(--divider-color);
+  border-radius: var(--btn-radius);
   transition: border-color 0.15s, background 0.15s;
 }
 
-.clearance-protocol-card.has-staged {
+.clearance-slot:empty {
+  display: none;
+}
+
+.clearance-slot.has-staged,
+.clearance-slot.is-target {
   border-style: solid;
   border-color: var(--brand-color);
 }
 
-.clearance-protocol-card.is-target {
-  border-style: solid;
-  border-color: var(--brand-color);
+.clearance-slot.is-target {
   cursor: pointer;
 }
 
-.clearance-protocol-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.clearance-slot.is-drag-over {
+  border-style: solid;
+  border-color: var(--brand-color);
+  background: var(--brand-surface-faint);
 }
 
-.clearance-protocol-ref {
-  font-size: 0.68em;
-  font-weight: 700;
-  color: var(--brand-text);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.clearance-protocol-title {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--primary-text);
-  line-height: 1.3;
-}
-
-.clearance-protocol-card.no-ipn {
-  opacity: 0.85;
-}
-
-.clearance-protocol-ipn {
-  font-size: 0.72em;
-  color: var(--muted-text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.clearance-protocol-ipn em {
+.clearance-slot-hint {
+  font-size: 0.75em;
   font-style: normal;
+  margin: 0;
+}
+
+.clearance-slot.no-ipn .clearance-slot-hint {
   color: var(--status-danger-text);
+}
+
+.clearance-slot .clearance-thumb--staged {
+  width: 120px;
 }
 
 .clearance-ipn-link {
@@ -194,21 +192,6 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   font-size: 0.9em;
-}
-
-.clearance-drop-zone {
-  flex: 1;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.03);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 90px;
-  padding: 8px;
-}
-
-.clearance-drop-hint {
-  text-align: center;
 }
 
 .clearance-thumb--staged {
@@ -286,10 +269,6 @@
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
 
-  .clearance-protocol-grid {
-    grid-template-columns: 1fr;
-  }
-
   .clearance-unstage-btn,
   .clearance-zoom-btn,
   .clearance-delete-btn {
@@ -304,34 +283,6 @@
   .modal-actions button {
     flex: 1 1 auto;
   }
-}
-
-.clearance-confirmed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.clearance-confirmed-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.03);
-  font-size: 0.85em;
-}
-
-.clearance-confirmed-ref {
-  font-weight: 700;
-  color: var(--brand-text);
-  font-size: 0.85em;
-}
-
-.clearance-confirmed-title {
-  flex: 1;
-  color: var(--primary-text);
 }
 
 .clearance-modal-helper {

@@ -4,6 +4,22 @@ main {
     padding: 52px 16px;
 }
 
+/* ===== Dashboard card (formerly the tab panel; the tab strip is gone, so it stands alone) ===== */
+.dashboard-panel {
+    background: var(--card-background);
+    border: 1px solid var(--divider-color);
+    border-radius: var(--btn-radius);
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
+}
+
+/* ===== Search row (inside the dashboard card, right aligned) ===== */
+.dashboard-search-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
 /* ===== Page header ===== */
 .dashboard-page-header {
     display: flex;
@@ -227,7 +243,7 @@ main {
     margin-left: auto;
 }
 
-.inbox-search-wrap > svg {
+.inbox-search-wrap>svg {
     position: absolute;
     left: 10px;
     top: 50%;

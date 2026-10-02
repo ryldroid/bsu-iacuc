@@ -74,7 +74,7 @@ $role = $user['role'] ?? '';
                 <?php endif; ?>
 
 
-                <?php if (in_array($role, ['staff', 'reviewer'])): ?>
+                <?php if ($role === 'staff'): ?>
                     <li>
                         <a href="<?= ROOT ?>/personnel/accounts">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
