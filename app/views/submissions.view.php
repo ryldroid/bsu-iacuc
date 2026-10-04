@@ -53,6 +53,7 @@ $statusMeta = [
     ],
 ];
 
+// ===== Status icon helper =====
 function statusIconSvg(string $iconId, int $size = 14): string
 {
     return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -65,6 +66,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
+
+<!-- ===== Scripts ===== -->
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
 <script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
 <script src="<?= asset_js('status-underline.js') ?>" defer></script>
@@ -72,6 +75,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <div class="body">
     <?php include 'includes/navigation.php'; ?>
 
+    <!-- ===== My protocols page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
         <?php include 'includes/update-banner.php'; ?>
 
@@ -368,6 +372,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <script src="<?= asset_js('file-popup.js') ?>"></script>
 
 <!-- Verify Payment modal -->
+
+<!-- ===== Payment modal ===== -->
 <div class="modal-backdrop" id="paymentModalBackdrop">
     <div class="modal-card">
         <h2>Payment</h2>
@@ -439,6 +445,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
     </div>
 </div>
 
+<!-- ===== Payment modal script ===== -->
 <script>
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
     const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;

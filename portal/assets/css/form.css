@@ -1,3 +1,4 @@
+/* ===== Input group ===== */
 .input-group {
   position: relative;
   width: 80%;
@@ -47,10 +48,12 @@
   padding: 0 5px;
 }
 
+/* ===== Password field ===== */
 .input-group .password-field-wrap {
   width: 100%;
 }
 
+/* ===== Phone field (+63 prefix) ===== */
 .phone-field-wrap {
   display: flex;
   align-items: center;
@@ -73,8 +76,6 @@
   min-width: 0;
 }
 
-/* The +63 prefix always sits where the label would rest, so float the
-   label permanently here too, same reasoning as the select fields below. */
 .input-group:has(.phone-field-wrap) label {
   top: 0;
   font-size: .7em;
@@ -83,6 +84,7 @@
   padding: 0 5px;
 }
 
+/* ===== Select fields ===== */
 .input-group select {
   width: 100%;
   margin-bottom: 0;
@@ -103,9 +105,6 @@
   box-shadow: 0 0 0 3px var(--focus-ring-tint), 0 1px 4px var(--shadow-color-soft);
 }
 
-/* Selects always show a value (never an empty placeholder state like text
-   inputs do), so their label stays permanently in the "raised" position
-   instead of floating on focus/fill like the input labels above. */
 .input-group:has(select) label {
   top: 0;
   font-size: .7em;
@@ -114,17 +113,20 @@
   padding: 0 5px;
 }
 
+/* ===== Helper spacing ===== */
 .helper+.label-group,
 .helper+.input-group {
   margin: 1.2em 0;
 }
 
+/* ===== Responsive ===== */
 @media (max-width: 600px) {
   .input-group {
     width: 90%;
   }
 }
 
+/* ===== Personnel login heading ===== */
 .personnel-login-h1 {
   margin-bottom: .1em;
 }

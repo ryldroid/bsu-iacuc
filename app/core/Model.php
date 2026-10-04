@@ -6,6 +6,7 @@ class Model
     private static ?mysqli $sharedConnection = null;
     public $connection;
 
+    // ===== CONNECTION & SCHEMA CHECK =====
     public function __construct()
     {
         if (self::$sharedConnection === null) {
@@ -68,10 +69,12 @@ class Model
         @file_put_contents($marker, (string) filemtime(__FILE__));
     }
 
+    // ===== CREATE / UPDATE TABLES =====
     private function ensureTables()
     {
         $c = $this->connection;
 
+        // ===== USERS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `users` (
                     `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `username` varchar(50) NOT NULL UNIQUE,
@@ -97,6 +100,7 @@ class Model
         $this->ensureColumn('users', 'welcome_seen', "tinyint(1) NOT NULL DEFAULT 0 AFTER `status`");
         $this->ensureIndex('users', 'unique_email', "(`email`)", true);
 
+        // ===== RECORDS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
                     `id`                     int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `reference_no`           varchar(20)  DEFAULT NULL UNIQUE,
@@ -131,6 +135,7 @@ class Model
         $this->moveRecordArReferences();
         $this->migrateAdminRoleToStaff();
 
+        // ===== PROTOCOLS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
                     `id`                   int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `reference_no`         varchar(30)  DEFAULT NULL UNIQUE,
@@ -173,6 +178,7 @@ class Model
             $c->query("UPDATE `protocols` SET ar_number = reference_no, reference_no = NULL WHERE status IN ('Endorsed','Approved') AND reference_no IS NOT NULL");
         }
 
+        // ===== TITLE HISTORY TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
                     `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`     int(11)      NOT NULL,
@@ -185,6 +191,7 @@ class Model
                     FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== PROTOCOL VERSIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_versions` (
                     `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`    int(11)      NOT NULL,
@@ -210,6 +217,7 @@ class Model
 
         $this->ensureColumn('protocol_versions', 'note', "varchar(1000) DEFAULT NULL");
 
+        // ===== ANNOTATIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `annotations` (
                 `id`          int(11)  NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `version_id`  int(11)  NOT NULL,
@@ -225,6 +233,7 @@ class Model
                 FOREIGN KEY (`created_by`) REFERENCES `users`(`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== PASSWORD RESETS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `password_resets` (
                     `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`    int(11) NOT NULL,
@@ -235,6 +244,7 @@ class Model
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== EMAIL VERIFICATIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `email_verifications` (
                     `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`    int(11) NOT NULL,
@@ -246,6 +256,7 @@ class Model
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== AUDIT LOGS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `audit_logs` (
                     `id`          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`     INT DEFAULT NULL,
@@ -264,6 +275,7 @@ class Model
 
         $this->dropColumn('protocol_return_reasons', 'wrong_auth');
 
+        // ===== LOGIN ATTEMPTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `login_attempts` (
                     `id`           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `identifier`   VARCHAR(255) NOT NULL,
@@ -272,6 +284,7 @@ class Model
                     INDEX (`attempted_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== INVITE TOKENS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `invite_tokens` (
                     `id`         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `token`      VARCHAR(128) NOT NULL UNIQUE,
@@ -282,6 +295,7 @@ class Model
                     `expires_at` DATETIME NOT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== NOTIFICATIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `notifications` (
                     `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`    int(11)      NOT NULL,
@@ -295,6 +309,7 @@ class Model
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== ANNOUNCEMENTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
                     `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `title`      varchar(255) NOT NULL,
@@ -308,6 +323,7 @@ class Model
 
         $this->ensureColumn('announcements', 'image_path', "varchar(255) DEFAULT NULL AFTER `body`");
 
+        // ===== SITE SETTINGS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `site_settings` (
                     `setting_key`   varchar(100) NOT NULL PRIMARY KEY,
                     `setting_value` text         DEFAULT NULL
@@ -315,6 +331,7 @@ class Model
 
         $this->seedSiteSettings();
 
+        // ===== CONTACT OFFICES TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `contact_offices` (
                     `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `sort_order`     int(11)      NOT NULL DEFAULT 0,
@@ -334,6 +351,7 @@ class Model
 
         $this->seedContactOffices();
 
+        // ===== FAQS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `faqs` (
                     `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `sort_order` int(11)      NOT NULL DEFAULT 0,
@@ -345,6 +363,7 @@ class Model
 
         $this->seedFaqs();
 
+        // ===== RETURN REASONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
@@ -358,12 +377,11 @@ class Model
                     FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
-        // Ties a return reason to the protocol version that was under review when
-        // it was returned, so the note only surfaces for that specific version.
         $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
         $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
         $this->backfillReturnReasonVersions();
 
+        // ===== PAYMENT PROOF REJECTIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
                     `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `protocol_id`  int(11)       NOT NULL,
@@ -375,6 +393,7 @@ class Model
                     FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        // ===== CLEARANCE POOL TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `clearance_pool` (
                     `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `file_path`      varchar(255) NOT NULL,
@@ -393,6 +412,7 @@ class Model
 
         $this->ensureColumn('clearance_pool', 'version_id', "int(11) DEFAULT NULL AFTER `assigned_at`");
 
+        // ===== PROTOCOL DRAFTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_drafts` (
                     `id`                  int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`             int(11)      NOT NULL UNIQUE,
@@ -413,6 +433,7 @@ class Model
         $this->dropColumn('protocol_drafts', 'auth_file_name');
     }
 
+    // ===== SCHEMA HELPERS =====
     private function ensureColumn(string $table, string $column, string $definition): void
     {
         $c = $this->connection;
@@ -423,9 +444,6 @@ class Model
         }
     }
 
-    // Renames $from to $to, only when $from still exists and $to doesn't yet
-    // (so this is a no-op on fresh installs, which already create the
-    // column under its new name).
     private function renameColumn(string $table, string $from, string $to, string $definition): void
     {
         $c = $this->connection;
@@ -437,12 +455,7 @@ class Model
         }
     }
 
-    // One-time backfill for records created before `records.protocol_id`
-    // existed: links a record to its originating protocol by matching on an
-    // exact, unambiguous title match (only when title is unique on both
-    // sides, so no guessy links). Records/protocols created after this
-    // point are linked directly at creation time, so this only ever
-    // matters for old data.
+    // ===== ONE-TIME DATA MIGRATIONS =====
     private function backfillRecordProtocolLinks(): void
     {
         $this->connection->query(
@@ -465,9 +478,6 @@ class Model
         );
     }
 
-    // One-time: records whose IPN holds an AR number (starts with "AR") move it
-    // to `ar_number` and clear the IPN. Skips rows that already have an AR
-    // number or whose value is already used by another record (unique index).
     private function moveRecordArReferences(): void
     {
         $this->connection->query(
@@ -481,8 +491,6 @@ class Model
         );
     }
 
-    // One-time: renames the 'admin' role value to 'staff' to match the
-    // app-wide terminology rename (admin -> staff, reviewer+admin -> personnel).
     private function migrateAdminRoleToStaff(): void
     {
         $this->connection->query(
@@ -493,10 +501,6 @@ class Model
         );
     }
 
-    // One-time backfill for return reasons created before `version_id` existed:
-    // links each one to whichever protocol version was current as of the
-    // reason's created_at (the version that was actually under review when
-    // the reviewer returned it), mirroring getLatestVersionAsOf()'s logic.
     private function backfillReturnReasonVersions(): void
     {
         $this->connection->query(
@@ -541,8 +545,7 @@ class Model
         $c->query("DELETE FROM `protocol_versions` WHERE file_type = 'auth'");
     }
 
-    // One-time seed so the homepage keeps showing its current copy until a
-    // staff member edits it via Site Content admin (personnel/site_content).
+    // ===== DEFAULT CONTENT SEEDS =====
     private function seedSiteSettings(): void
     {
         $c      = $this->connection;
@@ -565,8 +568,6 @@ class Model
         }
     }
 
-    // One-time seed matching the offices that used to be hardcoded on the
-    // Contact page, so nothing changes visually until staff edits them.
     private function seedContactOffices(): void
     {
         $c      = $this->connection;
@@ -631,8 +632,6 @@ class Model
         }
     }
 
-    // One-time seed matching the FAQ entries that used to be hardcoded on the
-    // homepage, so nothing changes visually until staff edits them.
     private function seedFaqs(): void
     {
         $c      = $this->connection;
@@ -665,6 +664,7 @@ class Model
         }
     }
 
+    // ===== SCHEMA HELPERS (DROP, ENUM, INDEX) =====
     private function dropColumn(string $table, string $column): void
     {
         $c = $this->connection;
@@ -702,6 +702,7 @@ class Model
         }
     }
 
+    // ===== AUDIT LOGGING =====
     public function logAudit(
         string $event,
         ?int $actorId = null,
@@ -724,6 +725,7 @@ class Model
         );
     }
 
+    // ===== FATAL ERROR =====
     private function fatalError(string $message): void
     {
         error_log("Database Fatal Error: " . $message);

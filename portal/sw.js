@@ -1,3 +1,4 @@
+// ===== Cache settings =====
 const CACHE_VERSION = "bsu-iacuc-v5";
 
 const PRECACHE_URLS = [
@@ -7,6 +8,7 @@ const PRECACHE_URLS = [
   "assets/images/favicon.ico",
 ];
 
+// ===== Install =====
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_URLS)),
@@ -14,6 +16,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+// ===== Activate (clean old caches) =====
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -29,6 +32,7 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// ===== Fetch routing =====
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -51,6 +55,7 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// ===== Navigation handler =====
 async function navigationHandler(request) {
   const cache = await caches.open(CACHE_VERSION);
   try {
@@ -62,6 +67,7 @@ async function navigationHandler(request) {
   }
 }
 
+// ===== Static assets handler =====
 async function staticAssetHandler(request) {
   const cache = await caches.open(CACHE_VERSION);
   const cached = await cache.match(request);
@@ -76,6 +82,7 @@ async function staticAssetHandler(request) {
   return cached || (await refresh) || Response.error();
 }
 
+// ===== Network-first handler =====
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);
   try {

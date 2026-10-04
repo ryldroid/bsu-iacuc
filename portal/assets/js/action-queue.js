@@ -1,4 +1,5 @@
 (function () {
+  // ===== State & settings =====
   var STORAGE_KEY = "iacuc_action_queue";
   var REPLAY_DELAY = 1200;
   var replayTimer = null;

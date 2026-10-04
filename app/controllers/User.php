@@ -4,12 +4,14 @@ class User extends Controller
 {
   public UserModel $model;
 
+  // ===== SETUP =====
   public function __construct()
   {
     require_once "../app/models/UserModel.php";
     $this->model = new UserModel();
   }
 
+  // ===== INPUT HELPERS =====
   private function normalizePhoneNumber(string $raw): string
   {
     $digits = preg_replace('/\D/', '', $raw);
@@ -18,12 +20,10 @@ class User extends Controller
       return '';
     }
 
-    // Pasted with the country code, e.g. "639171234567" or "+639171234567"
     if (str_starts_with($digits, '63') && strlen($digits) > 10) {
       $digits = substr($digits, 2);
     }
 
-    // Typed in local "09XX" format
     if ($digits[0] === '0') {
       $digits = substr($digits, 1);
     }
@@ -142,10 +142,12 @@ class User extends Controller
 
     $this->verifyCsrfToken(true);
 
+    // ===== READ INPUT =====
     $input    = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
+    // ===== LOGIN ATTEMPT LIMIT =====
     $MAX_ATTEMPTS = 5;
     $WINDOW       = 900;
 
@@ -163,6 +165,7 @@ class User extends Controller
       $this->redirect('user/login');
     }
 
+    // ===== FIND USER & CHECK PASSWORD =====
     $user = $this->model->getUserByUsername($input)
       ?? $this->model->getUserByEmail($input);
 
@@ -192,6 +195,7 @@ class User extends Controller
       $this->redirect('user/login');
     }
 
+    // ===== ACCOUNT CHECKS =====
     $this->model->clearLoginAttempts($ip);
     $this->model->clearLoginAttempts($input);
 
@@ -206,6 +210,7 @@ class User extends Controller
       $reactivated = true;
     }
 
+    // ===== START SESSION =====
     session_regenerate_id(true);
     $_SESSION['user'] = [
       'user_id'        => $user['id'],
@@ -216,11 +221,13 @@ class User extends Controller
       'email_verified' => (bool) $user['email_verified'],
     ];
 
+    // ===== WELCOME POPUP =====
     if (empty($user['welcome_seen'])) {
       $_SESSION['user']['show_welcome'] = true;
       $this->model->markWelcomeSeen((int) $user['id']);
     }
 
+    // ===== LOG LOGIN & REDIRECT =====
     $this->model->logAudit(
       event: 'login_success',
       actorId: (int)$user['id'],
@@ -333,11 +340,6 @@ class User extends Controller
   }
 
   // ===== SESSION PING  (POST /user/ping) =====
-  // Called by the idle-session-warning prompt when the user confirms they're
-  // still there. init.php already refreshes $_SESSION['last_activity'] on
-  // every request, so simply reaching this method (past requireLogin) is
-  // enough to extend the session; this just gives the client a reliable
-  // JSON response to confirm the extension actually happened.
 
   public function ping(): void
   {
@@ -415,6 +417,7 @@ class User extends Controller
     $this->redirect('user/account');
   }
 
+  // ===== UPDATE ACCOUNT =====
   public function update()
   {
     $this->requireLogin();
@@ -427,6 +430,7 @@ class User extends Controller
 
     $id = (int) $_SESSION['user']['user_id'];
 
+    // ===== CLEAN INPUT & VALIDATE =====
     extract($this->sanitizeInputs($_POST));
 
     $current_user = $this->model->getUser($id);
@@ -462,6 +466,7 @@ class User extends Controller
       }
     }
 
+    // ===== SHOW ERRORS =====
     if (!empty($errors)) {
       $certificate = $current_user['role'] === 'researcher'
         ? $this->model->getCert($id)
@@ -479,6 +484,7 @@ class User extends Controller
       return;
     }
 
+    // ===== SAVE CHANGES =====
     $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'role');
     if (!empty($password)) {
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
@@ -486,6 +492,7 @@ class User extends Controller
 
     $ok = $this->model->updateUser($id, $input);
 
+    // ===== AFTER SAVE =====
     if ($ok) {
       $_SESSION['user']['first_name'] = $first_name;
       $_SESSION['user']['username']   = $username;
@@ -514,6 +521,7 @@ class User extends Controller
     $this->redirect('user/account');
   }
 
+  // ===== DELETE ACCOUNT =====
   public function delete()
   {
     $this->requireLogin();
@@ -531,10 +539,6 @@ class User extends Controller
     require_once dirname(__DIR__) . '/models/ProtocolModel.php';
     require_once dirname(__DIR__) . '/models/DraftModel.php';
 
-    // Soft-delete the user's protocols (reversible, files/versions kept) before
-    // anonymizing the account itself. Protocol records must survive account
-    // deletion per IACUC retention requirements; only the account's own PII
-    // gets scrubbed below, via deleteUser()'s username/email anonymization.
     (new ProtocolModel())->softDeleteAllForUser($id, $username, 'Account deleted by owner');
 
     (new DraftModel())->clear($id);
@@ -558,6 +562,7 @@ class User extends Controller
     $this->redirect('user/account');
   }
 
+  // ===== FOLDER CLEANUP HELPER =====
   private function rrmdir(string $dir): void
   {
     $items = @scandir($dir);
@@ -580,6 +585,7 @@ class User extends Controller
     @rmdir($dir);
   }
 
+  // ===== FORGOT / RESET PASSWORD =====
   public function forgot_password(): void
   {
     if ($this->isLoggedIn()) {
@@ -601,6 +607,7 @@ class User extends Controller
     );
   }
 
+  // ===== EMAIL VERIFICATION =====
   public function verify_email(): void
   {
     $token  = $_GET['token'] ?? '';

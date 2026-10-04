@@ -2,6 +2,7 @@
 
 class Notifier
 {
+  // ===== SEND TO ONE USER =====
   public static function send(
     int $userId,
     string $type,
@@ -25,6 +26,7 @@ class Notifier
     }
   }
 
+  // ===== SEND TO A ROLE =====
   public static function sendToRole(
     string $role,
     string $type,
@@ -53,6 +55,7 @@ class Notifier
     }
   }
 
+  // ===== MESSAGE FORMATTING =====
   public static function bold(string $text): string
   {
     return "**$text**";
@@ -68,6 +71,7 @@ class Notifier
     return preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
   }
 
+  // ===== SEND EMAIL =====
   private static function sendEmail(array $email): void
   {
     try {

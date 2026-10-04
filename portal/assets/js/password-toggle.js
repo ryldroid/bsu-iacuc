@@ -1,4 +1,5 @@
 (function () {
+  // ===== Show / hide toggle =====
   function attachToggle(input) {
     if (input.dataset.toggleAttached === "1") return;
     input.dataset.toggleAttached = "1";
@@ -35,6 +36,7 @@
     });
   }
 
+  // ===== Init =====
   function init() {
     document.querySelectorAll('input[type="password"]').forEach(attachToggle);
   }

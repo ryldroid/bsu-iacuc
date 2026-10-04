@@ -1,3 +1,4 @@
+/* ===== Page layout ===== */
 body {
     position: relative;
     overflow-x: hidden;
@@ -53,6 +54,7 @@ main form {
     margin-top: 44px;
 }
 
+/* ===== Settings sections ===== */
 .settings-section {
     display: flex;
     flex-direction: column;
@@ -86,6 +88,7 @@ main form {
     background-color: var(--brand-color-active);
 }
 
+/* ===== Headings & inputs ===== */
 h1 {
     font-family: var(--font-title);
     font-weight: lighter;
@@ -119,6 +122,7 @@ input:focus-visible {
     box-shadow: 0 1px 4px var(--shadow-color-soft);
 }
 
+/* ===== Password field & toggle ===== */
 .password-field-wrap {
     position: relative;
     width: 80%;
@@ -194,6 +198,7 @@ main button:hover {
     color: var(--text-on-brand);
 }
 
+/* ===== Action buttons ===== */
 .btn-back {
     margin-left: 10px;
     background: transparent;
@@ -224,6 +229,7 @@ main button:hover {
     background-color: var(--danger-tint-strong);
 }
 
+/* ===== Success message ===== */
 .success-message {
     text-align: center;
     justify-content: center;
@@ -235,6 +241,7 @@ main button:hover {
     width: 80%;
 }
 
+/* ===== Info popup ===== */
 .info-wrapper {
     position: relative;
     display: inline-block;
@@ -271,6 +278,7 @@ main button:hover {
     align-items: center;
 }
 
+/* ===== Account form & password requirements ===== */
 .account-form .btn-save {
     margin-top: 0;
     margin-bottom: 1em;
@@ -310,6 +318,7 @@ main button:hover {
     visibility: visible;
 }
 
+/* ===== Labels & helper text ===== */
 .form-label {
     color: var(--secondary-text);
     margin: auto 16px 1rem;
@@ -324,6 +333,7 @@ main button:hover {
     margin: .5em auto .1em;
 }
 
+/* ===== Personnel login link ===== */
 .personnel-login-link {
     position: fixed;
     bottom: 20px;
@@ -335,6 +345,7 @@ main button:hover {
     color: var(--brand-color-light);
 }
 
+/* ===== Label groups ===== */
 .label-group {
     display: flex;
     align-items: flex-start;
@@ -370,6 +381,7 @@ main button:hover {
     display: none;
 }
 
+/* ===== Email verification badges ===== */
 .email-badge {
     display: inline-block;
     vertical-align: middle;
@@ -415,10 +427,12 @@ main button:hover {
     text-decoration: none;
 }
 
+/* ===== Logout form ===== */
 .logout-form {
     display: flex;
 }
 
+/* ===== Training certificate section ===== */
 .certificate-section {
     width: 80%;
     margin: 0 auto 1em;
@@ -470,6 +484,7 @@ main button:hover {
     justify-content: center;
 }
 
+/* ===== Responsive ===== */
 @media (max-width: 760px) {
     main {
         margin: 24px;
@@ -551,6 +566,7 @@ main button:hover {
     }
 }
 
+/* ===== Switch toggle ===== */
 .switch-toggle {
     display: flex;
     align-items: center;

@@ -2,6 +2,7 @@
 
 class Apply extends Controller
 {
+    // ===== SETUP =====
     public function __construct()
     {
         require_once dirname(__DIR__) . '/models/ProtocolModel.php';
@@ -44,6 +45,7 @@ class Apply extends Controller
         };
     }
 
+    // ===== NOTIFICATION HELPERS =====
     private function notifyProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
     {
         $owner = (new UserModel())->getUser((int) $protocol['user_id']);
@@ -377,6 +379,7 @@ class Apply extends Controller
         );
     }
 
+    // ===== FILE & PATH HELPERS =====
     private function addFileUrls(array $versions): array
     {
         return array_map(fn($v) => $v + ['file_url' => ROOT . '/apply/file/' . (int) $v['id']], $versions);
@@ -447,6 +450,7 @@ class Apply extends Controller
         return $base . '.' . strtolower($ext);
     }
 
+    // ===== SAVE UPLOAD =====
     private function saveUpload(string $inputName, string $dir, array $allowedExts, bool $required, ?string &$reason = null): array|false|null
     {
         if (empty($_FILES[$inputName]['tmp_name']) || $_FILES[$inputName]['error'] !== UPLOAD_ERR_OK) {
@@ -524,6 +528,7 @@ class Apply extends Controller
         $draftModel = new DraftModel();
         $actor      = $this->actor();
 
+        // ===== LOAD DRAFT & TITLE =====
         $draft = $draftModel->getByUser($actor['id']);
         if (!$draft) {
             $this->jsonError(422, 'No draft found. Please fill out the application first.');
@@ -534,6 +539,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Protocol title is required.');
         }
 
+        // ===== CHECK DRAFT FILES =====
         $draftDirAbs = dirname(__DIR__, 2) . '/storage/uploads/drafts/';
 
         $docRelPath = $draft['protocol_file_path'] ?? null;
@@ -542,6 +548,7 @@ class Apply extends Controller
         }
         $docOriginalName = $draft['protocol_file_name'];
 
+        // ===== SUBMITTER & CERTIFICATE CHECK =====
         $submitter = $userModel->getUser($actor['id']);
         $docExt    = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
         $researcherName = trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? ''));
@@ -554,6 +561,7 @@ class Apply extends Controller
         }
         $certOriginalName = $draft['cert_file_name'];
 
+        // ===== CREATE PROTOCOL & MOVE FILES =====
         $protocolId = $model->insertProtocol($actor['id'], $title);
         if (!$protocolId) {
             $this->jsonError(500, 'Could not create protocol record. Please try again.');
@@ -576,10 +584,12 @@ class Apply extends Controller
             $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
         }
 
+        // ===== CLEAR DRAFT & LOG =====
         $draftModel->clear($actor['id']);
 
         $model->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
 
+        // ===== NOTIFY SUBMITTER =====
         Notifier::send(
             $actor['id'],
             'protocol_submitted',
@@ -595,6 +605,7 @@ class Apply extends Controller
             ]
         );
 
+        // ===== NOTIFY STAFF =====
         Notifier::sendToRole(
             'staff',
             'new_submission_staff',
@@ -955,6 +966,7 @@ class Apply extends Controller
             ]);
         }
 
+        // ===== LOAD PROTOCOL =====
         $model    = new ProtocolModel();
         $protocol = $model->getById($protocolId);
 
@@ -964,9 +976,11 @@ class Apply extends Controller
             ]);
         }
 
+        // ===== ACCESS CHECK =====
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
+        // ===== PICK VERSION TO SHOW =====
         $latestVersion = $model->getLatestVersion($protocolId, 'protocol');
 
         if ($versionId > 0) {
@@ -992,6 +1006,7 @@ class Apply extends Controller
             ]);
         }
 
+        // ===== PERMISSIONS & BACK LINK =====
         $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
 
         $isPersonnel    = $this->isPersonnel();
@@ -1329,6 +1344,7 @@ class Apply extends Controller
             $this->jsonError(404, 'Protocol not found.');
         }
 
+        // ===== ALLOWED STATUS CHANGES =====
         $allowedTransitions = [
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
             'staff'    => [
@@ -1346,6 +1362,7 @@ class Apply extends Controller
         $isRevert = ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
             || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
 
+        // ===== REQUIREMENTS BEFORE ENDORSING =====
         if ($newStatus === 'Endorsed' && !$isRevert) {
             if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
                 $this->jsonError(422, 'This protocol must be marked as paid before it can be endorsed.');
@@ -1358,6 +1375,7 @@ class Apply extends Controller
             }
         }
 
+        // ===== CHECKS BEFORE REVIEWED / APPROVED =====
         $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
 
         if ($newStatus === 'Reviewed' && !$isRevert) {
@@ -1370,6 +1388,7 @@ class Apply extends Controller
             $this->jsonError(422, 'A clearance document must be attached before this protocol can be approved.');
         }
 
+        // ===== SAVE NEW STATUS =====
         $ok = $model->updateStatus($protocolId, $newStatus);
 
         if ($ok) {
@@ -1377,6 +1396,7 @@ class Apply extends Controller
             $model->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
             $this->notifyStatusChange($protocol, $newStatus);
 
+            // ===== SNAPSHOT RECORD ON REVIEWED =====
             if ($newStatus === 'Reviewed' && !$isRevert) {
                 require_once dirname(__DIR__) . '/models/RecordModel.php';
                 $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
@@ -1406,6 +1426,7 @@ class Apply extends Controller
                 (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, (int) $protocol['user_id'], $protocolId, $sex, $recordFilePath, $recordFileOriginal);
             }
 
+            // ===== SUCCESS MESSAGE =====
             $flashMessages = [
                 'Needs Revision' => 'Protocol returned for revision. The researcher will be notified to make changes.',
                 'Reviewed'       => $isRevert ? 'Endorsement reverted. Protocol is back to Reviewed.' : 'Review finished. Protocol details have been added to the records.',

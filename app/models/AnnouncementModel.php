@@ -5,7 +5,6 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class AnnouncementModel extends Model
 {
-  // Get all announcements, newest first (used on the public Announcements page)
   public function getAll(): array
   {
     $result = $this->connection->query(

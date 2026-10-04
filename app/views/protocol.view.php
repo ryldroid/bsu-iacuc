@@ -62,6 +62,7 @@ $backUrl = $backUrl ?? ($isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submi
 $versions   = $versions ?? [$version];
 $fromFilter = $fromFilter ?? '';
 
+// ===== Version viewer URL helper =====
 function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): string
 {
     $url = ROOT . '/apply/viewer/' . $protocolId . '/' . $versionId;
@@ -1201,7 +1202,6 @@ include 'includes/header.php';
     }
 
     // ===== Draw listeners =====
-    // Pointer events cover mouse, touch, and pen with one set of handlers.
     function attachDrawListeners(overlay, pageNum, canvas) {
         overlay.addEventListener('pointerdown', e => {
             if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -1387,6 +1387,7 @@ include 'includes/header.php';
         renderAnnotations();
     }
 
+    // ===== Render annotations & sidebar =====
     function renderAnnotations() {
         document.querySelectorAll('.annot-box').forEach(el => el.remove());
 
@@ -1448,6 +1449,7 @@ include 'includes/header.php';
     `).join('');
     }
 
+    // ===== Sidebar highlight & scroll =====
     function formatAnnotDate(value) {
         if (!value) return '';
         return isNaN(new Date(value).getTime()) ? '' : formatDateTime(value);
@@ -1475,12 +1477,10 @@ include 'includes/header.php';
     }
 
     // ===== Comment popup (small screens) =====
-    // Below the layout breakpoint the sidebar stacks under the PDF instead of
-    // sitting beside it, so tapping a marker shows the comment in a popup at
-    // the tap position instead of just scrolling/highlighting the sidebar.
     const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
     const annotPopup = document.getElementById('annotPopup');
 
+    // ===== Toolbar hint =====
     function updateToolbarHint() {
         const hint = document.getElementById('toolbarHint');
         if (!hint) return;
@@ -1499,6 +1499,7 @@ include 'includes/header.php';
         }
     }
 
+    // ===== Comment popup (small screens) =====
     function showAnnotPopup(annotId, x, y) {
         const idx = annotations.findIndex(a => a.id === annotId);
         if (idx === -1) return;
@@ -1534,7 +1535,6 @@ include 'includes/header.php';
             deleteBtn.onclick = null;
         }
 
-        // Position near the tap point, then clamp to stay on-screen.
         annotPopup.style.left = '0px';
         annotPopup.style.top = '0px';
         annotPopup.classList.add('open');
@@ -1787,6 +1787,7 @@ include 'includes/header.php';
         const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
         const paymentModal = document.getElementById('paymentModalBackdrop');
 
+        // ===== Payment modal =====
         function getSelectedPaymentMethod() {
             if (IS_BSU_RESEARCHER) return 'in_person';
             const checked = document.querySelector('input[name="payment_method"]:checked');
@@ -1924,6 +1925,7 @@ include 'includes/header.php';
         const deletionReviewSubmitBtn = document.getElementById('deletionReviewSubmitBtn');
         let deletionReviewAction = null;
 
+        // ===== Deletion review modal =====
         function openDeletionReviewModal() {
             deletionReviewAction = null;
             deletionReviewLabel.textContent = 'Deletion Requested';
@@ -2082,7 +2084,7 @@ include 'includes/header.php';
     const filePopupMessage = document.getElementById('filePopupMessage');
     let filePopupObjectUrl = null;
 
-    // Exactly one of these three stays visible at a time.
+    // ===== File popup (certificate / letter) =====
     function showFilePopupState(state) {
         filePopupPdfPages.hidden = state !== 'pdf';
         filePopupImg.hidden = state !== 'img';
@@ -2143,9 +2145,6 @@ include 'includes/header.php';
                 return;
             }
 
-            // Images: fetch as a blob so we control sizing via CSS
-            // (object-fit: contain) instead of leaving it to the browser's
-            // bare image viewer, which doesn't reliably scale to fit an iframe.
             const blob = await res.blob();
 
             if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
@@ -2325,6 +2324,7 @@ include 'includes/header.php';
         const amendmentCharCount = document.getElementById('amendmentCharCount');
         const amendmentError = document.getElementById('amendmentError');
 
+        // ===== Amendment modal =====
         function openAmendmentModal() {
             amendmentFile.value = '';
             amendmentFileName.textContent = AMENDMENT_FILE_HINT;
@@ -2553,11 +2553,11 @@ include 'includes/header.php';
             progressContainer.innerHTML = '';
             const bar = createUploadProgressBar(progressContainer);
 
-            // Queue: any flagged docs first, protocol form always last (matches upload order below).
             const queue = RESUBMIT_DOCS.filter(doc => doc.key !== 'protocol' && resubmitFiles[doc.key]);
             queue.push(RESUBMIT_DOCS.find(doc => doc.key === 'protocol'));
             const total = queue.length;
 
+            // ===== Upload progress =====
             function overallProgress(index, filePct) {
                 return ((index + filePct / 100) / total) * 100;
             }

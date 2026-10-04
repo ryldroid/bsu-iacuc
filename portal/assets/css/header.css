@@ -1,3 +1,4 @@
+/* ===== Header bar ===== */
 header {
     font-family: var(--font-default);
 
@@ -31,6 +32,7 @@ header img {
     height: 36px;
 }
 
+/* ===== Verify email banner ===== */
 .verify-banner {
     display: flex;
     align-items: center;
@@ -86,6 +88,7 @@ header img {
     opacity: 1;
 }
 
+/* ===== Logo ===== */
 .header-logo-cont {
     flex: 1;
 }
@@ -102,6 +105,7 @@ header img {
     color: var(--brand-color-light);
 }
 
+/* ===== Header layout ===== */
 header ul {
     display: flex;
     align-items: center;
@@ -155,6 +159,7 @@ header nav a:hover::after {
     transition: width 0.2s ease 0.1s;
 }
 
+/* ===== Sidebar menu ===== */
 .nav-sidebar {
     flex-direction: column;
     align-items: flex-start;
@@ -231,6 +236,7 @@ header nav a:hover::after {
     font-weight: 600;
 }
 
+/* ===== Auth area ===== */
 .header-auth .mobile-menu {
     display: none;
     margin-left: 0;
@@ -240,6 +246,7 @@ header nav a:hover::after {
     margin-left: 0;
 }
 
+/* ===== Theme toggle ===== */
 .theme-toggle-wrapper {
     position: relative;
     margin-right: .5em;
@@ -289,6 +296,7 @@ header nav a:hover::after {
     display: block;
 }
 
+/* ===== Theme menu ===== */
 #theme-menu {
     position: absolute;
     top: calc(100% + 8px);
@@ -395,6 +403,7 @@ header nav a:hover::after {
     margin-top: 44px;
 }
 
+/* ===== Auth buttons ===== */
 .auth-btn {
     font-size: .85em;
 }
@@ -459,6 +468,7 @@ header nav a:hover::after {
     border-radius: 50%;
 }
 
+/* ===== Account dropdown ===== */
 .my-account-dropdown:hover {
     background-color: var(--tint-on-brand);
 }
@@ -521,6 +531,7 @@ header nav a:hover::after {
     background-color: var(--hover-surface);
 }
 
+/* ===== Mobile header ===== */
 @media (max-width: 768px) {
     header .header-logo {
         margin-left: 0;
@@ -598,6 +609,7 @@ header nav a:hover::after {
     }
 }
 
+/* ===== Notification bell ===== */
 .notif-bell {
     position: relative;
     padding: 40px 20px;
@@ -613,6 +625,7 @@ header.header--hidden {
     transform: translateY(-100%);
 }
 
+/* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
     header {
         transition: none;

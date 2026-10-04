@@ -1,3 +1,4 @@
+/* ===== Bell badge ===== */
 .notif-badge {
   position: absolute;
   top: 2px;
@@ -28,6 +29,7 @@
   background-color: var(--tint-on-brand);
 }
 
+/* ===== Dropdown panel ===== */
 #notif-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -82,6 +84,7 @@
   text-decoration: underline;
 }
 
+/* ===== Notification list & items ===== */
 .notif-list {
   max-height: 420px;
   overflow-y: auto;
@@ -131,6 +134,7 @@
   margin-top: .1em;
 }
 
+/* ===== Item icons ===== */
 .notif-item-icon--info {
   background-color: var(--status-info-bg);
   color: var(--status-info-text);
@@ -194,6 +198,7 @@
   background-color: var(--brand-text);
 }
 
+/* ===== Empty state ===== */
 .notif-empty {
   padding: 2em 1em;
   text-align: center;
@@ -221,6 +226,7 @@
   text-decoration: underline;
 }
 
+/* ===== Mobile ===== */
 @media (max-width: 768px) {
   #notif-dropdown {
     width: 300px;

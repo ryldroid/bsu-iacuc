@@ -19,11 +19,13 @@ $totalPages = $totalPages ?? 1;
 $perPage    = $perPage    ?? 20;
 $offset     = ($page - 1) * $perPage;
 
+// ===== Page URL helper =====
 function notifPageUrl(int $p): string
 {
   return ROOT . '/notifications/page?page=' . $p;
 }
 
+// ===== Time-ago helper =====
 function notifTimeAgo(string $dateStr): string
 {
   $seconds = time() - strtotime($dateStr);
@@ -41,6 +43,7 @@ function notifTimeAgo(string $dateStr): string
 <div class="body">
   <?php include 'includes/navigation.php'; ?>
 
+  <!-- ===== Notifications page ===== -->
   <main class="main-content" id="main-content" tabindex="-1">
 
     <div class="notif-page-header">
@@ -48,6 +51,7 @@ function notifTimeAgo(string $dateStr): string
       <button type="button" class="notif-page-mark-all" id="notifPageMarkAll">Mark all as read</button>
     </div>
 
+    <!-- ===== Notification list ===== -->
     <div class="notif-page-list">
       <?php if (! $items): ?>
         <div class="notif-empty">You're all caught up.</div>
@@ -113,6 +117,7 @@ function notifTimeAgo(string $dateStr): string
   </main>
 </div>
 
+<!-- ===== Page script ===== -->
 <script>
   (function() {
     const csrfToken = <?= json_encode($csrf) ?>;

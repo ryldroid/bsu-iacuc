@@ -4,6 +4,7 @@ class Submissions extends Controller
 {
     public ProtocolModel $model;
 
+    // ===== SETUP =====
     public function __construct()
     {
         require_once "../app/models/ProtocolModel.php";
@@ -11,6 +12,7 @@ class Submissions extends Controller
         $this->model = new ProtocolModel();
     }
 
+    // ===== RESEARCHER ACCESS CHECK =====
     private function requireResearcher(bool $ajax = false): void
     {
         $this->requireLogin();
@@ -22,6 +24,7 @@ class Submissions extends Controller
         }
     }
 
+    // ===== MY PROTOCOLS PAGE =====
     public function index(): void
     {
         $this->requireResearcher();
@@ -56,6 +59,7 @@ class Submissions extends Controller
         ]);
     }
 
+    // ===== LIVE UPDATE CHECK =====
     public function checkupdates(): void
     {
         $this->requireResearcher(true);

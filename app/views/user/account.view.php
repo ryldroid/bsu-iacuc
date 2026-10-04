@@ -15,6 +15,8 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
 <div class="body">
+
+    <!-- ===== Account page ===== -->
     <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
         <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
         <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
@@ -27,6 +29,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         </a>
 
         <?php if (empty($email_verified)): ?>
+            <!-- ===== Resend verification form ===== -->
             <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/user/resend_verification"
                 data-confirm-message="Send a verification link to <?= htmlspecialchars($old['email'] ?? '') ?>?"
                 data-confirm-ok-text="Send">
@@ -34,6 +37,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             </form>
         <?php endif; ?>
 
+        <!-- ===== Account form ===== -->
         <form class="account-form" method="POST" action="<?= ROOT ?>/user/update"
             data-confirm-message="Save changes to your account?"
             data-confirm-ok-text="Save Changes">
@@ -62,6 +66,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <h1>My Account</h1>
 
             <?php if (!empty($certificate)): ?>
+                <!-- ===== Training certificate ===== -->
                 <section class="certificate-section">
                     <div class="certificate-section-header">
                         <div>
@@ -119,6 +124,8 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <?php endif; ?>
 
             <div class="input-group">
+
+                <!-- ===== Phone field ===== -->
                 <div class="phone-field-wrap">
                     <span class="phone-prefix">+63</span>
                     <input type="tel" id="phone_number" name="phone_number" placeholder=" "
@@ -172,6 +179,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <button type="submit" class="btn-save btn-green">Save Changes</button>
         </form>
 
+        <!-- ===== Email notifications ===== -->
         <section class="settings-section">
             <div class="popup-wrap">
                 <h2>Email Notifications</h2>
@@ -231,6 +239,8 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 </div>
 
 <!-- File popup modal -->
+
+<!-- ===== File popup ===== -->
 <div class="modal-backdrop" id="filePopupBackdrop">
     <div class="modal-card file-popup-card">
         <div class="file-popup-header">
@@ -249,6 +259,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     </div>
 </div>
 
+<!-- ===== File popup script ===== -->
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -260,7 +271,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     const filePopupMessage = document.getElementById('filePopupMessage');
     let filePopupObjectUrl = null;
 
-    // Exactly one of these three stays visible at a time.
     function showFilePopupState(state) {
         filePopupPdfPages.hidden = state !== 'pdf';
         filePopupImg.hidden = state !== 'img';

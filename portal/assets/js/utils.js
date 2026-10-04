@@ -1,3 +1,4 @@
+// ===== HTML escaping =====
 function escapeHtml(value) {
   return String(value ?? "").replace(
     /[&<>"']/g,

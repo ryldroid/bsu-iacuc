@@ -1,4 +1,5 @@
 (function () {
+  // ===== Sort helpers =====
   function timestampOf(el) {
     const parsed = Date.parse(el.dataset.submitted || "");
     return isNaN(parsed) ? 0 : parsed;
@@ -8,6 +9,7 @@
     return el.dataset.title || "";
   }
 
+  // ===== Sort comparator =====
   window.protocolSortComparator = function (mode) {
     switch (mode) {
       case "oldest":

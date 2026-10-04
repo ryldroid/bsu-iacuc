@@ -24,6 +24,7 @@ include dirname(__DIR__) . '/includes/header.php';
             Back
         </a>
 
+        <!-- ===== Registration form ===== -->
         <form method="POST" action="<?= ROOT ?>/user/register_process">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? ''); ?>">
 
@@ -72,6 +73,8 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="input-group">
+
+                <!-- ===== Phone field ===== -->
                 <div class="phone-field-wrap">
                     <span class="phone-prefix">+63</span>
                     <input type="tel" id="phone_number" name="phone_number" placeholder=" "
@@ -124,6 +127,7 @@ include dirname(__DIR__) . '/includes/header.php';
     </main>
 </div>
 
+<!-- ===== Success script ===== -->
 <?php if (!empty($success)): ?>
     <script>
         let seconds = 1;

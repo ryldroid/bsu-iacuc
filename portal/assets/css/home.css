@@ -1,3 +1,4 @@
+/* ===== Page layout ===== */
 main {
     padding-top: 60px;
 }
@@ -77,6 +78,7 @@ article {
     max-width: 1100px;
 }
 
+/* ===== Apply button ===== */
 .btn-apply {
     display: block;
     margin-top: 20px;
@@ -104,6 +106,7 @@ article {
     border: 5px outset var(--brand-color-hover);
 }
 
+/* ===== IACUC intro ===== */
 .home-iacuc p {
     text-indent: 40px;
     margin: .5em;
@@ -357,6 +360,7 @@ h2 {
     min-width: 0;
 }
 
+/* ===== Latest announcements teaser ===== */
 .home-announcements-teaser {
     margin-bottom: 24px;
 }

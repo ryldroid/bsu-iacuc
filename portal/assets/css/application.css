@@ -1,3 +1,4 @@
+/* ===== Base reset ===== */
 *::before,
 *::after {
     box-sizing: border-box;
@@ -361,8 +362,6 @@ main button svg {
     outline-offset: 1px;
 }
 
-/* Same footprint as .consent-checkbox, but round with a dot indicator for
-   single-choice options (e.g. payment method) instead of a square checkmark. */
 .consent-radio {
     appearance: none;
     -webkit-appearance: none;
@@ -764,12 +763,14 @@ main button svg {
     flex-wrap: wrap;
 }
 
+/* ===== Submit button label ===== */
 #submit-label {
     display: inline-flex;
     align-items: center;
     gap: 6px;
 }
 
+/* ===== Responsive ===== */
 @media(max-width:1045px) {
     .portal-header {
         margin-top: 20px;
@@ -786,6 +787,7 @@ main button svg {
     }
 }
 
+/* ===== Misc helpers ===== */
 .req {
     color: var(--danger-color);
 }

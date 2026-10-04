@@ -1,11 +1,9 @@
 <?php
-// NEW FILE - CRUD for staff-managed Contact page offices
-
 require_once dirname(__DIR__) . '/core/Model.php';
 
 class ContactOfficeModel extends Model
 {
-  // Get all offices, in display order (used on the public Contact page)
+  // ===== READ OFFICES =====
   public function getAll(): array
   {
     $result = $this->connection->query(
@@ -24,8 +22,7 @@ class ContactOfficeModel extends Model
     return $row ?: null;
   }
 
-  // logo_path isn't editable through the admin form yet, so it's only set
-  // here on insert (new offices start with no logo) and left alone by update().
+  // ===== ADD OFFICE =====
   public function insert(
     int $sortOrder,
     string $name,
@@ -63,6 +60,7 @@ class ContactOfficeModel extends Model
     return $stmt->execute();
   }
 
+  // ===== EDIT OFFICE =====
   public function update(
     int $id,
     int $sortOrder,
@@ -101,6 +99,7 @@ class ContactOfficeModel extends Model
     return $stmt->execute();
   }
 
+  // ===== DELETE OFFICE =====
   public function delete(int $id): bool
   {
     $stmt = $this->connection->prepare("DELETE FROM `contact_offices` WHERE id = ?");

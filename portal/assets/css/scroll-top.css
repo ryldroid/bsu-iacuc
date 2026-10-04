@@ -1,3 +1,4 @@
+/* ===== Scroll-to-top button ===== */
 .scroll-top {
   position: fixed;
   bottom: 2rem;
@@ -38,6 +39,7 @@
   font-weight: 500;
 }
 
+/* ===== Mobile ===== */
 @media (max-width: 768px) {
   .scroll-top {
     bottom: 1rem;

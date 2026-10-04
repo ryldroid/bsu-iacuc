@@ -1,3 +1,4 @@
+/* ===== Logo & page offset ===== */
 .header-logo {
     /* margin-left: 50px; */
 }
@@ -7,19 +8,12 @@
     flex: 1;
 }
 
+/* ===== Sidebar container ===== */
 aside {
     position: sticky;
-    /* Follows the header as it hides/shows so it never covers the first icon.
-       Falls back to the header height before header.js runs. */
     top: var(--header-offset, 52px);
     left: 0;
 
-    /* position:sticky always creates its own stacking context, which traps
-       any z-index set on descendants (like the hover tooltip below) inside
-       it. Giving the sidebar itself a z-index lets that whole context paint
-       above ordinary page content (e.g. images in <main>), which otherwise
-       cover the tooltip because they come later in the DOM. Kept below the
-       header's 1000 so header dropdowns still win. */
     z-index: 900;
 
     min-height: 100vh;
@@ -37,6 +31,7 @@ aside {
     }
 }
 
+/* ===== Sidebar items ===== */
 aside ul {
     list-style: none;
 }
@@ -103,6 +98,7 @@ aside svg {
     fill: none;
 }
 
+/* ===== Sidebar icons ===== */
 #home-icon,
 #protocols-icon,
 #contact-icon,
@@ -117,6 +113,7 @@ aside svg {
     stroke: var(--icon-detail-color, currentColor);
 }
 
+/* ===== Active link ===== */
 aside a.active-link {
     color: var(--brand-text);
 }
@@ -126,6 +123,7 @@ aside a.active-link svg {
     --icon-detail-color: var(--sidebar-background);
 }
 
+/* ===== Mobile sidebar ===== */
 @media (max-width: 768px) {
     aside {
         display: none;

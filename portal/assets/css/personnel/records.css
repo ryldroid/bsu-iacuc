@@ -1,3 +1,4 @@
+/* ===== Records page ===== */
 .records-page-header .row-btn {
   margin: 0;
   background: var(--brand-color);
@@ -22,6 +23,7 @@
   box-shadow: 0 2px 6px var(--shadow-color-soft);
 }
 
+/* ===== Export button ===== */
 .records-export-btn {
   background: var(--card-background);
   color: var(--brand-text);
@@ -37,6 +39,7 @@
   box-shadow: none;
 }
 
+/* ===== Metric cards ===== */
 .records-metrics {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   max-width: none;
@@ -353,7 +356,6 @@
   color: var(--muted-text);
 }
 
-/* Segment and legend colors, shared by the donut ring and its legend dots */
 .records-donut-seg--1 {
   stroke: var(--chart-1);
   background: var(--chart-1);
@@ -452,6 +454,7 @@
   background: var(--brand-color-hover);
 }
 
+/* ===== Monthly trend chart ===== */
 .records-trend-card {
   grid-column: 1 / -1;
 }
@@ -501,6 +504,7 @@
   color: var(--muted-text);
 }
 
+/* ===== Filters & sorting ===== */
 .records-filters-row {
   display: flex;
   align-items: center;
@@ -576,6 +580,7 @@
   color: var(--brand-color-hover);
 }
 
+/* ===== Records table ===== */
 .records-table-wrap .protocol-table-scroll {
   cursor: grab;
   overflow: auto;
@@ -587,7 +592,6 @@
   scroll-behavior: auto;
 }
 
-/* Keep the pinned IPN cell's green tint on hover instead of flattening it */
 .records-table tbody tr:hover .records-ref {
   background-color: var(--table-row-hover);
   background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
@@ -685,9 +689,6 @@
 
   box-shadow: 2px 0 4px -2px var(--shadow-color-soft);
 
-  /* Two background layers so the tint is always painted over an opaque
-     base, instead of `--brand-surface-tint` (which is semi-transparent)
-     letting the scrolled Title column bleed through this pinned cell. */
   background-color: var(--card-background);
   background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
   color: var(--brand-text);
@@ -702,7 +703,6 @@
   word-break: break-word;
 }
 
-/* Row actions float over the right edge of the row on hover */
 .records-table .row-actions {
   position: absolute;
   top: 50%;
@@ -752,6 +752,7 @@
   color: var(--brand-text);
 }
 
+/* ===== Delete record button ===== */
 .delete-record-btn:hover {
   background: var(--danger-color) !important;
   border-color: var(--danger-color) !important;
@@ -765,6 +766,7 @@
   font-size: .9em;
 }
 
+/* ===== Add / edit record modal ===== */
 .records-modal-card {
   max-width: 720px;
   width: 94vw;
@@ -811,6 +813,7 @@
   border-radius: var(--btn-radius);
 }
 
+/* ===== Record form ===== */
 .records-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -874,6 +877,7 @@
   min-height: 70px;
 }
 
+/* ===== Date fields ===== */
 .records-date-range {
   display: flex;
   align-items: center;
@@ -895,6 +899,7 @@
   font-size: 0.82em;
 }
 
+/* ===== Responsive ===== */
 @media (max-width: 900px) {
   .records-metrics {
     grid-template-columns: 1fr 1fr;
@@ -948,7 +953,6 @@
     flex: 1 1 auto;
   }
 
-  /* Table rows become stacked cards */
   .records-table-wrap .protocol-table-scroll {
     border: none;
     overflow: visible;
@@ -1010,7 +1014,6 @@
     grid-column: 1 / -1;
   }
 
-  /* AR No. leads the card, IPN follows (or leads when there is no AR No.) */
   .records-table tbody tr td.records-ar,
   .records-table tbody tr td.records-ref {
     grid-column: 1;

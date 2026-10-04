@@ -3,6 +3,7 @@
 const themeToggleButton = document.querySelector("#theme-toggle");
 const themeMenu = document.querySelector("#theme-menu");
 
+// ===== Theme helpers =====
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
@@ -44,8 +45,10 @@ function closeThemeMenu() {
   themeToggleButton.setAttribute("aria-expanded", "false");
 }
 
+// ===== Apply saved theme =====
 applyMode(getCurrentMode());
 
+// ===== Theme menu =====
 if (themeToggleButton && themeMenu) {
   themeToggleButton.addEventListener("click", () => {
     const isOpen = themeMenu.classList.toggle("active");
@@ -81,6 +84,7 @@ if (themeToggleButton && themeMenu) {
   });
 }
 
+// ===== Follow system changes =====
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", () => {

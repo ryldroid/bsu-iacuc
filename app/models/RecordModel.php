@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class RecordModel extends Model
 {
+  // ===== FILTERS & PERIOD =====
   private function buildFilters(
     string $search,
     string $school,
@@ -73,15 +74,6 @@ class RecordModel extends Model
     'duration' => 'Research Duration',
   ];
 
-  /**
-   * Turns the statistics period inputs into a validated SQL condition.
-   * Returns null for "all time" (no filtering).
-   *
-   * 'released' matches records whose Date Released falls inside the period.
-   * 'duration' matches records whose research duration overlaps the period; the end date
-   * is required (it is also the clearance expiry) and a missing start date is treated as open.
-   * Dates are validated as Y-m-d before being embedded, so nothing user-typed reaches the SQL.
-   */
   public function resolvePeriod(string $preset, string $basis, string $from = '', string $to = ''): ?array
   {
     if (! isset(self::PERIOD_PRESETS[$preset]) || $preset === 'all') return null;
@@ -116,7 +108,7 @@ class RecordModel extends Model
         $start = date('Y-m-01', strtotime('-11 months', $today));
         $end   = date('Y-m-t', $today);
         break;
-      default: // custom
+      default:
         $start = $this->validDate($from);
         $end   = $this->validDate($to);
         if ($start !== null && $end !== null && $start > $end) {
@@ -182,6 +174,7 @@ class RecordModel extends Model
     return self::SORT_OPTIONS[$sort]['sql'] ?? self::SORT_OPTIONS['newest']['sql'];
   }
 
+  // ===== RECORD LIST =====
   public function getAll(
     string $search = '',
     string $school = '',
@@ -236,6 +229,7 @@ class RecordModel extends Model
   }
 
 
+  // ===== STATISTICS =====
   public function stats(
     string $search = '',
     string $school = '',
@@ -246,7 +240,7 @@ class RecordModel extends Model
   ): array {
     [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period);
 
-    // Records that the period filter can't place because they lack the relevant date.
+    // ===== PERIOD FILTER =====
     $excludedByPeriod = 0;
     if ($period !== null) {
       [$baseWhere, $baseParams, $baseTypes] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
@@ -257,6 +251,7 @@ class RecordModel extends Model
       ) ?? 0);
     }
 
+    // ===== TOTALS =====
     $total = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
 
     $processedThisMonth = (int) ($this->scalarQuery(
@@ -287,6 +282,7 @@ class RecordModel extends Model
       'SUM(animal_count)'
     );
 
+    // ===== BREAKDOWNS =====
     $schoolBreakdown = $this->groupedQuery(
       'school',
       $this->andClause($where, "school IS NOT NULL AND school != ''"),
@@ -308,6 +304,7 @@ class RecordModel extends Model
       $types
     );
 
+    // ===== DATA QUALITY & DISTINCT COUNTS =====
     $incompleteCount = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause(
         $where,
@@ -336,6 +333,7 @@ class RecordModel extends Model
     ) ?? 0);
     $avgAnimalsPerProtocol = $protocolsWithCount > 0 ? round($totalAnimals / $protocolsWithCount, 1) : 0.0;
 
+    // ===== STUDY STATUS =====
     $ongoingStudies = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause(
         $where,
@@ -354,15 +352,16 @@ class RecordModel extends Model
       $types
     ) ?? 0);
 
+    // ===== MONTHLY TREND =====
     $monthlyTrend = $this->quarterMonthlyTrend($where, $params, $types);
 
-    // The end date doubles as the clearance's expiry (see the Add/Edit Record helper text).
     $activeClearances = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()"),
       $params,
       $types
     ) ?? 0);
 
+    // ===== CLEARANCE EXPIRY =====
     $expiringSoon = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause(
         $where,
@@ -384,12 +383,14 @@ class RecordModel extends Model
       $types
     ) ?? 0);
 
+    // ===== RELEASED THIS YEAR =====
     $releasedThisYear = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE())"),
       $params,
       $types
     ) ?? 0);
 
+    // ===== SPECIES BREAKDOWN =====
     $speciesBreakdown = $this->groupedQuery(
       'animal_type',
       $this->andClause($where, "animal_type IS NOT NULL AND animal_type != ''"),
@@ -399,12 +400,14 @@ class RecordModel extends Model
       ', COUNT(*) AS protocols'
     );
 
+    // ===== PROTOCOL STATUS COUNTS =====
     $protocolsReviewed = $this->protocolStatusCount('Reviewed', $period);
     $protocolsEndorsed = $this->protocolStatusCount('Endorsed', $period);
     $thisMonth         = $this->resolvePeriod('this_month', 'released');
     $reviewedThisMonth = $this->protocolStatusCount('Reviewed', $thisMonth);
     $endorsedThisMonth = $this->protocolStatusCount('Endorsed', $thisMonth);
 
+    // ===== RESULT =====
     return [
       'total'                      => $total,
       'processed_this_month'       => $processedThisMonth,
@@ -437,6 +440,7 @@ class RecordModel extends Model
     ];
   }
 
+  // ===== STATISTICS HELPERS =====
   private function protocolStatusCount(string $status, ?array $period): int
   {
     $sql    = "SELECT COUNT(DISTINCT target_id) FROM `audit_logs` WHERE action = 'status_updated' AND target_type = 'protocol' AND details = ?";
@@ -492,7 +496,6 @@ class RecordModel extends Model
     return $trend;
   }
 
-  /** Records released per month for the last 12 months (oldest first), zero-filled. */
   private function releaseTrend(string $where, array $params, string $types): array
   {
     $sql = "SELECT DATE_FORMAT(date_released, '%Y-%m') AS ym, COUNT(*) AS total FROM `records` " . $this->andClause(
@@ -580,6 +583,7 @@ class RecordModel extends Model
     return array_column($result->fetch_all(MYSQLI_ASSOC), $column);
   }
 
+  // ===== LOOKUPS =====
   public function getById(int $id): ?array
   {
     $stmt = $this->connection->prepare("SELECT * FROM `records` WHERE id = ?");
@@ -617,6 +621,7 @@ class RecordModel extends Model
     return (bool) $stmt->get_result()->fetch_row();
   }
 
+  // ===== ADD RECORD =====
   public function insert(array $d): bool
   {
     $stmt = $this->connection->prepare(
@@ -672,6 +677,7 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  // ===== PROTOCOL LINK =====
   public function getByProtocolId(int $protocolId): ?array
   {
     $stmt = $this->connection->prepare("SELECT * FROM `records` WHERE protocol_id = ?");
@@ -697,6 +703,7 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  // ===== EDIT & DELETE =====
   public function update(array $d): bool
   {
     $stmt = $this->connection->prepare(
@@ -759,10 +766,6 @@ class RecordModel extends Model
 
   // ===== AUTOMATIC DEACTIVATION ON CLEARANCE EXPIRY =====
 
-  /**
-   * Users with at least one expired, linked clearance record who haven't
-   * already been checked. Deduped by user_id.
-   */
   public function getUsersWithExpiredClearances(): array
   {
     $stmt = $this->connection->prepare(
@@ -779,13 +782,6 @@ class RecordModel extends Model
     return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
   }
 
-  /**
-   * Runs the auto-deactivation sweep: for every user with an expired,
-   * linked clearance and no protocols still being processed, deactivate
-   * their account (info/files/certificate are kept; see UserModel::deactivateUser).
-   * Cheap to call on every staff page load:  it's a couple of indexed
-   * queries and only does work when there's something to deactivate.
-   */
   public function runExpiryDeactivationSweep(): int
   {
     require_once dirname(__DIR__) . '/models/ProtocolModel.php';

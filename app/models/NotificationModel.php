@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class NotificationModel extends Model
 {
+  // ===== ICON & COLOR BY TYPE =====
   private const DEFAULT_STYLE = ['icon' => 'bell-icon', 'variant' => 'info'];
 
   private const TYPE_STYLES = [
@@ -30,6 +31,7 @@ class NotificationModel extends Model
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
   ];
 
+  // ===== CREATE NOTIFICATIONS =====
   public function create(int $userId, string $type, string $title, string $message = '', ?string $link = null): int | false
   {
     $stmt = $this->connection->prepare(
@@ -68,6 +70,7 @@ class NotificationModel extends Model
     return $users;
   }
 
+  // ===== READ NOTIFICATIONS =====
   public function getForUser(int $userId, int $limit = 20): array
   {
     $stmt = $this->connection->prepare(
@@ -113,6 +116,7 @@ class NotificationModel extends Model
     }, $items);
   }
 
+  // ===== COUNTS =====
   public function countForUser(int $userId): int
   {
     $stmt = $this->connection->prepare(
@@ -141,6 +145,7 @@ class NotificationModel extends Model
     return (int) $stmt->get_result()->fetch_assoc()['c'];
   }
 
+  // ===== MARK AS READ =====
   public function markRead(int $id, int $userId): bool
   {
     $stmt = $this->connection->prepare(

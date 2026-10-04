@@ -13,12 +13,14 @@ class Notifications extends Controller
 
   public NotificationModel $model;
 
+  // ===== SETUP =====
   public function __construct()
   {
     require_once "../app/models/NotificationModel.php";
     $this->model = new NotificationModel();
   }
 
+  // ===== NOTIFICATIONS PAGE =====
   public function index(): void
   {
     $this->requireLogin();
@@ -33,6 +35,7 @@ class Notifications extends Controller
     exit;
   }
 
+  // ===== LOAD MORE (PAGINATION) =====
   public function page(): void
   {
     $this->requireLogin();
@@ -57,6 +60,7 @@ class Notifications extends Controller
     ]);
   }
 
+  // ===== HIGHLIGHT LINKS =====
   private function withHighlightLinks(array $items): array
   {
     if ($this->isPersonnel()) {
@@ -71,6 +75,7 @@ class Notifications extends Controller
     }, $items);
   }
 
+  // ===== MARK AS READ =====
   public function markread(): void
   {
     $this->requireLogin();
@@ -92,6 +97,7 @@ class Notifications extends Controller
     exit;
   }
 
+  // ===== MARK ALL AS READ =====
   public function markallread(): void
   {
     $this->requireLogin();

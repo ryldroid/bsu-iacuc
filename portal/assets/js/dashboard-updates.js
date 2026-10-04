@@ -1,4 +1,5 @@
 (function () {
+  // ===== Elements & settings =====
   const banner = document.querySelector("#updateBanner");
   if (!banner) return;
 
@@ -8,6 +9,7 @@
   const refreshBtn = banner.querySelector(".update-banner-refresh");
   const POLL_MS = 25000;
 
+  // ===== Date helper =====
   function toDate(value) {
     return value ? new Date(value.replace(" ", "T")) : null;
   }
@@ -15,6 +17,7 @@
   const baselineDate = toDate(baseline);
   let pollId = null;
 
+  // ===== Check for updates =====
   async function checkForUpdates() {
     try {
       const res = await fetch(endpoint, {
@@ -29,10 +32,10 @@
         clearInterval(pollId);
       }
     } catch (e) {
-      /* silent: banner just stays hidden */
     }
   }
 
+  // ===== Dismiss & refresh buttons =====
   dismissBtn?.addEventListener("click", () => {
     banner.hidden = true;
   });
@@ -41,5 +44,6 @@
     location.reload();
   });
 
+  // ===== Start polling =====
   pollId = setInterval(checkForUpdates, POLL_MS);
 })();

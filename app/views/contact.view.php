@@ -12,9 +12,11 @@ $offices = $offices ?? [];
 <div class="body">
     <?php include "includes/navigation.php"; ?>
 
+    <!-- ===== Contact page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
         <h1>Contact Us</h1>
 
+        <!-- ===== Office cards ===== -->
         <div class="contact-grid">
             <?php foreach ($offices as $office):
                 $phones = array_filter(array_map('trim', explode("\n", $office['phone'] ?? '')));
@@ -106,4 +108,5 @@ $offices = $offices ?? [];
     </main>
 </div>
 
+<!-- ===== Footer ===== -->
 <?php include "includes/footer.php"; ?>

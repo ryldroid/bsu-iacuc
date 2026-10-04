@@ -2,6 +2,7 @@
 
 class Controller
 {
+  // ===== VIEWS & REDIRECTS =====
   public function view(string $name, array $data = []): void
   {
     $filename = VIEWSPATH . $name . '.view.php';
@@ -32,6 +33,7 @@ class Controller
     ErrorPage::render($code, $heading, $lines, $actions);
   }
 
+  // ===== CURRENT USER & ROLE CHECKS =====
   protected function actor(): array
   {
     return [
@@ -52,6 +54,7 @@ class Controller
     return in_array($this->actor()['role'], ['staff', 'reviewer'], true);
   }
 
+  // ===== FILE STREAMING =====
   protected function streamFile(string $filePath, string $displayName, bool $forceDownload = false): void
   {
     $finfo    = new finfo(FILEINFO_MIME_TYPE);
@@ -78,6 +81,7 @@ class Controller
     exit;
   }
 
+  // ===== REQUEST GUARDS =====
   protected function jsonError(int $code, string $message): void
   {
     http_response_code($code);
@@ -101,6 +105,7 @@ class Controller
     }
   }
 
+  // ===== LOGIN CHECK =====
   protected function isLoggedIn()
   {
     return isset($_SESSION['user']['user_id']);
@@ -125,6 +130,7 @@ class Controller
     }
   }
 
+  // ===== CSRF TOKENS =====
   protected function generateCsrfToken(): string
   {
     if (empty($_SESSION['csrf_token'])) {
@@ -174,6 +180,7 @@ class Controller
     }
   }
 
+  // ===== PASSWORD RULES =====
   protected function validatePasswordRequirements(string $password): array
   {
     $missing = [];
@@ -185,6 +192,7 @@ class Controller
     return $missing;
   }
 
+  // ===== FORGOT PASSWORD FLOW =====
   protected function handleForgotPassword(string $forgotRoute, string $resetRoute, string $loginRoute): void
   {
     require_once dirname(__DIR__) . '/models/UserModel.php';
@@ -223,11 +231,13 @@ class Controller
     ]);
   }
 
+  // ===== RESET PASSWORD FLOW =====
   protected function handleResetPassword(string $resetRoute, string $loginRoute): void
   {
     require_once dirname(__DIR__) . '/models/UserModel.php';
     $userModel = new UserModel();
 
+    // ===== RESET FORM (GET) =====
     $token = $_GET['token'] ?? $_POST['token'] ?? '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -252,6 +262,7 @@ class Controller
       return;
     }
 
+    // ===== SUBMIT NEW PASSWORD (POST) =====
     $this->verifyCsrfToken();
 
     $reset = $userModel->getPasswordReset($token);
@@ -265,6 +276,7 @@ class Controller
       return;
     }
 
+    // ===== VALIDATE PASSWORD =====
     $password     = $_POST['password'] ?? '';
     $confirm_pass = $_POST['confirm_password'] ?? '';
     $errors       = [];
@@ -287,6 +299,7 @@ class Controller
       return;
     }
 
+    // ===== SAVE PASSWORD =====
     $hash = password_hash($password, PASSWORD_DEFAULT);
     $ok   = $userModel->updatePassword((int) $reset['user_id'], $hash);
 
@@ -308,6 +321,7 @@ class Controller
     $this->redirect($loginRoute);
   }
 
+  // ===== EMAIL VERIFICATION =====
   protected function sendEmailVerification(array $user): void
   {
     require_once dirname(__DIR__) . '/models/UserModel.php';

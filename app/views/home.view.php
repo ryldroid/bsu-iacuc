@@ -7,7 +7,6 @@ $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - 
 $aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
 $aboutParagraph2 = $siteSettings['about_paragraph_2'] ?? '';
 
-// Map card (CCARD office location)
 $ccardMapQuery = '16.4498918694924,120.59184710000001';
 $ccardMapEmbed = 'https://www.google.com/maps?q=' . $ccardMapQuery . '&z=18&output=embed';
 $ccardMapLink  = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($ccardMapQuery);
@@ -102,6 +101,7 @@ include "includes/scroll-top.php";
                             rel="noopener noreferrer">Open in Google Maps ></a>
                     </div>
 
+                    <!-- ===== Map card ===== -->
                     <div class="map-card">
                         <div class="map-embed">
                             <iframe
@@ -127,6 +127,7 @@ include "includes/scroll-top.php";
 
             <div class="faq-column">
                 <?php if (!empty($latestAnnouncements)): ?>
+                    <!-- ===== Latest announcements teaser ===== -->
                     <section class="home-announcements-teaser">
                         <div class="home-announcements-teaser-header">
                             <h2>Latest Announcements</h2>
@@ -192,6 +193,7 @@ include "includes/scroll-top.php";
                                     </button>
                                 <?php endif; ?>
 
+                                <!-- ===== Announcement modal templates ===== -->
                                 <template id="annModalTpl-<?= (int) $post['id'] ?>">
                                     <?php if ($hasImage): ?>
                                         <div class="announcement-modal-image-wrap">
@@ -410,11 +412,6 @@ include "includes/scroll-top.php";
             });
     })();
 
-    // modals.js is loaded with `defer`, so it only runs once the whole
-    // document has been parsed. This inline script runs immediately, before
-    // that happens, so calling initAnnouncementModal directly here throws
-    // (function not defined yet) and the modal never gets wired up. Waiting
-    // for DOMContentLoaded guarantees modals.js has already executed.
     document.addEventListener('DOMContentLoaded', function() {
         initAnnouncementModal({
             modalId: 'homeAnnouncementModal',

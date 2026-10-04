@@ -3,6 +3,7 @@ class EnvLoader
 {
     private static $loaded = false;
 
+    // ===== LOAD .ENV FILE =====
     public static function load()
     {
         if (self::$loaded) return;
@@ -39,6 +40,7 @@ class EnvLoader
         self::$loaded = true;
     }
 
+    // ===== READ ENV VALUE =====
     public static function get($key, $default = null)
     {
         if (isset($_ENV[$key])) {

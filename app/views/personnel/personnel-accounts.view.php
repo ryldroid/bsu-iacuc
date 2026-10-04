@@ -319,6 +319,8 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 </div>
 
 <!-- Confirm role change modal -->
+
+<!-- ===== Role change confirmation modal ===== -->
 <div class="modal-backdrop" id="roleConfirmBackdrop">
     <div class="modal-card">
         <h2>Confirm Role Change</h2>
@@ -338,10 +340,13 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
     </div>
 </div>
 
+<!-- ===== Scripts ===== -->
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
 
 <script>
+
+    // ===== Copy invite link =====
     function copyInviteLink() {
         const input = document.getElementById('invite-link');
 
@@ -368,7 +373,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
         });
     }
 
-    // ROLE CHANGE - confirm with password before submitting
+    // ===== Role change: confirm with password =====
     (function() {
         const backdrop = document.getElementById('roleConfirmBackdrop');
         const text = document.getElementById('roleConfirmText');
@@ -437,7 +442,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
         });
     })();
 
-    // AUDIT LOG VIEWER - AJAX pagination + jump to date
+    // ===== Audit log viewer: pagination & jump to date =====
     (function() {
         const results = document.getElementById('audit-log-results');
         const jumpDate = document.getElementById('audit-jump-date');

@@ -2,6 +2,7 @@
 
 class AuditLogger
 {
+    // ===== WRITE AUDIT LOG =====
     public static function log(
         \mysqli $database,
         string  $event,
@@ -42,6 +43,7 @@ class AuditLogger
         }
     }
 
+    // ===== CLIENT IP LOOKUP =====
     private static function getClientIp(): string
     {
         $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';

@@ -289,6 +289,7 @@
   background: var(--danger-color);
 }
 
+/* ===== Clearance modal ===== */
 .clearance-modal-warning {
   color: var(--status-danger-text);
 }

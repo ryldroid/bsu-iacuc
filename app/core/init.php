@@ -1,4 +1,5 @@
 <?php
+// ===== ERROR REPORTING & TIMEZONE =====
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 ini_set('log_errors', '1');
@@ -6,6 +7,7 @@ error_reporting(E_ALL);
 
 date_default_timezone_set('Asia/Manila');
 
+// ===== SESSION SETUP =====
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (int)($_SERVER['SERVER_PORT'] ?? 80) === 443;
 
@@ -20,6 +22,7 @@ session_set_cookie_params([
 session_name('bsu_iacuc');
 session_start();
 
+// ===== IDLE SESSION TIMEOUT =====
 define('SESSION_TIMEOUT', 1800);
 
 if (isset($_SESSION['last_activity'])) {
@@ -40,6 +43,7 @@ if (isset($_SESSION['last_activity'])) {
 
 $_SESSION['last_activity'] = time();
 
+// ===== LOAD APP FILES =====
 require_once 'config.php';
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
 require_once 'TextSanitizer.php';

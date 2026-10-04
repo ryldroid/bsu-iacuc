@@ -2,6 +2,7 @@
 
 class Home extends Controller
 {
+  // ===== HOME PAGE =====
   public function index()
   {
     if ($this->isPersonnel()) {

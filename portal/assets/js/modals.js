@@ -1,3 +1,4 @@
+// ===== Date formatters =====
 function formatDate(value) {
   return new Date(value).toLocaleDateString("en-PH", {
     year: "numeric",
@@ -24,6 +25,7 @@ function formatDateTime(value) {
   let lastFocusedEl = null;
   let activeResolve = null;
 
+  // ===== Confirm dialog =====
   function buildModal() {
     if (modalEl) return;
 
@@ -118,6 +120,7 @@ function formatDateTime(value) {
     });
   };
 
+  // ===== Busy button state =====
   window.setButtonBusy = function (btn, busy, busyText) {
     if (!btn) return;
 
@@ -143,8 +146,6 @@ function formatDateTime(value) {
   // ===== Upload progress (real % for file uploads, via XHR since fetch
   // can't report upload progress) =====
 
-  // Renders a progress bar into `container` (an existing, normally-empty
-  // element). Returns { update(percent), remove() }.
   window.createUploadProgressBar = function (container) {
     if (!container) return { update() {}, remove() {} };
 
@@ -170,10 +171,6 @@ function formatDateTime(value) {
     };
   };
 
-  // Drop-in replacement for `fetch(url, {method:'POST', body:formData}).then(r=>r.json())`
-  // that reports real upload progress via XMLHttpRequest. Resolves with the
-  // parsed JSON body; rejects with an Error (message safe to show the user)
-  // on network failure or a non-JSON response.
   window.uploadWithProgress = function (url, formData, options) {
     options = options || {};
     return new Promise((resolve, reject) => {
@@ -220,6 +217,7 @@ function formatDateTime(value) {
     });
   };
 
+  // ===== Announcement modal =====
   window.initAnnouncementModal = function (config) {
     const modal = document.getElementById(config.modalId);
     if (!modal) return;
@@ -270,6 +268,7 @@ function formatDateTime(value) {
     });
   };
 
+  // ===== Image zoom =====
   let zoomBackdrop = null;
   let zoomImg = null;
   let zoomLastFocused = null;
@@ -332,6 +331,7 @@ function formatDateTime(value) {
     });
   }
 
+  // ===== Auto-confirm links & forms =====
   function bindAutoConfirm() {
     document.addEventListener("click", async (e) => {
       const link = e.target.closest("a[data-confirm-message]");
@@ -383,6 +383,7 @@ function formatDateTime(value) {
     });
   }
 
+  // ===== Welcome modal =====
   function bindWelcomeModal() {
     const modal = document.getElementById("welcomeModal");
     if (!modal) return;
@@ -406,6 +407,7 @@ function formatDateTime(value) {
     closeBtn.focus();
   }
 
+  // ===== Start up =====
   bindAutoConfirm();
   bindImageZoomTriggers();
   bindWelcomeModal();

@@ -2,6 +2,7 @@
 const historyBackdrop = document.getElementById("historyModalBackdrop");
 const historyOfflineMessage = (window.historyModalConfig || {}).offlineMessage;
 
+// ===== Open modal =====
 function openHistoryModal(protocolId, title) {
   const body = document.getElementById("historyModalBody");
   const renameToggle = document.getElementById("renameHistoryToggle");
@@ -36,6 +37,7 @@ function openHistoryModal(protocolId, title) {
     });
 }
 
+// ===== Rename history =====
 function renderRenameHistory(titleHistory) {
   const renameToggle = document.getElementById("renameHistoryToggle");
   const renamePanel = document.getElementById("renameHistoryPanel");
@@ -67,6 +69,7 @@ function renderRenameHistory(titleHistory) {
   };
 }
 
+// ===== Close modal =====
 function closeHistoryModal() {
   historyBackdrop.classList.remove("open");
   closeFilePopup();
@@ -80,9 +83,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeHistoryModal();
 });
 
-// A round that has a later round was returned (resubmitting is only possible from
-// Needs Revision); the newest round is returned only while the status says so.
-// The reviewer's record, when one exists, adds the date and note.
+// ===== Row builders =====
 function buildReturnLine(reason) {
   const bits = [];
   if (reason) {
@@ -107,7 +108,6 @@ function signedScanLabel(referenceNo) {
 function buildVersionRows(versions, protocolId, currentStatus) {
   if (!versions || versions.length === 0) return "";
 
-  // versions arrive newest first; titles are compared with the round before each one
   const titles = versions.map(
     (v) => v.title_at_version || v.original_name || "",
   );
@@ -191,6 +191,7 @@ function buildSimpleFileSection(files, label, heading) {
   return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
 }
 
+// ===== Render history =====
 function renderHistory(data) {
   const sections = [
     buildVersionRows(data.protocol_files, data.protocol_id, data.status),

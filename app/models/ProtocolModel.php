@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class ProtocolModel extends Model
 {
+    // ===== CREATE PROTOCOL =====
     public function insertProtocol(int $userId, string $title): int | false
     {
         $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';
@@ -92,9 +93,6 @@ class ProtocolModel extends Model
         return $oldTitle;
     }
 
-    // Dismisses the title-change red dot for whichever user just opened the
-    // rename-history dropdown. Reset to NULL again on the next rename so a
-    // fresh change always shows the dot again, even to the same user.
     public function markTitleChangeSeen(int $protocolId, int $userId): bool
     {
         $stmt = $this->connection->prepare(
@@ -324,6 +322,7 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
+    // ===== PROTOCOL LISTS =====
     public function getEndorsedProtocols(): array
     {
         $sql = "SELECT
@@ -520,6 +519,7 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
+    // ===== LIVE UPDATE CHECK =====
     public function getLatestActivityTimestamp(?int $userId = null): ?string
     {
         $sql = "SELECT MAX(GREATEST(
@@ -550,6 +550,7 @@ class ProtocolModel extends Model
         return $row['latest'] ?? null;
     }
 
+    // ===== SINGLE PROTOCOL =====
     public function getById(int $id): ?array
     {
         $stmt = $this->connection->prepare(
@@ -595,6 +596,7 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
+    // ===== STATUS & REFERENCE NUMBERS =====
     public function updateStatus(int $protocolId, string $status): bool
     {
         $allowed = ['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'];
@@ -867,6 +869,7 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    // ===== RETURN REASONS =====
     public function insertReturnReason(
         int $protocolId,
         int $reviewerId,
@@ -916,8 +919,6 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    // Return reason tied to one specific protocol version, so the researcher
-    // only sees the reviewer's note while looking at the version it was made on.
     public function getReturnReasonForVersion(int $versionId): ?array
     {
         if ($versionId < 1) {
@@ -1010,8 +1011,6 @@ class ProtocolModel extends Model
 
     public function stageClearancePoolItem(int $poolId, int $protocolId, int $assignedBy): bool
     {
-        // A protocol card only ever holds one image: bump whatever is
-        // currently staged there back to the unsorted pool first.
         $swap = $this->connection->prepare(
             "UPDATE `clearance_pool`
              SET protocol_id = NULL, assigned_by = NULL, assigned_at = NULL
@@ -1124,6 +1123,7 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    // ===== DELETE VERSION =====
     public function deleteVersion(int $versionId): bool
     {
         $stmt = $this->connection->prepare(
@@ -1139,16 +1139,6 @@ class ProtocolModel extends Model
 
     // ===== ACCOUNT DELETION (reversible) =====
 
-    /**
-     * Soft-deletes every not-already-deleted protocol belonging to a user,
-     * via the same reversible softDelete() used elsewhere (deleted_at).
-     * Files, versions, and child rows are left untouched: IACUC retention
-     * requirements (9 CFR 2.35(f), PHS Policy IV.E) apply to proposed
-     * activities regardless of outcome, so protocol records must survive
-     * the researcher's account being deleted. Submitter identity on these
-     * records already resolves live through the (now anonymized) users
-     * row, so nothing here re-exposes PII.
-     */
     public function softDeleteAllForUser(int $userId, string $actorName, string $reason = 'Account deleted by owner'): bool
     {
         $stmt = $this->connection->prepare("SELECT id FROM `protocols` WHERE user_id = ? AND deleted_at IS NULL");
@@ -1166,11 +1156,6 @@ class ProtocolModel extends Model
         return $ok;
     }
 
-    /**
-     * True if the user currently has any protocol that isn't finished
-     * processing yet (i.e. anything short of Approved, and not soft-deleted).
-     * Used to decide whether an expired clearance can trigger auto-deactivation.
-     */
     public function hasActiveProtocols(int $userId): bool
     {
         $stmt = $this->connection->prepare(
@@ -1179,7 +1164,7 @@ class ProtocolModel extends Model
              LIMIT 1"
         );
         if (! $stmt) {
-            return true; // fail safe: assume active so we never deactivate on a query error
+            return true;
         }
         $stmt->bind_param('i', $userId);
         $stmt->execute();

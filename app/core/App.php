@@ -5,6 +5,7 @@ class App
   private $controller = 'Home';
   private $method = 'index';
 
+  // ===== ROUTER (LOAD CONTROLLER) =====
   public function loadController()
   {
     $URL = explode('/', $_GET['url'] ?? 'home');
@@ -35,6 +36,7 @@ class App
     call_user_func_array([$controller, $this->method], $params);
   }
 
+  // ===== 404 PAGE =====
   private function show404(): void
   {
     ErrorPage::render(404, 'Page Not Found', [

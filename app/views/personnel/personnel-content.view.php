@@ -471,8 +471,6 @@ $activeTab     = $activeTab     ?? 'announcements';
         if (v === undefined || v === null) return;
         fd.append(k, v);
       });
-      // Real upload progress needs XHR (fetch can't report it); only worth
-      // the XHR path when there's actually a file attached to track.
       if (onProgress) {
         return uploadWithProgress(ROOT + url, fd, {
           onProgress

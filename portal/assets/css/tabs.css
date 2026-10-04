@@ -52,11 +52,7 @@
   }
 }
 
-/* ===== Unified panel =====
-   The panel sits flush against the strip and picks up the same surface
-   as the active tab, so every tabbed page (dashboard included) reads as
-   one connected card instead of separate boxes floating on the page
-   background. */
+/* ===== Unified panel ===== */
 .tab-panel {
   background: var(--card-background);
   border: 1px solid var(--divider-color);

@@ -1,3 +1,4 @@
+/* ===== Page & grid ===== */
 main h1 {
     margin-bottom: 30px;
 }
@@ -110,6 +111,7 @@ main h1 {
     color: var(--secondary-text);
 }
 
+/* ===== Responsive ===== */
 @media (max-width: 700px) {
     .contact-grid {
         grid-template-columns: 1fr;

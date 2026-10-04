@@ -129,6 +129,7 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== WELCOME POPUP =====
   public function markWelcomeSeen(int $id): bool
   {
     $stmt = $this->connection->prepare("UPDATE $this->table SET welcome_seen = 1 WHERE id = ?");
@@ -192,6 +193,7 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== EMAIL NOTIFICATION SETTINGS =====
   public function updateEmailNotifications(int $id, bool $enabled): bool
   {
     $val = $enabled ? 1 : 0;
@@ -208,9 +210,6 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
-  // Called from the Brevo webhook when a contact unsubscribes via their email
-  // client. Syncs our own toggle off too, so the account page reflects reality
-  // instead of showing "on" for a user who isn't actually receiving anything.
   public function markEmailProviderUnsubscribed(int $id): bool
   {
     $stmt = $this->connection->prepare(
@@ -220,6 +219,7 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== DELETE / DEACTIVATE ACCOUNT =====
   public function deleteUser(int $id): bool
   {
     $stmt = $this->connection->prepare("SELECT cert_path FROM $this->table WHERE id = ?");

@@ -1,10 +1,9 @@
 <?php
-// NEW FILE - key/value store for editable site copy (homepage banner + about text)
-
 require_once dirname(__DIR__) . '/core/Model.php';
 
 class SiteSettingModel extends Model
 {
+  // ===== READ SETTINGS =====
   public function getAll(): array
   {
     $result   = $this->connection->query("SELECT setting_key, setting_value FROM `site_settings`");
@@ -16,6 +15,7 @@ class SiteSettingModel extends Model
     return $settings;
   }
 
+  // ===== SAVE SETTINGS =====
   public function set(string $key, string $value): bool
   {
     $stmt = $this->connection->prepare(

@@ -6,6 +6,7 @@
     return;
   if (typeof window.confirmAction !== "function") return;
 
+  // ===== Timing settings =====
   var IDLE_LIMIT_MS = window.SESSION_IDLE_LIMIT_MS || 30 * 60 * 1000;
   var WARNING_LEAD_MS = Math.min(2 * 60 * 1000, IDLE_LIMIT_MS / 2);
   var ACTIVITY_THROTTLE_MS = 15 * 1000;
@@ -15,6 +16,7 @@
   var throttleTimer = null;
   var promptOpen = false;
 
+  // ===== Idle timers =====
   function armTimers() {
     clearTimeout(warnTimer);
     clearTimeout(expireTimer);
@@ -23,8 +25,6 @@
   }
 
   function registerActivity() {
-    // Don't let background activity silently dismiss the prompt once it's
-    // up; the person has to actually answer it.
     if (promptOpen || throttleTimer) return;
     throttleTimer = setTimeout(function () {
       throttleTimer = null;
@@ -32,6 +32,7 @@
     armTimers();
   }
 
+  // ===== Warning prompt =====
   async function showWarning() {
     promptOpen = true;
     var stayedSignedIn = await window.confirmAction(
@@ -47,6 +48,7 @@
     }
   }
 
+  // ===== Extend session =====
   async function extendSession() {
     try {
       var res = await fetch(NOTIF_ROOT + "/user/ping", {
@@ -63,16 +65,17 @@
         return;
       }
     } catch (e) {
-      // network hiccup shouldn't force a logout
     }
     armTimers();
   }
 
+  // ===== Force logout =====
   function forceLogout() {
     var loginPath = window.SESSION_LOGIN_PATH || "user/login";
     window.location.href = NOTIF_ROOT + "/" + loginPath;
   }
 
+  // ===== Activity listeners =====
   ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(
     function (evt) {
       document.addEventListener(evt, registerActivity, { passive: true });

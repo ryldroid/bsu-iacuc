@@ -1,13 +1,12 @@
 (function () {
+  // ===== Clean typed number =====
   function clean(value) {
     let digits = value.replace(/\D/g, "");
 
-    // Pasted with the country code, e.g. "639171234567" or "+639171234567"
     if (digits.startsWith("63") && digits.length > 10) {
       digits = digits.slice(2);
     }
 
-    // Typed in local "09XX" format
     if (digits.startsWith("0")) {
       digits = digits.slice(1);
     }
@@ -15,6 +14,7 @@
     return digits.slice(0, 10);
   }
 
+  // ===== Attach to a field =====
   function attach(input) {
     if (input.dataset.phoneCleanAttached === "1") return;
     input.dataset.phoneCleanAttached = "1";
@@ -25,6 +25,7 @@
     });
   }
 
+  // ===== Init =====
   function init() {
     document.querySelectorAll(".phone-field-wrap input").forEach(attach);
   }

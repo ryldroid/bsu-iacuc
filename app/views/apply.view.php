@@ -55,8 +55,6 @@ include "includes/scroll-top.php";
         submittedId: null,
     };
 
-    // Upload-in-progress state, keyed by doc key ('protocol'/'cert'). Kept separate
-    // from `state` since it's transient UI-only and must never hit the draft autosave.
     let uploadProgress = {};
 
     // ===== DRAFT SYNC =====
@@ -223,6 +221,7 @@ include "includes/scroll-top.php";
         }
     });
 
+    // ===== Upload box & document row builders =====
     function uploadBox(key, label, subtitle, required = false) {
         if (uploadProgress[key]) {
             return `<div class="info-bar upload-in-progress">
@@ -781,6 +780,7 @@ include "includes/scroll-top.php";
         }
     }
 
+    // ===== Remove uploaded file =====
     function removeFile(key) {
         state[key + 'Name'] = null;
         state[key + 'Size'] = null;

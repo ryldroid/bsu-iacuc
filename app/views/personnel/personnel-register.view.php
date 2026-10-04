@@ -16,6 +16,7 @@ $role = $user['role'] ?? '';
     <?php $default = "BSU-IACUC"; ?>
     <title><?= isset($title) ? "$title - $default" : $default ?></title>
 
+    <!-- ===== Apply saved theme ===== -->
     <script>
         (function() {
             var mode = localStorage.getItem('theme') || 'auto';
@@ -31,6 +32,7 @@ $role = $user['role'] ?? '';
     <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
 
+    <!-- ===== Scripts ===== -->
     <script src="<?= asset_js('password-toggle.js') ?>" defer></script>
     <script src="<?= asset_js('password-strength.js') ?>" defer></script>
     <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
@@ -43,6 +45,8 @@ $role = $user['role'] ?? '';
 <body>
     <?php include dirname(__DIR__) . '/includes/sprites.php'; ?>
     <div class="body">
+
+        <!-- ===== Registration page ===== -->
         <main class="main-content wide" id="main-content" tabindex="-1">
 
             <?php if (!empty($success)): ?>

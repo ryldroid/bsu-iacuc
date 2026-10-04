@@ -1,3 +1,4 @@
+// ===== Elements & settings =====
 const notifBell = document.querySelector(".notif-bell");
 const notifDropdown = document.querySelector("#notif-dropdown");
 const notifBadge = document.querySelector(".notif-badge");
@@ -9,6 +10,7 @@ const NOTIF_MARKREAD_URL = NOTIF_ROOT + "/notifications/markread";
 const NOTIF_MARKALLREAD_URL = NOTIF_ROOT + "/notifications/markallread";
 const NOTIF_POLL_MS = 30000;
 
+// ===== Time-ago label =====
 function timeAgo(dateStr) {
   const seconds = Math.floor(
     (Date.now() - new Date(dateStr.replace(" ", "T"))) / 1000,
@@ -23,6 +25,7 @@ function timeAgo(dateStr) {
   return formatDate(dateStr.replace(" ", "T"));
 }
 
+// ===== Render badge & list =====
 function renderBadge(count) {
   if (!notifBadge) return;
   if (count > 0) {
@@ -63,6 +66,7 @@ function renderList(items) {
     .join("");
 }
 
+// ===== Load & mark as read =====
 async function loadNotifications() {
   try {
     const res = await fetch(NOTIF_INDEX_URL, {
@@ -73,7 +77,6 @@ async function loadNotifications() {
     renderBadge(data.unread_count);
     renderList(data.items);
   } catch (e) {
-    /* silent:  bell just stays as-is */
   }
 }
 
@@ -103,6 +106,7 @@ async function markAllRead() {
   } catch (e) {}
 }
 
+// ===== Bell dropdown & clicks =====
 if (notifBell && notifDropdown) {
   notifBell.addEventListener("click", () => {
     const isOpen = notifDropdown.classList.toggle("active");
@@ -140,6 +144,7 @@ if (notifBell && notifDropdown) {
 
   notifMarkAll?.addEventListener("click", markAllRead);
 
+  // ===== Start polling =====
   loadNotifications();
   setInterval(loadNotifications, NOTIF_POLL_MS);
 }

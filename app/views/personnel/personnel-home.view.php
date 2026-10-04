@@ -91,9 +91,6 @@ $statusMeta = [
     ],
 ];
 
-/**
- * Status icon: references a symbol already defined in sprites.php.
- */
 function statusIconSvg(string $iconId, int $size = 14): string
 {
     return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -132,7 +129,6 @@ $paymentLabels = [
 ];
 
 // ===== Count reviewed protocols with a file to download, so the =====
-// payment filter and "Select Protocols" button can stay hidden when there's nothing to select.
 $reviewedDownloadableCount = 0;
 foreach ($protocols as $p) {
     if ($p['filter_slug'] === 'reviewed' && !empty($p['latest_protocol_version_id'])) {
@@ -961,8 +957,6 @@ foreach ($protocols as $p) {
         if (clearancePanel) {
             const showClearances = activeFilter === 'endorsed';
             clearancePanel.hidden = !showClearances;
-            // ensureClearanceBoard() lives in the staff-only script further down; on first
-            // page load it isn't defined yet, and that script starts the board itself.
             if (showClearances && typeof ensureClearanceBoard === 'function') ensureClearanceBoard();
         }
         if (toggleSelectBtn) {
@@ -977,6 +971,7 @@ foreach ($protocols as $p) {
         }
     }
 
+    // ===== Selection mode =====
     function exitSelectionMode() {
         protocolsList?.classList.remove('selection-mode');
         if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = 'Select Protocols';
@@ -1029,6 +1024,7 @@ foreach ($protocols as $p) {
         updateBulkSelectUI();
     });
 
+    // ===== Selected protocol ids =====
     function selectedProtocolIds(selector) {
         return [...(protocolsList?.querySelectorAll(selector) ?? [])]
             .map(cb => parseInt(cb.closest('.protocol').dataset.protocolId, 10))
@@ -1103,6 +1099,7 @@ foreach ($protocols as $p) {
     }
 
 
+    // ===== Status guide (colors & text) =====
     function hexToRgba(hex, alpha) {
         const h = hex.replace('#', '');
         const r = parseInt(h.substring(0, 2), 16);
@@ -1231,7 +1228,6 @@ foreach ($protocols as $p) {
     // ===== Restore filter from URL param (?status=...) =====
     (function restoreFilterFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        // Old links used ?tab=clearance; clearances now live under the Endorsed filter.
         const requestedStatus = urlParams.get('status') || (urlParams.get('tab') === 'clearance' ? 'endorsed' : null);
         if (requestedStatus) {
             const matchingPill = [...filterPills].find(p => p.dataset.filter === requestedStatus);
@@ -1306,6 +1302,7 @@ foreach ($protocols as $p) {
         renderPaginationButtons(totalPages);
     }
 
+    // ===== Pagination buttons =====
     function renderPaginationButtons(totalPages) {
         if (!paginationBtns) return;
         paginationBtns.innerHTML = '';
@@ -1365,6 +1362,7 @@ foreach ($protocols as $p) {
         paginationBtns.appendChild(nextBtn);
     }
 
+    // ===== Page number set =====
     function buildPageSet(current, total) {
         const pages = new Set();
         pages.add(1);
@@ -1637,6 +1635,7 @@ foreach ($protocols as $p) {
 <script>
     const researcherBackdrop = document.getElementById('researcherModalBackdrop');
 
+    // ===== Open & render researcher details =====
     function openResearcherModal(userId, fallbackName) {
         document.getElementById('researcherModalName').textContent = fallbackName || '';
         document.getElementById('researcherModalBody').innerHTML = '<p class="helper history-loading">Loading…</p>';
@@ -1705,6 +1704,7 @@ foreach ($protocols as $p) {
         `;
     }
 
+    // ===== Close researcher modal =====
     function closeResearcherModal() {
         researcherBackdrop.classList.remove('open');
     }
@@ -1770,6 +1770,7 @@ foreach ($protocols as $p) {
     const signedScanModal = document.getElementById('signedScanModalBackdrop');
     let currentSignedScanProtocolId = null;
 
+    // ===== Signed scan modal script =====
     function openSignedScanModal(protocolId, title) {
         currentSignedScanProtocolId = protocolId;
         document.getElementById('signedScanSubtitle').textContent = title;
@@ -1983,6 +1984,7 @@ foreach ($protocols as $p) {
         }
     }
 
+    // ===== Reject payment reason =====
     function showRejectPaymentReason() {
         document.getElementById('reviewPaymentActions').hidden = true;
         document.getElementById('reviewPaymentRejectPanel').hidden = false;
@@ -1994,6 +1996,7 @@ foreach ($protocols as $p) {
         document.getElementById('reviewPaymentActions').hidden = false;
     }
 
+    // ===== Approve reviewed payment =====
     function approveReviewedPayment() {
         confirmAction('Mark this protocol as paid? Make sure the payment checks out before approving.', {
             okText: 'Mark as Paid',
@@ -2059,6 +2062,7 @@ foreach ($protocols as $p) {
     }
 </script>
 
+<!-- ===== Clearance board (staff only) ===== -->
 <?php if ($personnelRole === 'staff' && !empty($protocols)): ?>
     <script>
         const CLEARANCE_POOL_API = ROOT_URL + '/apply/clearance_pool';
@@ -2078,13 +2082,13 @@ foreach ($protocols as $p) {
         let selectedPoolId = null;
         let clearanceBoardLoaded = false;
 
-        // The board is only fetched the first time the Endorsed filter is shown.
         function ensureClearanceBoard() {
             if (clearanceBoardLoaded) return;
             clearanceBoardLoaded = true;
             loadBoard();
         }
 
+        // ===== Flash & thumbnail helpers =====
         function showFlash(message, isError = false) {
             const existing = document.getElementById('flashSuccess');
             if (existing) existing.remove();
@@ -2147,8 +2151,6 @@ foreach ($protocols as $p) {
             updateConfirmButton();
         }
 
-        // Selecting a screenshot only toggles classes. Re-rendering the grids would rebuild every
-        // <img> and make the thumbnails flash and reload on each tap.
         function toggleSelectThumb(poolId) {
             poolId = Number(poolId);
             selectedPoolId = selectedPoolId === poolId ? null : poolId;
@@ -2164,8 +2166,6 @@ foreach ($protocols as $p) {
             });
         }
 
-        // Keyed list update: an entry whose markup is unchanged keeps its existing DOM node (and loaded
-        // image); only new, changed, or removed entries touch the DOM.
         const listCaches = new Map();
 
         function reconcileList(container, entries, emptyHtml) {
@@ -2235,8 +2235,6 @@ foreach ($protocols as $p) {
             return (boardData.staged || []).find(s => Number(s.protocol_id) === Number(protocolId));
         }
 
-        // Fills the clearance box on each Endorsed row. A box is only rewritten when its markup
-        // changed, so a staged thumbnail doesn't reload on every board refresh.
         function renderSlots() {
             const endorsedById = new Map((boardData.endorsed_protocols || []).map(p => [Number(p.protocol_id), p]));
 
@@ -2476,6 +2474,7 @@ foreach ($protocols as $p) {
             }
         };
 
+        // ===== Number modal (IPN / AR) =====
         function openNumberModal(kind, protocolId, currentValue) {
             const field = NUMBER_FIELDS[kind];
             numberModalKind = kind;
@@ -2556,6 +2555,7 @@ foreach ($protocols as $p) {
             confirmReviewBackdrop.classList.add('open');
         });
 
+        // ===== Confirm review =====
         function closeConfirmReview() {
             confirmReviewBackdrop.classList.remove('open');
         }
@@ -2581,8 +2581,6 @@ foreach ($protocols as $p) {
                 });
                 const data = await res.json();
 
-                // Approved protocols leave the Endorsed list, so reload to refresh the rows and
-                // counts (the server already queued the success message).
                 if (data.confirmed > 0) {
                     window.location.reload();
                     return;
@@ -2609,6 +2607,7 @@ foreach ($protocols as $p) {
         const zoomImg = document.getElementById('clearanceZoomImg');
         const zoomCaption = document.getElementById('clearanceZoomCaption');
 
+        // ===== Image zoom =====
         function openZoom(e, url, caption) {
             e.stopPropagation();
             zoomImg.src = url;
@@ -2630,8 +2629,6 @@ foreach ($protocols as $p) {
             if (e.key === 'Escape' && zoomBackdrop.classList.contains('open')) closeZoom();
         });
 
-        // The page may already be on the Endorsed filter (e.g. ?status=endorsed), in which case the
-        // filter script ran before ensureClearanceBoard() existed.
         if (activeFilter === 'endorsed') ensureClearanceBoard();
     </script>
 <?php endif; ?>

@@ -23,6 +23,7 @@ $first_name    = $user['first_name'] ?? '';
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
 
+    <!-- ===== Announcements page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
         <div class="dashboard-page-header records-page-header">
@@ -40,6 +41,7 @@ $first_name    = $user['first_name'] ?? '';
             <?php endif; ?>
         </div>
 
+        <!-- ===== Announcements list ===== -->
         <div class="records-table-wrap">
             <?php if (empty($announcements)): ?>
                 <p style="padding: 1.5rem;">No announcements yet.</p>
@@ -220,8 +222,6 @@ $first_name    = $user['first_name'] ?? '';
                 if (v === undefined || v === null) return;
                 fd.append(k, v);
             });
-            // Real upload progress needs XHR (fetch can't report it); only worth
-            // the XHR path when there's actually a file attached to track.
             if (onProgress) {
                 return uploadWithProgress(ROOT + url, fd, {
                     onProgress

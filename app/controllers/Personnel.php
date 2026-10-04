@@ -4,6 +4,7 @@ class Personnel extends Controller
 {
     public UserModel $model;
 
+    // ===== SETUP & ACCESS CHECKS =====
     public function __construct()
     {
         require_once dirname(__DIR__) . '/models/UserModel.php';
@@ -45,6 +46,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== DASHBOARD =====
     public function home(): void
     {
         $this->requirePersonnel();
@@ -77,6 +79,7 @@ class Personnel extends Controller
         ]);
     }
 
+    // ===== LIVE UPDATE CHECK =====
     public function checkupdates(): void
     {
         $this->requirePersonnel(true);
@@ -87,6 +90,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== RESEARCHER DETAILS =====
     public function researcher_details(): void
     {
         $this->requirePersonnel(true);
@@ -127,7 +131,7 @@ class Personnel extends Controller
         exit;
     }
 
-    // Old bookmark: clearances now live under the Endorsed filter of the dashboard.
+    // ===== CLEARANCES REDIRECT =====
     public function clearances(): void
     {
         $this->requireStaff();
@@ -135,6 +139,7 @@ class Personnel extends Controller
         $this->redirect('personnel/home?status=endorsed');
     }
 
+    // ===== RECORDS LIST =====
     public function records(): void
     {
         $this->requirePersonnel();
@@ -191,6 +196,7 @@ class Personnel extends Controller
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
+    // ===== RECORD FILE =====
     public function records_file(int $recordId = 0): void
     {
         $this->requirePersonnel();
@@ -220,6 +226,7 @@ class Personnel extends Controller
         $this->streamFile($filePath, $record['file_original_name'] ?: basename($filePath), isset($_GET['download']));
     }
 
+    // ===== ADD RECORD =====
     public function records_add(): void
     {
         $this->requireStaff(true);
@@ -252,6 +259,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== GET RECORD =====
     public function records_get(): void
     {
         $this->requireStaff(true);
@@ -274,6 +282,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== EDIT RECORD =====
     public function records_edit(): void
     {
         $this->requireStaff(true);
@@ -300,8 +309,6 @@ class Personnel extends Controller
             $ref   = $d['reference_no'] !== '' ? "IPN {$d['reference_no']}" : ($d['title_of_research'] !== '' ? $d['title_of_research'] : "record #$id");
             $model->logAudit('record_edited', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record edited: $ref");
 
-            // Keep the linked protocol's IPN in sync, so the Clearance page
-            // (which reads reference_no off the protocol) matches this record.
             $record = $model->getById($id);
             if ($record && !empty($record['protocol_id']) && $d['reference_no'] !== '') {
                 (new ProtocolModel())->setReferenceNo((int) $record['protocol_id'], $d['reference_no']);
@@ -315,6 +322,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== DELETE RECORD =====
     public function records_delete(): void
     {
         $this->requireStaff(true);
@@ -342,10 +350,12 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== EXPORT RECORDS (XLSX) =====
     public function records_export(): void
     {
         $this->requirePersonnel();
 
+        // ===== READ FILTERS =====
         $model          = new RecordModel();
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
@@ -360,9 +370,11 @@ class Personnel extends Controller
             trim($_GET['to']     ?? '')
         );
 
+        // ===== LOAD DATA =====
         $records = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, 1000000, 0, $period);
         $stats   = $model->stats($search, $school, $animalType, $sex, $researcherType, $period);
 
+        // ===== STATISTICS SHEET =====
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
         $statsSheet = $spreadsheet->getActiveSheet();
@@ -376,6 +388,7 @@ class Personnel extends Controller
             'Period'          => $period['label'] ?? '',
         ]);
 
+        // ===== RECORDS SHEET =====
         $recordsSheet = $spreadsheet->createSheet();
         $recordsSheet->setTitle('Records');
 
@@ -422,6 +435,7 @@ class Personnel extends Controller
             $recordsSheet->getColumnDimension($column)->setAutoSize(true);
         }
 
+        // ===== LOG & SEND FILE =====
         $spreadsheet->setActiveSheetIndex(0);
 
         $actor = $this->actor();
@@ -439,6 +453,7 @@ class Personnel extends Controller
     }
 
 
+    // ===== EXPORT HELPERS =====
     private function writeStatisticsSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $stats, array $filters): void
     {
         $row = 1;
@@ -545,6 +560,7 @@ class Personnel extends Controller
         return '';
     }
 
+    // ===== RECORD INPUT CLEANUP =====
     private function sanitizeRecordPost(): array
     {
         $str = fn(string $k) => trim($_POST[$k] ?? '');
@@ -567,12 +583,14 @@ class Personnel extends Controller
         ];
     }
 
+    // ===== ANNOUNCEMENTS PAGE =====
     public function announcements(): void
     {
         $this->requireStaff();
         $this->renderContentTab('announcements');
     }
 
+    // ===== SITE CONTENT PAGE =====
     public function site_content(): void
     {
         $this->requireStaff();
@@ -602,6 +620,7 @@ class Personnel extends Controller
         ]);
     }
 
+    // ===== SITE CONTENT: SETTINGS =====
     public function site_content_settings(): void
     {
         $this->requireStaff();
@@ -624,6 +643,7 @@ class Personnel extends Controller
         $this->redirect('personnel/site_content');
     }
 
+    // ===== SITE CONTENT: ADD OFFICE =====
     public function site_content_office_add(): void
     {
         $this->requireStaff(true);
@@ -662,6 +682,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: GET OFFICE =====
     public function site_content_office_get(): void
     {
         $this->requireStaff(true);
@@ -681,6 +702,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: EDIT OFFICE =====
     public function site_content_office_edit(): void
     {
         $this->requireStaff(true);
@@ -724,6 +746,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: DELETE OFFICE =====
     public function site_content_office_delete(): void
     {
         $this->requireStaff(true);
@@ -747,6 +770,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== OFFICE INPUT CLEANUP =====
     private function sanitizeOfficePost(): array
     {
         return [
@@ -763,6 +787,7 @@ class Personnel extends Controller
         ];
     }
 
+    // ===== SITE CONTENT: ADD FAQ =====
     public function site_content_faq_add(): void
     {
         $this->requireStaff(true);
@@ -789,6 +814,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: GET FAQ =====
     public function site_content_faq_get(): void
     {
         $this->requireStaff(true);
@@ -808,6 +834,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: EDIT FAQ =====
     public function site_content_faq_edit(): void
     {
         $this->requireStaff(true);
@@ -839,6 +866,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== SITE CONTENT: DELETE FAQ =====
     public function site_content_faq_delete(): void
     {
         $this->requireStaff(true);
@@ -862,6 +890,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== FAQ INPUT CLEANUP =====
     private function sanitizeFaqPost(): array
     {
         return [
@@ -871,6 +900,7 @@ class Personnel extends Controller
         ];
     }
 
+    // ===== ACCOUNTS PAGE =====
     public function accounts(): void
     {
         $this->requireStaff();
@@ -897,6 +927,7 @@ class Personnel extends Controller
         ], $auditLogPage));
     }
 
+    // ===== AUDIT LOG VIEWER (AJAX) =====
     public function auditLogResults(): void
     {
         $this->requireStaff(true);
@@ -950,6 +981,7 @@ class Personnel extends Controller
         ];
     }
 
+    // ===== AUDIT LOG DOWNLOAD (XLSX) =====
     public function downloadAuditLogs(): void
     {
         $this->requireStaff();
@@ -1030,6 +1062,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== AUDIT LOG HELPERS =====
     private function sanitizeDate(string $date): ?string
     {
         if ($date === '') {
@@ -1111,6 +1144,7 @@ class Personnel extends Controller
         return $protocol['research_title'] ?? null;
     }
 
+    // ===== STAFF LOG IN =====
     public function login(): void
     {
         if ($this->isLoggedIn()) {
@@ -1203,6 +1237,7 @@ class Personnel extends Controller
         $this->redirect('personnel/home');
     }
 
+    // ===== STAFF LOG OUT =====
     public function logout(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1217,6 +1252,7 @@ class Personnel extends Controller
         $this->redirect('personnel/login');
     }
 
+    // ===== STAFF REGISTRATION (INVITE ONLY) =====
     private function getValidInvite(string $token): array
     {
         $invite = $this->model->getValidInviteToken($token);
@@ -1338,6 +1374,7 @@ class Personnel extends Controller
         }
     }
 
+    // ===== GENERATE INVITE =====
     public function generate_invite(): void
     {
         $this->requireStaff();
@@ -1366,6 +1403,7 @@ class Personnel extends Controller
         ]);
     }
 
+    // ===== APPROVE ACCOUNT =====
     public function approve(): void
     {
         $this->requireStaff();
@@ -1406,6 +1444,7 @@ class Personnel extends Controller
         $this->redirect('personnel/accounts?tab=accounts');
     }
 
+    // ===== REJECT ACCOUNT =====
     public function reject(): void
     {
         $this->requireStaff();
@@ -1433,6 +1472,7 @@ class Personnel extends Controller
         $this->redirect('personnel/accounts?tab=accounts');
     }
 
+    // ===== CHANGE ROLE =====
     public function update_role(): void
     {
         $this->requireStaff();
@@ -1477,6 +1517,7 @@ class Personnel extends Controller
         $this->redirect('personnel/accounts?tab=accounts');
     }
 
+    // ===== FORGOT / RESET PASSWORD =====
     public function forgot_password(): void
     {
         $this->handleForgotPassword('personnel/forgot_password', 'personnel/reset_password', 'personnel/login');
@@ -1487,6 +1528,7 @@ class Personnel extends Controller
         $this->handleResetPassword('personnel/reset_password', 'personnel/login');
     }
 
+    // ===== ANNOUNCEMENT IMAGE HELPERS =====
     private function announcementImageDir(): string
     {
         return dirname(__DIR__, 2) . '/portal/assets/uploads/announcements/';
@@ -1586,6 +1628,7 @@ class Personnel extends Controller
         }
     }
 
+    // ===== ANNOUNCEMENTS: ADD =====
     public function announcements_add(): void
     {
         $this->requireStaff(true);
@@ -1623,6 +1666,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== ANNOUNCEMENTS: GET =====
     public function announcements_get(): void
     {
         $this->requireStaff(true);
@@ -1642,6 +1686,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== ANNOUNCEMENTS: EDIT =====
     public function announcements_edit(): void
     {
         $this->requireStaff(true);
@@ -1697,6 +1742,7 @@ class Personnel extends Controller
         exit;
     }
 
+    // ===== ANNOUNCEMENTS: DELETE =====
     public function announcements_delete(): void
     {
         $this->requireStaff(true);

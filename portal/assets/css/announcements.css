@@ -1,3 +1,4 @@
+/* ===== Page header ===== */
 .announcements-header {
   margin-bottom: 2em;
 }
@@ -13,6 +14,7 @@
   margin-bottom: 1em;
 }
 
+/* ===== Sections & Facebook embeds ===== */
 .announcements-sections {
   display: flex;
   justify-content: space-between;
@@ -79,14 +81,13 @@ h2 {
   }
 }
 
+/* ===== Empty state ===== */
 .announcements-empty {
   color: var(--secondary-text);
   font-size: 0.9em;
 }
 
-/* ===== Office announcement cards (public announcements page) =====
-   Grid of clickable cards; each opens the full post in a modal, same
-   pattern as the "Latest Announcements" teaser on the home page. */
+/* ===== Office announcement cards (public announcements page) ===== */
 .office-announcements-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -188,7 +189,6 @@ h2 {
   opacity: 0.85;
 }
 
-/* Photo-only card: just the image with the date badge overlaid */
 .office-announcement-card--photo {
   position: relative;
 }
@@ -307,8 +307,6 @@ h2 {
   opacity: 1;
 }
 
-/* Touch devices have no hover state, so keep the actions visible there
-   rather than hiding controls behind a gesture that doesn't exist. */
 @media (hover: none) {
   .ann-row-actions {
     opacity: 1;
@@ -394,6 +392,7 @@ h2 {
 }
 
 
+/* ===== Error messages ===== */
 .error-messages {
   margin: 0;
 }

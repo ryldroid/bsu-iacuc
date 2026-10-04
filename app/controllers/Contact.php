@@ -2,6 +2,7 @@
 
 class Contact extends Controller
 {
+  // ===== CONTACT PAGE =====
   public function index()
   {
     require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';

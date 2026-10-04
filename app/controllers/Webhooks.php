@@ -4,15 +4,14 @@ class Webhooks extends Controller
 {
   public UserModel $model;
 
+  // ===== SETUP =====
   public function __construct()
   {
     require_once "../app/models/UserModel.php";
     $this->model = new UserModel();
   }
 
-  // POST /webhooks/brevo
-  // Configure this exact URL as the webhook target for the "unsubscribed"
-  // transactional event in the Brevo dashboard, with Token auth (Bearer).
+  // ===== BREVO UNSUBSCRIBE WEBHOOK =====
   public function brevo(): void
   {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -36,8 +35,6 @@ class Webhooks extends Controller
     $email = $payload['email'] ?? '';
 
     if ($event !== 'unsubscribed' || empty($email)) {
-      // Not an event we act on (or Brevo is sending us something unexpected).
-      // Acknowledge with 200 so Brevo doesn't keep retrying.
       http_response_code(200);
       header('Content-Type: application/json');
       echo json_encode(['ok' => true, 'ignored' => true]);

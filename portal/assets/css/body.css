@@ -1,3 +1,4 @@
+/* ===== Theme colors (light) ===== */
 :root {
     color-scheme: light;
 
@@ -96,6 +97,7 @@
 
 }
 
+/* ===== Theme colors (dark) ===== */
 [data-theme="dark"] {
     color-scheme: dark;
 
@@ -120,7 +122,6 @@
 
     --brand-surface-tint: rgba(129, 201, 149, 0.1);
     --brand-text: #81c995;
-    /* Doubles as hover background and hover text color, so it stays solid */
     --brand-color-hover: #47a267;
     --nav-icons: #9aa0a6;
     --tab-underline: var(--brand-text);
@@ -166,6 +167,7 @@
     --faq-border-accent: var(--divider-color-strong);
 }
 
+/* ===== Theme transitions ===== */
 @media (prefers-reduced-motion: no-preference) {
     :where(html[data-theme] *) {
         transition: background-color 0.15s ease, color 0.25s ease,
@@ -174,6 +176,7 @@
     }
 }
 
+/* ===== Base elements ===== */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -217,6 +220,7 @@ main {
     flex: 1;
 }
 
+/* ===== Headings & buttons ===== */
 h1,
 h2 {
     font-family: "PT Serif", serif;
@@ -270,6 +274,7 @@ main button {
     margin-top: 1em;
 }
 
+/* ===== Back button ===== */
 .btn-back {
     box-shadow: none;
     padding: 8px 12px;
@@ -317,6 +322,7 @@ main a.underlined:hover {
     text-decoration: none;
 }
 
+/* ===== Text helpers ===== */
 .center {
     text-align: center;
 }
@@ -346,6 +352,7 @@ main a.underlined:hover {
     color: var(--required-color);
 }
 
+/* ===== Skip link ===== */
 .skip-link {
     position: absolute;
     top: -100%;
@@ -362,6 +369,7 @@ main a.underlined:hover {
     top: 1rem;
 }
 
+/* ===== Success & error messages ===== */
 .success-message,
 .error-message {
     display: flex;
@@ -411,13 +419,12 @@ main a.underlined:hover {
     font-size: .9em;
 }
 
+/* ===== Dashboard filters & status cards ===== */
 .filter-wrapper {
     position: relative;
     width: fit-content;
 }
 
-/* Positions the mobile sort dropdown panel; "Sort by:" stays outside it
-   since, unlike the filter label, it is always visible. */
 .sort-wrapper {
     position: relative;
     width: fit-content;
@@ -431,8 +438,6 @@ main a.underlined:hover {
     border-bottom: 1px solid var(--divider-color);
 }
 
-/* Filters, not tabs: plain text with a colored underline on the active one,
-   sitting on the shared divider line (no boxed borders or filled backgrounds). */
 .status-card {
     display: flex;
     align-items: baseline;
@@ -535,8 +540,6 @@ main a.underlined:hover {
     box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
-/* Best-effort: highlight the selected native <option> the same green used
-   by the filter dropdown's active row (support varies by browser). */
 .dashboard-sort-select option:checked {
     background: var(--brand-color-active);
     color: var(--text-on-brand);

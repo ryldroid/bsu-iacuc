@@ -1,6 +1,5 @@
 (function () {
-  // Order must match the <li> order in .password-requirements markup,
-  // and mirrors Controller::validatePasswordRequirements() on the backend.
+  // ===== Password rules =====
   const RULES = [
     (pw) => pw.length >= 8,
     (pw) => /[A-Z]/.test(pw),
@@ -9,6 +8,7 @@
     (pw) => /[^a-zA-Z0-9]/.test(pw),
   ];
 
+  // ===== Check icon =====
   function checkIconMarkup() {
     return (
       '<svg class="password-req-check" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
@@ -17,6 +17,7 @@
     );
   }
 
+  // ===== Attach to a field =====
   function attach(block, input) {
     if (block.dataset.strengthAttached === "1") return;
     block.dataset.strengthAttached = "1";
@@ -41,6 +42,7 @@
     update();
   }
 
+  // ===== Init =====
   function init() {
     document.querySelectorAll(".password-requirements").forEach((block) => {
       const form = block.closest("form");

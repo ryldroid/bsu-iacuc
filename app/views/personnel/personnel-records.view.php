@@ -65,10 +65,7 @@ $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !=
 $isStaff = $role === 'staff';
 $colCount = 15;
 
-/**
- * Prepare rows for a horizontal bar list: keeps the top N, folds the rest into "Other",
- * and adds each row's share of the total plus its bar width relative to the largest row.
- */
+// ===== Chart helpers =====
 function statBarRows(array $breakdown, int $topN = 6): array
 {
     if (! $breakdown) return [];
@@ -121,7 +118,7 @@ function renderDonut(array $rows, string $centerLabel, string $emptyText): void
         return;
     }
     $sum    = array_sum(array_column($rows, 'total'));
-    $radius = 15.91549431; // circumference of 100, so dash lengths read as percentages
+    $radius = 15.91549431;
     $cursor = 0.0;
     $segs   = '';
     $legend = '';
@@ -176,7 +173,6 @@ $activeFilterLabels = array_filter([
     'Period'          => $period['label'] ?? '',
 ], fn($v) => $v !== '');
 
-// Records-tab filters carried through the statistics form, reset link and export link
 $carriedFilters = array_filter([
     'search' => $search,
     'school' => $school,
@@ -194,6 +190,7 @@ $periodParams = $period ? array_filter([
 
 $activeTab = ($_GET['tab'] ?? '') === 'statistics' ? 'statistics' : 'records';
 
+// ===== Page URL helper =====
 function pageUrl(int $p, string $search, string $school, string $animalType, string $sex, string $researcherType, string $sort): string
 {
     return '?' . http_build_query(array_filter([
@@ -207,6 +204,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)));
 }
 
+// ===== Duration helper =====
 function formatDurationRange(?string $start, ?string $end): string
 {
     if ($start && $end) {
@@ -229,6 +227,7 @@ function formatDurationRange(?string $start, ?string $end): string
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
 
+    <!-- ===== Records page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
         <!-- ===== Flash messages ===== -->
@@ -920,6 +919,7 @@ function formatDurationRange(?string $start, ?string $end): string
     </div>
 </div>
 
+<!-- ===== Modal scripts ===== -->
 <script>
     (function() {
         const ROOT = '<?= ROOT ?>';

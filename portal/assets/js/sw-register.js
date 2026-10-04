@@ -1,4 +1,5 @@
 (function () {
+  // ===== Register service worker =====
   if (!("serviceWorker" in navigator)) return;
 
   var script = document.querySelector("script[data-root]");

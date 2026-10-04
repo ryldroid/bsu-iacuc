@@ -16,6 +16,7 @@ include "includes/scroll-top.php";
 <div class="body">
     <?php include "includes/navigation.php"; ?>
 
+    <!-- ===== Announcements page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
         <div class="announcements-header">
@@ -29,6 +30,7 @@ include "includes/scroll-top.php";
                 <?php if (empty($officeAnnouncements)): ?>
                     <p class="announcements-empty">No announcements yet. Check back soon.</p>
                 <?php else: ?>
+                    <!-- ===== Office announcement cards ===== -->
                     <div class="office-announcements-list">
                         <?php foreach ($officeAnnouncements as $post):
                             $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
@@ -78,6 +80,7 @@ include "includes/scroll-top.php";
                                 <?php endif; ?>
                             </button>
 
+                            <!-- ===== Announcement modal templates ===== -->
                             <template id="annModalTpl-<?= (int) $post['id'] ?>">
                                 <?php if ($hasImage): ?>
                                     <div class="announcement-modal-image-wrap">
@@ -102,6 +105,7 @@ include "includes/scroll-top.php";
                         <?php endforeach; ?>
                     </div>
 
+                    <!-- ===== Announcement modal ===== -->
                     <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
                         <div class="modal-card announcement-modal-card">
                             <button type="button" class="modal-close" id="officeAnnouncementModalClose" aria-label="Close">
@@ -172,8 +176,6 @@ include "includes/scroll-top.php";
 <?php include "includes/footer.php"; ?>
 
 <script>
-    // See home.view.php for why this waits on DOMContentLoaded: modals.js
-    // is deferred, so it isn't defined yet when this inline script runs.
     document.addEventListener('DOMContentLoaded', function() {
         initAnnouncementModal({
             modalId: 'officeAnnouncementModal',

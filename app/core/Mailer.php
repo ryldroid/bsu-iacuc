@@ -5,10 +5,9 @@ use PHPMailer\PHPMailer\Exception;
 
 class Mailer
 {
-    // Templates that shouldn't advertise the notification-preference footer,
-    // since these are account-security emails and aren't optional.
     private const ACCOUNT_SECURITY_TEMPLATES = ['verify_email', 'password_reset'];
 
+    // ===== SEND EMAIL =====
     public static function send(
         string $toEmail,
         string $toName,
@@ -43,6 +42,7 @@ class Mailer
         }
     }
 
+    // ===== SEND FROM TEMPLATE =====
     public static function sendTemplate(string $template, array $vars, string $toEmail, string $toName, string $subject): bool
     {
         $file = VIEWSPATH . "emails/{$template}.php";
@@ -67,10 +67,7 @@ class Mailer
         );
     }
 
-    // Removes a Brevo transactional block for this address, so they actually
-    // start receiving mail again after re-enabling notifications, not just
-    // updating our own DB flag. Returns true on success or if they were
-    // never blocked in the first place.
+    // ===== RESUBSCRIBE CONTACT (BREVO) =====
     public static function resubscribe(string $email): bool
     {
         if (empty(BREVO_API_KEY)) {
@@ -99,7 +96,6 @@ class Mailer
             return false;
         }
 
-        // 204 = unblocked, 404 = wasn't blocked to begin with, both are fine outcomes.
         if (!in_array($status, [204, 404], true)) {
             error_log('Brevo resubscribe unexpected status ' . $status . ' for ' . $email);
             return false;
@@ -108,6 +104,7 @@ class Mailer
         return true;
     }
 
+    // ===== NOTIFICATION FOOTER =====
     private static function notificationFooter(): string
     {
         $url = ROOT . '/user/account';

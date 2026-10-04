@@ -1,11 +1,9 @@
 <?php
-// NEW FILE - CRUD for staff-managed homepage FAQ entries
-
 require_once dirname(__DIR__) . '/core/Model.php';
 
 class FaqModel extends Model
 {
-  // Get all FAQ entries, in display order (used on the public homepage)
+  // ===== READ FAQS =====
   public function getAll(): array
   {
     $result = $this->connection->query(
@@ -24,6 +22,7 @@ class FaqModel extends Model
     return $row ?: null;
   }
 
+  // ===== ADD FAQ =====
   public function insert(int $sortOrder, string $question, string $answer): bool
   {
     $stmt = $this->connection->prepare(
@@ -34,6 +33,7 @@ class FaqModel extends Model
     return $stmt->execute();
   }
 
+  // ===== EDIT FAQ =====
   public function update(int $id, int $sortOrder, string $question, string $answer): bool
   {
     $stmt = $this->connection->prepare(
@@ -44,6 +44,7 @@ class FaqModel extends Model
     return $stmt->execute();
   }
 
+  // ===== DELETE FAQ =====
   public function delete(int $id): bool
   {
     $stmt = $this->connection->prepare("DELETE FROM `faqs` WHERE id = ?");

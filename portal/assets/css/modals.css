@@ -55,6 +55,7 @@
     font-family: var(--font-body);
 }
 
+/* ===== Announcement & welcome modals ===== */
 .announcement-modal-card {
     position: relative;
     max-width: 780px;
@@ -234,8 +235,6 @@
     margin-top: 0;
 }
 
-/* Save comes before Cancel in the DOM (so Tab reaches it first from the
-   textarea), but stays visually on the right to match the usual layout. */
 #commentDialogActions #commentDialogSave {
     order: 2;
 }
@@ -307,9 +306,6 @@
 
 .file-popup-frame img {
     max-width: 100%;
-    /* percentage max-height can't reliably resolve here since this frame's
-       own height comes from flex-grow rather than a fixed value:  cap
-       against the viewport directly instead so it always shrinks to fit. */
     max-height: 82vh;
     min-height: 0;
     min-width: 0;
@@ -533,6 +529,7 @@
     height: 20px;
 }
 
+/* ===== Confirm dialog ===== */
 .confirm-modal-overlay {
     position: fixed;
     inset: 0;
@@ -669,8 +666,6 @@
 .review-payment-image-frame {
     flex: 1;
     min-height: 0;
-    /* the image never needs to exceed this, no matter how large the
-       original upload is:  keeps the whole modal on-screen */
     max-height: 60vh;
     overflow: auto;
     display: flex;

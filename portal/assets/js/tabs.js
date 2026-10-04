@@ -1,4 +1,5 @@
 (function () {
+  // ===== Find the active tab =====
   function currentMatch(strip, buttons) {
     const param = strip.dataset.tabParam || "tab";
     const paramValue = new URL(location.href).searchParams.get(param);
@@ -20,6 +21,7 @@
     return active ? active.dataset.tab : buttons[0].dataset.tab;
   }
 
+  // ===== Set up a tab strip =====
   function initTabStrip(strip) {
     const panelsContainer = document.getElementById(strip.dataset.tabPanels);
     const buttons = Array.from(strip.querySelectorAll("[data-tab]"));
@@ -62,5 +64,6 @@
     );
   }
 
+  // ===== Start up =====
   document.querySelectorAll(".tab-strip").forEach(initTabStrip);
 })();
