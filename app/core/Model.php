@@ -121,6 +121,8 @@ class Model
         $this->ensureColumn('records', 'user_id', "int(11) DEFAULT NULL AFTER `id`");
         $this->ensureIndex('records', 'idx_records_user_id', "(`user_id`)");
         $this->ensureColumn('records', 'protocol_id', "int(11) DEFAULT NULL AFTER `user_id`");
+        $this->ensureColumn('records', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
+        $this->ensureIndex('records', 'idx_records_ar_number', "(`ar_number`)", true);
         $this->ensureIndex('records', 'idx_records_protocol_id', "(`protocol_id`)");
         $this->ensureColumn('records', 'file_path', "varchar(255) DEFAULT NULL");
         $this->ensureColumn('records', 'file_original_name', "varchar(255) DEFAULT NULL");
@@ -163,6 +165,12 @@ class Model
         $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
         $this->ensureColumn('protocols', 'clearance_claimed_at', "timestamp NULL DEFAULT NULL AFTER `paid_by`");
+        $arNumberIsNew = $c->query("SHOW COLUMNS FROM `protocols` LIKE 'ar_number'")->num_rows === 0;
+        $this->ensureColumn('protocols', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
+        if ($arNumberIsNew) {
+            $c->query("UPDATE `records` r JOIN `protocols` p ON p.id = r.protocol_id SET r.ar_number = p.reference_no, r.reference_no = NULL WHERE p.status IN ('Endorsed','Approved') AND p.reference_no IS NOT NULL");
+            $c->query("UPDATE `protocols` SET ar_number = reference_no, reference_no = NULL WHERE status IN ('Endorsed','Approved') AND reference_no IS NOT NULL");
+        }
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
                     `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -195,9 +203,11 @@ class Model
         $this->ensureEnumValues(
             'protocol_versions',
             'file_type',
-            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan'],
+            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan', 'amendment'],
             'protocol'
         );
+
+        $this->ensureColumn('protocol_versions', 'note', "varchar(1000) DEFAULT NULL");
 
         $c->query("CREATE TABLE IF NOT EXISTS `annotations` (
                 `id`          int(11)  NOT NULL AUTO_INCREMENT PRIMARY KEY,

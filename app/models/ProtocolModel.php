@@ -327,7 +327,7 @@ class ProtocolModel extends Model
     public function getEndorsedProtocols(): array
     {
         $sql = "SELECT
-                    p.id AS protocol_id, p.reference_no, p.title AS research_title,
+                    p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title,
                     u.first_name, u.last_name,
                     (SELECT pv.id FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id AND pv.file_type = 'clearance'
@@ -364,6 +364,7 @@ class ProtocolModel extends Model
         $sql = "SELECT
                     p.id            AS protocol_id,
                     p.reference_no,
+                    p.ar_number,
                     p.title         AS research_title,
                     p.status,
                     p.submitted_at,
@@ -555,6 +556,7 @@ class ProtocolModel extends Model
             "SELECT
                 p.id AS protocol_id,
                 p.reference_no,
+                p.ar_number,
                 p.title AS research_title,
                 p.status,
                 p.submitted_at,
@@ -632,6 +634,27 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    public function arNumberExists(string $arNumber): bool
+    {
+        $stmt = $this->connection->prepare("SELECT 1 FROM `protocols` WHERE ar_number = ?");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $arNumber);
+        $stmt->execute();
+        return (bool) $stmt->get_result()->fetch_row();
+    }
+
+    public function setArNumber(int $protocolId, string $arNumber): bool
+    {
+        $stmt = $this->connection->prepare("UPDATE `protocols` SET ar_number = ? WHERE id = ?");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('si', $arNumber, $protocolId);
+        return $stmt->execute();
+    }
+
     // ===== PROTOCOL VERSIONS =====
 
     public function insertVersion(
@@ -639,7 +662,8 @@ class ProtocolModel extends Model
         string $filePath,
         string $originalName,
         int $uploadedBy,
-        string $fileType = 'protocol'
+        string $fileType = 'protocol',
+        ?string $note = null
     ): int | false {
         $stmt = $this->connection->prepare(
             "SELECT COALESCE(MAX(version_number), 0) + 1 AS next_v
@@ -656,14 +680,14 @@ class ProtocolModel extends Model
 
         $stmt = $this->connection->prepare(
             "INSERT INTO `protocol_versions`
-                (protocol_id, version_number, file_path, original_name, file_type, uploaded_by)
-             VALUES (?, ?, ?, ?, ?, ?)"
+                (protocol_id, version_number, file_path, original_name, file_type, uploaded_by, note)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('iisssi', $protocolId, $nextVersion, $filePath, $originalName, $fileType, $uploadedBy);
+        $stmt->bind_param('iisssis', $protocolId, $nextVersion, $filePath, $originalName, $fileType, $uploadedBy, $note);
         if (! $stmt->execute()) {
             return false;
         }
@@ -680,6 +704,7 @@ class ProtocolModel extends Model
                 pv.file_path,
                 pv.original_name,
                 pv.file_type,
+                pv.note,
                 pv.uploaded_at,
                 u.first_name,
                 u.last_name

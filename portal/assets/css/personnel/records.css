@@ -38,7 +38,7 @@
 }
 
 .records-metrics {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   max-width: none;
   gap: 14px;
 }
@@ -635,6 +635,11 @@
 
 
 .records-table .col-ref {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.records-table .col-ar {
   width: 120px;
   white-space: nowrap;
 }

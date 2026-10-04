@@ -167,31 +167,61 @@
   width: 120px;
 }
 
-.clearance-ipn-link {
-  font-size: 0.95em;
+.clearance-ar-link {
   color: var(--brand-text);
+  font-weight: 600;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
+  transition: color 0.15s;
 }
 
-.clearance-ipn-field {
+.clearance-ar-link:hover {
+  color: var(--brand-color-hover);
+}
+
+.clearance-ar-link:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.clearance-number-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin: 12px 0;
+  gap: 6px;
+  margin: 14px 0 18px;
 }
 
-.clearance-ipn-field label {
+.clearance-number-field label {
   font-size: 0.85em;
   font-weight: 600;
   color: var(--primary-text);
 }
 
-.clearance-ipn-field input {
-  padding: 8px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+.clearance-number-field input {
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  background-color: var(--card-background);
+  color: var(--primary-text);
+  box-shadow: 0 1px 4px var(--shadow-color-soft);
+  font-family: var(--font-body);
   font-size: 0.9em;
+  outline: none;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.clearance-number-field input::placeholder {
+  color: var(--secondary-text);
+  opacity: 0.8;
+}
+
+.clearance-number-field input:focus-visible {
+  border-color: var(--brand-text);
+  box-shadow: 0 0 0 3px var(--focus-ring-tint), 0 1px 4px var(--shadow-color-soft);
 }
 
 .clearance-thumb--staged {

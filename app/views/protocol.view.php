@@ -14,6 +14,8 @@
 /** @var bool   $canRename */
 /** @var bool   $canRequestDeletion */
 /** @var bool   $canDelete */
+/** @var bool   $canAmend */
+/** @var array  $amendments */
 /** @var bool   $deletionRequested */
 /** @var bool   $showTitleChangeBanner */
 /** @var string $flashSuccess */
@@ -59,6 +61,11 @@ $backUrl = $backUrl ?? ($isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submi
 $versions   = $versions ?? [$version];
 $fromFilter = $fromFilter ?? '';
 
+function submissionRoundLabel(int $versionNumber): string
+{
+    return $versionNumber <= 1 ? 'Original submission' : 'Revision ' . ($versionNumber - 1);
+}
+
 function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): string
 {
     $url = ROOT . '/apply/viewer/' . $protocolId . '/' . $versionId;
@@ -101,7 +108,7 @@ include 'includes/header.php';
 <!-- PDF.js from CDN -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
-<?php if ($canResubmit || $canConfirmPayment): ?>
+<?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <?php endif; ?>
 
@@ -168,7 +175,7 @@ include 'includes/header.php';
 
                 <button type="button" class="ver-badge ver-badge--dropdown" id="versionSwitcherTrigger"
                     aria-haspopup="true" aria-expanded="false">
-                    v<?= $versionNum ?>
+                    <?= submissionRoundLabel($versionNum) ?>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="m6 9 6 6 6-6" />
                     </svg>
@@ -193,7 +200,7 @@ include 'includes/header.php';
                         ?>
                         <a class="version-dropdown-item<?= $vIsCur ? ' is-current' : '' ?>"
                             href="<?= versionViewerUrl($protocolId, $vId, $fromFilter) ?>">
-                            <span class="version-dropdown-item-num">v<?= $vNum ?></span>
+                            <span class="version-dropdown-item-num"><?= submissionRoundLabel($vNum) ?></span>
                             <span class="version-dropdown-item-meta">
                                 <span class="version-dropdown-item-date"><?= htmlspecialchars($vDate, ENT_QUOTES, 'UTF-8') ?></span>
                             </span>
@@ -265,6 +272,15 @@ include 'includes/header.php';
                     </button>
                 <?php endif; ?>
 
+                <?php if ($amendments): ?>
+                    <button class="tool-btn tool-btn--ghost" type="button" onclick="openAmendmentsModal()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Amendments (<?= count($amendments) ?>)
+                    </button>
+                <?php endif; ?>
+
                 <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#download-icon" />
@@ -273,10 +289,19 @@ include 'includes/header.php';
                 </a>
             </div>
 
-            <?php if ($canRename || $canDelete || $canRequestDeletion): ?>
+            <?php if ($canRename || $canDelete || $canRequestDeletion || $canAmend): ?>
                 <span class="toolbar-divider" aria-hidden="true"></span>
 
                 <div class="viewer-doc-actions">
+                    <?php if ($canAmend): ?>
+                        <button class="tool-btn tool-btn--ghost" id="btnAmendment" type="button" onclick="openAmendmentModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            Submit Amendment
+                        </button>
+                    <?php endif; ?>
+
                     <?php if ($canRename): ?>
                         <button class="tool-btn tool-btn--info" id="btnRename" type="button" onclick="openRenameModal()">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -551,6 +576,108 @@ include 'includes/header.php';
                             <use href="#back-icon" />
                         </svg>
                         Return for Revision
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ($amendments): ?>
+    <!-- ===== Amendments list modal ===== -->
+    <div class="modal-backdrop" id="amendmentsModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="modal-header">
+                <div>
+                    <p class="modal-label">Amendments</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="modal-close" onclick="closeAmendmentsModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <div class="doc-list">
+                    <?php foreach ($amendments as $amendment): ?>
+                        <div class="doc-row">
+                            <div class="doc-row-info">
+                                <div class="doc-row-title">
+                                    Amendment <?= (int) $amendment['version_number'] ?>
+                                    &middot; <?= htmlspecialchars(date('M j, Y g:i A', strtotime($amendment['uploaded_at'])), ENT_QUOTES, 'UTF-8') ?>
+                                </div>
+                                <span class="doc-row-sub"><?= nl2br(htmlspecialchars($amendment['note'] ?? '', ENT_QUOTES, 'UTF-8')) ?></span>
+                            </div>
+                            <div class="doc-row-action">
+                                <button class="tool-btn tool-btn--ghost" type="button"
+                                    data-file-url="<?= htmlspecialchars($amendment['file_url'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-title="Amendment <?= (int) $amendment['version_number'] ?>"
+                                    onclick="closeAmendmentsModal(); openFilePopup(this.dataset.fileUrl, this.dataset.title)">
+                                    View
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ($canAmend): ?>
+    <!-- ===== Submit amendment modal (researcher only, approved protocols) ===== -->
+    <div class="modal-backdrop" id="amendmentModalBackdrop">
+        <div class="modal-card panel-modal-card">
+            <div class="modal-header">
+                <div>
+                    <p class="modal-label">Submit Amendment</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <button class="modal-close" onclick="closeAmendmentModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">If you have an amendment to this approved protocol, submit the updated file here and explain the changes to inform CCARD. This protocol will not undergo the review process again unless deemed necessary by CCARD or the IACUC. You will be notified if any action is required on your end.</p>
+
+                <div class="doc-list">
+                    <div class="doc-row">
+                        <div class="doc-row-info">
+                            <div class="doc-row-title">Updated protocol <span class="req">*</span></div>
+                            <span class="doc-row-sub" id="amendmentFileName">PDF only, max 10 MB</span>
+                        </div>
+                        <div class="doc-row-action">
+                            <label class="btn-upload-inline">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#upload-icon" />
+                                </svg>
+                                Upload
+                                <input type="file" id="amendmentFile" accept="application/pdf,.pdf" onchange="handleAmendmentFile(event)">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="return-comment-label" for="amendmentNote">What changed and why <span class="return-comment-optional">(required)</span></label>
+                <textarea id="amendmentNote" class="return-comment-textarea"
+                    placeholder="Briefly describe the change to your methods..."
+                    rows="4" maxlength="1000"></textarea>
+                <p class="return-char-count"><span id="amendmentCharCount">0</span> / 1000</p>
+
+                <div id="amendmentError" class="error-messages" hidden></div>
+
+                <div class="upload-progress-container" id="amendmentProgress"></div>
+
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeAmendmentModal()">Cancel</button>
+                    <button class="tool-btn tool-btn--success" type="button" id="amendmentSubmitBtn" onclick="submitAmendment()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        Submit
                     </button>
                 </div>
             </div>
@@ -2094,6 +2221,15 @@ include 'includes/header.php';
         });
 
         async function completeReview(btn) {
+            if (annotations.length) {
+                await confirmAction(
+                    'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.', {
+                        okText: 'Back',
+                        hideCancel: true
+                    }
+                );
+                return;
+            }
             const ok = await confirmAction(
                 'Finish your review? The protocol will be marked as reviewed.', {
                     okText: 'Proceed',
@@ -2175,6 +2311,126 @@ include 'includes/header.php';
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;
                 setButtonBusy(submitBtn, false);
+            }
+        }
+    <?php endif; ?>
+
+    <?php if ($amendments): ?>
+        // ===== Amendments list modal =====
+        const amendmentsBackdrop = document.getElementById('amendmentsModalBackdrop');
+
+        function openAmendmentsModal() {
+            amendmentsBackdrop.classList.add('open');
+        }
+
+        function closeAmendmentsModal() {
+            amendmentsBackdrop.classList.remove('open');
+        }
+
+        amendmentsBackdrop.addEventListener('click', e => {
+            if (e.target === amendmentsBackdrop) closeAmendmentsModal();
+        });
+    <?php endif; ?>
+
+    <?php if ($canAmend): ?>
+        // ===== Submit amendment modal =====
+        const AMENDMENT_API = <?= json_encode(ROOT . '/apply/amendment_upload') ?>;
+        const AMENDMENT_FILE_HINT = 'PDF only, max 10 MB';
+        const amendmentBackdrop = document.getElementById('amendmentModalBackdrop');
+        const amendmentFile = document.getElementById('amendmentFile');
+        const amendmentFileName = document.getElementById('amendmentFileName');
+        const amendmentNote = document.getElementById('amendmentNote');
+        const amendmentCharCount = document.getElementById('amendmentCharCount');
+        const amendmentError = document.getElementById('amendmentError');
+
+        function openAmendmentModal() {
+            amendmentFile.value = '';
+            amendmentFileName.textContent = AMENDMENT_FILE_HINT;
+            amendmentFileName.classList.remove('done');
+            amendmentNote.value = '';
+            amendmentCharCount.textContent = '0';
+            amendmentError.hidden = true;
+            document.getElementById('amendmentProgress').innerHTML = '';
+            amendmentBackdrop.classList.add('open');
+        }
+
+        function closeAmendmentModal() {
+            amendmentBackdrop.classList.remove('open');
+        }
+
+        amendmentBackdrop.addEventListener('click', e => {
+            if (e.target === amendmentBackdrop) closeAmendmentModal();
+        });
+
+        amendmentNote.addEventListener('input', () => {
+            amendmentCharCount.textContent = amendmentNote.value.length;
+        });
+
+        function handleAmendmentFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const isPdf = file.type === 'application/pdf' && file.name.toLowerCase().endsWith('.pdf');
+            const error = !isPdf ? 'Only PDF files are accepted.' :
+                file.size > 10 * 1024 * 1024 ? 'File is too large. Maximum size is 10 MB.' : null;
+
+            amendmentError.textContent = error ?? '';
+            amendmentError.hidden = !error;
+            amendmentFileName.textContent = error ? AMENDMENT_FILE_HINT : file.name;
+            amendmentFileName.classList.toggle('done', !error);
+            if (error) event.target.value = '';
+        }
+
+        async function submitAmendment() {
+            const submitBtn = document.getElementById('amendmentSubmitBtn');
+            const note = amendmentNote.value.trim();
+
+            amendmentError.hidden = true;
+
+            if (!amendmentFile.files[0]) {
+                amendmentError.textContent = 'Please upload the updated protocol.';
+                amendmentError.hidden = false;
+                return;
+            }
+            if (!note) {
+                amendmentError.textContent = 'Please explain what changed.';
+                amendmentError.hidden = false;
+                return;
+            }
+
+            const ok = await confirmAction(
+                'Submit this amendment? CCARD will be notified. It will not be reviewed again.', {
+                    okText: 'Submit',
+                    cancelText: 'Cancel'
+                }
+            );
+            if (!ok) return;
+
+            setButtonBusy(submitBtn, true, 'Submitting...');
+
+            const progressContainer = document.getElementById('amendmentProgress');
+            progressContainer.innerHTML = '';
+            const bar = createUploadProgressBar(progressContainer);
+
+            const formData = new FormData();
+            formData.append('protocol_id', PROTOCOL_ID);
+            formData.append('amendment_file', amendmentFile.files[0]);
+            formData.append('note', note);
+
+            try {
+                const result = await uploadWithProgress(AMENDMENT_API, formData, {
+                    headers: {
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    onProgress: pct => bar.update(pct)
+                });
+                if (!result.success) throw new Error(result.error ?? 'Could not submit the amendment. Please try again.');
+                window.location.reload();
+            } catch (err) {
+                amendmentError.textContent = err.message || 'Network error. Please try again.';
+                amendmentError.hidden = false;
+                setButtonBusy(submitBtn, false);
+                bar.remove();
             }
         }
     <?php endif; ?>

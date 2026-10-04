@@ -48,7 +48,7 @@
     }
 
     if (e.key === "Tab") {
-      const focusable = [cancelBtn, okBtn];
+      const focusable = cancelBtn.hidden ? [okBtn] : [cancelBtn, okBtn];
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
@@ -85,6 +85,7 @@
     messageEl.textContent = message;
     okBtn.textContent = options.okText || "Yes";
     cancelBtn.textContent = options.cancelText || "Cancel";
+    cancelBtn.hidden = !!options.hideCancel;
     okBtn.classList.toggle("confirm-modal-ok-danger", !!options.danger);
 
     lastFocusedEl = document.activeElement;

@@ -34,7 +34,6 @@ $stats           = $stats           ?? [
     'incomplete_count' => 0,
     'distinct_schools' => 0,
     'distinct_researchers' => 0,
-    'distinct_advisers' => 0,
     'protocols_with_count' => 0,
     'avg_animals_per_protocol' => 0,
     'ongoing_studies' => 0,
@@ -46,7 +45,10 @@ $stats           = $stats           ?? [
     'no_duration_count' => 0,
     'released_this_year' => 0,
     'species_breakdown' => [],
-    'adviser_breakdown' => [],
+    'protocols_reviewed' => 0,
+    'protocols_endorsed' => 0,
+    'reviewed_this_month' => 0,
+    'endorsed_this_month' => 0,
     'release_trend' => [],
     'excluded_by_period' => 0,
 ];
@@ -61,7 +63,7 @@ $flash_error     = $flash_error     ?? '';
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '';
 $isStaff = $role === 'staff';
-$colCount = 14;
+$colCount = 15;
 
 /**
  * Prepare rows for a horizontal bar list: keeps the top N, folds the rest into "Other",
@@ -151,7 +153,6 @@ function renderDonut(array $rows, string $centerLabel, string $emptyText): void
 
 $speciesRows    = statBarRows($stats['species_breakdown']);
 $schoolRows     = statBarRows($stats['school_breakdown']);
-$adviserRows    = statBarRows($stats['adviser_breakdown'], 5);
 $researcherRows = statBarRows($stats['researcher_type_breakdown']);
 $sexRows        = statBarRows($stats['sex_breakdown']);
 
@@ -365,6 +366,7 @@ function formatDurationRange(?string $start, ?string $end): string
                             <thead>
                                 <tr>
                                     <th class="col-ref">IPN</th>
+                                    <th class="col-ar">AR No.</th>
                                     <th class="col-title">Title of Research</th>
                                     <th class="col-school">School</th>
                                     <th class="col-animal">Animal Type</th>
@@ -397,7 +399,8 @@ function formatDurationRange(?string $start, ?string $end): string
                                 <?php else: ?>
                                     <?php foreach ($records as $i => $r): ?>
                                         <tr>
-                                            <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no']) ?></td>
+                                            <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
+                                            <td class="date-cell" data-label="AR No."><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
                                             <td class="records-title-cell">
                                                 <div class="protocol-title-cell">
                                                     <?= htmlspecialchars($r['title_of_research']) ?>
@@ -583,6 +586,30 @@ function formatDurationRange(?string $start, ?string $end): string
                     <div class="metric-card records-stat-card">
                         <div class="records-stat-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Protocols Reviewed This Month</div>
+                            <div class="metric-card-value"><?= number_format($stats['reviewed_this_month']) ?></div>
+                            <div class="records-stat-hint"><?= number_format($stats['protocols_reviewed']) ?> <?= $period ? 'in selected period' : 'all time' ?></div>
+                        </div>
+                    </div>
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#check-circle-icon"></use>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="metric-card-label">Protocols Endorsed This Month</div>
+                            <div class="metric-card-value"><?= number_format($stats['endorsed_this_month']) ?></div>
+                            <div class="records-stat-hint"><?= number_format($stats['protocols_endorsed']) ?> <?= $period ? 'in selected period' : 'all time' ?></div>
+                        </div>
+                    </div>
+                    <div class="metric-card records-stat-card">
+                        <div class="records-stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon"></use>
                             </svg>
                         </div>
@@ -663,12 +690,6 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
 
                     <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Top Research Advisers</div>
-                        <p class="records-card-hint">Advisers with the most records</p>
-                        <?php renderBarList($adviserRows, 'No adviser data yet.'); ?>
-                    </div>
-
-                    <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Records by Researcher Type</div>
                         <p class="records-card-hint">Student, faculty, staff, or researcher</p>
                         <?php renderDonut($researcherRows, 'records', 'No researcher type data yet.'); ?>
@@ -727,6 +748,10 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="records-form-group records-form-full">
                     <label for="add_reference_no">IPN <span class="records-required">*</span></label>
                     <input type="text" id="add_reference_no" name="reference_no" placeholder="e.g. BSU-IACUC-2025-001">
+                </div>
+                <div class="records-form-group records-form-full">
+                    <label for="add_ar_number">AR Number</label>
+                    <input type="text" id="add_ar_number" name="ar_number" placeholder="From the BAI clearance">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="add_title">Title of Research <span class="records-required">*</span></label>
@@ -817,7 +842,11 @@ function formatDurationRange(?string $start, ?string $end): string
                 <input type="hidden" id="edit_id">
                 <div class="records-form-group records-form-full">
                     <label for="edit_reference_no">IPN</label>
-                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. AR-2026-0001">
+                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. BSU-IACUC-2025-001">
+                </div>
+                <div class="records-form-group records-form-full">
+                    <label for="edit_ar_number">AR Number</label>
+                    <input type="text" id="edit_ar_number" name="ar_number" placeholder="From the BAI clearance">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="edit_title">Title of Research</label>
@@ -957,6 +986,9 @@ function formatDurationRange(?string $start, ?string $end): string
             }
         }
 
+        let editOriginalIpn = '';
+        let editHasSignedScan = false;
+
         // ===== ADD =====
         const addRecordBtn = document.getElementById('addRecordBtn');
         if (addRecordBtn) {
@@ -984,6 +1016,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
                 post('/personnel/records_add', {
                     reference_no: ref,
+                    ar_number: document.getElementById('add_ar_number').value,
                     title_of_research: title,
                     school: document.getElementById('add_school').value,
                     animal_type: document.getElementById('add_animal_type').value,
@@ -1024,6 +1057,9 @@ function formatDurationRange(?string $start, ?string $end): string
                         const d = data.data;
                         document.getElementById('edit_id').value = d.id;
                         document.getElementById('edit_reference_no').value = d.reference_no ?? '';
+                        document.getElementById('edit_ar_number').value = d.ar_number ?? '';
+                        editOriginalIpn = d.reference_no ?? '';
+                        editHasSignedScan = !!d.has_signed_scan;
                         document.getElementById('edit_title').value = d.title_of_research ?? '';
                         document.getElementById('edit_pi').value = d.principal_investigator ?? '';
                         document.getElementById('edit_school').value = d.school ?? '';
@@ -1043,8 +1079,21 @@ function formatDurationRange(?string $start, ?string $end): string
             });
         });
 
-        document.getElementById('editRecordSave').addEventListener('click', () => {
+        document.getElementById('editRecordSave').addEventListener('click', async () => {
             hideErr('editError');
+
+            const ipnChanged = document.getElementById('edit_reference_no').value.trim() !== editOriginalIpn;
+            if (ipnChanged && editHasSignedScan) {
+                const confirmed = await confirmAction(
+                    'This record already has a signed scan. Changing the IPN will make the signed scan not match the record.', {
+                        okText: 'Change IPN',
+                        cancelText: 'Cancel',
+                        danger: true
+                    }
+                );
+                if (!confirmed) return;
+            }
+
             post('/personnel/records_edit', {
                 id: document.getElementById('edit_id').value,
                 reference_no: document.getElementById('edit_reference_no').value,

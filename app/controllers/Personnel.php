@@ -57,6 +57,7 @@ class Personnel extends Controller
         foreach ($protocols as &$protocol) {
             $protocol['can_endorse'] = $protocol['status'] === 'Reviewed'
                 && ($protocol['payment_status'] ?? 'unpaid') === 'paid'
+                && !empty($protocol['reference_no'])
                 && !empty($protocol['latest_signed_scan_version_id']);
         }
         unset($protocol);
@@ -236,8 +237,11 @@ class Personnel extends Controller
             $this->jsonError(422, 'That IPN already exists.');
         }
 
-        $d      = $this->sanitizeRecordPost();
-        $ok     = $model->insert($d);
+        $d = $this->sanitizeRecordPost();
+        if ($d['ar_number'] !== '' && $model->arExists($d['ar_number'])) {
+            $this->jsonError(422, 'That AR number already exists.');
+        }
+        $ok = $model->insert($d);
 
         if ($ok) {
             $actor = $this->actor();
@@ -256,6 +260,11 @@ class Personnel extends Controller
         $model = new RecordModel();
         $id    = (int) ($_GET['id'] ?? 0);
         $row   = $id > 0 ? $model->getById($id) : null;
+
+        if ($row) {
+            $row['has_signed_scan'] = !empty($row['protocol_id'])
+                && (new ProtocolModel())->getLatestVersion((int) $row['protocol_id'], 'signed_scan') !== null;
+        }
 
         echo json_encode(
             $row
@@ -281,6 +290,9 @@ class Personnel extends Controller
 
         $d       = $this->sanitizeRecordPost();
         $d['id'] = $id;
+        if ($d['ar_number'] !== '' && $model->arExists($d['ar_number'], $id)) {
+            $this->jsonError(422, 'That AR number already exists.');
+        }
         $ok      = $model->update($d);
 
         if ($ok) {
@@ -293,6 +305,9 @@ class Personnel extends Controller
             $record = $model->getById($id);
             if ($record && !empty($record['protocol_id']) && $d['reference_no'] !== '') {
                 (new ProtocolModel())->setReferenceNo((int) $record['protocol_id'], $d['reference_no']);
+            }
+            if ($record && !empty($record['protocol_id']) && $d['ar_number'] !== '') {
+                (new ProtocolModel())->setArNumber((int) $record['protocol_id'], $d['ar_number']);
             }
         }
 
@@ -366,6 +381,7 @@ class Personnel extends Controller
 
         $headers = [
             'IPN',
+            'AR Number',
             'Title of Research',
             'School',
             'Animal Type',
@@ -385,6 +401,7 @@ class Personnel extends Controller
         foreach ($records as $r) {
             $recordsSheet->fromArray([
                 $r['reference_no'],
+                $r['ar_number'] ?? '',
                 $r['title_of_research'],
                 $r['school'] ?? '',
                 $r['animal_type'] ?? '',
@@ -401,7 +418,7 @@ class Personnel extends Controller
             $row++;
         }
 
-        foreach (range('A', 'M') as $column) {
+        foreach (range('A', 'N') as $column) {
             $recordsSheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -452,7 +469,8 @@ class Personnel extends Controller
                 ['Average Animals per Protocol', $stats['avg_animals_per_protocol']],
                 ['Distinct Schools', $stats['distinct_schools']],
                 ['Distinct Researchers', $stats['distinct_researchers']],
-                ['Distinct Research Advisers', $stats['distinct_advisers']],
+                ['Protocols Reviewed', $stats['protocols_reviewed']],
+                ['Protocols Endorsed', $stats['protocols_endorsed']],
                 ['Ongoing Studies', $stats['ongoing_studies']],
                 ['Completed Studies', $stats['completed_studies']],
                 ['Active Clearances', $stats['active_clearances']],
@@ -471,7 +489,6 @@ class Personnel extends Controller
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by School', $stats['school_breakdown'], 'School');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
         $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Research Adviser', $stats['adviser_breakdown'], 'Research Adviser');
 
         $sheet->setCellValue("A$row", 'Records Processed by Month (This Quarter)');
         $sheet->getStyle("A$row")->getFont()->setBold(true);
@@ -533,6 +550,7 @@ class Personnel extends Controller
         $str = fn(string $k) => trim($_POST[$k] ?? '');
         return [
             'reference_no'            => $str('reference_no'),
+            'ar_number'               => $str('ar_number'),
             'title_of_research'       => $str('title_of_research'),
             'school'                  => $str('school'),
             'animal_type'             => $str('animal_type'),

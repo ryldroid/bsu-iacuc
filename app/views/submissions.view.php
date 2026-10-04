@@ -244,7 +244,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         'rejected'        => 'Payment Rejected',
                         'paid'            => 'Paid',
                     ];
-                    $versionNum    = $protocol['latest_version'] ? 'v' . (int) $protocol['latest_version'] : 'v1';
+                    $roundNo       = max(1, (int) ($protocol['latest_version'] ?? 1));
+                    $versionNum    = $roundNo <= 1 ? 'Original submission' : 'Revision ' . ($roundNo - 1);
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
@@ -260,13 +261,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             <div class="protocol-meta">
                                 <p class="research-title">
                                     <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
-                                    <?php if (in_array($statusKey, ['reviewed', 'endorsed', 'approved'], true)): ?>
+                                    <?php if ($statusKey === 'reviewed'): ?>
                                         <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
                                             <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                     <?php endif; ?>
                                 </p>
-                                <p class="protocol-meta-line" title="Version no. (number of rounds submitted) and the submission date">
+                                <p class="protocol-meta-line" title="Submission round and submission date">
                                     <?= $versionNum ?> &middot; <?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?>
                                 </p>
 
@@ -915,42 +916,79 @@ function statusIconSvg(string $iconId, int $size = 14): string
         });
     }
 
-    function buildReturnNote(reason) {
-        const issueLabels = [];
-        if (reason.wrong_cert) issueLabels.push('Wrong / invalid training certificate');
-        if (reason.other_reason) issueLabels.push('Other');
-
-        return `<div class="history-return-note">
-            <div class="history-return-note-header">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#info-icon" />
-                </svg>
-                Returned for revision
-            </div>
-            <p class="history-return-date">${formatDate(reason.created_at)}</p>
-            ${issueLabels.length > 0 ? `<ul class="history-return-issues">${issueLabels.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}
-            ${reason.comment ? `<p class="history-return-comment">${escapeHtml(reason.comment)}</p>` : ''}
-        </div>`;
+    function roundLabel(versionNumber) {
+        const n = Number(versionNumber);
+        return n <= 1 ? 'Original submission' : 'Revision ' + (n - 1);
     }
 
-    function buildVersionRows(versions, protocolId, returnReason) {
+    // A round that has a later round was returned (resubmitting is only possible from
+    // Needs Revision); the newest round is returned only while the status says so.
+    // The reviewer's record, when one exists, adds the date and note.
+    function buildReturnLine(reason) {
+        const bits = [];
+        if (reason) {
+            if (reason.wrong_cert) bits.push('Wrong / invalid training certificate');
+            if (reason.other_reason && !reason.comment) bits.push('Other');
+            if (reason.comment) bits.push(reason.comment);
+        }
+        const when = reason && reason.created_at ?
+            new Date(reason.created_at).toLocaleDateString('en-PH', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            }) :
+            '';
+        const note = bits.join(' \u00b7 ');
+        return `<div class="history-return-line">
+                    <span class="history-tag history-tag--returned">Returned for revision${when ? ' &middot; ' + when : ''}</span>
+                    ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ''}
+                </div>`;
+    }
+
+    function signedScanLabel(referenceNo) {
+        return referenceNo ?
+            'Protocol Signed by IACUC Chair \u00b7 IPN ' + referenceNo :
+            'Protocol Signed by IACUC Chair';
+    }
+
+    function buildVersionRows(versions, protocolId, currentStatus) {
         if (!versions || versions.length === 0) return '';
+
+        // versions arrive newest first; titles are compared with the round before each one
+        const titles = versions.map(v => v.title_at_version || v.original_name || '');
 
         const rows = versions.map((v, index) => {
             const isLatest = index === 0;
-            const dateString = formatDate(v.uploaded_at);
-            const fileName = escapeHtml(v.title_at_version || v.original_name);
+            const isOldest = index === versions.length - 1;
+            const when = new Date(v.uploaded_at);
+            const day = when.toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const time = when.toLocaleTimeString('en-PH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const wasReturned = !isLatest || String(currentStatus || '').toLowerCase() === 'needs revision';
+
+            let titleNote = '';
+            if (isOldest) {
+                if (versions.length > 1 && titles[index] !== titles[index - 1]) titleNote = 'Titled: ' + titles[index];
+            } else if (titles[index] !== titles[index + 1]) {
+                titleNote = 'Renamed to: ' + titles[index];
+            }
 
             return `
                 <div class="history-entry">
-                    <div class="history-row${isLatest ? ' history-row--latest' : ''}">
-                        <div class="history-row-meta">
-                            <span class="history-ver" title="Version no. (number of rounds submitted)">v${v.version_number}</span>
-                            ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
-                        </div>
+                    <div class="history-row history-row--round${isLatest ? ' history-row--latest' : ''}">
                         <div class="history-row-detail">
-                            <span class="history-filename" title="${fileName}">${fileName}</span>
-                            <span class="helper">${dateString}</span>
+                            <span class="history-filename">${day}</span>
+                            <span class="helper">${roundLabel(v.version_number)} &middot; ${time}</span>
+                            ${titleNote ? `<span class="helper history-title-note" title="${escapeHtml(titleNote)}">${escapeHtml(titleNote)}</span>` : ''}
+                            ${isLatest ? '<div class="history-tags"><span class="history-latest-badge">Current</span></div>' : ''}
+                            ${wasReturned ? buildReturnLine(v.return_reason) : ''}
                         </div>
                         <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
                             <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -959,14 +997,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             Open
                         </a>
                     </div>
-                    ${isLatest && returnReason ? buildReturnNote(returnReason) : ''}
                 </div>`;
         }).join('');
 
         return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
     }
 
-    function buildSimpleFileSection(files, label) {
+    function buildSimpleFileSection(files, label, heading) {
         if (!files || files.length === 0) return '';
         const rows = files.map((v, index) => {
             const isLatest = index === 0;
@@ -996,17 +1033,16 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 </div>`;
         }).join('');
 
-        return `<div class="history-section-label">${escapeHtml(label)}</div>${rows}`;
+        return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
     }
 
     function renderHistory(data) {
         const body = document.getElementById('historyModalBody');
 
         const sections = [
-            buildVersionRows(data.protocol_files, data.protocol_id, data.return_reason),
-            buildSimpleFileSection(data.payment_proof_files, 'Proof of Payment'),
-            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan'),
-            buildSimpleFileSection(data.clearance_files, 'Clearance'),
+            buildVersionRows(data.protocol_files, data.protocol_id, data.status),
+            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan', signedScanLabel(data.reference_no)),
+            buildSimpleFileSection(data.clearance_files, 'Animal Research Clearance'),
         ].filter(Boolean);
 
         body.innerHTML = sections.length ?

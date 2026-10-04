@@ -45,14 +45,14 @@ $statusDescByRole = [
     'staff' => [
         'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "The reviewer has finished the assessment. Confirm payment and upload the scan with the IACUC Chair's sign to move it to Endorsed.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances below, match each one to its protocol, then confirm to mark them Approved.',
+        'reviewed'              => "The reviewer has finished the assessment. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC Chair's signature, upload the signed scan, then mark it as Endorsed.",
+        'endorsed'              => "Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances below, assign each protocol's AR number, match each clearance to its protocol, then confirm to mark them Approved.",
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments and upload the scan with the IACUC Chair's sign.",
+        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC Chair's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released Animal Research Clearances and release them to the researchers.',
         'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
     ],
@@ -107,7 +107,8 @@ foreach ($protocols as &$protocol) {
     $protocol['status_display'] = $statusDisplayMap[$key] ?? $protocol['status'];
     $protocol['badge_class']    = $badgeClassMap[$key]    ?? 'badge-to-review';
     $protocol['filter_slug']    = $filterSlugMap[$key]    ?? 'other';
-    $protocol['version_display'] = $protocol['latest_version'] ? 'v' . (int) $protocol['latest_version'] : 'v1';
+    $roundNo = max(1, (int) ($protocol['latest_version'] ?? 1));
+    $protocol['version_display'] = $roundNo <= 1 ? 'Original submission' : 'Revision ' . ($roundNo - 1);
 }
 unset($protocol);
 
@@ -422,6 +423,7 @@ foreach ($protocols as $p) {
                         'back'     => '#back-icon',
                         'reject'   => '#close-icon',
                         'undo'     => '#back-icon',
+                        'edit'     => '#edit-icon',
                     ];
                     ?>
 
@@ -434,6 +436,7 @@ foreach ($protocols as $p) {
                         $protocolId     = (int) $protocol['protocol_id'];
                         $paymentStatus  = $protocol['payment_status'] ?? 'unpaid';
                         $hasSignedScan  = !empty($protocol['latest_signed_scan_version_id']);
+                        $hasIpn         = !empty($protocol['reference_no']);
                         $researcherName = htmlspecialchars(
                             $protocol['first_name'] . ' ' . $protocol['last_name'],
                             ENT_QUOTES,
@@ -557,6 +560,30 @@ foreach ($protocols as $p) {
                                                 'icon' => 'history'
                                             ]
                                         ];
+                                    } elseif (!$hasIpn) {
+                                        $actions = [
+                                            [
+                                                'label' => 'Assign IPN',
+                                                'action' => 'assign-ipn',
+                                                'icon' => 'edit',
+                                                'primary' => true
+                                            ],
+                                            [
+                                                'label' => 'View',
+                                                'action' => 'view',
+                                                'icon' => 'review'
+                                            ],
+                                            [
+                                                'label' => 'Undo "Mark as Paid"',
+                                                'action' => 'undo-payment',
+                                                'icon' => 'undo'
+                                            ],
+                                            [
+                                                'label' => 'Show History',
+                                                'action' => 'show-history',
+                                                'icon' => 'history'
+                                            ]
+                                        ];
                                     } elseif (!$hasSignedScan) {
                                         $actions = [
                                             [
@@ -569,6 +596,11 @@ foreach ($protocols as $p) {
                                                 'label' => 'View',
                                                 'action' => 'view',
                                                 'icon' => 'review'
+                                            ],
+                                            [
+                                                'label' => 'Edit IPN',
+                                                'action' => 'edit-ipn',
+                                                'icon' => 'edit'
                                             ],
                                             [
                                                 'label' => 'Undo "Mark as Paid"',
@@ -593,6 +625,11 @@ foreach ($protocols as $p) {
                                                 'label' => 'View',
                                                 'action' => 'view',
                                                 'icon' => 'review'
+                                            ],
+                                            [
+                                                'label' => 'Edit IPN',
+                                                'action' => 'edit-ipn',
+                                                'icon' => 'edit'
                                             ],
                                             [
                                                 'label' => 'Undo "Mark as Paid"',
@@ -706,14 +743,14 @@ foreach ($protocols as $p) {
                                 <div class="protocol-meta">
                                     <p class="research-title">
                                         <?= $title ?>
-                                        <?php if (in_array($statusLower, ['reviewed', 'endorsed', 'approved'], true)): ?>
+                                        <?php if ($statusLower === 'reviewed'): ?>
                                             <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
                                                 <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php endif; ?>
                                     </p>
                                     <p class="protocol-meta-line">
-                                        <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?>
+                                        <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
                                     </p>
                                     <?php if ($userRole === 'staff' && $statusLower === 'endorsed' && empty($protocol['latest_clearance_version_id'])): ?>
                                         <!-- Filled by the clearance board script: drop target for an unsorted screenshot -->
@@ -819,22 +856,22 @@ foreach ($protocols as $p) {
         </div>
     </div>
 
-    <!-- Add/Edit IPN modal -->
-    <div class="modal-backdrop" id="ipnModalBackdrop">
+    <!-- Add/Edit IPN and AR number modal -->
+    <div class="modal-backdrop" id="numberModalBackdrop">
         <div class="modal-card">
-            <h2 id="ipnModalTitle">Add IPN</h2>
-            <p class="helper">This is the IPN used to identify this protocol, and will be kept in sync with its entry on the Records page.</p>
+            <h2 id="numberModalTitle"></h2>
+            <p class="helper" id="numberModalHelper"></p>
 
-            <div id="ipnModalError" class="alert error-messages" hidden></div>
+            <div id="numberModalError" class="alert error-messages" hidden></div>
 
-            <div class="clearance-ipn-field">
-                <label for="ipnModalInput">IPN</label>
-                <input type="text" id="ipnModalInput" placeholder="e.g. BSU-IACUC-2025-001">
+            <div class="clearance-number-field">
+                <label for="numberModalInput" id="numberModalLabel"></label>
+                <input type="text" id="numberModalInput">
             </div>
 
             <div class="modal-actions">
-                <button class="button" type="button" onclick="closeIpnModal()">Cancel</button>
-                <button class="button btn-apply" type="button" id="ipnModalSaveBtn" onclick="saveIpn()">Save</button>
+                <button class="button" type="button" onclick="closeNumberModal()">Cancel</button>
+                <button class="button btn-apply" type="button" id="numberModalSaveBtn" onclick="saveNumber()">Save</button>
             </div>
         </div>
     </div>
@@ -1400,6 +1437,22 @@ foreach ($protocols as $p) {
                 openSignedScanModal(protocolId, protocol?.research_title ?? '');
                 break;
 
+            case 'assign-ipn':
+                openNumberModal('ipn', protocolId, '');
+                break;
+
+            case 'edit-ipn':
+                if (!protocol?.latest_signed_scan_version_id) {
+                    openNumberModal('ipn', protocolId, protocol?.reference_no ?? '');
+                    break;
+                }
+                confirmAction('This protocol already has a signed scan. Changing the IPN will make the signed scan not match the record.', {
+                    okText: 'Edit IPN',
+                    cancelText: 'Cancel',
+                    danger: true
+                }).then(ok => ok && openNumberModal('ipn', protocolId, protocol.reference_no ?? ''));
+                break;
+
             case 'undo-payment':
                 confirmAction('Undo this "Mark as Paid"? The protocol will go back to "Proof Submitted".', {
                     okText: 'Undo',
@@ -1676,27 +1729,78 @@ foreach ($protocols as $p) {
         }
     });
 
-    function buildHistorySection(versions, protocolId) {
-        if (!versions || versions.length === 0) return '';
-        const rows = versions.map((v, i) => {
-            const date = new Date(v.uploaded_at).toLocaleString('en-PH', {
-                year: 'numeric',
+    function roundLabel(versionNumber) {
+        const n = Number(versionNumber);
+        return n <= 1 ? 'Original submission' : 'Revision ' + (n - 1);
+    }
+
+    // A round that has a later round was returned (resubmitting is only possible from
+    // Needs Revision); the newest round is returned only while the status says so.
+    // The reviewer's record, when one exists, adds the date and note.
+    function buildReturnLine(reason) {
+        const bits = [];
+        if (reason) {
+            if (reason.wrong_cert) bits.push('Wrong / invalid training certificate');
+            if (reason.other_reason && !reason.comment) bits.push('Other');
+            if (reason.comment) bits.push(reason.comment);
+        }
+        const when = reason && reason.created_at ?
+            new Date(reason.created_at).toLocaleDateString('en-PH', {
                 month: 'short',
                 day: 'numeric',
+                year: 'numeric'
+            }) :
+            '';
+        const note = bits.join(' \u00b7 ');
+        return `<div class="history-return-line">
+                    <span class="history-tag history-tag--returned">Returned for revision${when ? ' &middot; ' + when : ''}</span>
+                    ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ''}
+                </div>`;
+    }
+
+    function signedScanLabel(referenceNo) {
+        return referenceNo ?
+            'Protocol Signed by IACUC Chair \u00b7 IPN ' + referenceNo :
+            'Protocol Signed by IACUC Chair';
+    }
+
+    function buildHistorySection(versions, protocolId, currentStatus) {
+        if (!versions || versions.length === 0) return '';
+
+        // versions arrive newest first; titles are compared with the round before each one
+        const titles = versions.map(v => v.title_at_version || v.original_name || '');
+
+        const rows = versions.map((v, i) => {
+            const isLatest = i === 0;
+            const isOldest = i === versions.length - 1;
+            const when = new Date(v.uploaded_at);
+            const day = when.toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const time = when.toLocaleTimeString('en-PH', {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            const isLatest = i === 0;
+
+            let titleNote = '';
+            if (isOldest) {
+                if (versions.length > 1 && titles[i] !== titles[i - 1]) titleNote = 'Titled: ' + titles[i];
+            } else if (titles[i] !== titles[i + 1]) {
+                titleNote = 'Renamed to: ' + titles[i];
+            }
+
+            const wasReturned = !isLatest || String(currentStatus || '').toLowerCase() === 'needs revision';
 
             return `
-                <div class="history-row${isLatest ? ' history-row--latest' : ''}">
-                    <div class="history-row-meta">
-                        <span class="history-ver">v${v.version_number}</span>
-                        ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
-                    </div>
+                <div class="history-row history-row--round${isLatest ? ' history-row--latest' : ''}">
                     <div class="history-row-detail">
-                        <span class="history-filename">${v.title_at_version || v.original_name}</span>
-                        <span class="helper">${date}</span>
+                        <span class="history-filename">${day}</span>
+                        <span class="helper">${roundLabel(v.version_number)} &middot; ${time}</span>
+                        ${titleNote ? `<span class="helper history-title-note" title="${escapeHtml(titleNote)}">${escapeHtml(titleNote)}</span>` : ''}
+                        ${isLatest ? '<div class="history-tags"><span class="history-latest-badge">Current</span></div>' : ''}
+                        ${wasReturned ? buildReturnLine(v.return_reason) : ''}
                     </div>
                     <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
                         <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1709,7 +1813,7 @@ foreach ($protocols as $p) {
         return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
     }
 
-    function buildSimpleFileSection(files, label) {
+    function buildSimpleFileSection(files, label, heading) {
         if (!files || files.length === 0) return '';
         const rows = files.map((v, i) => {
             const date = new Date(v.uploaded_at).toLocaleString('en-PH', {
@@ -1741,17 +1845,16 @@ foreach ($protocols as $p) {
                     </button>
                 </div>`;
         }).join('');
-        return `<div class="history-section-label">${escapeHtml(label)}</div>${rows}`;
+        return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
     }
 
     function renderHistory(data) {
         const body = document.getElementById('historyModalBody');
 
         const sections = [
-            buildHistorySection(data.protocol_files, data.protocol_id),
-            buildSimpleFileSection(data.payment_proof_files, 'Proof of Payment'),
-            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan'),
-            buildSimpleFileSection(data.clearance_files, 'Clearance'),
+            buildHistorySection(data.protocol_files, data.protocol_id, data.status),
+            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan', signedScanLabel(data.reference_no)),
+            buildSimpleFileSection(data.clearance_files, 'Animal Research Clearance'),
         ].filter(Boolean);
 
         body.innerHTML = sections.length ?
@@ -2043,7 +2146,7 @@ foreach ($protocols as $p) {
 <div class="modal-backdrop" id="reviewPaymentModalBackdrop">
     <div class="modal-card file-popup-card review-payment-card">
         <div class="file-popup-header">
-            <span class="file-popup-title" id="reviewPaymentTitle"></span>
+            <span class="file-popup-title">Payment Proof for Validation</span>
             <button class="modal-close" type="button" onclick="closeReviewPaymentModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -2052,8 +2155,8 @@ foreach ($protocols as $p) {
         </div>
 
         <div class="review-payment-summary" id="reviewPaymentSummary">
-            <p class="review-payment-summary-title" id="reviewPaymentSummaryTitle"></p>
             <p class="review-payment-summary-meta" id="reviewPaymentSummaryMeta"></p>
+            <p class="review-payment-summary-title">For the research: "<span id="reviewPaymentSummaryTitle"></span>"</p>
         </div>
 
         <div class="review-payment-image-frame" id="reviewPaymentImageFrame">
@@ -2095,7 +2198,6 @@ foreach ($protocols as $p) {
 
     function openReviewPaymentModal(protocolId, title, paymentMethod, researcherName, school) {
         currentReviewPaymentProtocolId = protocolId;
-        document.getElementById('reviewPaymentTitle').textContent = title;
         document.getElementById('reviewPaymentSummaryTitle').textContent = title;
         document.getElementById('reviewPaymentSummaryMeta').textContent = [researcherName, school].filter(Boolean).join(' \u00b7 ');
         resetReviewPaymentModal();
@@ -2129,7 +2231,7 @@ foreach ($protocols as $p) {
     });
 
     // ===== Auto-open from notification/email links =====
-    (function autoOpenPaymentReview() {
+    document.addEventListener('DOMContentLoaded', () => {
         const openPaymentId = parseInt(new URLSearchParams(window.location.search).get('open_payment'), 10);
         if (!openPaymentId) return;
         const protocol = protocolsData.find(p => p.protocol_id == openPaymentId);
@@ -2141,7 +2243,7 @@ foreach ($protocols as $p) {
             `${protocol.first_name ?? ''} ${protocol.last_name ?? ''}`.trim(),
             protocol.school ?? ''
         );
-    })();
+    });
 
     async function loadPaymentProofImage(protocolId) {
         const frame = document.getElementById('reviewPaymentImageFrame');
@@ -2252,7 +2354,8 @@ foreach ($protocols as $p) {
         const CLEARANCE_UNSTAGE_API = ROOT_URL + '/apply/clearance_unstage';
         const CLEARANCE_CONFIRM_API = ROOT_URL + '/apply/clearance_confirm';
         const CLEARANCE_DELETE_API = ROOT_URL + '/apply/clearance_delete';
-        const CLEARANCE_ASSIGN_IPN_API = ROOT_URL + '/apply/clearance_assign_ipn';
+        const ASSIGN_IPN_API = ROOT_URL + '/apply/assign_ipn';
+        const ASSIGN_AR_NUMBER_API = ROOT_URL + '/apply/assign_ar_number';
 
         let boardData = {
             unassigned: [],
@@ -2428,8 +2531,8 @@ foreach ($protocols as $p) {
                 const protocolId = Number(slot.dataset.protocolId);
                 const p = endorsedById.get(protocolId);
                 const staged = stagedFor(protocolId);
-                const hasIpn = !!(p && p.reference_no);
-                const ipn = p ? (p.reference_no || '') : '';
+                const hasArNumber = !!(p && p.ar_number);
+                const arNumber = p ? (p.ar_number || '') : '';
 
                 let html = '';
                 if (p && staged) {
@@ -2442,17 +2545,17 @@ foreach ($protocols as $p) {
                         </div>
                         <span class="helper clearance-slot-hint">Ready to confirm.</span>`;
                 } else if (p && !p.latest_clearance_version_id) {
-                    html = hasIpn ?
+                    html = hasArNumber ?
                         `<span class="helper clearance-slot-hint">Drop a screenshot here, or tap it after selecting one.
-                            IPN: ${escapeHtml(ipn)}
-                            <a href="#" class="clearance-ipn-link" data-protocol-id="${protocolId}" data-ipn="${escapeHtml(ipn)}">Edit IPN</a></span>` :
-                        `<span class="helper clearance-slot-hint">Assign an IPN before attaching a clearance.
-                            <a href="#" class="clearance-ipn-link" data-protocol-id="${protocolId}" data-ipn="">Add IPN</a></span>`;
+                            AR No.: ${escapeHtml(arNumber)}
+                            <a href="#" class="clearance-ar-link" data-protocol-id="${protocolId}" data-ar-number="${escapeHtml(arNumber)}">Edit AR number</a></span>` :
+                        `<span class="helper clearance-slot-hint">Assign an AR number before attaching a clearance.
+                            <a href="#" class="clearance-ar-link" data-protocol-id="${protocolId}" data-ar-number="">Add AR number</a></span>`;
                 }
 
-                slot.dataset.canReceive = p && hasIpn && !p.latest_clearance_version_id ? '1' : '0';
+                slot.dataset.canReceive = p && hasArNumber && !p.latest_clearance_version_id ? '1' : '0';
                 slot.classList.toggle('has-staged', !!staged);
-                slot.classList.toggle('no-ipn', !!p && !hasIpn);
+                slot.classList.toggle('no-ar', !!p && !hasArNumber);
 
                 if (slot.dataset.render !== html) {
                     slot.innerHTML = html;
@@ -2544,10 +2647,10 @@ foreach ($protocols as $p) {
         });
 
         protocolsList.addEventListener('click', e => {
-            const ipnLink = e.target.closest('.clearance-ipn-link');
-            if (ipnLink) {
+            const arLink = e.target.closest('.clearance-ar-link');
+            if (arLink) {
                 e.preventDefault();
-                openIpnModal(Number(ipnLink.dataset.protocolId), ipnLink.dataset.ipn || '');
+                openNumberModal('ar', Number(arLink.dataset.protocolId), arLink.dataset.arNumber || '');
                 return;
             }
 
@@ -2634,64 +2737,95 @@ foreach ($protocols as $p) {
             loadBoard();
         }
 
-        const ipnModalBackdrop = document.getElementById('ipnModalBackdrop');
-        let ipnModalProtocolId = null;
+        const numberModalBackdrop = document.getElementById('numberModalBackdrop');
+        let numberModalKind = null;
+        let numberModalProtocolId = null;
 
-        function openIpnModal(protocolId, currentValue) {
-            ipnModalProtocolId = protocolId;
-            document.getElementById('ipnModalTitle').textContent = currentValue ? 'Edit IPN' : 'Add IPN';
-            document.getElementById('ipnModalInput').value = currentValue || '';
-            document.getElementById('ipnModalError').hidden = true;
-            ipnModalBackdrop.classList.add('open');
-            document.getElementById('ipnModalInput').focus();
+        const NUMBER_FIELDS = {
+            ipn: {
+                label: 'IPN',
+                api: ASSIGN_IPN_API,
+                key: 'reference_no',
+                placeholder: 'e.g. BSU-IACUC-2025-001',
+                helper: 'Write this IPN on the printed protocol before the IACUC Chair signs it. It is kept in sync with the Records page.',
+                saved: () => window.location.reload()
+            },
+            ar: {
+                label: 'AR Number',
+                api: ASSIGN_AR_NUMBER_API,
+                key: 'ar_number',
+                placeholder: 'AR number from the BAI clearance',
+                helper: 'This is the Animal Research Clearance ID printed on the clearance issued by BAI.',
+                saved: () => {
+                    showFlash('AR number saved.');
+                    loadBoard();
+                }
+            }
+        };
+
+        function openNumberModal(kind, protocolId, currentValue) {
+            const field = NUMBER_FIELDS[kind];
+            numberModalKind = kind;
+            numberModalProtocolId = protocolId;
+            document.getElementById('numberModalTitle').textContent = (currentValue ? 'Edit ' : 'Add ') + field.label;
+            document.getElementById('numberModalHelper').textContent = field.helper;
+            document.getElementById('numberModalLabel').textContent = field.label;
+            document.getElementById('numberModalInput').placeholder = field.placeholder;
+            document.getElementById('numberModalInput').value = currentValue || '';
+            document.getElementById('numberModalError').hidden = true;
+            numberModalBackdrop.classList.add('open');
+            document.getElementById('numberModalInput').focus();
         }
 
-        function closeIpnModal() {
-            ipnModalBackdrop.classList.remove('open');
-            ipnModalProtocolId = null;
+        function closeNumberModal() {
+            numberModalBackdrop.classList.remove('open');
+            numberModalKind = null;
+            numberModalProtocolId = null;
         }
 
-        ipnModalBackdrop.addEventListener('click', e => {
-            if (e.target === ipnModalBackdrop) closeIpnModal();
+        numberModalBackdrop.addEventListener('click', e => {
+            if (e.target === numberModalBackdrop) closeNumberModal();
         });
 
-        async function saveIpn() {
-            const input = document.getElementById('ipnModalInput');
-            const errBox = document.getElementById('ipnModalError');
+        async function saveNumber() {
+            const field = NUMBER_FIELDS[numberModalKind];
+            const input = document.getElementById('numberModalInput');
+            const errBox = document.getElementById('numberModalError');
             const value = input.value.trim();
 
             if (!value) {
-                errBox.textContent = 'Please enter an IPN.';
+                errBox.textContent = `Please enter an ${field.label}.`;
                 errBox.hidden = false;
                 return;
             }
 
-            const btn = document.getElementById('ipnModalSaveBtn');
+            const btn = document.getElementById('numberModalSaveBtn');
             setButtonBusy(btn, true, 'Saving...');
 
             try {
-                const res = await fetch(CLEARANCE_ASSIGN_IPN_API, {
+                const res = await fetch(field.api, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': CSRF_TOKEN
                     },
                     body: JSON.stringify({
-                        protocol_id: ipnModalProtocolId,
-                        reference_no: value
+                        protocol_id: numberModalProtocolId,
+                        [field.key]: value
                     }),
                 });
                 const data = await res.json();
 
                 if (!data.success) {
-                    errBox.textContent = data.error || 'Could not save this IPN.';
+                    errBox.textContent = data.error || `Could not save this ${field.label}.`;
                     errBox.hidden = false;
                     setButtonBusy(btn, false);
                     return;
                 }
 
-                closeIpnModal();
-                loadBoard();
+                const onSaved = field.saved;
+                closeNumberModal();
+                onSaved();
             } catch (err) {
                 errBox.textContent = 'Network error. Please try again.';
                 errBox.hidden = false;

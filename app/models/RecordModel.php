@@ -18,12 +18,12 @@ class RecordModel extends Model
 
     if ($search !== '') {
       $like = '%' . $search . '%';
-      $conditions[] = "(reference_no LIKE ? OR title_of_research LIKE ? OR school LIKE ?
+      $conditions[] = "(reference_no LIKE ? OR ar_number LIKE ? OR title_of_research LIKE ? OR school LIKE ?
                               OR animal_type LIKE ? OR principal_investigator LIKE ?
                               OR sex LIKE ? OR researcher_type LIKE ?
                               OR research_adviser LIKE ? OR veterinarian LIKE ?
                               OR received_by LIKE ?)";
-      for ($i = 0; $i < 10; $i++) {
+      for ($i = 0; $i < 11; $i++) {
         $params[] = &$like;
         $types   .= 's';
       }
@@ -169,6 +169,8 @@ class RecordModel extends Model
     'oldest'             => ['sql' => 'id ASC',                 'label' => 'Oldest Added'],
     'ipn_asc'            => ['sql' => 'reference_no ASC',       'label' => 'IPN (A–Z)'],
     'ipn_desc'           => ['sql' => 'reference_no DESC',      'label' => 'IPN (Z–A)'],
+    'ar_asc'             => ['sql' => 'ar_number ASC',          'label' => 'AR No. (A–Z)'],
+    'ar_desc'            => ['sql' => 'ar_number DESC',         'label' => 'AR No. (Z–A)'],
     'title_asc'          => ['sql' => 'title_of_research ASC',  'label' => 'Title (A–Z)'],
     'title_desc'         => ['sql' => 'title_of_research DESC', 'label' => 'Title (Z–A)'],
     'date_released_desc' => ['sql' => 'date_released DESC',     'label' => 'Date Released (Newest)'],
@@ -327,12 +329,6 @@ class RecordModel extends Model
       $types
     ) ?? 0);
 
-    $distinctAdvisers = (int) ($this->scalarQuery(
-      "SELECT COUNT(DISTINCT research_adviser) FROM `records` " . $this->andClause($where, "research_adviser IS NOT NULL AND research_adviser != ''"),
-      $params,
-      $types
-    ) ?? 0);
-
     $protocolsWithCount = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count IS NOT NULL"),
       $params,
@@ -403,12 +399,11 @@ class RecordModel extends Model
       ', COUNT(*) AS protocols'
     );
 
-    $adviserBreakdown = $this->groupedQuery(
-      'research_adviser',
-      $this->andClause($where, "research_adviser IS NOT NULL AND research_adviser != ''"),
-      $params,
-      $types
-    );
+    $protocolsReviewed = $this->protocolStatusCount('Reviewed', $period);
+    $protocolsEndorsed = $this->protocolStatusCount('Endorsed', $period);
+    $thisMonth         = $this->resolvePeriod('this_month', 'released');
+    $reviewedThisMonth = $this->protocolStatusCount('Reviewed', $thisMonth);
+    $endorsedThisMonth = $this->protocolStatusCount('Endorsed', $thisMonth);
 
     return [
       'total'                      => $total,
@@ -422,7 +417,6 @@ class RecordModel extends Model
       'incomplete_count'           => $incompleteCount,
       'distinct_schools'           => $distinctSchools,
       'distinct_researchers'       => $distinctResearchers,
-      'distinct_advisers'          => $distinctAdvisers,
       'protocols_with_count'       => $protocolsWithCount,
       'avg_animals_per_protocol'   => $avgAnimalsPerProtocol,
       'ongoing_studies'            => $ongoingStudies,
@@ -434,10 +428,34 @@ class RecordModel extends Model
       'no_duration_count'          => $noDurationCount,
       'released_this_year'         => $releasedThisYear,
       'species_breakdown'          => $speciesBreakdown,
-      'adviser_breakdown'          => $adviserBreakdown,
+      'protocols_reviewed'         => $protocolsReviewed,
+      'protocols_endorsed'         => $protocolsEndorsed,
+      'reviewed_this_month'        => $reviewedThisMonth,
+      'endorsed_this_month'        => $endorsedThisMonth,
       'release_trend'              => $this->releaseTrend($where, $params, $types),
       'excluded_by_period'         => $excludedByPeriod,
     ];
+  }
+
+  private function protocolStatusCount(string $status, ?array $period): int
+  {
+    $sql    = "SELECT COUNT(DISTINCT target_id) FROM `audit_logs` WHERE action = 'status_updated' AND target_type = 'protocol' AND details = ?";
+    $detail = "Status changed to: $status";
+    $params = [$detail];
+    $types  = 's';
+
+    if ($period !== null && $period['from'] !== null) {
+      $sql .= ' AND created_at >= ?';
+      $params[] = $period['from'] . ' 00:00:00';
+      $types   .= 's';
+    }
+    if ($period !== null && $period['to'] !== null) {
+      $sql .= ' AND created_at <= ?';
+      $params[] = $period['to'] . ' 23:59:59';
+      $types   .= 's';
+    }
+
+    return (int) ($this->scalarQuery($sql, $params, $types) ?? 0);
   }
 
   private function quarterMonthlyTrend(string $where, array $params, string $types): array
@@ -590,25 +608,36 @@ class RecordModel extends Model
     return (bool) $stmt->get_result()->fetch_row();
   }
 
+  public function arExists(string $ar, int $exceptId = 0): bool
+  {
+    $stmt = $this->connection->prepare("SELECT 1 FROM `records` WHERE ar_number = ? AND id != ?");
+    if (! $stmt) return false;
+    $stmt->bind_param('si', $ar, $exceptId);
+    $stmt->execute();
+    return (bool) $stmt->get_result()->fetch_row();
+  }
+
   public function insert(array $d): bool
   {
     $stmt = $this->connection->prepare(
       "INSERT INTO `records`
-             (reference_no, title_of_research, school, animal_type, animal_count,
+             (reference_no, ar_number, title_of_research, school, animal_type, animal_count,
               principal_investigator, sex, researcher_type, research_adviser,
               veterinarian, research_duration_start, research_duration_end, date_released, received_by)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (! $stmt) return false;
 
+    $arNumber    = $d['ar_number'] !== '' ? $d['ar_number'] : null;
     $animalCount = isset($d['animal_count']) && $d['animal_count'] !== '' ? (int)$d['animal_count'] : null;
     $durationStart = $d['research_duration_start'] !== '' ? $d['research_duration_start'] : null;
     $durationEnd   = $d['research_duration_end'] !== '' ? $d['research_duration_end'] : null;
     $dateReleased = $d['date_released'] !== '' ? $d['date_released'] : null;
 
     $stmt->bind_param(
-      'ssssisssssssss',
+      'sssssisssssssss',
       $d['reference_no'],
+      $arNumber,
       $d['title_of_research'],
       $d['school'],
       $d['animal_type'],
@@ -660,11 +689,20 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  public function setArNumberByProtocolId(int $protocolId, string $arNumber): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE `records` SET ar_number = ? WHERE protocol_id = ?");
+    if (! $stmt) return false;
+    $stmt->bind_param('si', $arNumber, $protocolId);
+    return $stmt->execute();
+  }
+
   public function update(array $d): bool
   {
     $stmt = $this->connection->prepare(
       "UPDATE `records` SET
                reference_no             = ?,
+               ar_number                = ?,
                title_of_research        = ?,
                school                   = ?,
                animal_type              = ?,
@@ -683,14 +721,16 @@ class RecordModel extends Model
     if (! $stmt) return false;
 
     $ref          = $d['reference_no'] !== '' ? $d['reference_no'] : null;
+    $arNumber     = $d['ar_number'] !== '' ? $d['ar_number'] : null;
     $animalCount  = isset($d['animal_count']) && $d['animal_count'] !== '' ? (int)$d['animal_count'] : null;
     $durationStart = $d['research_duration_start'] !== '' ? $d['research_duration_start'] : null;
     $durationEnd   = $d['research_duration_end'] !== '' ? $d['research_duration_end'] : null;
     $dateReleased = $d['date_released'] !== '' ? $d['date_released'] : null;
 
     $stmt->bind_param(
-      'ssssisssssssssi',
+      'sssssisssssssssi',
       $ref,
+      $arNumber,
       $d['title_of_research'],
       $d['school'],
       $d['animal_type'],

@@ -123,6 +123,31 @@ class Apply extends Controller
         }
     }
 
+    private function notifyPersonnelProtocolAmended(array $protocol, array $actor, string $note): void
+    {
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        foreach (['staff', 'reviewer'] as $personnelRole) {
+            Notifier::sendToRole(
+                $personnelRole,
+                'protocol_amended',
+                'Protocol Amended',
+                "{$actor['name']} submitted an amendment for " . Notifier::boldTitle($title) . '.',
+                'apply/viewer/' . $protocol['protocol_id'],
+                [
+                    'template' => 'protocol_amended_personnel',
+                    'vars'     => [
+                        'title'       => $title,
+                        'actor_name'  => $actor['name'],
+                        'note'        => $note,
+                        'protocol_id' => $protocol['protocol_id'],
+                    ],
+                    'subject' => 'Protocol Amended',
+                ]
+            );
+        }
+    }
+
     private function notifyDeletionRequested(array $protocol, string $reason, array $actor): void
     {
         $roleLabel = $this->roleLabel($actor['role']);
@@ -286,13 +311,13 @@ class Apply extends Controller
         Notifier::sendToRole(
             'staff',
             'protocol_paid',
-            'Protocol Ready for Printing',
-            Notifier::boldTitle($title) . ' has been ' . Notifier::bold('paid') . ' and is ready to print and sign.',
+            'Protocol Ready for IPN',
+            Notifier::boldTitle($title) . ' has been ' . Notifier::bold('paid') . '. Assign its IPN, then print and sign it.',
             'personnel/home?status=reviewed',
             [
                 'template' => 'protocol_paid',
                 'vars'     => ['title' => $title, 'protocol_id' => $protocol['protocol_id']],
-                'subject'  => 'Protocol Ready for Printing',
+                'subject'  => 'Protocol Ready for IPN',
             ]
         );
     }
@@ -446,7 +471,7 @@ class Apply extends Controller
             'png'  => ['image/png', 'image/x-png'],
         ];
 
-        if ($inputName === 'protocol_file' || $inputName === 'clearance_file') {
+        if (in_array($inputName, ['protocol_file', 'clearance_file', 'amendment_file'], true)) {
             if ($ext !== 'pdf' || !in_array($mime, $mimeMap['pdf'], true)) {
                 $reason = 'That file isn\'t actually a PDF (it looks like it\'s ' . $this->describeMime($mime) . '), even though it\'s named .pdf.';
                 return false;
@@ -985,6 +1010,7 @@ class Apply extends Controller
             && (int) ($protocol['title_change_seen_by'] ?? 0) !== $actor['id'];
 
         $titleHistory = $model->getTitleHistory($protocolId);
+        $canAmend     = $isOwner && !$isPersonnel && $statusKeyForAccess === 'approved';
 
         $this->view('protocol', [
             'protocol'          => $protocol,
@@ -1011,6 +1037,8 @@ class Apply extends Controller
             'deletionRequested' => $deletionRequested,
             'showTitleChangeBanner' => $showTitleChangeBanner,
             'titleHistory'      => $titleHistory,
+            'canAmend'          => $canAmend,
+            'amendments'        => $this->addFileUrls($model->getVersions($protocolId, 'amendment')),
             'flashSuccess'      => $_SESSION['flash_success'] ?? '',
             'flashError'        => $_SESSION['flash_error'] ?? '',
         ]);
@@ -1319,8 +1347,19 @@ class Apply extends Controller
             if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
                 $this->jsonError(422, 'This protocol must be marked as paid before it can be endorsed.');
             }
+            if (empty($protocol['reference_no'])) {
+                $this->jsonError(422, 'Assign an IPN to this protocol before it can be endorsed.');
+            }
             if (!$model->getLatestVersion($protocolId, 'signed_scan')) {
                 $this->jsonError(422, 'A signed scan must be uploaded before this protocol can be endorsed.');
+            }
+        }
+
+        $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
+
+        if ($newStatus === 'Reviewed' && !$isRevert) {
+            if ($latestProtocolVersion && $model->getAnnotations((int) $latestProtocolVersion['id'])) {
+                $this->jsonError(422, 'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.');
             }
         }
 
@@ -1343,7 +1382,6 @@ class Apply extends Controller
 
                 $recordFilePath   = null;
                 $recordFileOriginal = null;
-                $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
                 if ($latestProtocolVersion) {
                     $source = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $latestProtocolVersion['file_path'];
                     $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
@@ -1613,6 +1651,9 @@ class Apply extends Controller
         if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
             $this->jsonError(422, 'This protocol must be marked as paid before the signed scan can be uploaded.');
         }
+        if (empty($protocol['reference_no'])) {
+            $this->jsonError(422, 'Assign an IPN to this protocol before uploading the signed scan.');
+        }
 
         $reason = null;
         $upload = $this->saveUpload('signed_scan_file', $this->protocolDir($protocolId), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
@@ -1630,6 +1671,67 @@ class Apply extends Controller
         $this->notifySignedScanUploaded($protocol, $actor);
 
         $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to DA-CARFU.';
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    // ===== AMENDMENT  (POST /apply/amendment_upload) =====
+
+    public function amendment_upload(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Researcher only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
+        $note       = trim($_POST['note'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+        if ($note === '') {
+            $this->jsonError(422, 'Please explain what changed in the protocol.');
+        }
+        if (mb_strlen($note) > 1000) {
+            $this->jsonError(422, 'The explanation must be 1000 characters or fewer.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if ((int) $protocol['user_id'] !== $actor['id']) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (strtolower($protocol['status']) !== 'approved') {
+            $this->jsonError(422, 'Amendments can only be submitted once the clearance has been released.');
+        }
+
+        $reason = null;
+        $upload = $this->saveUpload('amendment_file', $this->protocolDir($protocolId), ['pdf'], required: true, reason: $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the updated protocol (PDF, max 10 MB).');
+        }
+        [$path, $originalName] = $upload;
+
+        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'amendment', $note);
+        if (!$versionId) {
+            $this->jsonError(500, 'Could not record the amendment. Please try again.');
+        }
+
+        $model->logAudit('protocol_amended', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Amendment submitted');
+        $this->notifyPersonnelProtocolAmended($protocol, $actor, $note);
+
+        $_SESSION['flash_success'] = 'Amendment submitted. CCARD has been notified.';
         echo json_encode(['success' => true]);
         exit;
     }
@@ -2138,8 +2240,8 @@ class Apply extends Controller
         if (strtolower($protocol['status']) !== 'endorsed') {
             $this->jsonError(422, 'Only endorsed protocols can receive a clearance.');
         }
-        if (empty($protocol['reference_no'])) {
-            $this->jsonError(422, 'Assign an IPN to this protocol before attaching a clearance.');
+        if (empty($protocol['ar_number'])) {
+            $this->jsonError(422, 'Assign an AR number to this protocol before attaching a clearance.');
         }
 
         $ok = $model->stageClearancePoolItem($poolId, $protocolId, $actor['id']);
@@ -2223,9 +2325,9 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== CLEARANCE ASSIGN IPN  (POST /apply/clearance_assign_ipn) =====
+    // ===== ASSIGN IPN  (POST /apply/assign_ipn) =====
 
-    public function clearance_assign_ipn(): void
+    public function assign_ipn(): void
     {
         $this->requireLogin();
         header('Content-Type: application/json');
@@ -2254,6 +2356,12 @@ class Apply extends Controller
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
+        if (strtolower($protocol['status']) !== 'reviewed') {
+            $this->jsonError(422, 'An IPN can only be assigned while the protocol is Reviewed.');
+        }
+        if (($protocol['payment_status'] ?? 'unpaid') !== 'paid') {
+            $this->jsonError(422, 'Verify the payment before assigning an IPN.');
+        }
 
         require_once dirname(__DIR__) . '/models/RecordModel.php';
         $recordModel    = new RecordModel();
@@ -2272,9 +2380,75 @@ class Apply extends Controller
             $recordModel->setReferenceNoByProtocolId($protocolId, $refNo);
         }
 
-        $model->logAudit('protocol_ipn_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "IPN assigned: $refNo");
+        $previousIpn = $protocol['reference_no'] ?? '';
+        $model->logAudit('protocol_ipn_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $previousIpn !== '' ? "IPN changed from $previousIpn to $refNo" : "IPN assigned: $refNo");
+
+        $_SESSION['flash_success'] = $previousIpn !== ''
+            ? "IPN updated to $refNo."
+            : "IPN $refNo assigned.";
 
         echo json_encode(['success' => true, 'reference_no' => $refNo]);
+        exit;
+    }
+
+    // ===== ASSIGN AR NUMBER  (POST /apply/assign_ar_number) =====
+
+    public function assign_ar_number(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $arNumber   = trim($body['ar_number'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Invalid protocol.');
+        }
+        if ($arNumber === '') {
+            $this->jsonError(422, 'AR number is required.');
+        }
+        if (mb_strlen($arNumber) > 50) {
+            $this->jsonError(422, 'AR number is too long.');
+        }
+
+        $model    = new ProtocolModel();
+        $protocol = $model->getById($protocolId);
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (strtolower($protocol['status']) !== 'endorsed') {
+            $this->jsonError(422, 'An AR number can only be assigned to an endorsed protocol.');
+        }
+
+        require_once dirname(__DIR__) . '/models/RecordModel.php';
+        $recordModel    = new RecordModel();
+        $existingRecord = $recordModel->getByProtocolId($protocolId);
+
+        $arTakenOnProtocols = ($protocol['ar_number'] ?? '') !== $arNumber && $model->arNumberExists($arNumber);
+        $arTakenOnRecords   = (!$existingRecord || ($existingRecord['ar_number'] ?? '') !== $arNumber) && $recordModel->arExists($arNumber);
+        if ($arTakenOnProtocols || $arTakenOnRecords) {
+            $this->jsonError(422, 'That AR number already exists.');
+        }
+
+        if (!$model->setArNumber($protocolId, $arNumber)) {
+            $this->jsonError(500, 'Could not save the AR number. Please try again.');
+        }
+        if ($existingRecord) {
+            $recordModel->setArNumberByProtocolId($protocolId, $arNumber);
+        }
+
+        $model->logAudit('protocol_ar_number_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "AR number assigned: $arNumber");
+
+        echo json_encode(['success' => true, 'ar_number' => $arNumber]);
         exit;
     }
 
@@ -2578,6 +2752,7 @@ class Apply extends Controller
         $files = $this->addFileUrls($model->getVersions($protocolId, 'protocol'));
         $files = array_map(function ($v) use ($model, $protocolId, $protocol) {
             $v['title_at_version'] = $model->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
+            $v['return_reason']    = $model->getReturnReasonForVersion((int) $v['id']);
             return $v;
         }, $files);
 
@@ -2587,6 +2762,7 @@ class Apply extends Controller
             'protocol_id'    => $protocolId,
             'title'          => $protocol['research_title'],
             'status'         => $protocol['status'],
+            'reference_no'   => $protocol['reference_no'] ?? '',
             'protocol_files' => $files,
             'payment_proof_files' => $this->addFileUrls($model->getVersions($protocolId, 'payment_proof')),
             'signed_scan_files'   => $this->addFileUrls($model->getVersions($protocolId, 'signed_scan')),

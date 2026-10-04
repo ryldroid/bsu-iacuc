@@ -330,7 +330,7 @@ main a.underlined:hover {
 
 .helper {
     font-size: 0.8em;
-    font-style: italic;
+    /* font-style: italic; */
     color: var(--secondary-text);
 }
 
@@ -583,4 +583,8 @@ main a.underlined:hover {
     color: var(--muted-text);
     margin: 0;
     white-space: nowrap;
+}
+
+.straight-helper {
+    font-style: normal !important;
 }
