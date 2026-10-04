@@ -83,7 +83,7 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <div class="input-group">
                 <select id="sex" name="sex" required>
-                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>— select —</option>
+                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>Select</option>
                     <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
                     <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
                 </select>

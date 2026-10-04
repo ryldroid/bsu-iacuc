@@ -30,7 +30,7 @@ class Personnel extends Controller
                 ? $this->jsonError(401, 'Your session has expired. Please log in again.')
                 : $this->redirect('personnel/login');
         }
-        if (!in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'])) {
+        if (!$this->isPersonnel()) {
             $ajax
                 ? $this->jsonError(401, 'Your session has expired. Please log in again.')
                 : $this->redirect('personnel/login');
@@ -161,7 +161,7 @@ class Personnel extends Controller
         $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset);
         $totalPages = (int) ceil($total / $perPage);
 
-        $this->view('personnel/records', [
+        $this->view('personnel/personnel-records', [
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'records'         => $records,
@@ -412,7 +412,7 @@ class Personnel extends Controller
                 $r['research_adviser'] ?? '',
                 $r['veterinarian'] ?? '',
                 $this->formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
-                $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '',
+                $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '',
                 $r['received_by'] ?? '',
             ], null, "A$row");
             $row++;
@@ -446,7 +446,7 @@ class Personnel extends Controller
         $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
         $row++;
 
-        $sheet->setCellValue("A$row", 'Generated: ' . date('F j, Y g:i A'));
+        $sheet->setCellValue("A$row", 'Generated: ' . date(DATETIME_FORMAT));
         $row++;
 
         $activeFilters = array_filter($filters, fn($v) => $v !== '');
@@ -534,13 +534,13 @@ class Personnel extends Controller
     private function formatDurationRange(?string $start, ?string $end): string
     {
         if ($start && $end) {
-            return date('M j, Y', strtotime($start)) . ' – ' . date('M j, Y', strtotime($end));
+            return date(DATE_FORMAT, strtotime($start)) . ' – ' . date(DATE_FORMAT, strtotime($end));
         }
         if ($start) {
-            return 'From ' . date('M j, Y', strtotime($start));
+            return 'From ' . date(DATE_FORMAT, strtotime($start));
         }
         if ($end) {
-            return 'Until ' . date('M j, Y', strtotime($end));
+            return 'Until ' . date(DATE_FORMAT, strtotime($end));
         }
         return '';
     }
@@ -1448,7 +1448,7 @@ class Personnel extends Controller
         $password = $_POST['password'] ?? '';
         $actor    = $this->actor();
 
-        if ($id === $actor['id']) {
+        if ($this->isActor($id)) {
             $_SESSION['flash_error'] = 'You cannot change your own role.';
             $this->redirect('personnel/accounts?tab=accounts');
         }

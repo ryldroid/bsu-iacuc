@@ -39,6 +39,7 @@ $hideHeader     = $hideHeader     ?? false;
 
   <link rel="icon" href="<?= IMGPATH ?>/favicon.ico" type="image/x-icon">
 
+  <script src="<?= asset_js('utils.js') ?>"></script>
   <script src="<?= asset_js('header.js') ?>" defer></script>
   <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
   <script src="<?= asset_js('modals.js') ?>" defer></script>

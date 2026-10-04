@@ -19,6 +19,8 @@ if ($isLocal) {
   define('DBPASS', EnvLoader::get('PROD_DBPASS'));
 }
 
+define('DATE_FORMAT', 'M j, Y');
+define('DATETIME_FORMAT', "M j, Y \xC2\xB7 g:i A");
 define('VIEWSPATH', dirname(__DIR__) . '/views/');
 define('CSSPATH', ROOT . '/assets/css');
 define('JSPATH', ROOT . '/assets/js');
@@ -61,6 +63,11 @@ function asset_js(string $file): string
   clearstatcache(true, $path);
   $v = @filemtime($path);
   return JSPATH . '/' . $file . ($v ? '?v=' . $v : '');
+}
+
+function submission_round_label(int $versionNumber): string
+{
+  return $versionNumber <= 1 ? 'Original submission' : 'Revision ' . ($versionNumber - 1);
 }
 
 define('MAIL_HOST', EnvLoader::get('MAIL_HOST'));

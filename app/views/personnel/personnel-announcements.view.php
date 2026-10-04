@@ -74,7 +74,7 @@ $first_name    = $user['first_name'] ?? '';
                                 <?php endif; ?>
 
                                 <?php $annRowTs = strtotime($a['created_at']); ?>
-                                <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('m/j/Y, h:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
+                                <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date(DATETIME_FORMAT, $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                             </div>
                             <?php if ($role === 'staff'): ?>
                                 <div class="ann-row-actions">
@@ -197,7 +197,7 @@ $first_name    = $user['first_name'] ?? '';
         const ROOT = '<?= ROOT ?>';
         const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
 
-        // ===== Modal helpers (same pattern as personnel/records.view.php) =====
+        // ===== Modal helpers (same pattern as personnel/personnel-records.view.php) =====
         function openModal(id) {
             const modal = document.getElementById(id);
             modal.classList.add('open');

@@ -4,8 +4,7 @@ class Home extends Controller
 {
   public function index()
   {
-    $role = $_SESSION['user']['role'] ?? null;
-    if (in_array($role, ['staff', 'reviewer'])) {
+    if ($this->isPersonnel()) {
       $this->redirect('personnel/home');
     }
 

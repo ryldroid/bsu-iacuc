@@ -41,6 +41,17 @@ class Controller
     ];
   }
 
+  protected function isActor(mixed $id): bool
+  {
+    $id = (int) $id;
+    return $id > 0 && $id === $this->actor()['id'];
+  }
+
+  protected function isPersonnel(): bool
+  {
+    return in_array($this->actor()['role'], ['staff', 'reviewer'], true);
+  }
+
   protected function streamFile(string $filePath, string $displayName, bool $forceDownload = false): void
   {
     $finfo    = new finfo(FILEINFO_MIME_TYPE);

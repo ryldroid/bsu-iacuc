@@ -2,6 +2,15 @@
 
 class Notifications extends Controller
 {
+  private const HIGHLIGHT_TYPES = [
+    'protocol_renamed',
+    'signed_scan_uploaded',
+    'protocol_status_under_review',
+    'protocol_status_reviewed',
+    'protocol_status_endorsed',
+    'protocol_status_approved',
+  ];
+
   public NotificationModel $model;
 
   public function __construct()
@@ -19,7 +28,7 @@ class Notifications extends Controller
 
     echo json_encode([
       'unread_count' => $this->model->getUnreadCount($userId),
-      'items'        => $this->model->getForUser($userId),
+      'items'        => $this->withHighlightLinks($this->model->getForUser($userId)),
     ]);
     exit;
   }
@@ -34,7 +43,7 @@ class Notifications extends Controller
     $offset  = ($page - 1) * $perPage;
 
     $total      = $this->model->countForUser($userId);
-    $items      = $this->model->getForUserPaginated($userId, $perPage, $offset);
+    $items      = $this->withHighlightLinks($this->model->getForUserPaginated($userId, $perPage, $offset));
     $totalPages = max(1, (int) ceil($total / $perPage));
 
     $this->view('notifications', [
@@ -46,6 +55,20 @@ class Notifications extends Controller
       'totalPages' => $totalPages,
       'perPage'    => $perPage,
     ]);
+  }
+
+  private function withHighlightLinks(array $items): array
+  {
+    if ($this->isPersonnel()) {
+      return $items;
+    }
+
+    return array_map(function (array $item): array {
+      if (in_array($item['type'], self::HIGHLIGHT_TYPES, true) && preg_match('#^apply/viewer/(\d+)$#', (string) $item['link'], $match)) {
+        $item['link'] = 'submissions?highlight=' . $match[1];
+      }
+      return $item;
+    }, $items);
   }
 
   public function markread(): void

@@ -99,7 +99,7 @@ class Mailer
             return false;
         }
 
-        // 204 = unblocked, 404 = wasn't blocked to begin with — both are fine outcomes.
+        // 204 = unblocked, 404 = wasn't blocked to begin with, both are fine outcomes.
         if (!in_array($status, [204, 404], true)) {
             error_log('Brevo resubscribe unexpected status ' . $status . ' for ' . $email);
             return false;

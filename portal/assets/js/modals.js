@@ -1,3 +1,21 @@
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatTime(value) {
+  return new Date(value)
+    .toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })
+    .toUpperCase();
+}
+
+function formatDateTime(value) {
+  return formatDate(value) + " \u00b7 " + formatTime(value);
+}
+
 (function () {
   let modalEl = null;
   let messageEl = null;

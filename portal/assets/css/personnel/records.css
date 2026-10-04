@@ -578,8 +578,6 @@
 
 .records-table-wrap .protocol-table-scroll {
   cursor: grab;
-  border: 1px solid var(--divider-color);
-  border-radius: var(--btn-radius);
   overflow: auto;
 }
 
@@ -589,47 +587,9 @@
   scroll-behavior: auto;
 }
 
-.records-table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.records-table thead th {
-  background: var(--divider-color-subtle);
-  color: var(--muted-text);
-  font-size: .76em;
-  font-weight: 700;
-  letter-spacing: .02em;
-  text-align: left;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--divider-color);
-  white-space: nowrap;
-}
-
-.records-table tbody td {
-  padding: 12px 14px;
-  font-size: .9em;
-  color: var(--secondary-text);
-  border-bottom: 1px solid var(--divider-color);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.records-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.records-table tbody tr:nth-child(even) td {
-  background: var(--divider-color-subtle);
-}
-
-.records-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--brand-color) 9%, var(--card-background));
-}
-
 /* Keep the pinned IPN cell's green tint on hover instead of flattening it */
 .records-table tbody tr:hover .records-ref {
-  background-color: color-mix(in srgb, var(--brand-color) 9%, var(--card-background));
+  background-color: var(--table-row-hover);
   background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
 }
 
@@ -710,7 +670,7 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  background: var(--divider-color-subtle);
+  background: var(--card-background);
 }
 
 .records-table .records-ref {
@@ -731,11 +691,6 @@
   background-color: var(--card-background);
   background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
   color: var(--brand-text);
-}
-
-.records-table tbody tr:nth-child(even) .records-ref {
-  background-color: var(--divider-color-subtle);
-  background-image: linear-gradient(var(--brand-surface-tint), var(--brand-surface-tint));
 }
 
 .records-table .protocol-title-cell {
@@ -1055,13 +1010,30 @@
     grid-column: 1 / -1;
   }
 
-  .records-table .records-ref {
+  /* AR No. leads the card, IPN follows (or leads when there is no AR No.) */
+  .records-table tbody tr td.records-ar,
+  .records-table tbody tr td.records-ref {
     grid-column: 1;
-    grid-row: 1;
     position: static;
     justify-self: start;
     align-self: center;
+    padding: 3px 8px;
+    font-family: monospace;
+    color: var(--brand-text);
+    background: var(--brand-surface-tint);
     box-shadow: none;
+  }
+
+  .records-table tbody tr td.records-ar {
+    grid-row: 1;
+  }
+
+  .records-table tbody tr td.records-ref {
+    grid-row: 2;
+  }
+
+  .records-table tbody tr:has(.records-ar:empty) td.records-ref {
+    grid-row: 1;
   }
 
   .records-table .actions-cell {

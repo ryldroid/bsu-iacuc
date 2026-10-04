@@ -128,6 +128,7 @@ class Model
         $this->ensureColumn('records', 'file_original_name', "varchar(255) DEFAULT NULL");
         $this->backfillRecordProtocolLinks();
         $this->backfillRecordUserLinks();
+        $this->moveRecordArReferences();
         $this->migrateAdminRoleToStaff();
 
         $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
@@ -461,6 +462,22 @@ class Model
              JOIN `protocols` p ON p.id = r.protocol_id
              SET r.user_id = p.user_id
              WHERE r.user_id IS NULL"
+        );
+    }
+
+    // One-time: records whose IPN holds an AR number (starts with "AR") move it
+    // to `ar_number` and clear the IPN. Skips rows that already have an AR
+    // number or whose value is already used by another record (unique index).
+    private function moveRecordArReferences(): void
+    {
+        $this->connection->query(
+            "UPDATE `records`
+             SET ar_number = reference_no, reference_no = NULL
+             WHERE reference_no LIKE 'AR%'
+               AND (ar_number IS NULL OR ar_number = '')
+               AND reference_no NOT IN (
+                   SELECT used FROM (SELECT ar_number AS used FROM `records` WHERE ar_number IS NOT NULL) t
+               )"
         );
     }
 

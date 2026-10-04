@@ -11,5 +11,5 @@ ob_start();
 <p><?= htmlspecialchars($role_label) ?> <strong><?= htmlspecialchars($actor_name) ?></strong> has requested the deletion of protocol <strong><?= htmlspecialchars($title) ?></strong>.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>You can review and act on this request at: <a href="<?= ROOT ?>/apply/viewer/<?= $protocol_id ?>?open=deletion_request"><?= ROOT ?>/apply/viewer/<?= $protocol_id ?>?open=deletion_request</a></p>
-<p>— BSU-IACUC Team</p>
+<p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

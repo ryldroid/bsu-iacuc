@@ -225,7 +225,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <?php else: ?>
             <div class="protocols-list">
                 <?php foreach ($protocols as $protocol):
-                    $date          = date('M j, Y', strtotime($protocol['submitted_at']));
+                    $date          = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
                     $statusKey     = strtolower(str_replace(' ', '-', $protocol['status']));
                     $statusLabel   = htmlspecialchars($protocol['status'], ENT_QUOTES, 'UTF-8');
                     $needsRevision  = strtolower($protocol['status']) === 'needs revision';
@@ -244,8 +244,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         'rejected'        => 'Payment Rejected',
                         'paid'            => 'Paid',
                     ];
-                    $roundNo       = max(1, (int) ($protocol['latest_version'] ?? 1));
-                    $versionNum    = $roundNo <= 1 ? 'Original submission' : 'Revision ' . ($roundNo - 1);
+                    $versionNum    = submission_round_label((int) ($protocol['latest_version'] ?? 1));
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
@@ -310,7 +309,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php if ($isApproved):
                                     $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
                                     $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
-                                    $clearanceClaimedOn = !empty($protocol['clearance_claimed_at']) ? date('m/j/Y', strtotime($protocol['clearance_claimed_at'])) : '';
+                                    $clearanceClaimedOn = !empty($protocol['clearance_claimed_at']) ? date(DATE_FORMAT, strtotime($protocol['clearance_claimed_at'])) : '';
                                 ?>
                                     <a class="download-clearance-btn button button--primary<?= $clearanceClaimedOn ? ' is-claimed' : '' ?>"
                                         href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
@@ -362,49 +361,11 @@ function statusIconSvg(string $iconId, int $size = 14): string
     </main>
 </div>
 
-<!-- History modal -->
-<div class="modal-backdrop" id="historyModalBackdrop">
-    <div class="modal-card history-modal-card">
-        <div class="modal-header">
-            <div class="history-modal-title-wrapper">
-                <p class="modal-label">Submission History</p>
-                <div class="history-modal-title-row">
-                    <p class="modal-title" id="historyModalTitle"></p>
-                    <button type="button" class="rename-history-toggle" id="renameHistoryToggle" hidden
-                        aria-expanded="false" aria-controls="renameHistoryPanel" aria-label="Show rename history">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-down-icon" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="rename-history-panel" id="renameHistoryPanel" hidden></div>
-            </div>
-            <button class="modal-close" onclick="closeHistoryModal()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div id="historyModalBody" class="history-modal-body">
-            <p class="helper history-loading">Loading&hellip;</p>
-        </div>
-    </div>
-</div>
+<?php include 'includes/history-modal.php'; ?>
+<script src="<?= asset_js('history-modal.js') ?>"></script>
 
-<!-- File popup modal (cert / auth letter / protocol versions) -->
-<div class="modal-backdrop" id="filePopupBackdrop">
-    <div class="modal-card file-popup-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
-    </div>
-</div>
+<?php include 'includes/file-popup.php'; ?>
+<script src="<?= asset_js('file-popup.js') ?>"></script>
 
 <!-- Verify Payment modal -->
 <div class="modal-backdrop" id="paymentModalBackdrop">
@@ -741,7 +702,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         const id = new URLSearchParams(window.location.search).get('highlight');
         const card = id && document.getElementById('protocol-' + id);
         if (!card) return;
-        if (card.style.display === 'none') applySubmissionsFilter(card.dataset.status);
+        applySubmissionsFilter(card.dataset.status);
         card.scrollIntoView({
             block: 'center'
         });
@@ -804,252 +765,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
             .catch(() => {});
     })();
 
-    // ===== History modal =====
-    const historyBackdrop = document.getElementById('historyModalBackdrop');
-
-    function openHistoryModal(protocolId, title) {
-        const titleEl = document.getElementById('historyModalTitle');
-        titleEl.textContent = title;
-        document.getElementById('historyModalBody').innerHTML = '<p class="helper history-loading">Loading&hellip;</p>';
-
-        const renameToggle = document.getElementById('renameHistoryToggle');
-        const renamePanel = document.getElementById('renameHistoryPanel');
-        renameToggle.hidden = true;
-        renameToggle.setAttribute('aria-expanded', 'false');
-        renamePanel.hidden = true;
-        renamePanel.innerHTML = '';
-
-        historyBackdrop.classList.add('open');
-
-        fetch(ROOT_URL + '/apply/allversions/' + protocolId)
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    document.getElementById('historyModalBody').innerHTML =
-                        '<p class="helper history-error">' + data.error + '</p>';
-                    return;
-                }
-                renderRenameHistory(data.title_history);
-                renderHistory(data);
-            })
-            .catch(() => {
-                document.getElementById('historyModalBody').innerHTML =
-                    '<p class="helper history-error">Network error. Please try again.</p>';
-            });
-    }
-
-    function renderRenameHistory(titleHistory) {
-        const renameToggle = document.getElementById('renameHistoryToggle');
-        const renamePanel = document.getElementById('renameHistoryPanel');
-
-        if (!titleHistory || titleHistory.length === 0) {
-            renameToggle.hidden = true;
-            return;
-        }
-
-        renamePanel.innerHTML = '<div class="rename-history-panel-header">Title Name History</div>' + titleHistory.map(h => {
-            const who = h.changed_by_name ?
-                `${escapeHtml(h.changed_by_role ? h.changed_by_role.charAt(0).toUpperCase() + h.changed_by_role.slice(1) : '')} - ${escapeHtml(h.changed_by_name)}` :
-                'Initial title';
-            return `<div class="rename-history-entry">
-                <div class="rename-history-entry-title">${escapeHtml(h.title)}</div>
-                <div class="rename-history-entry-meta">${who} &middot; ${formatDate(h.changed_at)}</div>
-            </div>`;
-        }).join('');
-
-        renameToggle.hidden = false;
-        renameToggle.onclick = () => {
-            const isOpen = renameToggle.getAttribute('aria-expanded') === 'true';
-            renameToggle.setAttribute('aria-expanded', String(!isOpen));
-            renamePanel.hidden = isOpen;
-        };
-    }
-
-    function closeHistoryModal() {
-        historyBackdrop.classList.remove('open');
-    }
-    historyBackdrop.addEventListener('click', e => {
-        if (e.target === historyBackdrop) closeHistoryModal();
-    });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeHistoryModal();
-            closeFilePopup();
-        }
-    });
-
-    // ===== File popup (cert / auth letter / protocol versions) =====
-    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
-
-    function openFilePopup(fileUrl, title) {
-        document.getElementById('filePopupTitle').textContent = title;
-        document.getElementById('filePopupFrame').src = fileUrl;
-        filePopupBackdrop.classList.add('open');
-    }
-
-    function closeFilePopup() {
-        filePopupBackdrop.classList.remove('open');
-        document.getElementById('filePopupFrame').src = 'about:blank';
-    }
-
-    filePopupBackdrop.addEventListener('click', e => {
-        if (e.target === filePopupBackdrop) closeFilePopup();
-    });
-
-    function escapeHtml(value) {
-        return String(value ?? '').replace(/[&<>"']/g, ch => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        } [ch]));
-    }
-
-    function formatDate(isoString) {
-        return new Date(isoString).toLocaleString('en-PH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    function roundLabel(versionNumber) {
-        const n = Number(versionNumber);
-        return n <= 1 ? 'Original submission' : 'Revision ' + (n - 1);
-    }
-
-    // A round that has a later round was returned (resubmitting is only possible from
-    // Needs Revision); the newest round is returned only while the status says so.
-    // The reviewer's record, when one exists, adds the date and note.
-    function buildReturnLine(reason) {
-        const bits = [];
-        if (reason) {
-            if (reason.wrong_cert) bits.push('Wrong / invalid training certificate');
-            if (reason.other_reason && !reason.comment) bits.push('Other');
-            if (reason.comment) bits.push(reason.comment);
-        }
-        const when = reason && reason.created_at ?
-            new Date(reason.created_at).toLocaleDateString('en-PH', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            }) :
-            '';
-        const note = bits.join(' \u00b7 ');
-        return `<div class="history-return-line">
-                    <span class="history-tag history-tag--returned">Returned for revision${when ? ' &middot; ' + when : ''}</span>
-                    ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ''}
-                </div>`;
-    }
-
-    function signedScanLabel(referenceNo) {
-        return referenceNo ?
-            'Protocol Signed by IACUC Chair \u00b7 IPN ' + referenceNo :
-            'Protocol Signed by IACUC Chair';
-    }
-
-    function buildVersionRows(versions, protocolId, currentStatus) {
-        if (!versions || versions.length === 0) return '';
-
-        // versions arrive newest first; titles are compared with the round before each one
-        const titles = versions.map(v => v.title_at_version || v.original_name || '');
-
-        const rows = versions.map((v, index) => {
-            const isLatest = index === 0;
-            const isOldest = index === versions.length - 1;
-            const when = new Date(v.uploaded_at);
-            const day = when.toLocaleDateString('en-PH', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            const time = when.toLocaleTimeString('en-PH', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            const wasReturned = !isLatest || String(currentStatus || '').toLowerCase() === 'needs revision';
-
-            let titleNote = '';
-            if (isOldest) {
-                if (versions.length > 1 && titles[index] !== titles[index - 1]) titleNote = 'Titled: ' + titles[index];
-            } else if (titles[index] !== titles[index + 1]) {
-                titleNote = 'Renamed to: ' + titles[index];
-            }
-
-            return `
-                <div class="history-entry">
-                    <div class="history-row history-row--round${isLatest ? ' history-row--latest' : ''}">
-                        <div class="history-row-detail">
-                            <span class="history-filename">${day}</span>
-                            <span class="helper">${roundLabel(v.version_number)} &middot; ${time}</span>
-                            ${titleNote ? `<span class="helper history-title-note" title="${escapeHtml(titleNote)}">${escapeHtml(titleNote)}</span>` : ''}
-                            ${isLatest ? '<div class="history-tags"><span class="history-latest-badge">Current</span></div>' : ''}
-                            ${wasReturned ? buildReturnLine(v.return_reason) : ''}
-                        </div>
-                        <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon" />
-                            </svg>
-                            Open
-                        </a>
-                    </div>
-                </div>`;
-        }).join('');
-
-        return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
-    }
-
-    function buildSimpleFileSection(files, label, heading) {
-        if (!files || files.length === 0) return '';
-        const rows = files.map((v, index) => {
-            const isLatest = index === 0;
-            const dateString = formatDate(v.uploaded_at);
-            const who = v.first_name ? `${escapeHtml(v.first_name)} ${escapeHtml(v.last_name || '')}` : '';
-            const fileName = escapeHtml(v.original_name);
-
-            return `
-                <div class="history-entry">
-                    <div class="history-row${isLatest ? ' history-row--latest' : ''}">
-                        <div class="history-row-meta">
-                            <span class="history-ver" title="Version no. (number of times this file was uploaded)">v${v.version_number}</span>
-                            ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
-                        </div>
-                        <div class="history-row-detail">
-                            <span class="history-filename" title="${fileName}">${fileName}</span>
-                            <span class="helper">${who ? who + ' &middot; ' : ''}${dateString}</span>
-                        </div>
-                        <button type="button" class="button history-open-btn"
-                            onclick="openFilePopup('${v.file_url}', '${escapeHtml(label)}')">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon" />
-                            </svg>
-                            Open
-                        </button>
-                    </div>
-                </div>`;
-        }).join('');
-
-        return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
-    }
-
-    function renderHistory(data) {
-        const body = document.getElementById('historyModalBody');
-
-        const sections = [
-            buildVersionRows(data.protocol_files, data.protocol_id, data.status),
-            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan', signedScanLabel(data.reference_no)),
-            buildSimpleFileSection(data.clearance_files, 'Animal Research Clearance'),
-        ].filter(Boolean);
-
-        body.innerHTML = sections.length ?
-            sections.join('') :
-            '<p class="helper" style="padding:1.5rem">No submission history found.</p>';
-    }
-
     // ===== Status legend info panel (single click to open/close) =====
     (function() {
         const wrapper = document.getElementById('legendInfoWrapper');
@@ -1099,11 +814,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
     document.querySelectorAll('.download-clearance-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (!btn.classList.contains('is-claimed')) {
-                btn.querySelector('.claimed-date').textContent = new Date().toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                });
+                btn.querySelector('.claimed-date').textContent = formatDate(new Date());
                 btn.classList.add('is-claimed');
             }
             if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {

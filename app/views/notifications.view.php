@@ -34,7 +34,7 @@ function notifTimeAgo(string $dateStr): string
   if ($hours < 24) return "{$hours}h ago";
   $days = (int) floor($hours / 24);
   if ($days < 7) return "{$days}d ago";
-  return date('M j, Y', strtotime($dateStr));
+  return date(DATE_FORMAT, strtotime($dateStr));
 }
 ?>
 

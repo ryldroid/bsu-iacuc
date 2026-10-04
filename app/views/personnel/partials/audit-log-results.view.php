@@ -18,8 +18,8 @@ $auditFilterDate = $auditFilterDate ?? null;
     <p><?= !empty($auditFilterDate) ? 'Try a different date, or clear the filter to see the full log.' : 'System activity will appear here as it happens.' ?></p>
   </div>
 <?php else: ?>
-  <div class="audit-viewer-table-wrap">
-    <table class="audit-viewer-table">
+  <div class="data-table-wrap">
+    <table class="data-table audit-viewer-table">
       <thead>
         <tr>
           <th>Timestamp</th>
@@ -33,7 +33,11 @@ $auditFilterDate = $auditFilterDate ?? null;
       <tbody>
         <?php foreach ($auditLogs as $log): ?>
           <tr>
-            <td data-label="Timestamp"><?= htmlspecialchars(date('m/j/Y, h:i A', strtotime($log['created_at']))) ?></td>
+            <td data-label="Timestamp">
+              <?php $logTime = strtotime($log['created_at']); ?>
+              <?= date(DATE_FORMAT, $logTime) ?>
+              <span class="audit-viewer-time"><?= date('g:i A', $logTime) ?></span>
+            </td>
             <td data-label="User">
               <?= htmlspecialchars($log['username']) ?>
               <span class="audit-viewer-role"><?= htmlspecialchars(ucfirst($log['role'])) ?></span>
@@ -58,7 +62,7 @@ $auditFilterDate = $auditFilterDate ?? null;
           <a href="?audit_page=<?= $auditPage - 1 ?><?= !empty($auditFilterDate) ? '&audit_date=' . urlencode($auditFilterDate) : '' ?>#audit-log-viewer"
             class="pagination-btn js-audit-page" data-page="<?= $auditPage - 1 ?>" title="Previous">‹</a>
         <?php else: ?>
-          <span class="pagination-btn" style="opacity:.35;cursor:default">‹</span>
+          <span class="pagination-btn disabled">‹</span>
         <?php endif; ?>
 
         <span class="pagination-btn active"><?= $auditPage ?></span>
@@ -67,7 +71,7 @@ $auditFilterDate = $auditFilterDate ?? null;
           <a href="?audit_page=<?= $auditPage + 1 ?><?= !empty($auditFilterDate) ? '&audit_date=' . urlencode($auditFilterDate) : '' ?>#audit-log-viewer"
             class="pagination-btn js-audit-page" data-page="<?= $auditPage + 1 ?>" title="Next">›</a>
         <?php else: ?>
-          <span class="pagination-btn" style="opacity:.35;cursor:default">›</span>
+          <span class="pagination-btn disabled">›</span>
         <?php endif; ?>
       </div>
     </div>

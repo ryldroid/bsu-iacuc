@@ -30,6 +30,11 @@ class Apply extends Controller
         return $full !== '' ? $full : $actor['name'];
     }
 
+    private function protocolHighlightLink(int $protocolId): string
+    {
+        return 'submissions?highlight=' . $protocolId;
+    }
+
     private function roleLabel(string $role): string
     {
         return match ($role) {
@@ -53,7 +58,7 @@ class Apply extends Controller
             'protocol_renamed',
             'Protocol Renamed',
             Notifier::boldTitle($oldTitle) . ' was renamed to ' . Notifier::boldTitle($newTitle) . " by $roleLabel - {$actor['name']}.",
-            'apply/viewer/' . $protocol['protocol_id'],
+            $this->protocolHighlightLink((int) $protocol['protocol_id']),
             [
                 'template' => 'protocol_renamed',
                 'vars'     => [
@@ -250,7 +255,7 @@ class Apply extends Controller
 
         $link = strtolower($newStatus) === 'needs revision'
             ? 'apply/viewer/' . $protocol['protocol_id']
-            : 'submissions?status=' . strtolower(str_replace(' ', '-', $newStatus)) . '&highlight=' . $protocol['protocol_id'];
+            : $this->protocolHighlightLink((int) $protocol['protocol_id']);
 
         Notifier::send(
             (int) $protocol['user_id'],
@@ -297,7 +302,7 @@ class Apply extends Controller
                 'payment_verified',
                 'Payment Verified',
                 'Your payment for ' . Notifier::boldTitle($title) . ' has been ' . Notifier::bold('verified') . '.',
-                'submissions?status=reviewed&highlight=' . $protocol['protocol_id'],
+                $this->protocolHighlightLink((int) $protocol['protocol_id']),
                 [
                     'template' => 'payment_verified',
                     'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
@@ -336,7 +341,7 @@ class Apply extends Controller
             'payment_proof_rejected',
             'Payment Proof Rejected',
             'Your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . ". Reason: $reason. Please resubmit.",
-            'submissions?status=reviewed&highlight=' . $protocol['protocol_id'],
+            $this->protocolHighlightLink((int) $protocol['protocol_id']),
             [
                 'template' => 'payment_proof_rejected',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'reason' => $reason, 'protocol_id' => $protocol['protocol_id']],
@@ -360,8 +365,8 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'signed_scan_uploaded',
             'Signed Protocol Uploaded',
-            'The signed scan of ' . Notifier::boldTitle($title) . ' has been uploaded.',
-            'apply/viewer/' . $protocol['protocol_id'],
+            'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chair.',
+            $this->protocolHighlightLink((int) $protocol['protocol_id']),
             [
                 'template' => 'signed_scan_uploaded',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
@@ -580,7 +585,7 @@ class Apply extends Controller
             'protocol_submitted',
             'Protocol Submitted',
             'Your protocol ' . Notifier::boldTitle($title) . ' has been submitted and is now ' . Notifier::bold('under review') . '.',
-            'submissions?status=under-review&highlight=' . $protocolId,
+            $this->protocolHighlightLink($protocolId),
             [
                 'template' => 'protocol_submitted',
                 'vars'     => ['first_name' => $submitter['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocolId],
@@ -848,10 +853,9 @@ class Apply extends Controller
     {
         $this->requireLogin();
 
-        $actor            = $this->actor();
-        $isOwnCertificate = $userId === $actor['id'];
+        $isOwnCertificate = $this->isActor($userId);
 
-        if (!$isOwnCertificate && !in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$isOwnCertificate && !$this->isPersonnel()) {
             $this->renderError(403, 'Access Denied', [
                 'You do not have permission to view this certificate.',
             ]);
@@ -905,7 +909,7 @@ class Apply extends Controller
 
         $actor = $this->actor();
 
-        if ((int) $protocol['user_id'] !== $actor['id']) {
+        if (!$this->isActor($protocol['user_id'])) {
             $this->jsonError(403, 'Access denied.');
         }
         if (strtolower($protocol['status']) !== 'needs revision') {
@@ -990,7 +994,7 @@ class Apply extends Controller
 
         $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
 
-        $isPersonnel    = in_array($actor['role'], ['staff', 'reviewer']);
+        $isPersonnel    = $this->isPersonnel();
         $backBase   = $isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
@@ -998,16 +1002,17 @@ class Apply extends Controller
         $userModel     = new UserModel();
         $hasCertOnFile = $isPersonnel ? false : $userModel->hasCert($actor['id']);
 
-        $isOwner            = (int) $protocol['user_id'] === $actor['id'];
+        $isOwner            = $this->isActor($protocol['user_id']);
         $statusKeyForAccess = strtolower($protocol['status']);
         $canRename          = ($isOwner || $isPersonnel)
             && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
         $canRequestDeletion = $isOwner && !$isPersonnel;
-        $canDelete          = in_array($actor['role'], ['staff', 'reviewer'], true);
+        $canDelete          = $isPersonnel;
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
+        $deletionRequestedByYou = $this->isActor($protocol['deletion_requested_by'] ?? 0);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
-            && (int) ($protocol['title_changed_by'] ?? 0) !== $actor['id']
-            && (int) ($protocol['title_change_seen_by'] ?? 0) !== $actor['id'];
+            && !$this->isActor($protocol['title_changed_by'] ?? 0)
+            && !$this->isActor($protocol['title_change_seen_by'] ?? 0);
 
         $titleHistory = $model->getTitleHistory($protocolId);
         $canAmend     = $isOwner && !$isPersonnel && $statusKeyForAccess === 'approved';
@@ -1035,6 +1040,7 @@ class Apply extends Controller
             'canRequestDeletion' => $canRequestDeletion,
             'canDelete'         => $canDelete,
             'deletionRequested' => $deletionRequested,
+            'deletionRequestedByYou' => $deletionRequestedByYou,
             'showTitleChangeBanner' => $showTitleChangeBanner,
             'titleHistory'      => $titleHistory,
             'canAmend'          => $canAmend,
@@ -1066,9 +1072,8 @@ class Apply extends Controller
             ]);
         }
 
-        $actor = $this->actor();
 
-        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$this->isActor($version['owner_id']) && !$this->isPersonnel()) {
             $this->renderError(403, 'Access Denied', [
                 'You do not have permission to view this file.',
             ]);
@@ -1178,8 +1183,7 @@ class Apply extends Controller
             return;
         }
 
-        $actor = $this->actor();
-        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$this->isPersonnel()) {
             $this->jsonError(403, 'Administrative staff only.');
         }
 
@@ -1211,13 +1215,12 @@ class Apply extends Controller
             $this->jsonError(404, 'Version not found.');
         }
 
-        $actor = $this->actor();
 
-        if ((int) $version['owner_id'] !== $actor['id'] && !in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$this->isActor($version['owner_id']) && !$this->isPersonnel()) {
             $this->jsonError(403, 'Forbidden.');
         }
 
-        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$this->isPersonnel()) {
             $latestVersion   = $model->getLatestVersion((int) $version['protocol_id'], 'protocol');
             $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
 
@@ -1304,7 +1307,7 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if (!in_array($actor['role'], ['staff', 'reviewer'])) {
+        if (!$this->isPersonnel()) {
             $this->jsonError(403, 'Administrative staff only.');
         }
 
@@ -1447,7 +1450,7 @@ class Apply extends Controller
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
-        if ((int) $protocol['user_id'] !== $actor['id']) {
+        if (!$this->isActor($protocol['user_id'])) {
             $this->jsonError(403, 'Access denied.');
         }
         if (strtolower($protocol['status']) !== 'reviewed') {
@@ -1709,7 +1712,7 @@ class Apply extends Controller
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
-        if ((int) $protocol['user_id'] !== $actor['id']) {
+        if (!$this->isActor($protocol['user_id'])) {
             $this->jsonError(403, 'Access denied.');
         }
         if (strtolower($protocol['status']) !== 'approved') {
@@ -1766,8 +1769,8 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        $isOwner       = (int) $protocol['user_id'] === $actor['id'];
-        $isPersonnel       = in_array($actor['role'], ['staff', 'reviewer']);
+        $isOwner       = $this->isActor($protocol['user_id']);
+        $isPersonnel       = $this->isPersonnel();
 
         if (!$isOwner && !$isPersonnel) {
             $this->jsonError(403, 'Access denied.');
@@ -1830,7 +1833,7 @@ class Apply extends Controller
             $this->jsonError(404, 'Protocol not found.');
         }
 
-        $isOwner = (int) $protocol['user_id'] === $actor['id'];
+        $isOwner = $this->isActor($protocol['user_id']);
         if ($actor['role'] === 'researcher' && !$isOwner) {
             $this->jsonError(403, 'Access denied.');
         }
@@ -1862,7 +1865,7 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        if (!in_array($actor['role'], ['staff', 'reviewer'], true)) {
+        if (!$this->isPersonnel()) {
             $this->jsonError(403, 'Administrative staff or reviewer access only.');
         }
 
@@ -2066,7 +2069,7 @@ class Apply extends Controller
 
         $version = $model->getLatestVersion($protocolId, 'clearance');
         if (!$version) {
-            $dashboard = in_array($actor['role'], ['staff', 'reviewer']) ? 'personnel/home' : 'submissions';
+            $dashboard = $this->isPersonnel() ? 'personnel/home' : 'submissions';
             $this->renderError(404, 'No Clearance File Found', [
                 'No clearance document has been uploaded for this protocol yet.',
             ], [
@@ -2078,7 +2081,7 @@ class Apply extends Controller
         if (isset($_GET['download'])) {
             $target .= '?download=1';
 
-            if ((int) $protocol['user_id'] === (int) $actor['id']) {
+            if ($this->isActor($protocol['user_id'])) {
                 if ($model->markClearanceClaimed($protocolId)) {
                     $model->logAudit('clearance_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance claimed');
                 }
@@ -2671,7 +2674,7 @@ class Apply extends Controller
 
         $actor = $this->actor();
 
-        if ((int) $protocol['user_id'] !== $actor['id']) {
+        if (!$this->isActor($protocol['user_id'])) {
             $this->jsonError(403, 'Access denied.');
         }
         if (strtolower($protocol['status']) !== 'needs revision') {
@@ -2753,6 +2756,7 @@ class Apply extends Controller
         $files = array_map(function ($v) use ($model, $protocolId, $protocol) {
             $v['title_at_version'] = $model->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
             $v['return_reason']    = $model->getReturnReasonForVersion((int) $v['id']);
+            $v['round_label']      = submission_round_label((int) $v['version_number']);
             return $v;
         }, $files);
 

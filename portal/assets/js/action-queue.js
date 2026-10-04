@@ -227,17 +227,12 @@
 
     body.innerHTML = queue
       .map(function (entry) {
-        var when = new Date(entry.queuedAt).toLocaleString("en-PH", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        var when = formatDateTime(entry.queuedAt);
         return [
           '<div class="iq-entry">',
           '  <div class="iq-entry-info">',
           '    <span class="iq-entry-label">' +
-            escHtml(entry.label) +
+            escapeHtml(entry.label) +
             "</span>",
           '    <span class="helper iq-entry-time">' + when + "</span>",
           "  </div>",
@@ -428,17 +423,6 @@
       replayTimer = setTimeout(replayQueue, REPLAY_DELAY);
     }
   });
-
-  // ===== Utility =====
-
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
 
   window._actionQueue = {
     load: loadQueue,

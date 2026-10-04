@@ -17,6 +17,7 @@
 /** @var bool   $canAmend */
 /** @var array  $amendments */
 /** @var bool   $deletionRequested */
+/** @var bool   $deletionRequestedByYou */
 /** @var bool   $showTitleChangeBanner */
 /** @var string $flashSuccess */
 /** @var string $flashError */
@@ -60,11 +61,6 @@ $backUrl = $backUrl ?? ($isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submi
 
 $versions   = $versions ?? [$version];
 $fromFilter = $fromFilter ?? '';
-
-function submissionRoundLabel(int $versionNumber): string
-{
-    return $versionNumber <= 1 ? 'Original submission' : 'Revision ' . ($versionNumber - 1);
-}
 
 function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): string
 {
@@ -156,7 +152,7 @@ include 'includes/header.php';
                                 <div class="title-history-item-title"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></div>
                                 <div class="title-history-item-meta">
                                     <?= htmlspecialchars($h['changed_by_name'] ? ($roleLabels[$h['changed_by_role']] ?? ucfirst((string) $h['changed_by_role'])) . ' - ' . $h['changed_by_name'] : 'Initial title', ENT_QUOTES, 'UTF-8') ?>
-                                    &middot; <?= htmlspecialchars(date('M j, Y g:i A', strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
+                                    &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -175,7 +171,7 @@ include 'includes/header.php';
 
                 <button type="button" class="ver-badge ver-badge--dropdown" id="versionSwitcherTrigger"
                     aria-haspopup="true" aria-expanded="false">
-                    <?= submissionRoundLabel($versionNum) ?>
+                    <?= submission_round_label($versionNum) ?>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="m6 9 6 6 6-6" />
                     </svg>
@@ -195,12 +191,12 @@ include 'includes/header.php';
                         $vNum   = (int) $v['version_number'];
                         $vId    = (int) $v['id'];
                         $vName  = trim(($v['first_name'] ?? '') . ' ' . ($v['last_name'] ?? ''));
-                        $vDate  = !empty($v['uploaded_at']) ? date('M j, Y g:i A', strtotime($v['uploaded_at'])) : '';
+                        $vDate  = !empty($v['uploaded_at']) ? date(DATETIME_FORMAT, strtotime($v['uploaded_at'])) : '';
                         $vIsCur = $vId === $versionId;
                         ?>
                         <a class="version-dropdown-item<?= $vIsCur ? ' is-current' : '' ?>"
                             href="<?= versionViewerUrl($protocolId, $vId, $fromFilter) ?>">
-                            <span class="version-dropdown-item-num"><?= submissionRoundLabel($vNum) ?></span>
+                            <span class="version-dropdown-item-num"><?= submission_round_label($vNum) ?></span>
                             <span class="version-dropdown-item-meta">
                                 <span class="version-dropdown-item-date"><?= htmlspecialchars($vDate, ENT_QUOTES, 'UTF-8') ?></span>
                             </span>
@@ -402,8 +398,9 @@ include 'includes/header.php';
                 <use href="#trash-icon" />
             </svg>
             A deletion request is pending for this protocol (requested by
+            <?php if ($deletionRequestedByYou): ?>you<?php else: ?>
             <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>). The administrative staff has been notified.
+            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?><?php endif; ?>). The administrative staff has been notified.
         </div>
     <?php endif; ?>
 
@@ -605,7 +602,7 @@ include 'includes/header.php';
                             <div class="doc-row-info">
                                 <div class="doc-row-title">
                                     Amendment <?= (int) $amendment['version_number'] ?>
-                                    &middot; <?= htmlspecialchars(date('M j, Y g:i A', strtotime($amendment['uploaded_at'])), ENT_QUOTES, 'UTF-8') ?>
+                                    &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($amendment['uploaded_at'])), ENT_QUOTES, 'UTF-8') ?>
                                 </div>
                                 <span class="doc-row-sub"><?= nl2br(htmlspecialchars($amendment['note'] ?? '', ENT_QUOTES, 'UTF-8')) ?></span>
                             </div>
@@ -1140,7 +1137,7 @@ include 'includes/header.php';
                 '<polyline points="14 2 14 8 20 8"/>' +
                 '</svg>' +
                 '<p>This protocol was submitted as a Word document (.docx) and cannot be previewed here.</p>' +
-                '<a class="button" href="' + escHtml(PDF_URL) + '" download="' + escHtml(name) + '">Download to view</a>' +
+                '<a class="button" href="' + escapeHtml(PDF_URL) + '" download="' + escapeHtml(name) + '">Download to view</a>' +
                 '</div>';
             await loadAnnotations();
             return;
@@ -1445,7 +1442,7 @@ include 'includes/header.php';
                     </svg>
                 </button>` : ''}
             </div>
-            <p class="annot-comment">${escHtml(ann.comment)}</p>
+            <p class="annot-comment">${escapeHtml(ann.comment)}</p>
             <p class="annot-date">${formatAnnotDate(ann.created_at)}</p>
         </div>
     `).join('');
@@ -1453,15 +1450,7 @@ include 'includes/header.php';
 
     function formatAnnotDate(value) {
         if (!value) return '';
-        const d = new Date(value);
-        if (isNaN(d.getTime())) return '';
-        return d.toLocaleString('en-PH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return isNaN(new Date(value).getTime()) ? '' : formatDateTime(value);
     }
 
     function highlightSidebarItem(annotId) {
@@ -2083,13 +2072,6 @@ include 'includes/header.php';
         btn.setAttribute('aria-expanded', String(!isCollapsed));
     }
 
-    // ===== Util =====
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
     loadPdf();
 
     // ===== File popup (cert / payment proof / clearance) =====
@@ -2487,7 +2469,7 @@ include 'includes/header.php';
                     <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
                 </label>`;
             const subLine = file ?
-                `<span class="doc-row-sub done">${escHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>` :
+                `<span class="doc-row-sub done">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>` :
                 `<span class="doc-row-sub">${doc.subtitle}</span>`;
 
             return `<div class="doc-row">

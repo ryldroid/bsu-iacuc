@@ -10,6 +10,6 @@ ob_start();
 
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
 <p>Your protocol <strong><?= htmlspecialchars($old_title) ?></strong> was renamed to <strong><?= htmlspecialchars($new_title) ?></strong> by <?= htmlspecialchars($role_label) ?> - <?= htmlspecialchars($actor_name) ?>.</p>
-<p>You can view the details at: <a href="<?= ROOT ?>/apply/viewer/<?= $protocol_id ?>"><?= ROOT ?>/apply/viewer/<?= $protocol_id ?></a></p>
-<p>— BSU-IACUC Team</p>
+<p>You can view the details at: <a href="<?= ROOT ?>/submissions?highlight=<?= $protocol_id ?>"><?= ROOT ?>/submissions?highlight=<?= $protocol_id ?></a></p>
+<p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

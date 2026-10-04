@@ -323,50 +323,6 @@
 
 /* ===== MANAGE PERSONNEL & ROLES ===== */
 
-.personnel-table-wrap {
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    overflow: auto;
-}
-
-.personnel-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.personnel-table thead th {
-    background: var(--divider-color-subtle);
-    color: var(--muted-text);
-    font-size: .76em;
-    font-weight: 700;
-    letter-spacing: .02em;
-    text-align: left;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--divider-color);
-    white-space: nowrap;
-}
-
-.personnel-table tbody td {
-    padding: 10px 14px;
-    font-size: 1em;
-    color: var(--secondary-text);
-    border-bottom: 1px solid var(--divider-color);
-    vertical-align: middle;
-}
-
-.personnel-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.personnel-table tbody tr:nth-child(even) td {
-    background: var(--divider-color-subtle);
-}
-
-.personnel-table tbody tr:hover td {
-    background: var(--hover-surface-soft);
-}
-
 .personnel-name {
     display: block;
     font-weight: 600;
@@ -430,22 +386,10 @@
 }
 
 .personnel-you-tag {
-    font-size: 0.85em;
-    color: var(--muted-text);
-    font-style: italic;
+    margin-left: .4em;
 }
 
 @media (max-width: 768px) {
-    .personnel-table thead th {
-        padding: 9px 10px;
-        font-size: .68em;
-    }
-
-    .personnel-table tbody td {
-        padding: 9px 10px;
-        font-size: .8em;
-    }
-
     .personnel-role-select {
         font-size: 0.78rem;
         padding: 0.35rem 0.4rem;
@@ -616,60 +560,45 @@
     pointer-events: none;
 }
 
-.audit-viewer-table-wrap {
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    overflow: auto;
+.audit-viewer-table tbody td:first-child,
+.audit-viewer-table tbody td:last-child {
+    font-family: monospace;
 }
 
-.audit-viewer-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.audit-viewer-table thead th {
-    background: var(--divider-color-subtle);
-    color: var(--muted-text);
+.audit-viewer-table tbody td:last-child {
     font-size: .85em;
-    font-weight: 700;
-    letter-spacing: .02em;
-    text-align: left;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--divider-color);
-    white-space: nowrap;
 }
 
-.audit-viewer-table tbody td {
-    padding: 12px 14px;
-    font-size: .9em;
-    color: var(--secondary-text);
-    border-bottom: 1px solid var(--divider-color);
-    vertical-align: middle;
-    white-space: nowrap;
+.audit-viewer-table tbody td:nth-child(2) {
+    color: var(--primary-text);
+    font-weight: 600;
 }
 
+.audit-viewer-table tbody td:nth-child(4),
 .audit-viewer-table tbody td:nth-child(5) {
     white-space: normal;
     min-width: 220px;
 }
 
-.audit-viewer-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.audit-viewer-table tbody tr:nth-child(even) td {
-    background: var(--divider-color-subtle);
-}
-
-.audit-viewer-table tbody tr:hover td {
-    background: var(--hover-surface-soft);
+.audit-viewer-table tbody td:nth-child(4) {
+    max-width: 320px;
 }
 
 .audit-viewer-role {
     display: block;
     font-size: .8em;
+    font-weight: 400;
     color: var(--muted-text);
+}
+
+.audit-viewer-time {
+    display: block;
+    color: var(--muted-text);
+}
+
+.audit-viewer-section .pagination-btn.disabled {
+    opacity: .35;
+    cursor: default;
 }
 
 .audit-viewer-section .pagination-bar {
@@ -677,16 +606,6 @@
 }
 
 @media (max-width: 768px) {
-    .audit-viewer-table thead th {
-        padding: 9px 10px;
-        font-size: .75em;
-    }
-
-    .audit-viewer-table tbody td {
-        padding: 9px 10px;
-        font-size: .8em;
-    }
-
     .audit-viewer-role {
         font-size: .78em;
     }

@@ -67,7 +67,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                         <div>
                             <h2>Your IACUC Training Certificate</h2>
                             <?php if (!empty($certificate['cert_uploaded_at'])): ?>
-                                <p class="helper">Uploaded <?= htmlspecialchars(date('M j, Y', strtotime($certificate['cert_uploaded_at'])), ENT_QUOTES, 'UTF-8') ?></p>
+                                <p class="helper">Uploaded <?= htmlspecialchars(date(DATE_FORMAT, strtotime($certificate['cert_uploaded_at'])), ENT_QUOTES, 'UTF-8') ?></p>
                             <?php endif; ?>
                         </div>
                         <button type="button" class="button"
@@ -130,7 +130,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
             <div class="input-group">
                 <select id="sex" name="sex" required>
-                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>— select —</option>
+                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>Select</option>
                     <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
                     <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
                 </select>

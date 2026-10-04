@@ -4,7 +4,6 @@
   padding: 16px;
   background: var(--card-background);
   border: 1px solid var(--divider-color);
-  border-radius: var(--btn-radius);
 }
 
 .clearance-panel[hidden] {

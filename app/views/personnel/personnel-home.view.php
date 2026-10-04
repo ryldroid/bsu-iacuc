@@ -107,8 +107,7 @@ foreach ($protocols as &$protocol) {
     $protocol['status_display'] = $statusDisplayMap[$key] ?? $protocol['status'];
     $protocol['badge_class']    = $badgeClassMap[$key]    ?? 'badge-to-review';
     $protocol['filter_slug']    = $filterSlugMap[$key]    ?? 'other';
-    $roundNo = max(1, (int) ($protocol['latest_version'] ?? 1));
-    $protocol['version_display'] = $roundNo <= 1 ? 'Original submission' : 'Revision ' . ($roundNo - 1);
+    $protocol['version_display'] = submission_round_label((int) ($protocol['latest_version'] ?? 1));
 }
 unset($protocol);
 
@@ -428,7 +427,7 @@ foreach ($protocols as $p) {
                     ?>
 
                     <?php foreach ($protocols as $protocol):
-                        $submittedDate  = date('m/j/Y', strtotime($protocol['submitted_at']));
+                        $submittedDate  = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
                         $statusDisplay  = $protocol['status_display'];
                         $badgeClass     = $protocol['badge_class'];
                         $filterSlug     = $protocol['filter_slug'];
@@ -1607,261 +1606,13 @@ foreach ($protocols as $p) {
     renderTable();
 </script>
 
-<!-- ===== History modal ===== -->
-<div class="modal-backdrop" id="historyModalBackdrop">
-    <div class="modal-card history-modal-card">
-        <div class="modal-header">
-            <div>
-                <p class="modal-label">Submission History</p>
-                <div class="history-modal-title-row">
-                    <p class="modal-title" id="historyModalTitle"></p>
-                    <button type="button" class="rename-history-toggle" id="renameHistoryToggle" hidden
-                        aria-expanded="false" aria-controls="renameHistoryPanel" aria-label="Show rename history">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-down-icon" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="rename-history-panel" id="renameHistoryPanel" hidden></div>
-            </div>
-            <button class="modal-close" onclick="closeHistoryModal()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div id="historyModalBody" class="history-modal-body">
-            <p class="helper history-loading">Loading&hellip;</p>
-        </div>
-    </div>
-</div>
-
+<?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>
 <script>
-    const historyBackdrop = document.getElementById('historyModalBackdrop');
-
-    function openHistoryModal(protocolId, title) {
-        document.getElementById('historyModalTitle').textContent = title;
-        document.getElementById('historyModalBody').innerHTML = '<p class="helper history-loading">Loading…</p>';
-
-        const renameToggle = document.getElementById('renameHistoryToggle');
-        const renamePanel = document.getElementById('renameHistoryPanel');
-        renameToggle.hidden = true;
-        renameToggle.setAttribute('aria-expanded', 'false');
-        renamePanel.hidden = true;
-        renamePanel.innerHTML = '';
-
-        historyBackdrop.classList.add('open');
-
-        fetch(ROOT_URL + '/apply/allversions/' + protocolId)
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) {
-                    document.getElementById('historyModalBody').innerHTML =
-                        '<p class="helper history-error">' + data.error + '</p>';
-                    return;
-                }
-                renderRenameHistory(data.title_history);
-                renderHistory(data);
-            })
-            .catch(() => {
-                document.getElementById('historyModalBody').innerHTML =
-                    '<p class="helper history-offline">Submission history is not available offline. It will load once you reconnect.</p>';
-            });
-    }
-
-    function escapeHtml(value) {
-        return String(value ?? '').replace(/[&<>"']/g, ch => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        } [ch]));
-    }
-
-    function renderRenameHistory(titleHistory) {
-        const renameToggle = document.getElementById('renameHistoryToggle');
-        const renamePanel = document.getElementById('renameHistoryPanel');
-
-        if (!titleHistory || titleHistory.length === 0) {
-            renameToggle.hidden = true;
-            return;
-        }
-
-        renamePanel.innerHTML = '<div class="rename-history-panel-header">Title Name History</div>' + titleHistory.map(h => {
-            const date = new Date(h.changed_at).toLocaleString('en-PH', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const who = h.changed_by_name ?
-                `${escapeHtml(h.changed_by_role ? h.changed_by_role.charAt(0).toUpperCase() + h.changed_by_role.slice(1) : '')} - ${escapeHtml(h.changed_by_name)}` :
-                'Initial title';
-            return `<div class="rename-history-entry">
-                <div class="rename-history-entry-title">${escapeHtml(h.title)}</div>
-                <div class="rename-history-entry-meta">${who} &middot; ${date}</div>
-            </div>`;
-        }).join('');
-
-        renameToggle.hidden = false;
-        renameToggle.onclick = () => {
-            const isOpen = renameToggle.getAttribute('aria-expanded') === 'true';
-            renameToggle.setAttribute('aria-expanded', String(!isOpen));
-            renamePanel.hidden = isOpen;
-        };
-    }
-
-    function closeHistoryModal() {
-        historyBackdrop.classList.remove('open');
-        closeFilePopup();
-    }
-
-    historyBackdrop.addEventListener('click', e => {
-        if (e.target === historyBackdrop) closeHistoryModal();
-    });
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeHistoryModal();
-            closeFilePopup();
-        }
-    });
-
-    function roundLabel(versionNumber) {
-        const n = Number(versionNumber);
-        return n <= 1 ? 'Original submission' : 'Revision ' + (n - 1);
-    }
-
-    // A round that has a later round was returned (resubmitting is only possible from
-    // Needs Revision); the newest round is returned only while the status says so.
-    // The reviewer's record, when one exists, adds the date and note.
-    function buildReturnLine(reason) {
-        const bits = [];
-        if (reason) {
-            if (reason.wrong_cert) bits.push('Wrong / invalid training certificate');
-            if (reason.other_reason && !reason.comment) bits.push('Other');
-            if (reason.comment) bits.push(reason.comment);
-        }
-        const when = reason && reason.created_at ?
-            new Date(reason.created_at).toLocaleDateString('en-PH', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            }) :
-            '';
-        const note = bits.join(' \u00b7 ');
-        return `<div class="history-return-line">
-                    <span class="history-tag history-tag--returned">Returned for revision${when ? ' &middot; ' + when : ''}</span>
-                    ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ''}
-                </div>`;
-    }
-
-    function signedScanLabel(referenceNo) {
-        return referenceNo ?
-            'Protocol Signed by IACUC Chair \u00b7 IPN ' + referenceNo :
-            'Protocol Signed by IACUC Chair';
-    }
-
-    function buildHistorySection(versions, protocolId, currentStatus) {
-        if (!versions || versions.length === 0) return '';
-
-        // versions arrive newest first; titles are compared with the round before each one
-        const titles = versions.map(v => v.title_at_version || v.original_name || '');
-
-        const rows = versions.map((v, i) => {
-            const isLatest = i === 0;
-            const isOldest = i === versions.length - 1;
-            const when = new Date(v.uploaded_at);
-            const day = when.toLocaleDateString('en-PH', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            const time = when.toLocaleTimeString('en-PH', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            let titleNote = '';
-            if (isOldest) {
-                if (versions.length > 1 && titles[i] !== titles[i - 1]) titleNote = 'Titled: ' + titles[i];
-            } else if (titles[i] !== titles[i + 1]) {
-                titleNote = 'Renamed to: ' + titles[i];
-            }
-
-            const wasReturned = !isLatest || String(currentStatus || '').toLowerCase() === 'needs revision';
-
-            return `
-                <div class="history-row history-row--round${isLatest ? ' history-row--latest' : ''}">
-                    <div class="history-row-detail">
-                        <span class="history-filename">${day}</span>
-                        <span class="helper">${roundLabel(v.version_number)} &middot; ${time}</span>
-                        ${titleNote ? `<span class="helper history-title-note" title="${escapeHtml(titleNote)}">${escapeHtml(titleNote)}</span>` : ''}
-                        ${isLatest ? '<div class="history-tags"><span class="history-latest-badge">Current</span></div>' : ''}
-                        ${wasReturned ? buildReturnLine(v.return_reason) : ''}
-                    </div>
-                    <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${protocolId}/${v.id}">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </a>
-                </div>`;
-        }).join('');
-        return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
-    }
-
-    function buildSimpleFileSection(files, label, heading) {
-        if (!files || files.length === 0) return '';
-        const rows = files.map((v, i) => {
-            const date = new Date(v.uploaded_at).toLocaleString('en-PH', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            const isLatest = i === 0;
-            const who = v.first_name ? `${escapeHtml(v.first_name)} ${escapeHtml(v.last_name || '')}` : '';
-
-            return `
-                <div class="history-row${isLatest ? ' history-row--latest' : ''}">
-                    <div class="history-row-meta">
-                        <span class="history-ver">v${v.version_number}</span>
-                        ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ''}
-                    </div>
-                    <div class="history-row-detail">
-                        <span class="history-filename">${escapeHtml(v.original_name)}</span>
-                        <span class="helper">${who ? who + ' &middot; ' : ''}${date}</span>
-                    </div>
-                    <button type="button" class="button history-open-btn"
-                        onclick="openFilePopup('${v.file_url}', '${escapeHtml(label)}')">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </button>
-                </div>`;
-        }).join('');
-        return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
-    }
-
-    function renderHistory(data) {
-        const body = document.getElementById('historyModalBody');
-
-        const sections = [
-            buildHistorySection(data.protocol_files, data.protocol_id, data.status),
-            buildSimpleFileSection(data.signed_scan_files, 'Signed Scan', signedScanLabel(data.reference_no)),
-            buildSimpleFileSection(data.clearance_files, 'Animal Research Clearance'),
-        ].filter(Boolean);
-
-        body.innerHTML = sections.length ?
-            sections.join('') :
-            '<p class="helper">No submission history found.</p>';
-    }
+    window.historyModalConfig = {
+        offlineMessage: 'Submission history is not available offline. It will load once you reconnect.'
+    };
 </script>
+<script src="<?= asset_js('history-modal.js') ?>"></script>
 
 <!-- ===== Researcher details modal ===== -->
 <div class="modal-backdrop" id="researcherModalBackdrop">
@@ -1916,21 +1667,15 @@ foreach ($protocols as $p) {
     function renderResearcherDetails(d) {
         document.getElementById('researcherModalName').textContent = (d.first_name + ' ' + d.last_name).trim();
 
-        const joined = d.created_at ?
-            new Date(d.created_at).toLocaleDateString('en-PH', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            }) :
-            '—';
+        const joined = d.created_at ? formatDate(d.created_at) : 'N/A';
 
         const rows = [
             ['Username', d.username],
             ['Email', d.email],
-            ['Phone', d.phone_number || '—'],
-            ['School', d.school || '—'],
-            ['Role', d.role ? d.role.charAt(0).toUpperCase() + d.role.slice(1) : '—'],
-            ['Account status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : '—'],
+            ['Phone', d.phone_number || 'N/A'],
+            ['School', d.school || 'N/A'],
+            ['Role', d.role ? d.role.charAt(0).toUpperCase() + d.role.slice(1) : 'N/A'],
+            ['Account status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : 'N/A'],
             ['Joined', joined],
         ].map(([label, value]) => `
             <div class="researcher-detail-row">
@@ -1945,7 +1690,7 @@ foreach ($protocols as $p) {
                     <span class="researcher-protocol-title">${escapeHtml(p.research_title)}</span>
                     <span class="researcher-protocol-meta">
                         ${escapeHtml(p.reference_no || '')} &middot; ${escapeHtml(p.status)}
-                        ${p.submitted_at ? ' &middot; ' + new Date(p.submitted_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+                        ${p.submitted_at ? ' &middot; ' + formatDate(p.submitted_at) : ''}
                     </span>
                 </li>
             `).join('') :
@@ -1979,40 +1724,8 @@ foreach ($protocols as $p) {
     });
 </script>
 
-<!-- ===== File popup modal (cert / auth letter / protocol versions) ===== -->
-<div class="modal-backdrop" id="filePopupBackdrop">
-    <div class="modal-card file-popup-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <iframe class="file-popup-frame" id="filePopupFrame" title="Document preview" src="about:blank"></iframe>
-    </div>
-</div>
-
-<script>
-    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
-
-    function openFilePopup(fileUrl, title) {
-        document.getElementById('filePopupTitle').textContent = title;
-        document.getElementById('filePopupFrame').src = fileUrl;
-        filePopupBackdrop.classList.add('open');
-    }
-
-    function closeFilePopup() {
-        if (!filePopupBackdrop.classList.contains('open')) return;
-        filePopupBackdrop.classList.remove('open');
-        document.getElementById('filePopupFrame').src = 'about:blank';
-    }
-
-    filePopupBackdrop.addEventListener('click', e => {
-        if (e.target === filePopupBackdrop) closeFilePopup();
-    });
-</script>
+<?php include dirname(__DIR__) . '/includes/file-popup.php'; ?>
+<script src="<?= asset_js('file-popup.js') ?>"></script>
 
 <!-- ===== Upload Signed Scan modal (administrative staff only) ===== -->
 <div class="modal-backdrop" id="signedScanModalBackdrop">

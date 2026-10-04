@@ -82,6 +82,7 @@
     --brand-surface-faint: rgba(22, 71, 11, 0.03);
 
     --muted-text: #8a8a8a;
+    --table-row-hover: color-mix(in srgb, var(--brand-text) 8%, var(--card-background));
     --input-border: #cccccc;
     --success-background-soft: #eaf7e6;
     --success-border-soft: #a7f3d0;
@@ -587,4 +588,50 @@ main a.underlined:hover {
 
 .straight-helper {
     font-style: normal !important;
+}
+
+/* ===== DATA TABLE ===== */
+
+.data-table-wrap {
+    overflow: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead th {
+    color: var(--brand-text);
+    font-size: .85em;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--brand-text);
+    white-space: nowrap;
+}
+
+.data-table tbody td {
+    padding: 10px 14px;
+    font-size: .9em;
+    color: var(--secondary-text);
+    border-bottom: 1px solid var(--divider-color);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.data-table tbody tr:hover td {
+    background: var(--table-row-hover);
+}
+
+@media (max-width: 768px) {
+    .data-table thead th {
+        padding: 8px 10px;
+        font-size: .75em;
+    }
+
+    .data-table tbody td {
+        padding: 9px 10px;
+        font-size: .8em;
+    }
 }

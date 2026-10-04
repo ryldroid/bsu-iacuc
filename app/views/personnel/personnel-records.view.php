@@ -210,13 +210,13 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
 function formatDurationRange(?string $start, ?string $end): string
 {
     if ($start && $end) {
-        return date('M j, Y', strtotime($start)) . ' – ' . date('M j, Y', strtotime($end));
+        return date(DATE_FORMAT, strtotime($start)) . ' – ' . date(DATE_FORMAT, strtotime($end));
     }
     if ($start) {
-        return 'From ' . date('M j, Y', strtotime($start));
+        return 'From ' . date(DATE_FORMAT, strtotime($start));
     }
     if ($end) {
-        return 'Until ' . date('M j, Y', strtotime($end));
+        return 'Until ' . date(DATE_FORMAT, strtotime($end));
     }
     return '';
 }
@@ -362,7 +362,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <!-- ===== Table ===== -->
                 <div class="protocol-table-wrap records-table-wrap">
                     <div class="protocol-table-scroll">
-                        <table class="protocol-table records-table">
+                        <table class="protocol-table records-table data-table">
                             <thead>
                                 <tr>
                                     <th class="col-ref">IPN</th>
@@ -400,7 +400,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <?php foreach ($records as $i => $r): ?>
                                         <tr>
                                             <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="AR No."><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
+                                            <td class="date-cell records-ar"><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
                                             <td class="records-title-cell">
                                                 <div class="protocol-title-cell">
                                                     <?= htmlspecialchars($r['title_of_research']) ?>
@@ -420,7 +420,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                                     <span class="records-expired-tag">Expired</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="date-cell" data-label="Date Released"><?= $r['date_released'] ? date('M j, Y', strtotime($r['date_released'])) : '' ?></td>
+                                            <td class="date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
                                             <td class="researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                             <!-- ACTION BUTTONS -->
                                             <td class="actions-cell">
@@ -776,7 +776,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="records-form-group">
                     <label for="add_sex">Researcher Sex</label>
                     <select id="add_sex" name="sex">
-                        <option value="">— select —</option>
+                        <option value="">Select</option>
                         <option>Male</option>
                         <option>Female</option>
                     </select>
@@ -784,7 +784,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="records-form-group">
                     <label for="add_researcher_type">Researcher Type</label>
                     <select id="add_researcher_type" name="researcher_type">
-                        <option value="">— select —</option>
+                        <option value="">Select</option>
                         <option>Student</option>
                         <option>Faculty</option>
                         <option>Staff</option>
@@ -871,7 +871,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="records-form-group">
                     <label for="edit_sex">Researcher Sex</label>
                     <select id="edit_sex" name="sex">
-                        <option value="">— select —</option>
+                        <option value="">Select</option>
                         <option>Male</option>
                         <option>Female</option>
                     </select>
@@ -879,7 +879,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="records-form-group">
                     <label for="edit_researcher_type">Researcher Type</label>
                     <select id="edit_researcher_type" name="researcher_type">
-                        <option value="">— select —</option>
+                        <option value="">Select</option>
                         <option>Student</option>
                         <option>Faculty</option>
                         <option>Staff</option>

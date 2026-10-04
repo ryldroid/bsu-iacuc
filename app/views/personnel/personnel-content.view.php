@@ -110,7 +110,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                     <?php endif; ?>
 
                     <?php $annRowTs = strtotime($a['created_at']); ?>
-                    <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date('m/j/Y, h:i A', $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
+                    <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date(DATETIME_FORMAT, $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                   </div>
                   <div class="ann-row-actions">
                     <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>" aria-label="Edit announcement">
@@ -260,9 +260,9 @@ $activeTab     = $activeTab     ?? 'announcements';
     <div class="modal-header records-modal-header">
       <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
       <button type="button" class="modal-close" data-close="addAnnouncementModal" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#close-icon" />
-          </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#close-icon" />
+        </svg>
       </button>
     </div>
     <div class="records-modal-body">
@@ -304,9 +304,9 @@ $activeTab     = $activeTab     ?? 'announcements';
     <div class="modal-header records-modal-header">
       <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>
       <button type="button" class="modal-close" data-close="editAnnouncementModal" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#close-icon" />
-          </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#close-icon" />
+        </svg>
       </button>
     </div>
     <div class="records-modal-body">
@@ -354,9 +354,9 @@ $activeTab     = $activeTab     ?? 'announcements';
     <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
       <button type="button" class="modal-close" data-close="officeModal" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#close-icon" />
-          </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#close-icon" />
+        </svg>
       </button>
     </div>
     <div class="records-modal-body">
@@ -414,9 +414,9 @@ $activeTab     = $activeTab     ?? 'announcements';
     <div class="modal-header records-modal-header">
       <h2 id="faqModalTitle">Add FAQ</h2>
       <button type="button" class="modal-close" data-close="faqModal" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#close-icon" />
-          </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#close-icon" />
+        </svg>
       </button>
     </div>
     <div class="records-modal-body">
@@ -448,7 +448,7 @@ $activeTab     = $activeTab     ?? 'announcements';
     const ROOT = '<?= ROOT ?>';
     const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
 
-    // ===== Modal helpers (same pattern as personnel/records.view.php) =====
+    // ===== Modal helpers (same pattern as personnel/personnel-records.view.php) =====
     function openModal(id) {
       const modal = document.getElementById(id);
       modal.classList.add('open');

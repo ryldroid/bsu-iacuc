@@ -15,7 +15,7 @@ class Submissions extends Controller
     {
         $this->requireLogin();
 
-        if (in_array($_SESSION['user']['role'] ?? '', ['staff', 'reviewer'], true)) {
+        if ($this->isPersonnel()) {
             $ajax
                 ? $this->jsonError(403, 'This page is for researchers only.')
                 : $this->redirect('personnel/home');

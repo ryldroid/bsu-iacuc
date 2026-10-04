@@ -50,7 +50,7 @@ include "includes/scroll-top.php";
                             }
                             $isUntitled = !$hasTitle && !$hasBody;
                             $annTimestamp = strtotime($post['created_at']);
-                            $annDateDisplay = $annTimestamp ? date('M j, Y g:i A', $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
+                            $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
                             $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
                             $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
                         ?>

@@ -173,7 +173,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                         <p>Applying as <span class="bold"><?= htmlspecialchars($applicant['role']); ?></span></p>
                                         &nbsp;&middot;
 
-                                        <?php $date = date('M j, Y @ h:i A', strtotime($applicant['created_at'])); ?>
+                                        <?php $date = date(DATETIME_FORMAT, strtotime($applicant['created_at'])); ?>
                                         <span class="application-date"><?= $date ?></span>
                                     </div>
 
@@ -267,13 +267,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                             <p>Approved staff and reviewers will appear here.</p>
                         </div>
                     <?php else: ?>
-                        <div class="personnel-table-wrap">
-                            <table class="personnel-table">
+                        <div class="data-table-wrap">
+                            <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
                                         <th>Role</th>
-                                        <th aria-label="Actions"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -283,7 +282,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                         ?>
                                         <tr>
                                             <td>
-                                                <span class="personnel-name"><?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?></span>
+                                                <span class="personnel-name">
+                                                    <?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>
+                                                    <?php if ($isSelf): ?>
+                                                        <span class="personnel-status-pill personnel-status-active personnel-you-tag">You</span>
+                                                    <?php endif; ?>
+                                                </span>
                                                 <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
                                             </td>
                                             <td>
@@ -300,11 +304,6 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                                         <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
                                                     </select>
                                                 </form>
-                                            </td>
-                                            <td class="actions-cell">
-                                                <?php if ($isSelf): ?>
-                                                    <span class="personnel-you-tag">You</span>
-                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

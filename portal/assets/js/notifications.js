@@ -9,12 +9,6 @@ const NOTIF_MARKREAD_URL = NOTIF_ROOT + "/notifications/markread";
 const NOTIF_MARKALLREAD_URL = NOTIF_ROOT + "/notifications/markallread";
 const NOTIF_POLL_MS = 30000;
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML;
-}
-
 function timeAgo(dateStr) {
   const seconds = Math.floor(
     (Date.now() - new Date(dateStr.replace(" ", "T"))) / 1000,
@@ -26,7 +20,7 @@ function timeAgo(dateStr) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(dateStr.replace(" ", "T")).toLocaleDateString();
+  return formatDate(dateStr.replace(" ", "T"));
 }
 
 function renderBadge(count) {

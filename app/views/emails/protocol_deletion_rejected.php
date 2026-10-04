@@ -11,5 +11,5 @@ ob_start();
 <p>Your request to delete protocol <strong><?= htmlspecialchars($title) ?></strong> was rejected by <?= htmlspecialchars($actor_name) ?>.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>The protocol remains active. You can view it at: <a href="<?= ROOT ?>/submissions"><?= ROOT ?>/submissions</a></p>
-<p>— BSU-IACUC Team</p>
+<p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

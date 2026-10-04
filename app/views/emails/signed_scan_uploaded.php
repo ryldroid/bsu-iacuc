@@ -1,0 +1,12 @@
+<?php
+ob_start();
+/** @var string $first_name */
+/** @var string $title */
+/** @var int $protocol_id */
+?>
+
+<p>Hi <?= htmlspecialchars($first_name) ?>,</p>
+<p>Your protocol <strong><?= htmlspecialchars($title) ?></strong> has been signed by the IACUC chair.</p>
+<p>You can view it at: <a href="<?= ROOT ?>/submissions?highlight=<?= $protocol_id ?>"><?= ROOT ?>/submissions?highlight=<?= $protocol_id ?></a></p>
+<p>BSU-IACUC Team</p>
+<?php return ob_get_clean(); ?>

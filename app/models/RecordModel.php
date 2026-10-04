@@ -137,7 +137,7 @@ class RecordModel extends Model
       $missing = 'research_duration_end IS NULL';
     }
 
-    $fmt = fn(string $d) => date('M j, Y', strtotime($d));
+    $fmt = fn(string $d) => date(DATE_FORMAT, strtotime($d));
     if ($start !== null && $end !== null) {
       $range = $fmt($start) . ' to ' . $fmt($end);
     } elseif ($start !== null) {
