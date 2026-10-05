@@ -58,10 +58,20 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <button type="submit" class="btn-login">Log In</button>
 
-            <p class="underlined-p">Don't have an account? <a class="underlined" href="<?= ROOT ?>/user/register">Register here</a></p>
+            <p class="underlined-p">
+                Don't have
+                <span aria-hidden="true">
+                    <a
+                        class="hidden-login-link"
+                        href="<?= ROOT ?>/personnel/login"
+                        tabindex="-1"
+                        aria-hidden="true">an</a>
+                </span>
+                account?
+                <a class="underlined" href="<?= ROOT ?>/user/register">Register here</a>
+            </p>
             <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/user/forgot_password">Forgot Password</a></p>
 
-            <p class="personnel-login-link underlined-p">Are you personnel? <a class="underlined" href="<?= ROOT ?>/personnel/login">Personnel login</a></p>
         </form>
     </main>
 </div>

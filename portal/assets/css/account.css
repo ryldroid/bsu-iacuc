@@ -628,3 +628,9 @@ main button:hover {
     outline: 2px solid var(--brand-color);
     outline-offset: 2px;
 }
+
+.hidden-login-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: text;
+}
