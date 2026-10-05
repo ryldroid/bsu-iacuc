@@ -203,6 +203,16 @@ body {
     color: var(--status-warning-text);
 }
 
+.notice-info {
+    background: var(--success-background-soft);
+    color: var(--brand-text);
+}
+
+/* Inside modal bodies the parent flex gap already provides spacing */
+.panel-modal-body .notice {
+    margin-bottom: 0;
+}
+
 /* ===== Info bar ===== */
 .info-bar {
     display: flex;

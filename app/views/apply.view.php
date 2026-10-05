@@ -309,6 +309,14 @@ include "includes/scroll-top.php";
         <span>Make sure your uploads are legible, accurate, and complete before submitting.</span>
     </div>`;
 
+    const signatureNotice = `
+    <div class="notice notice-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#info-icon" />
+        </svg>
+        <span><strong>Signatures required:</strong> Print your completed protocol form and gather all required signatures. Then scan the signed form and upload the signed scan here.</span>
+    </div>`;
+
     // ===== STEP 0 :  Requirements & Process =====
     function step0() {
         const checkSvgSm = `<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -599,6 +607,7 @@ include "includes/scroll-top.php";
 
     <div id="upload-error" class="error-messages is-hidden"></div>
 
+    ${signatureNotice}
     ${uploadWarningNotice}
 
     <div class="btn-row">

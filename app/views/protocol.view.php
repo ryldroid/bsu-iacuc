@@ -659,6 +659,13 @@ include 'includes/header.php';
                     </div>
                 </div>
 
+                <div class="notice notice-info">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span><strong>Signatures required:</strong> Print the updated protocol and gather all required signatures. Then scan the signed protocol and upload the signed scan here.</span>
+                </div>
+
                 <label class="return-comment-label" for="amendmentNote">What changed and why <span class="return-comment-optional">(required)</span></label>
                 <textarea id="amendmentNote" class="return-comment-textarea"
                     placeholder="Briefly describe the change to your methods..."
@@ -702,6 +709,13 @@ include 'includes/header.php';
                 <p class="panel-modal-intro"><?= htmlspecialchars($resubmitIntro, ENT_QUOTES, 'UTF-8') ?></p>
 
                 <div class="doc-list" id="reuploadDocList"></div>
+
+                <div class="notice notice-info">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span><strong>Signatures required:</strong> For the revised protocol file, print it and gather all required signatures. Then scan the signed protocol and upload the signed scan.</span>
+                </div>
 
                 <div id="reuploadError" class="error-messages" hidden></div>
 
