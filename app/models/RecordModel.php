@@ -4,6 +4,15 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class RecordModel extends Model
 {
+  // ===== STATUS OPTIONS =====
+  public const STATUSES = ['Ongoing', 'Completed', 'Cancelled'];
+  public const DEFAULT_STATUS = 'Ongoing';
+
+  private function cleanStatus(?string $status): string
+  {
+    return in_array($status, self::STATUSES, true) ? $status : self::DEFAULT_STATUS;
+  }
+
   // ===== FILTERS & PERIOD =====
   private function buildFilters(
     string $search,
@@ -11,7 +20,8 @@ class RecordModel extends Model
     string $animalType,
     string $sex,
     string $researcherType,
-    ?array $period = null
+    ?array $period = null,
+    string $status = ''
   ): array {
     $conditions = [];
     $params     = [];
@@ -47,6 +57,12 @@ class RecordModel extends Model
     if ($researcherType !== '') {
       $conditions[] = 'researcher_type = ?';
       $params[] = &$researcherType;
+      $types .= 's';
+    }
+
+    if ($status !== '') {
+      $conditions[] = 'status = ?';
+      $params[] = &$status;
       $types .= 's';
     }
 
@@ -178,9 +194,10 @@ class RecordModel extends Model
     string $sort = 'newest',
     int $limit = 25,
     int $offset = 0,
-    ?array $period = null
+    ?array $period = null,
+    string $status = ''
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status);
 
     $stmt = $this->connection->prepare(
       "SELECT * FROM `records` $where ORDER BY {$this->sortClause($sort)} LIMIT ? OFFSET ?"
@@ -206,9 +223,10 @@ class RecordModel extends Model
     string $school = '',
     string $animalType = '',
     string $sex = '',
-    string $researcherType = ''
+    string $researcherType = '',
+    string $status = ''
   ): int {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, null, $status);
 
     $stmt = $this->connection->prepare("SELECT COUNT(*) FROM `records` $where");
     if (! $stmt) return 0;
@@ -524,8 +542,8 @@ class RecordModel extends Model
       "INSERT INTO `records`
              (reference_no, ar_number, title_of_research, school, animal_type, animal_count,
               principal_investigator, sex, researcher_type, research_adviser,
-              veterinarian, research_duration_start, research_duration_end, date_released, received_by)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+              veterinarian, research_duration_start, research_duration_end, date_released, received_by, status)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (! $stmt) return false;
 
@@ -534,9 +552,10 @@ class RecordModel extends Model
     $durationStart = $d['research_duration_start'] !== '' ? $d['research_duration_start'] : null;
     $durationEnd   = $d['research_duration_end'] !== '' ? $d['research_duration_end'] : null;
     $dateReleased = $d['date_released'] !== '' ? $d['date_released'] : null;
+    $status       = $this->cleanStatus($d['status'] ?? null);
 
     $stmt->bind_param(
-      'sssssisssssssss',
+      'sssssissssssssss',
       $d['reference_no'],
       $arNumber,
       $d['title_of_research'],
@@ -551,7 +570,8 @@ class RecordModel extends Model
       $durationStart,
       $durationEnd,
       $dateReleased,
-      $d['received_by']
+      $d['received_by'],
+      $status
     );
     return $stmt->execute();
   }
@@ -618,7 +638,8 @@ class RecordModel extends Model
                research_duration_start  = ?,
                research_duration_end    = ?,
                date_released            = ?,
-               received_by              = ?
+               received_by              = ?,
+               status                   = ?
              WHERE id = ?"
     );
     if (! $stmt) return false;
@@ -629,9 +650,10 @@ class RecordModel extends Model
     $durationStart = $d['research_duration_start'] !== '' ? $d['research_duration_start'] : null;
     $durationEnd   = $d['research_duration_end'] !== '' ? $d['research_duration_end'] : null;
     $dateReleased = $d['date_released'] !== '' ? $d['date_released'] : null;
+    $status       = $this->cleanStatus($d['status'] ?? null);
 
     $stmt->bind_param(
-      'sssssisssssssssi',
+      'sssssissssssssssi',
       $ref,
       $arNumber,
       $d['title_of_research'],
@@ -647,6 +669,7 @@ class RecordModel extends Model
       $durationEnd,
       $dateReleased,
       $d['received_by'],
+      $status,
       $d['id']
     );
     return $stmt->execute();

@@ -17,6 +17,7 @@ $school          = $school          ?? '';
 $animalType      = $animalType      ?? '';
 $sex          = $sex          ?? '';
 $researcherType  = $researcherType  ?? '';
+$status          = $status          ?? '';
 $sort            = $sort            ?? 'newest';
 $schools         = $schools         ?? [];
 $animalTypes     = $animalTypes     ?? [];
@@ -53,9 +54,9 @@ $flash_success   = $flash_success   ?? '';
 $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
-$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '';
+$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '';
 $isStaff = $role === 'staff';
-$colCount = 15;
+$colCount = 16;
 
 // ===== Chart helpers =====
 function statBarRows(array $breakdown, int $topN = 6, bool $groupOther = true): array
@@ -190,7 +191,7 @@ $periodParams = array_filter([
 $activeTab = ($_GET['tab'] ?? '') === 'statistics' ? 'statistics' : 'records';
 
 // ===== Page URL helper =====
-function pageUrl(int $p, string $search, string $school, string $animalType, string $sex, string $researcherType, string $sort): string
+function pageUrl(int $p, string $search, string $school, string $animalType, string $sex, string $researcherType, string $sort, string $status = ''): string
 {
     return '?' . http_build_query(array_filter([
         'page'   => $p,
@@ -199,6 +200,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         'animal' => $animalType,
         'sex' => $sex,
         'rtype'  => $researcherType,
+        'status' => $status,
         'sort'   => $sort !== 'newest' ? $sort : '',
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)));
 }
@@ -327,6 +329,13 @@ function formatDurationRange(?string $start, ?string $end): string
                             <?php endforeach; ?>
                         </select>
 
+                        <select name="status" class="records-filter-select" aria-label="Filter by status" onchange="this.form.submit()">
+                            <option value="">All Statuses</option>
+                            <?php foreach (RecordModel::STATUSES as $st): ?>
+                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" <?= $status === $st ? 'selected' : '' ?>><?= htmlspecialchars($st) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+
                         <?php if ($hasFilters): ?>
                             <a href="<?= ROOT ?>/personnel/records" class="row-btn records-clear-btn">
                                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -374,6 +383,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <th class="col-duration">Duration</th>
                                     <th class="col-date">Date Released</th>
                                     <th class="col-recv">Received By</th>
+                                    <th class="col-status">Status</th>
                                     <!-- ACTION BUTTONS column -->
                                     <th class="col-actions" aria-label="Actions"></th>
                                 </tr>
@@ -417,6 +427,8 @@ function formatDurationRange(?string $start, ?string $end): string
                                             </td>
                                             <td class="date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
                                             <td class="researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
+                                            <?php $rowStatus = in_array($r['status'] ?? '', RecordModel::STATUSES, true) ? $r['status'] : RecordModel::DEFAULT_STATUS; ?>
+                                            <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
                                             <!-- ACTION BUTTONS -->
                                             <td class="actions-cell">
                                                 <div class="row-actions">
@@ -466,8 +478,8 @@ function formatDurationRange(?string $start, ?string $end): string
                         </div>
                         <div class="pagination-buttons">
                             <?php if ($page > 1): ?>
-                                <a href="<?= pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="First">«</a>
-                                <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Previous">‹</a>
+                                <a href="<?= pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="First">«</a>
+                                <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Previous">‹</a>
                             <?php else: ?>
                                 <span class="pagination-btn" style="opacity:.35;cursor:default">«</span>
                                 <span class="pagination-btn" style="opacity:.35;cursor:default">‹</span>
@@ -479,15 +491,15 @@ function formatDurationRange(?string $start, ?string $end): string
                             if ($start > 1) echo '<span class="pagination-ellipsis">…</span>';
                             for ($i = $start; $i <= $end; $i++):
                             ?>
-                                <a href="<?= pageUrl($i, $search, $school, $animalType, $sex, $researcherType, $sort) ?>"
+                                <a href="<?= pageUrl($i, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>"
                                     class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
                             <?php endfor;
                             if ($end < $totalPages) echo '<span class="pagination-ellipsis">…</span>';
                             ?>
 
                             <?php if ($page < $totalPages): ?>
-                                <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Next">›</a>
-                                <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $sex, $researcherType, $sort) ?>" class="pagination-btn" title="Last">»</a>
+                                <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Next">›</a>
+                                <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Last">»</a>
                             <?php else: ?>
                                 <span class="pagination-btn" style="opacity:.35;cursor:default">›</span>
                                 <span class="pagination-btn" style="opacity:.35;cursor:default">»</span>
@@ -726,6 +738,14 @@ function formatDurationRange(?string $start, ?string $end): string
                     <label for="add_date_released">Date Released</label>
                     <input type="date" id="add_date_released" name="date_released">
                 </div>
+                <div class="records-form-group">
+                    <label for="add_status">Status</label>
+                    <select id="add_status" name="status">
+                        <?php foreach (RecordModel::STATUSES as $st): ?>
+                            <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="records-form-group records-form-full">
                     <label for="add_received_by">Received By</label>
                     <input type="text" id="add_received_by" name="received_by" placeholder="Name of receiving officer">
@@ -821,6 +841,14 @@ function formatDurationRange(?string $start, ?string $end): string
                     <label for="edit_date_released">Date Released</label>
                     <input type="date" id="edit_date_released" name="date_released">
                 </div>
+                <div class="records-form-group">
+                    <label for="edit_status">Status</label>
+                    <select id="edit_status" name="status">
+                        <?php foreach (RecordModel::STATUSES as $st): ?>
+                            <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="records-form-group records-form-full">
                     <label for="edit_received_by">Received By</label>
                     <input type="text" id="edit_received_by" name="received_by">
@@ -910,6 +938,7 @@ function formatDurationRange(?string $start, ?string $end): string
             addRecordBtn.addEventListener('click', () => {
                 hideErr('addError');
                 document.getElementById('addModal').querySelectorAll('input,textarea,select').forEach(el => el.value = '');
+                document.getElementById('add_status').value = 'Ongoing';
                 openModal('addModal');
             });
         }
@@ -945,6 +974,7 @@ function formatDurationRange(?string $start, ?string $end): string
                     research_duration_end: document.getElementById('add_research_duration_end').value,
                     date_released: document.getElementById('add_date_released').value,
                     received_by: document.getElementById('add_received_by').value,
+                    status: document.getElementById('add_status').value,
                 }).then(data => {
                     if (data.ok) {
                         closeModal('addModal');
@@ -988,6 +1018,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         document.getElementById('edit_research_duration_end').value = d.research_duration_end ?? '';
                         document.getElementById('edit_date_released').value = d.date_released ?? '';
                         document.getElementById('edit_received_by').value = d.received_by ?? '';
+                        document.getElementById('edit_status').value = d.status || 'Ongoing';
                         openModal('editModal');
                     })
                     .catch(() => alert('Network error. Please try again.'));
@@ -1012,6 +1043,7 @@ function formatDurationRange(?string $start, ?string $end): string
             post('/personnel/records_edit', {
                 id: document.getElementById('edit_id').value,
                 reference_no: document.getElementById('edit_reference_no').value,
+                ar_number: document.getElementById('edit_ar_number').value,
                 title_of_research: document.getElementById('edit_title').value,
                 school: document.getElementById('edit_school').value,
                 animal_type: document.getElementById('edit_animal_type').value,
@@ -1025,6 +1057,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 research_duration_end: document.getElementById('edit_research_duration_end').value,
                 date_released: document.getElementById('edit_date_released').value,
                 received_by: document.getElementById('edit_received_by').value,
+                status: document.getElementById('edit_status').value,
             }).then(data => {
                 if (data.ok) {
                     closeModal('editModal');

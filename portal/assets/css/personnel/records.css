@@ -673,6 +673,35 @@
   width: 130px;
 }
 
+.records-table .col-status {
+  width: 110px;
+  white-space: nowrap;
+}
+
+.records-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.records-status-ongoing {
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+}
+
+.records-status-completed {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.records-status-cancelled {
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
+}
+
 .records-table .col-actions,
 .records-table .actions-cell {
   width: 0;

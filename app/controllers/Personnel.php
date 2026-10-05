@@ -152,6 +152,10 @@ class Personnel extends Controller
         $animalType     = trim($_GET['animal'] ?? '');
         $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
+        $status         = trim($_GET['status'] ?? '');
+        if (! in_array($status, RecordModel::STATUSES, true)) {
+            $status = '';
+        }
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
         $periodPreset   = trim($_GET['period'] ?? '');
         if (! isset(RecordModel::PERIOD_PRESETS[$periodPreset])) {
@@ -164,8 +168,8 @@ class Personnel extends Controller
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
-        $total      = $model->count($search, $school, $animalType, $sex, $researcherType);
-        $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset);
+        $total      = $model->count($search, $school, $animalType, $sex, $researcherType, $status);
+        $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, null, $status);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('personnel/personnel-records', [
@@ -181,6 +185,7 @@ class Personnel extends Controller
             'animalType'      => $animalType,
             'sex'          => $sex,
             'researcherType'  => $researcherType,
+            'status'          => $status,
             'sort'            => $sort,
             'schools'         => $model->distinctValues('school'),
             'animalTypes'     => $model->distinctValues('animal_type'),
@@ -398,6 +403,7 @@ class Personnel extends Controller
             'Duration',
             'Date Released',
             'Received By',
+            'Status',
         ];
         $recordsSheet->fromArray($headers, null, 'A1');
 
@@ -418,11 +424,12 @@ class Personnel extends Controller
                 $this->formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
                 $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '',
                 $r['received_by'] ?? '',
+                $r['status'] ?? RecordModel::DEFAULT_STATUS,
             ], null, "A$row");
             $row++;
         }
 
-        foreach (range('A', 'N') as $column) {
+        foreach (range('A', 'O') as $column) {
             $recordsSheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -553,6 +560,7 @@ class Personnel extends Controller
             'research_duration_end'   => $str('research_duration_end'),
             'date_released'           => $str('date_released'),
             'received_by'             => $str('received_by'),
+            'status'                  => in_array($str('status'), RecordModel::STATUSES, true) ? $str('status') : RecordModel::DEFAULT_STATUS,
         ];
     }
 
