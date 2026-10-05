@@ -357,7 +357,7 @@
 }
 
 .return-reason-bar-comment {
-  font-style: italic;
+  /* font-style: italic; */
   color: #fcd34d;
 }
 

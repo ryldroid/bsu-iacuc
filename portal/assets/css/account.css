@@ -192,6 +192,7 @@ main button {
 
 main .btn-login {
     width: 160px;
+    margin-top: 0;
 }
 
 main button:hover {
@@ -417,8 +418,7 @@ main button:hover {
     text-decoration: underline;
     font-size: .8em;
     cursor: pointer;
-    font-style: italic;
-
+    /* font-style: italic; */
 }
 
 .email-verify-resend:hover {

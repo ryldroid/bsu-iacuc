@@ -740,7 +740,7 @@
 }
 
 .history-return-note-body {
-  font-style: italic;
+  /* font-style: italic; */
 }
 
 .history-title-note {
@@ -850,7 +850,7 @@
 
 .history-return-comment {
   margin: .5rem 0 0 21px;
-  font-style: italic;
+  /* font-style: italic; */
   color: var(--muted-text);
 }
 

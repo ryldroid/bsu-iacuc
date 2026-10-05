@@ -167,7 +167,7 @@ h2 {
 
 .office-announcement-card.is-untitled .office-announcement-title {
   font-weight: 400;
-  font-style: italic;
+  /* font-style: italic; */
   opacity: 0.8;
 }
 
@@ -341,7 +341,7 @@ h2 {
 
 .ann-empty-state {
   color: var(--muted-text);
-  font-style: italic;
+  /* font-style: italic; */
   opacity: 0.85;
 }
 

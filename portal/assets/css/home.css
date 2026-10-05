@@ -525,7 +525,7 @@ h2 {
 
 .home-announcement-cont.is-untitled .home-announcement-teaser-title {
     font-weight: 400;
-    font-style: italic;
+    /* font-style: italic; */
     opacity: 0.8;
 }
 

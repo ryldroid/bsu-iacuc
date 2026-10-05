@@ -386,7 +386,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                                 <?php if ($hasFilters): ?>
                                                     No records match your search or filters.
                                                 <?php else: ?>
-                                                    No records yet. Records are added automatically when a protocol is marked <strong>Reviewed</strong>, or you can add one manually.
+                                                    No records yet. Records are added automatically when a protocol is marked <strong>Reviewed</strong>. You may also add entries manually.
                                                 <?php endif; ?>
                                             </div>
                                         </td>

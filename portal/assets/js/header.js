@@ -186,11 +186,9 @@ function handleHeaderScroll() {
 
   if (currentScrollY <= 0) {
     setHeaderHidden(false);
-  }
-  else if (diff > 0) {
+  } else if (diff > 0) {
     setHeaderHidden(true);
-  }
-  else {
+  } else {
     setHeaderHidden(false);
   }
 
@@ -209,3 +207,68 @@ if (mainHeader) {
 } else {
   syncHeaderOffset();
 }
+
+// ===== HEADER ICON TOOLTIPS: press-and-hold on touch screens =====
+(function () {
+  const HOLD_MS = 450;
+  const LINGER_MS = 1500;
+  let holdTimer = null;
+  let hideTimer = null;
+  let activeEl = null;
+  let suppressClick = false;
+
+  function clearTip() {
+    clearTimeout(holdTimer);
+    clearTimeout(hideTimer);
+    if (activeEl) activeEl.classList.remove("tooltip-show");
+    activeEl = null;
+  }
+
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      const el = e.target.closest("header [data-tooltip]");
+      if (!el) return clearTip();
+      clearTip();
+      holdTimer = setTimeout(() => {
+        activeEl = el;
+        el.classList.add("tooltip-show");
+        suppressClick = true;
+      }, HOLD_MS);
+    },
+    { passive: true },
+  );
+
+  function release() {
+    clearTimeout(holdTimer);
+    if (activeEl) {
+      hideTimer = setTimeout(clearTip, LINGER_MS);
+      setTimeout(() => (suppressClick = false), 400);
+    }
+  }
+  document.addEventListener("touchend", release);
+  document.addEventListener("touchcancel", clearTip);
+  document.addEventListener("touchmove", () => clearTimeout(holdTimer), {
+    passive: true,
+  });
+
+  // A long press shouldn't also trigger the button / link
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (suppressClick && e.target.closest("header [data-tooltip]")) {
+        e.preventDefault();
+        e.stopPropagation();
+        suppressClick = false;
+      }
+    },
+    true,
+  );
+
+  // Block the browser's long-press menu on header icons
+  document.addEventListener("contextmenu", (e) => {
+    if (e.target.closest("header [data-tooltip]") && "ontouchstart" in window) {
+      e.preventDefault();
+    }
+  });
+})();

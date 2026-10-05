@@ -37,7 +37,7 @@
 
 .return-reason-comment {
     color: var(--muted-text);
-    font-style: italic;
+    /* font-style: italic; */
 }
 
 /* ===== RESPONSIVE ===== */

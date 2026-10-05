@@ -332,7 +332,7 @@ main a.underlined:hover {
 }
 
 .italic {
-    font-style: italic;
+    /* font-style: italic; */
 }
 
 .helper {

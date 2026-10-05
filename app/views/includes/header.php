@@ -94,18 +94,18 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
           <?php if ($user) { ?>
             <?php if ($role === 'staff' || $role === 'reviewer'): ?>
               <!-- PREVIEW LIVE SITE -->
-              <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview Live Site">
+              <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview public site" data-tooltip="Preview public site">
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#eye-icon" />
                 </svg>
-                <span>Preview Live Site</span>
               </a>
             <?php endif; ?>
 
             <button class="notif-bell"
               aria-expanded="false"
               aria-haspopup="true"
-              aria-label="Show notifications"
+              aria-label="Notifications"
+              data-tooltip="Notifications"
               aria-controls="notif-dropdown">
 
               <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -129,7 +129,8 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
             <button class="my-account-dropdown"
               aria-expanded="false"
               aria-haspopup="true"
-              aria-label="Show account dropdown menu"
+              aria-label="My account"
+              data-tooltip="My account"
               aria-controls="account-dropdown">
 
               <!-- <img src="<?= IMGPATH ?>/scientist.webp" alt=""> -->
@@ -183,7 +184,8 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
             class="mobile-menu"
             aria-expanded="false"
             aria-controls="nav-sidebar"
-            aria-label="Toggle navigation menu">
+            aria-label="Menu"
+            data-tooltip="Menu">
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <use href="#menu-icon" />
             </svg>

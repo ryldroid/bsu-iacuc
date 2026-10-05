@@ -146,7 +146,7 @@
     color: var(--secondary-text);
     margin-bottom: 10px;
     text-align: left;
-    font-style: italic;
+    /* font-style: italic; */
 }
 
 .announcement-modal-text {
