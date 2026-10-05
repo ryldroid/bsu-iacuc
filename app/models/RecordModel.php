@@ -59,25 +59,29 @@ class RecordModel extends Model
   }
 
   public const PERIOD_PRESETS = [
-    'all'            => 'All time',
     'this_month'     => 'This month',
     'last_month'     => 'Last month',
     'this_quarter'   => 'This quarter',
     'this_year'      => 'This year',
     'last_year'      => 'Last year',
     'last_12_months' => 'Last 12 months',
+    'all'            => 'All time',
     'custom'         => 'Custom range',
   ];
 
-  public const PERIOD_BASES = [
-    'released' => 'Date Released',
-    'duration' => 'Research Duration',
-  ];
+  public const DEFAULT_PERIOD = 'this_month';
 
-  public function resolvePeriod(string $preset, string $basis, string $from = '', string $to = ''): ?array
+  // A record's date for period purposes: the release date if staff filled it in,
+  // otherwise the day its protocol was marked Reviewed (when the record was created).
+  private const RECORD_DATE_SQL = "COALESCE(date_released, (
+      SELECT DATE(MIN(al.created_at)) FROM `audit_logs` al
+      WHERE al.action = 'status_updated' AND al.target_type = 'protocol'
+        AND al.target_id = records.protocol_id
+        AND al.details = 'Status changed to: Reviewed'))";
+
+  public function resolvePeriod(string $preset, string $from = '', string $to = ''): ?array
   {
     if (! isset(self::PERIOD_PRESETS[$preset]) || $preset === 'all') return null;
-    if (! isset(self::PERIOD_BASES[$basis])) $basis = 'released';
 
     $today = strtotime('today');
     $qStartMonth = (int) ((ceil((int) date('n', $today) / 3) - 1) * 3 + 1);
@@ -117,36 +121,26 @@ class RecordModel extends Model
         if ($start === null && $end === null) return null;
     }
 
-    if ($basis === 'released') {
-      $parts = ['date_released IS NOT NULL'];
-      if ($start !== null) $parts[] = "date_released >= '$start'";
-      if ($end !== null)   $parts[] = "date_released <= '$end'";
-      $missing = 'date_released IS NULL';
-    } else {
-      $parts = ['research_duration_end IS NOT NULL'];
-      if ($start !== null) $parts[] = "research_duration_end >= '$start'";
-      if ($end !== null)   $parts[] = "(research_duration_start IS NULL OR research_duration_start <= '$end')";
-      $missing = 'research_duration_end IS NULL';
-    }
+    $parts = [];
+    if ($start !== null) $parts[] = self::RECORD_DATE_SQL . " >= '$start'";
+    if ($end !== null)   $parts[] = self::RECORD_DATE_SQL . " <= '$end'";
 
     $fmt = fn(string $d) => date(DATE_FORMAT, strtotime($d));
     if ($start !== null && $end !== null) {
-      $range = $fmt($start) . ' to ' . $fmt($end);
+      $label = $fmt($start) . ' to ' . $fmt($end);
     } elseif ($start !== null) {
-      $range = 'From ' . $fmt($start);
+      $label = 'From ' . $fmt($start);
     } else {
-      $range = 'Until ' . $fmt($end);
+      $label = 'Until ' . $fmt($end);
     }
 
     return [
       'preset'      => $preset,
-      'basis'       => $basis,
       'from'        => $start,
       'to'          => $end,
       'sql'         => '(' . implode(' AND ', $parts) . ')',
-      'missing_sql' => $missing,
-      'label'       => $range . ' (' . self::PERIOD_BASES[$basis] . ')',
-      'missing_by'  => $basis === 'released' ? 'a release date' : 'a research end date',
+      'missing_sql' => self::RECORD_DATE_SQL . ' IS NULL',
+      'label'       => $label,
     ];
   }
 
@@ -230,66 +224,85 @@ class RecordModel extends Model
 
 
   // ===== STATISTICS =====
-  public function stats(
-    string $search = '',
-    string $school = '',
-    string $animalType = '',
-    string $sex = '',
-    string $researcherType = '',
-    ?array $period = null
-  ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period);
+  public function stats(?array $period = null): array
+  {
+    // Record-based stats use the period's record date; workflow stats use event timestamps.
+    [$where, $params, $types] = $this->buildFilters('', '', '', '', '', $period);
 
-    // ===== PERIOD FILTER =====
-    $excludedByPeriod = 0;
-    if ($period !== null) {
-      [$baseWhere, $baseParams, $baseTypes] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType);
-      $excludedByPeriod = (int) ($this->scalarQuery(
-        "SELECT COUNT(*) FROM `records` " . $this->andClause($baseWhere, $period['missing_sql']),
-        $baseParams,
-        $baseTypes
-      ) ?? 0);
-    }
+    // ===== PROTOCOL WORKFLOW (audit log / uploads, within the period) =====
+    $reviewed = $this->protocolEventCount('status_updated', 'Status changed to: Reviewed', $period);
+    $endorsed = $this->protocolEventCount('status_updated', 'Status changed to: Endorsed', $period);
+    $signed   = $this->protocolEventCount('signed_scan_uploaded', null, $period);
+    $revised  = $this->protocolEventCount('protocol_revised', null, $period);
 
-    // ===== TOTALS =====
-    $total = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
+    $revisionSubmissions = $this->protocolEventCount('protocol_revised', null, $period, true);
+    $avgRevisions        = $revised > 0 ? round($revisionSubmissions / $revised, 1) : 0.0;
 
-    $processedThisMonth = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE()) AND MONTH(date_released) = MONTH(CURDATE())"
-      ),
-      $params,
-      $types
+    [$window, $windowParams, $windowTypes] = $this->timeWindow('pv.uploaded_at', $period);
+    $clearancesReturned = (int) ($this->scalarQuery(
+      "SELECT COUNT(DISTINCT pv.protocol_id) FROM `protocol_versions` pv
+       JOIN `protocols` p ON p.id = pv.protocol_id AND p.deleted_at IS NULL
+       WHERE pv.file_type = 'clearance'$window",
+      $windowParams,
+      $windowTypes
     ) ?? 0);
 
-    $processedThisQuarter = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE()) AND QUARTER(date_released) = QUARTER(CURDATE())"
-      ),
-      $params,
-      $types
-    ) ?? 0);
+    // ===== REVISIONS PER PROTOCOL / PER PI =====
+    [$window, $windowParams, $windowTypes] = $this->timeWindow('al.created_at', $period);
+    $revisionsByProtocol = $this->rows(
+      "SELECT p.title AS label,
+              CONCAT(p.title, ' (', COALESCE(NULLIF(p.ar_number, ''), NULLIF(p.reference_no, ''), CONCAT('Protocol #', p.id)), ')') AS tooltip,
+              COUNT(*) AS total
+       FROM `audit_logs` al
+       JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
+       WHERE al.action = 'protocol_revised' AND al.target_type = 'protocol'$window
+       GROUP BY p.id ORDER BY total DESC, p.id ASC LIMIT 8",
+      $windowParams,
+      $windowTypes
+    );
+    $revisionsByPi = $this->rows(
+      "SELECT TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS label,
+              COUNT(*) AS total, COUNT(DISTINCT p.id) AS protocols
+       FROM `audit_logs` al
+       JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
+       JOIN `users` u ON u.id = p.user_id
+       WHERE al.action = 'protocol_revised' AND al.target_type = 'protocol'$window
+       GROUP BY u.id ORDER BY total DESC, label ASC LIMIT 8",
+      $windowParams,
+      $windowTypes
+    );
+
+    // ===== RECORDS (within the period) =====
+    $totalRecords    = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
+    $totalRecordsAll = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records`", [], '') ?? 0);
 
     $totalAnimals = (int) ($this->scalarQuery("SELECT COALESCE(SUM(animal_count), 0) FROM `records` $where", $params, $types) ?? 0);
+    $withCount    = (int) ($this->scalarQuery(
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count IS NOT NULL"),
+      $params,
+      $types
+    ) ?? 0);
 
-    $animalBreakdown = $this->groupedQuery(
+    $speciesBreakdown = $this->groupedQuery(
       'animal_type',
       $this->andClause($where, "animal_type IS NOT NULL AND animal_type != '' AND animal_count IS NOT NULL"),
       $params,
       $types,
-      'SUM(animal_count)'
+      'SUM(animal_count)',
+      ', COUNT(*) AS protocols'
     );
-
-    // ===== BREAKDOWNS =====
     $schoolBreakdown = $this->groupedQuery(
       'school',
       $this->andClause($where, "school IS NOT NULL AND school != ''"),
       $params,
       $types
     );
-
+    $sexBreakdown = $this->groupedQuery(
+      'sex',
+      $this->andClause($where, "sex IS NOT NULL AND sex != ''"),
+      $params,
+      $types
+    );
     $researcherTypeBreakdown = $this->groupedQuery(
       'researcher_type',
       $this->andClause($where, "researcher_type IS NOT NULL AND researcher_type != ''"),
@@ -297,237 +310,128 @@ class RecordModel extends Model
       $types
     );
 
-    $sexBreakdown = $this->groupedQuery(
-      'sex',
-      $this->andClause($where, "sex IS NOT NULL AND sex != ''"),
-      $params,
-      $types
-    );
-
-    // ===== DATA QUALITY & DISTINCT COUNTS =====
     $incompleteCount = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause(
         $where,
-        "(animal_count IS NULL OR research_duration_start IS NULL OR research_duration_end IS NULL OR date_released IS NULL)"
+        "(animal_count IS NULL OR animal_type IS NULL OR animal_type = '' OR researcher_type IS NULL OR researcher_type = '')"
       ),
       $params,
       $types
     ) ?? 0);
 
-    $distinctSchools = (int) ($this->scalarQuery(
-      "SELECT COUNT(DISTINCT school) FROM `records` " . $this->andClause($where, "school IS NOT NULL AND school != ''"),
-      $params,
-      $types
-    ) ?? 0);
+    $excludedByPeriod = 0;
+    if ($period !== null) {
+      $excludedByPeriod = (int) ($this->scalarQuery(
+        "SELECT COUNT(*) FROM `records` WHERE " . $period['missing_sql'],
+        [],
+        ''
+      ) ?? 0);
+    }
 
-    $distinctResearchers = (int) ($this->scalarQuery(
-      "SELECT COUNT(DISTINCT principal_investigator) FROM `records` " . $this->andClause($where, "principal_investigator IS NOT NULL AND principal_investigator != ''"),
-      $params,
-      $types
-    ) ?? 0);
-
-    $protocolsWithCount = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count IS NOT NULL"),
-      $params,
-      $types
-    ) ?? 0);
-    $avgAnimalsPerProtocol = $protocolsWithCount > 0 ? round($totalAnimals / $protocolsWithCount, 1) : 0.0;
-
-    // ===== STUDY STATUS =====
-    $ongoingStudies = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "research_duration_start IS NOT NULL AND research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()"
-      ),
-      $params,
-      $types
-    ) ?? 0);
-
-    $completedStudies = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "research_duration_start IS NOT NULL AND research_duration_end IS NOT NULL AND research_duration_end < CURDATE()"
-      ),
-      $params,
-      $types
-    ) ?? 0);
-
-    // ===== MONTHLY TREND =====
-    $monthlyTrend = $this->quarterMonthlyTrend($where, $params, $types);
-
+    // ===== ACTIVE CLEARANCES (snapshot as of today, not limited to the period) =====
     $activeClearances = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()"),
-      $params,
-      $types
+      "SELECT COUNT(*) FROM `records` WHERE research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()",
+      [],
+      ''
     ) ?? 0);
-
-    // ===== CLEARANCE EXPIRY =====
     $expiringSoon = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "research_duration_end IS NOT NULL AND research_duration_end >= CURDATE() AND research_duration_end <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)"
-      ),
-      $params,
-      $types
+      "SELECT COUNT(*) FROM `records`
+       WHERE research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()
+         AND research_duration_end <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)",
+      [],
+      ''
     ) ?? 0);
 
-    $expiredClearances = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NOT NULL AND research_duration_end < CURDATE()"),
-      $params,
-      $types
-    ) ?? 0);
-
-    $noDurationCount = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "research_duration_end IS NULL"),
-      $params,
-      $types
-    ) ?? 0);
-
-    // ===== RELEASED THIS YEAR =====
-    $releasedThisYear = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE())"),
-      $params,
-      $types
-    ) ?? 0);
-
-    // ===== SPECIES BREAKDOWN =====
-    $speciesBreakdown = $this->groupedQuery(
-      'animal_type',
-      $this->andClause($where, "animal_type IS NOT NULL AND animal_type != ''"),
-      $params,
-      $types,
-      'COALESCE(SUM(animal_count), 0)',
-      ', COUNT(*) AS protocols'
-    );
-
-    // ===== PROTOCOL STATUS COUNTS =====
-    $protocolsReviewed = $this->protocolStatusCount('Reviewed', $period);
-    $protocolsEndorsed = $this->protocolStatusCount('Endorsed', $period);
-    $thisMonth         = $this->resolvePeriod('this_month', 'released');
-    $reviewedThisMonth = $this->protocolStatusCount('Reviewed', $thisMonth);
-    $endorsedThisMonth = $this->protocolStatusCount('Endorsed', $thisMonth);
-
-    // ===== RESULT =====
     return [
-      'total'                      => $total,
-      'processed_this_month'       => $processedThisMonth,
-      'processed_this_quarter'     => $processedThisQuarter,
-      'total_animals'              => $totalAnimals,
-      'animal_breakdown'           => $animalBreakdown,
-      'school_breakdown'           => $schoolBreakdown,
-      'researcher_type_breakdown'  => $researcherTypeBreakdown,
-      'sex_breakdown'              => $sexBreakdown,
-      'incomplete_count'           => $incompleteCount,
-      'distinct_schools'           => $distinctSchools,
-      'distinct_researchers'       => $distinctResearchers,
-      'protocols_with_count'       => $protocolsWithCount,
-      'avg_animals_per_protocol'   => $avgAnimalsPerProtocol,
-      'ongoing_studies'            => $ongoingStudies,
-      'completed_studies'          => $completedStudies,
-      'monthly_trend'              => $monthlyTrend,
-      'active_clearances'          => $activeClearances,
-      'expiring_soon'              => $expiringSoon,
-      'expired_clearances'         => $expiredClearances,
-      'no_duration_count'          => $noDurationCount,
-      'released_this_year'         => $releasedThisYear,
-      'species_breakdown'          => $speciesBreakdown,
-      'protocols_reviewed'         => $protocolsReviewed,
-      'protocols_endorsed'         => $protocolsEndorsed,
-      'reviewed_this_month'        => $reviewedThisMonth,
-      'endorsed_this_month'        => $endorsedThisMonth,
-      'release_trend'              => $this->releaseTrend($where, $params, $types),
-      'excluded_by_period'         => $excludedByPeriod,
+      'reviewed'                  => $reviewed,
+      'revised'                   => $revised,
+      'revision_submissions'      => $revisionSubmissions,
+      'avg_revisions'             => $avgRevisions,
+      'revisions_by_protocol'     => $revisionsByProtocol,
+      'revisions_by_pi'           => $revisionsByPi,
+      'endorsed'                  => $endorsed,
+      'signed'                    => $signed,
+      'clearances_returned'       => $clearancesReturned,
+      'total_records'             => $totalRecords,
+      'total_records_all'         => $totalRecordsAll,
+      'active_clearances'         => $activeClearances,
+      'expiring_soon'             => $expiringSoon,
+      'total_animals'             => $totalAnimals,
+      'avg_animals_per_record'    => $withCount > 0 ? round($totalAnimals / $withCount, 1) : 0.0,
+      'species_breakdown'         => $speciesBreakdown,
+      'school_breakdown'          => $schoolBreakdown,
+      'sex_breakdown'             => $sexBreakdown,
+      'researcher_type_breakdown' => $researcherTypeBreakdown,
+      'incomplete_count'          => $incompleteCount,
+      'excluded_by_period'        => $excludedByPeriod,
     ];
   }
 
   // ===== STATISTICS HELPERS =====
-  private function protocolStatusCount(string $status, ?array $period): int
+
+  // Protocols (or raw events when $countEvents) that logged $action within the period.
+  private function protocolEventCount(string $action, ?string $detail, ?array $period, bool $countEvents = false): int
   {
-    $sql    = "SELECT COUNT(DISTINCT target_id) FROM `audit_logs` WHERE action = 'status_updated' AND target_type = 'protocol' AND details = ?";
-    $detail = "Status changed to: $status";
-    $params = [$detail];
-    $types  = 's';
+    [$window, $params, $types] = $this->timeWindow('al.created_at', $period);
+
+    $sql = "SELECT " . ($countEvents ? 'COUNT(*)' : 'COUNT(DISTINCT al.target_id)') . "
+            FROM `audit_logs` al
+            JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
+            WHERE al.target_type = 'protocol' AND al.action = ?";
+    array_unshift($params, $action);
+    $types = 's' . $types;
+
+    if ($detail !== null) {
+      $sql .= ' AND al.details = ?';
+      array_splice($params, 1, 0, [$detail]);
+      $types = 's' . $types;
+    }
+
+    return (int) ($this->scalarQuery($sql . $window, $params, $types) ?? 0);
+  }
+
+  // Extra "AND column BETWEEN period" fragment for timestamp columns.
+  private function timeWindow(string $column, ?array $period): array
+  {
+    $sql    = '';
+    $params = [];
+    $types  = '';
 
     if ($period !== null && $period['from'] !== null) {
-      $sql .= ' AND created_at >= ?';
+      $sql     .= " AND $column >= ?";
       $params[] = $period['from'] . ' 00:00:00';
       $types   .= 's';
     }
     if ($period !== null && $period['to'] !== null) {
-      $sql .= ' AND created_at <= ?';
+      $sql     .= " AND $column <= ?";
       $params[] = $period['to'] . ' 23:59:59';
       $types   .= 's';
     }
 
-    return (int) ($this->scalarQuery($sql, $params, $types) ?? 0);
+    return [$sql, $params, $types];
   }
 
-  private function quarterMonthlyTrend(string $where, array $params, string $types): array
+  // bind_param needs references; plain values trigger PHP 8 warnings via call_user_func_array.
+  private function bindAll(mysqli_stmt $stmt, array $params, string $types): void
   {
-    $sql = "SELECT MONTH(date_released) AS m, COUNT(*) AS total FROM `records` " . $this->andClause(
-      $where,
-      "date_released IS NOT NULL AND YEAR(date_released) = YEAR(CURDATE()) AND QUARTER(date_released) = QUARTER(CURDATE())"
-    ) . " GROUP BY MONTH(date_released)";
+    if ($types === '') return;
 
+    $bound = [$types];
+    foreach (array_keys($params) as $i) {
+      $bound[] = &$params[$i];
+    }
+    call_user_func_array([$stmt, 'bind_param'], $bound);
+  }
+
+  private function rows(string $sql, array $params, string $types): array
+  {
     $stmt = $this->connection->prepare($sql);
     if (! $stmt) return [];
 
-    if ($types) {
-      $bound = $params;
-      array_unshift($bound, $types);
-      call_user_func_array([$stmt, 'bind_param'], $bound);
-    }
+    $this->bindAll($stmt, $params, $types);
 
     $stmt->execute();
-    $counts = [];
-    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-      $counts[(int) $row['m']] = (int) $row['total'];
-    }
-
-    $quarterStartMonth = (int) ((ceil((int) date('n') / 3) - 1) * 3 + 1);
-    $trend = [];
-    for ($i = 0; $i < 3; $i++) {
-      $m = $quarterStartMonth + $i;
-      $trend[] = [
-        'month' => date('M', mktime(0, 0, 0, $m, 1)),
-        'total' => $counts[$m] ?? 0,
-      ];
-    }
-    return $trend;
-  }
-
-  private function releaseTrend(string $where, array $params, string $types): array
-  {
-    $sql = "SELECT DATE_FORMAT(date_released, '%Y-%m') AS ym, COUNT(*) AS total FROM `records` " . $this->andClause(
-      $where,
-      "date_released IS NOT NULL AND date_released >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH)"
-    ) . " GROUP BY ym";
-
-    $stmt = $this->connection->prepare($sql);
-    if (! $stmt) return [];
-
-    if ($types) {
-      $bound = $params;
-      array_unshift($bound, $types);
-      call_user_func_array([$stmt, 'bind_param'], $bound);
-    }
-
-    $stmt->execute();
-    $counts = [];
-    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-      $counts[$row['ym']] = (int) $row['total'];
-    }
-
-    $trend = [];
-    for ($i = 11; $i >= 0; $i--) {
-      $ts = strtotime(date('Y-m-01') . " -$i months");
-      $trend[] = [
-        'month' => date('M', $ts),
-        'year'  => date('Y', $ts),
-        'total' => $counts[date('Y-m', $ts)] ?? 0,
-      ];
-    }
-    return $trend;
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   }
 
   private function andClause(string $where, string $extra): string
@@ -540,11 +444,7 @@ class RecordModel extends Model
     $stmt = $this->connection->prepare($sql);
     if (! $stmt) return null;
 
-    if ($types) {
-      $bound = $params;
-      array_unshift($bound, $types);
-      call_user_func_array([$stmt, 'bind_param'], $bound);
-    }
+    $this->bindAll($stmt, $params, $types);
 
     $stmt->execute();
     $row = $stmt->get_result()->fetch_row();
@@ -558,11 +458,7 @@ class RecordModel extends Model
     );
     if (! $stmt) return [];
 
-    if ($types) {
-      $bound = $params;
-      array_unshift($bound, $types);
-      call_user_func_array([$stmt, 'bind_param'], $bound);
-    }
+    $this->bindAll($stmt, $params, $types);
 
     $stmt->execute();
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

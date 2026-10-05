@@ -8,7 +8,7 @@ class Controller
     $filename = VIEWSPATH . $name . '.view.php';
 
     if (file_exists($filename)) {
-      $data['user'] = $_SESSION['user'] ?? null;
+      $data['user'] = array_key_exists('user', $data) ? $data['user'] : ($_SESSION['user'] ?? null);
       extract($data);
       require_once $filename;
     } else {

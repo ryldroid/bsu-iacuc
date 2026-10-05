@@ -6,6 +6,8 @@ $first_name = $user['first_name'] ?? '';
 $role = $user['role'] ?? '';
 $hideHeaderAuth = $hideHeaderAuth ?? false;
 $hideHeader     = $hideHeader     ?? false;
+$previewMode     = $previewMode     ?? false;
+$pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 ?>
 
 <!DOCTYPE html>
@@ -74,7 +76,7 @@ $hideHeader     = $hideHeader     ?? false;
   <?php if (!$hideHeader): ?>
     <header>
       <div class="header-logo-cont">
-        <a href="<?= ROOT ?>" class="header-logo">
+        <a href="<?= $previewMode ? $pubRoot . '/home' : ROOT ?>" class="header-logo">
           <div>
             <!-- <img src="<?= IMGPATH ?>/bsu.webp" alt=""> -->
             <!-- <img src="<?= IMGPATH ?>/ccard.webp" alt=""> -->
@@ -90,6 +92,16 @@ $hideHeader     = $hideHeader     ?? false;
       <?php if (!$hideHeaderAuth): ?>
         <div class="header-auth">
           <?php if ($user) { ?>
+            <?php if ($role === 'staff' || $role === 'reviewer'): ?>
+              <!-- PREVIEW LIVE SITE -->
+              <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview Live Site">
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#eye-icon" />
+                </svg>
+                <span>Preview Live Site</span>
+              </a>
+            <?php endif; ?>
+
             <button class="notif-bell"
               aria-expanded="false"
               aria-haspopup="true"
@@ -156,6 +168,10 @@ $hideHeader     = $hideHeader     ?? false;
                   </form>
             </div>
 
+            <!-- PREVIEW (PERSONNEL VIEWING THE PUBLIC SITE) -->
+          <?php } elseif ($previewMode) { ?>
+            <span class="preview-tag">[Preview]</span>
+
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->
           <?php } else { ?>
             <a href="<?= ROOT ?>/user/login" id="headerLogin" class="auth-btn">Sign In</a>
@@ -214,10 +230,6 @@ $hideHeader     = $hideHeader     ?? false;
               <li><a href="<?= ROOT ?>/personnel/site_content"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#edit-icon" />
                   </svg><span>Site Content</span></a></li>
-            <?php else: ?>
-              <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#announcement-icon" />
-                  </svg><span>Announcements</span></a></li>
             <?php endif; ?>
             <?php if ($role === 'staff'): ?>
               <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -232,13 +244,13 @@ $hideHeader     = $hideHeader     ?? false;
       <!-- PUBLIC MOBILE NAVIGATION -->
       <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
         <ul class="nav-sidebar" id="nav-sidebar" inert>
-          <li><a href="<?= ROOT ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <li><a href="<?= $pubRoot ?>/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#home-icon" />
               </svg><span>Home</span></a></li>
-          <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <li><a href="<?= $pubRoot ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#announcement-icon" />
               </svg><span>Announcements</span></a></li>
-          <li><a href="<?= ROOT ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <li><a href="<?= $pubRoot ?>/contact"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#contact-icon" />
               </svg><span>Contact</span></a></li>
         </ul>

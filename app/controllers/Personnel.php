@@ -153,11 +153,13 @@ class Personnel extends Controller
         $sex         = trim($_GET['sex'] ?? '');
         $researcherType = trim($_GET['rtype']  ?? '');
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
-        $periodPreset   = trim($_GET['period'] ?? '') ?: 'all';
-        $periodBasis    = trim($_GET['basis']  ?? '') ?: 'released';
+        $periodPreset   = trim($_GET['period'] ?? '');
+        if (! isset(RecordModel::PERIOD_PRESETS[$periodPreset])) {
+            $periodPreset = RecordModel::DEFAULT_PERIOD;
+        }
         $periodFrom     = trim($_GET['from']   ?? '');
         $periodTo       = trim($_GET['to']     ?? '');
-        $period         = $model->resolvePeriod($periodPreset, $periodBasis, $periodFrom, $periodTo);
+        $period         = $model->resolvePeriod($periodPreset, $periodFrom, $periodTo);
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
@@ -184,10 +186,9 @@ class Personnel extends Controller
             'animalTypes'     => $model->distinctValues('animal_type'),
             'sexes'         => $model->distinctValues('sex'),
             'researcherTypes' => $model->distinctValues('researcher_type'),
-            'stats'           => $model->stats($search, $school, $animalType, $sex, $researcherType, $period),
+            'stats'           => $model->stats($period),
             'period'          => $period,
-            'periodPreset'    => isset(RecordModel::PERIOD_PRESETS[$periodPreset]) ? $periodPreset : 'all',
-            'periodBasis'     => isset(RecordModel::PERIOD_BASES[$periodBasis]) ? $periodBasis : 'released',
+            'periodPreset'    => $periodPreset,
             'periodFrom'      => $period['from'] ?? $periodFrom,
             'periodTo'        => $period['to'] ?? $periodTo,
             'flash_success'   => $_SESSION['flash_success'] ?? '',
@@ -355,38 +356,28 @@ class Personnel extends Controller
     {
         $this->requirePersonnel();
 
-        // ===== READ FILTERS =====
-        $model          = new RecordModel();
-        $search         = trim($_GET['search'] ?? '');
-        $school         = trim($_GET['school'] ?? '');
-        $animalType     = trim($_GET['animal'] ?? '');
-        $sex         = trim($_GET['sex'] ?? '');
-        $researcherType = trim($_GET['rtype']  ?? '');
-        $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
-        $period         = $model->resolvePeriod(
-            trim($_GET['period'] ?? '') ?: 'all',
-            trim($_GET['basis']  ?? '') ?: 'released',
-            trim($_GET['from']   ?? ''),
-            trim($_GET['to']     ?? '')
+        // ===== READ PERIOD =====
+        $model        = new RecordModel();
+        $periodPreset = trim($_GET['period'] ?? '');
+        if (! isset(RecordModel::PERIOD_PRESETS[$periodPreset])) {
+            $periodPreset = RecordModel::DEFAULT_PERIOD;
+        }
+        $period = $model->resolvePeriod(
+            $periodPreset,
+            trim($_GET['from'] ?? ''),
+            trim($_GET['to']   ?? '')
         );
 
         // ===== LOAD DATA =====
-        $records = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, 1000000, 0, $period);
-        $stats   = $model->stats($search, $school, $animalType, $sex, $researcherType, $period);
+        $records = $model->getAll('', '', '', '', '', 'newest', 1000000, 0, $period);
+        $stats   = $model->stats($period);
 
         // ===== STATISTICS SHEET =====
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
         $statsSheet = $spreadsheet->getActiveSheet();
         $statsSheet->setTitle('Statistics');
-        $this->writeStatisticsSheet($statsSheet, $stats, [
-            'Search'          => $search,
-            'School'          => $school,
-            'Animal Type'     => $animalType,
-            'Researcher Sex'  => $sex,
-            'Researcher Type' => $researcherType,
-            'Period'          => $period['label'] ?? '',
-        ]);
+        $this->writeStatisticsSheet($statsSheet, $stats, $period['label'] ?? 'All time');
 
         // ===== RECORDS SHEET =====
         $recordsSheet = $spreadsheet->createSheet();
@@ -454,7 +445,7 @@ class Personnel extends Controller
 
 
     // ===== EXPORT HELPERS =====
-    private function writeStatisticsSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $stats, array $filters): void
+    private function writeStatisticsSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $stats, string $periodLabel): void
     {
         $row = 1;
         $sheet->setCellValue("A$row", 'BSU-IACUC Records:  Statistics Summary');
@@ -464,11 +455,7 @@ class Personnel extends Controller
         $sheet->setCellValue("A$row", 'Generated: ' . date(DATETIME_FORMAT));
         $row++;
 
-        $activeFilters = array_filter($filters, fn($v) => $v !== '');
-        $filterText    = $activeFilters
-            ? implode('; ', array_map(fn($k, $v) => "$k: $v", array_keys($activeFilters), $activeFilters))
-            : 'None';
-        $sheet->setCellValue("A$row", "Filters applied: $filterText");
+        $sheet->setCellValue("A$row", "Period: $periodLabel");
         $row += 2;
 
         $sheet->setCellValue("A$row", 'Summary');
@@ -477,21 +464,16 @@ class Personnel extends Controller
 
         foreach (
             [
-                ['Total Records', $stats['total']],
-                ['Processed This Month', $stats['processed_this_month']],
-                ['Processed This Quarter', $stats['processed_this_quarter']],
-                ['Total Animals Recorded', $stats['total_animals']],
-                ['Average Animals per Protocol', $stats['avg_animals_per_protocol']],
-                ['Distinct Schools', $stats['distinct_schools']],
-                ['Distinct Researchers', $stats['distinct_researchers']],
-                ['Protocols Reviewed', $stats['protocols_reviewed']],
-                ['Protocols Endorsed', $stats['protocols_endorsed']],
-                ['Ongoing Studies', $stats['ongoing_studies']],
-                ['Completed Studies', $stats['completed_studies']],
-                ['Active Clearances', $stats['active_clearances']],
-                ['Clearances Expiring Within 30 Days', $stats['expiring_soon']],
-                ['Expired Clearances', $stats['expired_clearances']],
-                ['Records Missing Details', $stats['incomplete_count']],
+                ['Protocols Reviewed', $stats['reviewed']],
+                ['Protocols Revised', $stats['revised']],
+                ['Revision Submissions', $stats['revision_submissions']],
+                ['Average Revisions per Revised Protocol', $stats['avg_revisions']],
+                ['Protocols Endorsed', $stats['endorsed']],
+                ['Protocols Signed by IACUC Chair', $stats['signed']],
+                ['Clearances Returned', $stats['clearances_returned']],
+                ['Total Records', $stats['total_records']],
+                ['Active Clearances (as of today)', $stats['active_clearances']],
+                ['Total Animals Used', $stats['total_animals']],
             ] as [$label, $value]
         ) {
             $sheet->setCellValue("A$row", $label);
@@ -500,21 +482,12 @@ class Personnel extends Controller
         }
         $row++;
 
-        $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Type', $stats['animal_breakdown'], 'Animal Type');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Records by School', $stats['school_breakdown'], 'School');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Records by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
-
-        $sheet->setCellValue("A$row", 'Records Processed by Month (This Quarter)');
-        $sheet->getStyle("A$row")->getFont()->setBold(true);
-        $row++;
-        $sheet->fromArray(['Month', 'Count'], null, "A$row");
-        $sheet->getStyle("A$row:B$row")->getFont()->setBold(true);
-        $row++;
-        foreach ($stats['monthly_trend'] as $entry) {
-            $sheet->fromArray([$entry['month'], $entry['total']], null, "A$row");
-            $row++;
-        }
+        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per Protocol', $stats['revisions_by_protocol'], 'Protocol');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per PI', $stats['revisions_by_pi'], 'Principal Investigator');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Species', $stats['species_breakdown'], 'Species');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by School', $stats['school_breakdown'], 'School');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
 
         foreach (['A', 'B', 'C'] as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);

@@ -41,7 +41,7 @@
 
 /* ===== Metric cards ===== */
 .records-metrics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   max-width: none;
   gap: 14px;
 }
@@ -97,15 +97,6 @@
   color: var(--muted-text);
 }
 
-.records-stat-card--warn .records-stat-icon {
-  background: var(--status-warning-bg);
-  color: var(--status-warning-text);
-}
-
-.records-stat-card--warn .metric-card-value {
-  color: var(--status-warning-text);
-}
-
 /* ===== Statistics: notices ===== */
 .records-data-note,
 .records-filter-note {
@@ -144,13 +135,16 @@
 /* ===== Statistics: chart cards ===== */
 .records-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
 
-.records-bar-card,
-.records-trend-card {
+.records-chart-wide {
+  grid-column: span 2;
+}
+
+.records-bar-card {
   background: var(--card-background);
   border: 1px solid var(--divider-color);
   border-radius: var(--btn-radius);
@@ -158,8 +152,7 @@
   padding: 18px 20px;
 }
 
-.records-bar-card .metric-card-label,
-.records-trend-card .metric-card-label {
+.records-bar-card .metric-card-label {
   margin-bottom: 0;
   font-size: .82em;
   font-weight: 700;
@@ -240,6 +233,78 @@
   margin-left: 4px;
   font-weight: 500;
   color: var(--muted-text);
+}
+
+/* Stacked rows: label on top (clamped to two lines), bar and count underneath */
+.records-bar-chart--stacked .records-bar-row {
+  grid-template-columns: 1fr auto;
+  row-gap: 5px;
+}
+
+.records-bar-chart--stacked .records-bar-label {
+  grid-column: 1 / -1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ===== Statistics: column chart ===== */
+.records-column-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.records-column-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.records-column-count {
+  font-size: .85em;
+  font-weight: 700;
+  color: var(--primary-text);
+  text-align: center;
+}
+
+.records-column-count small {
+  display: block;
+  font-size: .78em;
+  font-weight: 500;
+  color: var(--muted-text);
+}
+
+.records-column-track {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--divider-color-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.records-column-fill {
+  width: 100%;
+  height: var(--column-pct);
+  min-height: 2px;
+  background: var(--brand-color);
+  border-radius: 4px;
+}
+
+.records-column-label {
+  font-size: .74em;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--secondary-text);
+  overflow-wrap: anywhere;
 }
 
 .records-card-empty {
@@ -452,56 +517,6 @@
 
 .records-period-apply:hover {
   background: var(--brand-color-hover);
-}
-
-/* ===== Monthly trend chart ===== */
-.records-trend-card {
-  grid-column: 1 / -1;
-}
-
-.records-trend-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding-top: 4px;
-}
-
-.records-trend-col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.records-trend-bar-track {
-  width: 100%;
-  height: 110px;
-  display: flex;
-  align-items: flex-end;
-  background: var(--divider-color-subtle);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.records-trend-bar-fill {
-  width: 100%;
-  height: var(--trend-pct);
-  background: var(--brand-color);
-  border-radius: 4px;
-}
-
-.records-trend-count {
-  font-size: .85em;
-  font-weight: 700;
-  color: var(--primary-text);
-}
-
-.records-trend-month {
-  font-size: .72em;
-  font-weight: 600;
-  color: var(--muted-text);
 }
 
 /* ===== Filters & sorting ===== */
@@ -900,27 +915,31 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .records-metrics {
     grid-template-columns: 1fr 1fr;
   }
 }
 
+@media (max-width: 1300px) {
+  .records-charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
+
+  .records-metrics,
   .records-charts-grid {
     grid-template-columns: 1fr;
   }
 
+  .records-chart-wide {
+    grid-column: auto;
+  }
+
   .records-bar-row {
     grid-template-columns: 90px 1fr auto;
-  }
-
-  .records-trend-chart {
-    gap: 4px;
-  }
-
-  .records-trend-count {
-    font-size: .7em;
   }
 
   .records-form-grid {

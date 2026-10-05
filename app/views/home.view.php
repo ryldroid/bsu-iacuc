@@ -2,6 +2,9 @@
 
 $title = "Home";
 
+$previewMode = $previewMode ?? false;
+$pubRoot     = $previewMode ? ROOT . '/preview' : ROOT;
+
 $siteSettings    = $siteSettings ?? [];
 $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - Institutional Animal Care and Use Committee';
 $aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
@@ -53,7 +56,11 @@ include "includes/scroll-top.php";
                             <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
                         </p>
                         <div id="apply-actions">
-                            <a href="<?= ROOT ?>/apply" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>
+                            <?php if ($previewMode): ?>
+                                <a href="#" class="button btn-apply" aria-disabled="true" onclick="return false;">Click to Apply for IACUC Protocol Review</a>
+                            <?php else: ?>
+                                <a href="<?= ROOT ?>/apply" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </article>
@@ -131,7 +138,7 @@ include "includes/scroll-top.php";
                     <section class="home-announcements-teaser">
                         <div class="home-announcements-teaser-header">
                             <h2>Latest Announcements</h2>
-                            <a href="<?= ROOT ?>/announcements" class="underlined see_all">See all ></a>
+                            <a href="<?= $pubRoot ?>/announcements" class="underlined see_all">See all ></a>
                         </div>
                         <div class="home-announcements-list">
                             <?php foreach ($latestAnnouncements as $post):
@@ -232,7 +239,7 @@ include "includes/scroll-top.php";
                                 </span>
                                 <div class="timeline-content">
                                     <h3>Apply for Review</h3>
-                                    <p>Go to the <a href="<?= ROOT ?>/apply" class="underlined">application page</a>. Follow the steps to submit your IACUC protocol form.</p>
+                                    <p>Go to the <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.</p>
                                 </div>
                             </li>
 
@@ -377,7 +384,7 @@ include "includes/scroll-top.php";
     }
     // ===== APPLY BUTTON:  Continue vs New =====
     (function() {
-        const isLoggedIn = <?= isset($_SESSION['user']['user_id']) ? 'true' : 'false' ?>;
+        const isLoggedIn = <?= !$previewMode && isset($_SESSION['user']['user_id']) ? 'true' : 'false' ?>;
         const ROOT_URL = '<?= ROOT ?>';
         const applyUrl = ROOT_URL + '/apply';
         const container = document.getElementById('apply-actions');

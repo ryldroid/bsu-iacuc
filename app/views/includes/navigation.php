@@ -2,6 +2,8 @@
 
 /** @var array|null $user */
 $role = $user['role'] ?? '';
+$previewMode = $previewMode ?? false;
+$pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('navigation.css') ?>">
@@ -60,17 +62,6 @@ $role = $user['role'] ?? '';
                             <span>Records</span>
                         </div>
                     </li>
-
-                    <li>
-                        <a href="<?= ROOT ?>/announcements">
-                            <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#announcement-icon" />
-                            </svg>
-                        </a>
-                        <div>
-                            <span>Announcements</span>
-                        </div>
-                    </li>
                 <?php endif; ?>
 
 
@@ -90,7 +81,7 @@ $role = $user['role'] ?? '';
             <?php else: ?>
                 <!-- PUBLIC / RESEARCHER NAVIGATION -->
                 <li>
-                    <a href="<?= ROOT ?>/home">
+                    <a href="<?= $pubRoot ?>/home">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#home-icon" />
                         </svg>
@@ -115,7 +106,7 @@ $role = $user['role'] ?? '';
                 <?php endif; ?>
 
                 <li>
-                    <a href="<?= ROOT ?>/announcements">
+                    <a href="<?= $pubRoot ?>/announcements">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#announcement-icon" />
                         </svg>
@@ -126,7 +117,7 @@ $role = $user['role'] ?? '';
                 </li>
 
                 <li>
-                    <a href="<?= ROOT ?>/contact">
+                    <a href="<?= $pubRoot ?>/contact">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#contact-icon" />
                         </svg>

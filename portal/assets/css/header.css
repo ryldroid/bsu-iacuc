@@ -408,6 +408,25 @@ header nav a:hover::after {
     font-size: .85em;
 }
 
+/* ===== Preview live site link ===== */
+.header-auth .header-preview-link {
+    display: flex;
+    align-items: center;
+    gap: .5em;
+    font-size: .85em;
+}
+
+/* ===== Preview label ===== */
+.header-auth .preview-tag {
+    padding: 5px 10px;
+    font-size: .85em;
+    font-weight: 600;
+    border-radius: var(--radius);
+    background: var(--tint-on-brand-soft);
+    cursor: default;
+    user-select: none;
+}
+
 .header-auth {
     position: relative;
     display: flex;
@@ -551,7 +570,8 @@ header nav a:hover::after {
         gap: 0;
     }
 
-    .header-auth button span:not(.chev-icon):not(.notif-badge) {
+    .header-auth button span:not(.chev-icon):not(.notif-badge),
+    .header-auth .header-preview-link span {
         display: none;
     }
 

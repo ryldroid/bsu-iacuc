@@ -23,38 +23,30 @@ $animalTypes     = $animalTypes     ?? [];
 $sexes         = $sexes         ?? [];
 $researcherTypes = $researcherTypes ?? [];
 $stats           = $stats           ?? [
-    'total' => 0,
-    'processed_this_month' => 0,
-    'processed_this_quarter' => 0,
-    'total_animals' => 0,
-    'animal_breakdown' => [],
-    'school_breakdown' => [],
-    'researcher_type_breakdown' => [],
-    'sex_breakdown' => [],
-    'incomplete_count' => 0,
-    'distinct_schools' => 0,
-    'distinct_researchers' => 0,
-    'protocols_with_count' => 0,
-    'avg_animals_per_protocol' => 0,
-    'ongoing_studies' => 0,
-    'completed_studies' => 0,
-    'monthly_trend' => [],
+    'reviewed' => 0,
+    'revised' => 0,
+    'revision_submissions' => 0,
+    'avg_revisions' => 0,
+    'revisions_by_protocol' => [],
+    'revisions_by_pi' => [],
+    'endorsed' => 0,
+    'signed' => 0,
+    'clearances_returned' => 0,
+    'total_records' => 0,
+    'total_records_all' => 0,
     'active_clearances' => 0,
     'expiring_soon' => 0,
-    'expired_clearances' => 0,
-    'no_duration_count' => 0,
-    'released_this_year' => 0,
+    'total_animals' => 0,
+    'avg_animals_per_record' => 0,
     'species_breakdown' => [],
-    'protocols_reviewed' => 0,
-    'protocols_endorsed' => 0,
-    'reviewed_this_month' => 0,
-    'endorsed_this_month' => 0,
-    'release_trend' => [],
+    'school_breakdown' => [],
+    'sex_breakdown' => [],
+    'researcher_type_breakdown' => [],
+    'incomplete_count' => 0,
     'excluded_by_period' => 0,
 ];
 $period          = $period          ?? null;
-$periodPreset    = $periodPreset    ?? 'all';
-$periodBasis     = $periodBasis     ?? 'released';
+$periodPreset    = $periodPreset    ?? RecordModel::DEFAULT_PERIOD;
 $periodFrom      = $periodFrom      ?? '';
 $periodTo        = $periodTo        ?? '';
 $flash_success   = $flash_success   ?? '';
@@ -66,14 +58,16 @@ $isStaff = $role === 'staff';
 $colCount = 15;
 
 // ===== Chart helpers =====
-function statBarRows(array $breakdown, int $topN = 6): array
+function statBarRows(array $breakdown, int $topN = 6, bool $groupOther = true): array
 {
     if (! $breakdown) return [];
-    $top  = array_slice($breakdown, 0, $topN);
-    $rest = array_slice($breakdown, $topN);
-    $otherTotal = array_sum(array_column($rest, 'total'));
-    if ($otherTotal > 0) {
-        $top[] = ['label' => 'Other', 'total' => $otherTotal, 'protocols' => array_sum(array_column($rest, 'protocols'))];
+    $top = array_slice($breakdown, 0, $topN);
+    if ($groupOther) {
+        $rest       = array_slice($breakdown, $topN);
+        $otherTotal = array_sum(array_column($rest, 'total'));
+        if ($otherTotal > 0) {
+            $top[] = ['label' => 'Other', 'total' => $otherTotal, 'protocols' => array_sum(array_column($rest, 'protocols'))];
+        }
     }
     $grandTotal = array_sum(array_column($top, 'total'));
     $max        = max(array_column($top, 'total'));
@@ -85,21 +79,23 @@ function statBarRows(array $breakdown, int $topN = 6): array
             'share'     => $grandTotal > 0 ? round(($row['total'] / $grandTotal) * 100) : 0,
             'bar'       => $max > 0 ? round(($row['total'] / $max) * 100) : 0,
             'protocols' => isset($row['protocols']) ? (int) $row['protocols'] : null,
+            'tooltip'   => $row['tooltip'] ?? null,
             'modifier'  => $row['modifier'] ?? '',
         ];
     }
     return $rows;
 }
 
-function renderBarList(array $rows, string $emptyText, bool $showShare = true): void
+function renderBarList(array $rows, string $emptyText, bool $showShare = true, bool $stacked = false): void
 {
     if (! $rows) {
         echo '<div class="records-card-empty">' . htmlspecialchars($emptyText) . '</div>';
         return;
     }
-    echo '<ul class="records-bar-chart">';
+    echo '<ul class="records-bar-chart' . ($stacked ? ' records-bar-chart--stacked' : '') . '">';
     foreach ($rows as $r) {
-        $title = $r['protocols'] !== null ? ' title="' . (int) $r['protocols'] . ' record(s)"' : '';
+        $hover = $r['tooltip'] ?? ($r['protocols'] !== null ? (int) $r['protocols'] . ' protocol(s)' : null);
+        $title = $hover !== null ? ' title="' . htmlspecialchars((string) $hover, ENT_QUOTES) . '"' : '';
         $fill  = 'records-bar-fill' . ($r['modifier'] !== '' ? ' records-bar-fill--' . $r['modifier'] : '');
         echo '<li class="records-bar-row"' . $title . '>';
         echo '<span class="records-bar-label">' . htmlspecialchars($r['label']) . '</span>';
@@ -109,6 +105,35 @@ function renderBarList(array $rows, string $emptyText, bool $showShare = true): 
         echo '</span></li>';
     }
     echo '</ul>';
+}
+
+function renderStatCard(string $icon, string $label, int $value, string $hint): void
+{
+    echo '<div class="metric-card records-stat-card">';
+    echo '<div class="records-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . $icon . '"></use></svg></div>';
+    echo '<div>';
+    echo '<div class="metric-card-label">' . htmlspecialchars($label) . '</div>';
+    echo '<div class="metric-card-value">' . number_format($value) . '</div>';
+    echo '<div class="records-stat-hint">' . htmlspecialchars($hint) . '</div>';
+    echo '</div></div>';
+}
+
+function renderColumnChart(array $rows, string $emptyText, string $unit): void
+{
+    if (! $rows) {
+        echo '<div class="records-card-empty">' . htmlspecialchars($emptyText) . '</div>';
+        return;
+    }
+    echo '<div class="records-column-chart">';
+    foreach ($rows as $r) {
+        $hover = htmlspecialchars($r['label'] . ': ' . number_format($r['total']) . ' ' . $unit, ENT_QUOTES);
+        echo '<div class="records-column-col" title="' . $hover . '">';
+        echo '<div class="records-column-count">' . number_format($r['total']) . '<small>' . $r['share'] . '%</small></div>';
+        echo '<div class="records-column-track"><div class="records-column-fill" style="--column-pct: ' . $r['bar'] . '%"></div></div>';
+        echo '<div class="records-column-label">' . htmlspecialchars($r['label']) . '</div>';
+        echo '</div>';
+    }
+    echo '</div>';
 }
 
 function renderDonut(array $rows, string $centerLabel, string $emptyText): void
@@ -148,45 +173,19 @@ function renderDonut(array $rows, string $centerLabel, string $emptyText): void
     echo '</div>';
 }
 
-$speciesRows    = statBarRows($stats['species_breakdown']);
-$schoolRows     = statBarRows($stats['school_breakdown']);
-$researcherRows = statBarRows($stats['researcher_type_breakdown']);
-$sexRows        = statBarRows($stats['sex_breakdown']);
+$speciesRows        = statBarRows($stats['species_breakdown']);
+$schoolRows         = statBarRows($stats['school_breakdown']);
+$researcherRows     = statBarRows($stats['researcher_type_breakdown']);
+$sexRows            = statBarRows($stats['sex_breakdown']);
+$revisionProtoRows  = statBarRows($stats['revisions_by_protocol'], 8, false);
+$revisionPiRows     = statBarRows($stats['revisions_by_pi'], 8, false);
 
-$activeOnly = max(0, $stats['active_clearances'] - $stats['expiring_soon']);
-$statusRows = statBarRows(array_values(array_filter([
-    ['label' => 'Active',                  'total' => $activeOnly,                   'modifier' => 'ok'],
-    ['label' => 'Expiring within 30 days', 'total' => $stats['expiring_soon'],       'modifier' => 'warn'],
-    ['label' => 'Expired',                 'total' => $stats['expired_clearances'],  'modifier' => 'danger'],
-    ['label' => 'No end date set',         'total' => $stats['no_duration_count'],   'modifier' => 'muted'],
-], fn($r) => $r['total'] > 0)));
-
-$releaseTrend    = $stats['release_trend'] ?? [];
-$releaseTrendMax = $releaseTrend ? max(array_column($releaseTrend, 'total')) : 0;
-
-$activeFilterLabels = array_filter([
-    'Search'          => $search,
-    'School'          => $school,
-    'Animal'          => $animalType,
-    'Sex'             => $sex,
-    'Researcher type' => $researcherType,
-    'Period'          => $period['label'] ?? '',
-], fn($v) => $v !== '');
-
-$carriedFilters = array_filter([
-    'search' => $search,
-    'school' => $school,
-    'animal' => $animalType,
-    'sex'    => $sex,
-    'rtype'  => $researcherType,
-    'sort'   => $sort !== 'newest' ? $sort : '',
-], fn($v) => $v !== '');
-$periodParams = $period ? array_filter([
+$periodLabel  = $period['label'] ?? 'All time';
+$periodParams = array_filter([
     'period' => $periodPreset,
-    'basis'  => $periodBasis,
     'from'   => $periodPreset === 'custom' ? $periodFrom : '',
     'to'     => $periodPreset === 'custom' ? $periodTo : '',
-], fn($v) => $v !== '') : [];
+], fn($v) => $v !== '');
 
 $activeTab = ($_GET['tab'] ?? '') === 'statistics' ? 'statistics' : 'records';
 
@@ -353,9 +352,6 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
 
                     <input type="hidden" name="page" value="1">
-                    <?php foreach ($periodParams as $name => $value): ?>
-                        <input type="hidden" name="<?= htmlspecialchars($name, ENT_QUOTES) ?>" value="<?= htmlspecialchars($value, ENT_QUOTES) ?>">
-                    <?php endforeach; ?>
                 </form>
 
                 <!-- ===== Table ===== -->
@@ -507,7 +503,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="dashboard-page-header">
                     <h1 class="dashboard-page-title">Statistics</h1>
                     <a class="row-btn records-export-btn"
-                        href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($carriedFilters + $periodParams) ?>">
+                        href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($periodParams) ?>">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#download-icon">
                         </svg>
@@ -515,12 +511,9 @@ function formatDurationRange(?string $start, ?string $end): string
                     </a>
                 </div>
 
-                <!-- ===== Period filter (statistics only) ===== -->
+                <!-- ===== Period filter ===== -->
                 <form method="GET" action="" class="records-filters-row" id="statsPeriodForm">
                     <input type="hidden" name="tab" value="statistics">
-                    <?php foreach ($carriedFilters as $name => $value): ?>
-                        <input type="hidden" name="<?= htmlspecialchars($name, ENT_QUOTES) ?>" value="<?= htmlspecialchars($value, ENT_QUOTES) ?>">
-                    <?php endforeach; ?>
 
                     <p class="sort-filter-label">
                         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -541,33 +534,19 @@ function formatDurationRange(?string $start, ?string $end): string
                         <button type="submit" class="row-btn records-period-apply">Apply</button>
                     </span>
 
-                    <p class="sort-filter-label">Based on:</p>
-                    <select name="basis" id="statsBasis" class="records-filter-select" aria-label="Which date to filter by">
-                        <?php foreach (RecordModel::PERIOD_BASES as $key => $label): ?>
-                            <option value="<?= $key ?>" <?= $periodBasis === $key ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <?php if ($period): ?>
-                        <a href="<?= ROOT ?>/personnel/records?<?= http_build_query(['tab' => 'statistics'] + $carriedFilters) ?>" class="row-btn records-clear-btn">
+                    <?php if ($periodPreset !== RecordModel::DEFAULT_PERIOD): ?>
+                        <a href="<?= ROOT ?>/personnel/records?tab=statistics" class="row-btn records-clear-btn">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#close-icon" />
                             </svg>
-                            Reset period
+                            Back to this month
                         </a>
                     <?php endif; ?>
                 </form>
 
-                <?php if ($activeFilterLabels): ?>
-                    <div class="records-filter-note">
-                        <span>Showing statistics for:
-                            <?= htmlspecialchars(implode(' · ', array_map(fn($k, $v) => "$k: $v", array_keys($activeFilterLabels), $activeFilterLabels))) ?>
-                        </span>
-                        <?php if ($carriedFilters): ?>
-                            <a href="<?= ROOT ?>/personnel/records?tab=statistics">Clear all filters</a>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+                <div class="records-filter-note">
+                    <span>Showing statistics for: <?= htmlspecialchars($periodLabel) ?></span>
+                </div>
 
                 <?php if ($period && $stats['excluded_by_period'] > 0): ?>
                     <div class="records-data-note">
@@ -575,85 +554,35 @@ function formatDurationRange(?string $start, ?string $end): string
                             <use href="#info-icon"></use>
                         </svg>
                         <span>
-                            <?= number_format($stats['excluded_by_period']) ?> record(s) have no <?= $period['missing_by'] ?> and can't be placed in this period, so they are left out.
+                            <?= number_format($stats['excluded_by_period']) ?> record(s) have no release or review date and can't be placed in this period, so the record counts and charts leave them out.
                         </span>
                     </div>
                 <?php endif; ?>
 
                 <!-- ===== Headline numbers ===== -->
                 <div class="metrics-row records-metrics">
-                    <div class="metric-card records-stat-card">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Protocols Reviewed This Month</div>
-                            <div class="metric-card-value"><?= number_format($stats['reviewed_this_month']) ?></div>
-                            <div class="records-stat-hint"><?= number_format($stats['protocols_reviewed']) ?> <?= $period ? 'in selected period' : 'all time' ?></div>
-                        </div>
-                    </div>
-                    <div class="metric-card records-stat-card">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#check-circle-icon"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Protocols Endorsed This Month</div>
-                            <div class="metric-card-value"><?= number_format($stats['endorsed_this_month']) ?></div>
-                            <div class="records-stat-hint"><?= number_format($stats['protocols_endorsed']) ?> <?= $period ? 'in selected period' : 'all time' ?></div>
-                        </div>
-                    </div>
-                    <div class="metric-card records-stat-card">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#protocols-icon"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Total Records</div>
-                            <div class="metric-card-value"><?= number_format($stats['total']) ?></div>
-                            <div class="records-stat-hint"><?= number_format($stats['released_this_year']) ?> released this year</div>
-                        </div>
-                    </div>
-                    <div class="metric-card records-stat-card">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#shield-check-icon"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Active Clearances</div>
-                            <div class="metric-card-value"><?= number_format($stats['active_clearances']) ?></div>
-                            <div class="records-stat-hint"><?= number_format($stats['expired_clearances']) ?> expired</div>
-                        </div>
-                    </div>
-                    <div class="metric-card records-stat-card <?= $stats['expiring_soon'] > 0 ? 'records-stat-card--warn' : '' ?>">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#<?= $stats['expiring_soon'] > 0 ? 'alert-triangle-icon' : 'clock-icon' ?>"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Expiring in 30 Days</div>
-                            <div class="metric-card-value"><?= number_format($stats['expiring_soon']) ?></div>
-                            <div class="records-stat-hint"><?= $stats['expiring_soon'] > 0 ? 'Clearances ending soon' : 'Nothing expiring soon' ?></div>
-                        </div>
-                    </div>
-                    <div class="metric-card records-stat-card">
-                        <div class="records-stat-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#beaker-icon"></use>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="metric-card-label">Total Animals Used</div>
-                            <div class="metric-card-value"><?= number_format($stats['total_animals']) ?></div>
-                            <div class="records-stat-hint">Avg <?= number_format($stats['avg_animals_per_protocol'], 1) ?> per record</div>
-                        </div>
-                    </div>
+                    <?php
+                    renderStatCard('review-icon', 'Protocols Reviewed', $stats['reviewed'], 'Finished review in this period');
+                    renderStatCard(
+                        'refresh-icon',
+                        'Protocols Revised',
+                        $stats['revised'],
+                        $stats['revised'] > 0
+                            ? number_format($stats['revision_submissions']) . ' resubmission(s), avg ' . number_format($stats['avg_revisions'], 1) . ' per protocol'
+                            : 'No resubmissions'
+                    );
+                    renderStatCard('check-circle-icon', 'Protocols Endorsed', $stats['endorsed'], 'Endorsed by administrative staff');
+                    renderStatCard('edit-icon', 'Signed by IACUC Chair', $stats['signed'], 'Signed scans uploaded');
+                    renderStatCard('clearance-icon', 'Clearances Returned', $stats['clearances_returned'], 'Clearance documents attached');
+                    renderStatCard('protocols-icon', 'Total Records', $stats['total_records'], number_format($stats['total_records_all']) . ' all time');
+                    renderStatCard(
+                        'shield-check-icon',
+                        'Active Clearances',
+                        $stats['active_clearances'],
+                        'As of today, ' . number_format($stats['expiring_soon']) . ' ending within 30 days'
+                    );
+                    renderStatCard('beaker-icon', 'Total Animals Used', $stats['total_animals'], 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record');
+                    ?>
                 </div>
 
                 <?php if ($stats['incomplete_count'] > 0): ?>
@@ -662,62 +591,48 @@ function formatDurationRange(?string $start, ?string $end): string
                             <use href="#info-icon"></use>
                         </svg>
                         <span>
-                            <?= number_format($stats['incomplete_count']) ?> of <?= number_format($stats['total']) ?> records are missing an animal count, duration, or release date.
-                            Totals here only count what has been filled in, so they may be lower than the real figures.
+                            <?= number_format($stats['incomplete_count']) ?> of <?= number_format($stats['total_records']) ?> records in this period are missing an animal count, species, or researcher type.
+                            The animal and researcher type figures only count what has been filled in.
                         </span>
                     </div>
                 <?php endif; ?>
 
                 <!-- ===== Breakdowns ===== -->
                 <div class="records-charts-grid">
+                    <div class="metric-card records-bar-card records-chart-wide">
+                        <div class="metric-card-label">Revisions per Protocol</div>
+                        <p class="records-card-hint">Most resubmitted protocols in this period</p>
+                        <?php renderBarList($revisionProtoRows, 'No revisions in this period.', false, true); ?>
+                    </div>
+
+                    <div class="metric-card records-bar-card">
+                        <div class="metric-card-label">Revisions per PI</div>
+                        <p class="records-card-hint">Resubmissions by principal investigator</p>
+                        <?php renderBarList($revisionPiRows, 'No revisions in this period.', false); ?>
+                    </div>
+
                     <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Animals Used by Species</div>
-                        <p class="records-card-hint">Total animals across all records</p>
-                        <?php renderBarList($speciesRows, 'No animal data yet.'); ?>
+                        <p class="records-card-hint">Total animals across records in this period</p>
+                        <?php renderColumnChart($speciesRows, 'No animal data in this period.', 'animal(s)'); ?>
                     </div>
 
-                    <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Clearance Status</div>
-                        <p class="records-card-hint">Based on each record's research end date</p>
-                        <?php renderDonut($statusRows, 'records', 'No records yet.'); ?>
-                    </div>
-
-                    <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Records by School</div>
+                    <div class="metric-card records-bar-card records-chart-wide">
+                        <div class="metric-card-label">Protocols by School</div>
                         <p class="records-card-hint">Where researchers come from</p>
-                        <?php renderBarList($schoolRows, 'No school data yet.'); ?>
+                        <?php renderDonut($schoolRows, 'protocols', 'No school data in this period.'); ?>
                     </div>
 
                     <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Records by Researcher Type</div>
-                        <p class="records-card-hint">Student, faculty, staff, or researcher</p>
-                        <?php renderDonut($researcherRows, 'records', 'No researcher type data yet.'); ?>
-                    </div>
-
-                    <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Records by Researcher Sex</div>
+                        <div class="metric-card-label">Protocols by Researcher Sex</div>
                         <p class="records-card-hint">Recorded sex of the researcher</p>
-                        <?php renderDonut($sexRows, 'records', 'No sex data yet.'); ?>
+                        <?php renderDonut($sexRows, 'protocols', 'No sex data in this period.'); ?>
                     </div>
 
-                    <div class="metric-card records-trend-card">
-                        <div class="metric-card-label">Records Released, Last 12 Months</div>
-                        <p class="records-card-hint">Counted by Date Released</p>
-                        <?php if ($releaseTrendMax > 0): ?>
-                            <div class="records-trend-chart">
-                                <?php foreach ($releaseTrend as $m): ?>
-                                    <div class="records-trend-col" title="<?= htmlspecialchars($m['month'] . ' ' . $m['year']) ?>">
-                                        <div class="records-trend-count"><?= number_format($m['total']) ?></div>
-                                        <div class="records-trend-bar-track">
-                                            <div class="records-trend-bar-fill" style="--trend-pct: <?= round(($m['total'] / $releaseTrendMax) * 100) ?>%"></div>
-                                        </div>
-                                        <div class="records-trend-month"><?= htmlspecialchars($m['month']) ?></div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <div class="records-card-empty">No release dates recorded yet. Fill in Date Released on a record to see it here.</div>
-                        <?php endif; ?>
+                    <div class="metric-card records-bar-card">
+                        <div class="metric-card-label">Protocols by Research Type</div>
+                        <p class="records-card-hint">Student, faculty, staff, or researcher</p>
+                        <?php renderDonut($researcherRows, 'protocols', 'No researcher type data in this period.'); ?>
                     </div>
                 </div>
             </div>
@@ -1159,7 +1074,6 @@ function formatDurationRange(?string $start, ?string $end): string
             const form = document.getElementById('statsPeriodForm');
             if (!form) return;
             const period = document.getElementById('statsPeriod');
-            const basis = document.getElementById('statsBasis');
             const custom = document.getElementById('statsPeriodCustom');
 
             period.addEventListener('change', () => {
@@ -1171,7 +1085,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 }
                 form.submit();
             });
-            basis.addEventListener('change', () => form.submit());
         })();
 
         // ===== Drag-to-scroll table =====
