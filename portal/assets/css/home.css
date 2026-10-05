@@ -700,7 +700,6 @@ h2 {
         gap: 1.25rem;
         padding-left: 0;
         margin-bottom: 0;
-
     }
 
     .logos img {
@@ -743,8 +742,8 @@ h2 {
     }
 
     .logos img {
-        width: 46px;
-        height: 46px;
+        width: 52px;
+        height: 52px;
     }
 
     .banner h1 {
@@ -859,8 +858,8 @@ h2 {
     }
 
     .logos img {
-        width: 38px;
-        height: 38px;
+        /* width: 38px; */
+        /* height: 38px; */
     }
 
     .home-iacuc p {
