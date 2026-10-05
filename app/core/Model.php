@@ -350,7 +350,7 @@ class Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->seedContactOffices();
-        $this->migrateBaiToDaCarfu();
+        $this->migrateContactOffices();
 
         // ===== FAQS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `faqs` (
@@ -581,19 +581,6 @@ class Model
         $offices = [
             [
                 0,
-                'Benguet State University - La Trinidad Campus',
-                'bsu.webp',
-                'La Trinidad, Benguet, 2601 Philippines',
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-            ],
-            [
-                1,
                 'Cordillera Center for Research and Development',
                 'ccard.webp',
                 'CCARD Bldg., CVM Compound, KM.5, La Trinidad, Benguet, 2601 Philipppines',
@@ -606,7 +593,33 @@ class Model
                 'ab.mendoza@gmail.com',
             ],
             [
+                1,
+                'Office of the Vice President for Research and Extension',
+                'ovpre.webp',
+                "Km. 6, La Trinidad, Benguet\n2601 Philippines",
+                '63.74.665.7645',
+                'vp.re@bsu.edu.ph',
+                'https://www.facebook.com/bsuovpre/',
+                'facebook.com/bsuovpre',
+                null,
+                null,
+                null,
+            ],
+            [
                 2,
+                'Benguet State University - La Trinidad Campus',
+                'bsu.webp',
+                'La Trinidad, Benguet, 2601 Philippines',
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+            ],
+            [
+                3,
                 'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division',
                 'da.webp',
                 'BPI Compound, Guisad, Baguio City, Benguet',
@@ -619,7 +632,7 @@ class Model
                 null,
             ],
             [
-                3,
+                4,
                 'BAI Central Office',
                 'bai.webp',
                 'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila',
@@ -646,44 +659,92 @@ class Model
         }
     }
 
-    // ===== ONE-TIME UPDATE: BAI card -> DA-CARFU + BAI Central Office =====
-    // Only matches the old seeded row, so it runs once and leaves later edits alone.
-    private function migrateBaiToDaCarfu(): void
+    // ===== ONE-TIME UPDATE: contact offices (DA-CARFU, BAI Central, OVPRE + new order) =====
+    // Runs once per database (flag in site_settings), so later edits in Site Content are kept.
+    private function migrateContactOffices(): void
     {
-        $c = $this->connection;
+        $c       = $this->connection;
+        $flagKey = 'contacts_migrated_v2';
 
-        $name    = 'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division';
-        $logo    = 'da.webp';
-        $address = 'BPI Compound, Guisad, Baguio City, Benguet';
-        $old     = 'Bureau of Animal Industry';
-
-        $stmt = $c->prepare(
-            "UPDATE `contact_offices` SET name = ?, logo_path = ?, address = ? WHERE name = ?"
-        );
-        if (! $stmt) return;
-        $stmt->bind_param('ssss', $name, $logo, $address, $old);
-        $stmt->execute();
-        if ($stmt->affected_rows < 1) {
+        $chk = $c->prepare("SELECT 1 FROM `site_settings` WHERE setting_key = ?");
+        if (! $chk) return;
+        $chk->bind_param('s', $flagKey);
+        $chk->execute();
+        if ($chk->get_result()->fetch_assoc()) {
             return;
         }
 
-        $sortOrder = 3;
-        $bName     = 'BAI Central Office';
-        $bLogo     = 'bai.webp';
-        $bAddress  = 'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila';
-        $bPhone    = '8528 2240';
-        $bEmail    = 'strategiccommunications@bai.gov.ph';
-        $bFbUrl    = 'https://www.facebook.com/bai.gov.ph';
-        $bFbLabel  = 'facebook.com/bai.gov.ph';
+        // 1) Old "Bureau of Animal Industry" card -> DA-CARFU Regulatory Division
+        $daName = 'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division';
+        $daLogo = 'da.webp';
+        $daAddr = 'BPI Compound, Guisad, Baguio City, Benguet';
+        $old    = 'Bureau of Animal Industry';
+        $upd = $c->prepare("UPDATE `contact_offices` SET name = ?, logo_path = ?, address = ? WHERE name = ?");
+        if ($upd) {
+            $upd->bind_param('ssss', $daName, $daLogo, $daAddr, $old);
+            $upd->execute();
+        }
 
+        // 2) Add any missing offices
         $ins = $c->prepare(
             "INSERT INTO `contact_offices`
                 (sort_order, name, logo_path, address, phone, email, facebook_url, facebook_label)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+             SELECT ?, ?, ?, ?, ?, ?, ?, ?
+             FROM DUAL
+             WHERE NOT EXISTS (SELECT 1 FROM `contact_offices` WHERE name = ?)"
         );
-        if (! $ins) return;
-        $ins->bind_param('isssssss', $sortOrder, $bName, $bLogo, $bAddress, $bPhone, $bEmail, $bFbUrl, $bFbLabel);
-        $ins->execute();
+        if ($ins) {
+            $new = [
+                [
+                    1,
+                    'Office of the Vice President for Research and Extension',
+                    'ovpre.webp',
+                    "Km. 6, La Trinidad, Benguet\n2601 Philippines",
+                    '63.74.665.7645',
+                    'vp.re@bsu.edu.ph',
+                    'https://www.facebook.com/bsuovpre/',
+                    'facebook.com/bsuovpre'
+                ],
+                [
+                    4,
+                    'BAI Central Office',
+                    'bai.webp',
+                    'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila',
+                    '8528 2240',
+                    'strategiccommunications@bai.gov.ph',
+                    'https://www.facebook.com/bai.gov.ph',
+                    'facebook.com/bai.gov.ph'
+                ],
+            ];
+            foreach ($new as [$so, $nm, $lg, $ad, $ph, $em, $fb, $fl]) {
+                $ins->bind_param('issssssss', $so, $nm, $lg, $ad, $ph, $em, $fb, $fl, $nm);
+                $ins->execute();
+            }
+        }
+
+        // 3) Order: CCARD > OVPRE > BSU > DA > BAI
+        $order = [
+            'Cordillera Center for Research and Development'            => 0,
+            'Office of the Vice President for Research and Extension'   => 1,
+            'Benguet State University - La Trinidad Campus'             => 2,
+            $daName                                                     => 3,
+            'BAI Central Office'                                        => 4,
+        ];
+        $ord = $c->prepare("UPDATE `contact_offices` SET sort_order = ? WHERE name = ?");
+        if ($ord) {
+            foreach ($order as $nm => $so) {
+                $ord->bind_param('is', $so, $nm);
+                $ord->execute();
+            }
+        }
+
+        // 4) Mark done
+        $flagVal = '1';
+        $flag = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        if ($flag) {
+            $flag->bind_param('ss', $flagKey, $flagVal);
+            $flag->execute();
+        }
     }
 
     private function seedFaqs(): void
