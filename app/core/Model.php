@@ -350,6 +350,7 @@ class Model
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->seedContactOffices();
+        $this->migrateBaiToDaCarfu();
 
         // ===== FAQS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `faqs` (
@@ -606,13 +607,26 @@ class Model
             ],
             [
                 2,
-                'Bureau of Animal Industry',
-                'bai.webp',
-                'BPI Compound, Easter Road, Guisad, Baguio City, Benguet',
+                'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division',
+                'da.webp',
+                'BPI Compound, Guisad, Baguio City, Benguet',
                 "(074) 444-9872\n+63 956 659 5110",
                 "regulatorydivision.car@gmail.com\nlivestock.cordillera@gmail.com",
                 null,
                 null,
+                null,
+                null,
+                null,
+            ],
+            [
+                3,
+                'BAI Central Office',
+                'bai.webp',
+                'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila',
+                '8528 2240',
+                'strategiccommunications@bai.gov.ph',
+                'https://www.facebook.com/bai.gov.ph',
+                'facebook.com/bai.gov.ph',
                 null,
                 null,
                 null,
@@ -630,6 +644,46 @@ class Model
             $stmt->bind_param($types, $sortOrder, $name, $logoPath, $address, $phone, $email, $fbUrl, $fbLabel, $dName, $dRole, $dEmail);
             $stmt->execute();
         }
+    }
+
+    // ===== ONE-TIME UPDATE: BAI card -> DA-CARFU + BAI Central Office =====
+    // Only matches the old seeded row, so it runs once and leaves later edits alone.
+    private function migrateBaiToDaCarfu(): void
+    {
+        $c = $this->connection;
+
+        $name    = 'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division';
+        $logo    = 'da.webp';
+        $address = 'BPI Compound, Guisad, Baguio City, Benguet';
+        $old     = 'Bureau of Animal Industry';
+
+        $stmt = $c->prepare(
+            "UPDATE `contact_offices` SET name = ?, logo_path = ?, address = ? WHERE name = ?"
+        );
+        if (! $stmt) return;
+        $stmt->bind_param('ssss', $name, $logo, $address, $old);
+        $stmt->execute();
+        if ($stmt->affected_rows < 1) {
+            return;
+        }
+
+        $sortOrder = 3;
+        $bName     = 'BAI Central Office';
+        $bLogo     = 'bai.webp';
+        $bAddress  = 'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila';
+        $bPhone    = '8528 2240';
+        $bEmail    = 'strategiccommunications@bai.gov.ph';
+        $bFbUrl    = 'https://www.facebook.com/bai.gov.ph';
+        $bFbLabel  = 'facebook.com/bai.gov.ph';
+
+        $ins = $c->prepare(
+            "INSERT INTO `contact_offices`
+                (sort_order, name, logo_path, address, phone, email, facebook_url, facebook_label)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        if (! $ins) return;
+        $ins->bind_param('isssssss', $sortOrder, $bName, $bLogo, $bAddress, $bPhone, $bEmail, $bFbUrl, $bFbLabel);
+        $ins->execute();
     }
 
     private function seedFaqs(): void

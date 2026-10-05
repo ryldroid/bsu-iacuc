@@ -31,7 +31,7 @@ include "includes/scroll-top.php";
                 <img src="<?= IMGPATH ?>/bsu.webp" alt="BSU logo">
                 <img src="<?= IMGPATH ?>/ovpre.webp" alt="OVPRE logo">
                 <img src="<?= IMGPATH ?>/ccard.webp" alt="CCARD logo">
-                <img src="<?= IMGPATH ?>/bai.webp" alt="BAI logo">
+                <!-- <img src="<?= IMGPATH ?>/bai.webp" alt="BAI logo"> -->
             </div>
 
             <h1><?= htmlspecialchars($bannerTitle, ENT_QUOTES) ?></h1>

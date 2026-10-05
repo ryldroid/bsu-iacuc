@@ -36,8 +36,8 @@ article {
     display: flex;
     align-items: center;
     gap: 2.5rem;
-    padding: 0 0 1rem 1rem;
-    margin-bottom: 1.2rem;
+    padding: 1rem 0 1.5rem 1rem;
+    margin-bottom: 2rem;
 
     position: relative;
 }
@@ -58,8 +58,10 @@ article {
 }
 
 .logos {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    /* display: grid; */
+    /* grid-template-columns: repeat(2, 1fr); */
+
+    display: flex;
     gap: .75rem;
     flex-shrink: 0;
 }
@@ -697,6 +699,8 @@ h2 {
     .banner {
         gap: 1.25rem;
         padding-left: 0;
+        margin-bottom: 0;
+
     }
 
     .logos img {
@@ -739,13 +743,13 @@ h2 {
     }
 
     .logos img {
-        width: 40px;
-        height: 40px;
+        width: 46px;
+        height: 46px;
     }
 
     .banner h1 {
         max-width: 100%;
-        font-size: 1.35rem;
+        font-size: 1.5rem;
         line-height: 1.25;
     }
 
