@@ -11,13 +11,14 @@ class Notifications extends Controller
     'protocol_status_approved',
   ];
 
-  public NotificationModel $model;
+  private NotificationModel $notificationModel;
 
   // ===== SETUP =====
   public function __construct()
   {
-    require_once "../app/models/NotificationModel.php";
-    $this->model = new NotificationModel();
+    parent::__construct();
+
+    $this->notificationModel = new NotificationModel();
   }
 
   // ===== NOTIFICATIONS PAGE =====
@@ -29,8 +30,8 @@ class Notifications extends Controller
     $userId = (int) $_SESSION['user']['user_id'];
 
     echo json_encode([
-      'unread_count' => $this->model->getUnreadCount($userId),
-      'items'        => $this->withHighlightLinks($this->model->getForUser($userId)),
+      'unread_count' => $this->notificationModel->getUnreadCount($userId),
+      'items'        => $this->withHighlightLinks($this->notificationModel->getForUser($userId)),
     ]);
     exit;
   }
@@ -45,8 +46,8 @@ class Notifications extends Controller
     $page    = max(1, (int) ($_GET['page'] ?? 1));
     $offset  = ($page - 1) * $perPage;
 
-    $total      = $this->model->countForUser($userId);
-    $items      = $this->withHighlightLinks($this->model->getForUserPaginated($userId, $perPage, $offset));
+    $total      = $this->notificationModel->countForUser($userId);
+    $items      = $this->withHighlightLinks($this->notificationModel->getForUserPaginated($userId, $perPage, $offset));
     $totalPages = max(1, (int) ceil($total / $perPage));
 
     $this->view('notifications', [
@@ -91,7 +92,7 @@ class Notifications extends Controller
     }
 
     $userId = (int) $_SESSION['user']['user_id'];
-    $ok     = $this->model->markRead($id, $userId);
+    $ok     = $this->notificationModel->markRead($id, $userId);
 
     echo json_encode(['ok' => $ok]);
     exit;
@@ -106,7 +107,7 @@ class Notifications extends Controller
     $this->verifyCsrfHeader();
 
     $userId = (int) $_SESSION['user']['user_id'];
-    $ok     = $this->model->markAllRead($userId);
+    $ok     = $this->notificationModel->markAllRead($userId);
 
     echo json_encode(['ok' => $ok]);
     exit;

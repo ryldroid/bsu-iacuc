@@ -163,18 +163,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                 <div class="pending-box">
                                     <div>
                                         <span class="bold"><?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></span>
-                                        &nbsp;&middot;
                                         <span class="username">@<?= htmlspecialchars($applicant['username']); ?></span>
-                                        &nbsp;&middot;
-                                        <span><?= htmlspecialchars($applicant['email']); ?></span>
-                                    </div>
-
-                                    <div>
-                                        <p>Applying as <span class="bold"><?= htmlspecialchars($applicant['role']); ?></span></p>
-                                        &nbsp;&middot;
-
-                                        <?php $date = date(DATETIME_FORMAT, strtotime($applicant['created_at'])); ?>
-                                        <span class="application-date"><?= $date ?></span>
+                                        <div class="pending-meta">
+                                            <?= htmlspecialchars($applicant['email']); ?>
+                                            &middot; <?= htmlspecialchars($applicant['role']); ?>
+                                            &middot; <?= date(DATETIME_FORMAT, strtotime($applicant['created_at'])) ?>
+                                        </div>
                                     </div>
 
                                     <div class="actions">
@@ -345,7 +339,6 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
 
 <script>
-
     // ===== Copy invite link =====
     function copyInviteLink() {
         const input = document.getElementById('invite-link');

@@ -320,7 +320,7 @@ foreach ($protocols as $p) {
                 <?php if (($user['role'] ?? '') === 'staff'): ?>
                     <!-- ===== Bulk actions: apply to every matching protocol in the current tab, not just one row ===== -->
                     <div class="bulk-actions-bar" id="bulkActionsBar" hidden>
-                        <div id="paymentFilterWrapper" hidden>
+                        <div id="paymentFilterWrapper" class="bulk-payment-filter" hidden>
                             <div class="dashboard-field-group">
                                 <label class="sort-filter-label" for="paymentFilterSelect">
                                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -336,14 +336,6 @@ foreach ($protocols as $p) {
                                 </select>
                             </div>
                         </div>
-
-                        <button type="button" class="row-btn row-btn-outline" id="toggleSelectBtn" hidden
-                            title="Select protocols to download or endorse at once">
-                            <svg id="toggleSelectBtnIcon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#checkbox-icon" />
-                            </svg>
-                            <span id="toggleSelectBtnLabel">Select Protocols</span>
-                        </button>
 
                         <div class="bulk-select-controls" id="bulkSelectControls" hidden>
                             <span class="bulk-select-count" id="bulkSelectCount">0 selected</span>
@@ -363,6 +355,14 @@ foreach ($protocols as $p) {
                                 Mark Selected as Endorsed
                             </button>
                         </div>
+
+                        <button type="button" class="row-btn row-btn-outline" id="toggleSelectBtn" hidden
+                            title="Select protocols to download or endorse at once">
+                            <svg id="toggleSelectBtnIcon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#checkbox-icon" />
+                            </svg>
+                            <span id="toggleSelectBtnLabel">Select</span>
+                        </button>
                     </div>
                 <?php endif; ?>
 
@@ -974,7 +974,7 @@ foreach ($protocols as $p) {
     // ===== Selection mode =====
     function exitSelectionMode() {
         protocolsList?.classList.remove('selection-mode');
-        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = 'Select Protocols';
+        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = 'Select';
         if (toggleSelectBtnIcon) toggleSelectBtnIcon.hidden = false;
         if (bulkSelectControls) bulkSelectControls.hidden = true;
         protocolsList?.querySelectorAll('.protocol-select-checkbox').forEach(cb => cb.checked = false);
@@ -1003,7 +1003,7 @@ foreach ($protocols as $p) {
 
     toggleSelectBtn?.addEventListener('click', () => {
         const active = protocolsList.classList.toggle('selection-mode');
-        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select Protocols';
+        if (toggleSelectBtnLabel) toggleSelectBtnLabel.textContent = active ? 'Cancel' : 'Select';
         if (toggleSelectBtnIcon) toggleSelectBtnIcon.hidden = active;
         if (bulkSelectControls) bulkSelectControls.hidden = !active;
         if (!active) {
@@ -1014,6 +1014,15 @@ foreach ($protocols as $p) {
 
     protocolsList?.addEventListener('change', e => {
         if (!e.target.classList.contains('protocol-select-checkbox')) return;
+        updateBulkSelectUI();
+    });
+
+    protocolsList?.addEventListener('click', e => {
+        if (!protocolsList.classList.contains('selection-mode')) return;
+        if (e.target.closest('a, button, input, label, select')) return;
+        const checkbox = e.target.closest('.protocol')?.querySelector('.protocol-select-checkbox:not(:disabled)');
+        if (!checkbox) return;
+        checkbox.checked = !checkbox.checked;
         updateBulkSelectUI();
     });
 
@@ -1891,8 +1900,10 @@ foreach ($protocols as $p) {
 
             <!-- Step 2: rejection reason, shown only after clicking Reject -->
             <div id="reviewPaymentRejectPanel" hidden>
-                <label for="reject_payment_comment">Reason (the researcher will see this)</label>
-                <textarea id="reject_payment_comment" rows="3" placeholder="e.g. the amount doesn't match, or the receipt is unreadable" required></textarea>
+                <div class="clearance-number-field">
+                    <label for="reject_payment_comment">Reason <span class="required-asterisk">*</span></label>
+                    <textarea id="reject_payment_comment" rows="3" placeholder="e.g. the amount doesn't match, or the receipt is unreadable" required></textarea>
+                </div>
                 <div id="rejectPaymentError" class="alert error-messages clearance-modal-error" hidden></div>
                 <div class="modal-actions">
                     <button class="button" type="button" onclick="hideRejectPaymentReason()">Back</button>
@@ -2457,7 +2468,10 @@ foreach ($protocols as $p) {
                 label: 'IPN',
                 api: ASSIGN_IPN_API,
                 key: 'reference_no',
-                placeholder: 'e.g. BSU-IACUC-2025-001',
+                placeholder: 'e.g. 000026',
+                pattern: /^\d{6}$/,
+                formatError: 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).',
+                maxlength: 6,
                 helper: 'Write this IPN on the printed protocol before the IACUC Chair signs it. It is kept in sync with the Records page.',
                 saved: () => window.location.reload()
             },
@@ -2483,6 +2497,9 @@ foreach ($protocols as $p) {
             document.getElementById('numberModalHelper').textContent = field.helper;
             document.getElementById('numberModalLabel').textContent = field.label;
             document.getElementById('numberModalInput').placeholder = field.placeholder;
+            if (field.maxlength) document.getElementById('numberModalInput').maxLength = field.maxlength;
+            else document.getElementById('numberModalInput').removeAttribute('maxlength');
+            document.getElementById('numberModalInput').inputMode = field.maxlength ? 'numeric' : 'text';
             document.getElementById('numberModalInput').value = currentValue || '';
             document.getElementById('numberModalError').hidden = true;
             numberModalBackdrop.classList.add('open');
@@ -2507,6 +2524,11 @@ foreach ($protocols as $p) {
 
             if (!value) {
                 errBox.textContent = `Please enter an ${field.label}.`;
+                errBox.hidden = false;
+                return;
+            }
+            if (field.pattern && !field.pattern.test(value)) {
+                errBox.textContent = field.formatError;
                 errBox.hidden = false;
                 return;
             }

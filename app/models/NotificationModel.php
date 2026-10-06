@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname(__DIR__) . '/core/Model.php';
-
 class NotificationModel extends Model
 {
   // ===== ICON & COLOR BY TYPE =====

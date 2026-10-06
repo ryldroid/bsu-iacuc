@@ -694,15 +694,6 @@
     flex-shrink: 0;
 }
 
-.review-payment-footer label {
-    display: block;
-    margin-bottom: .35rem;
-}
-
-.review-payment-footer textarea {
-    width: 100%;
-}
-
 .review-payment-footer .modal-actions {
     margin-top: 1rem;
 }
@@ -721,6 +712,12 @@
 
 .review-payment-footer .confirm-modal-ok-danger {
     color: var(--text-on-brand);
+}
+
+/* submissions.css hides .return-reason-inline by default; show it inside this modal */
+.review-payment-summary .return-reason-inline {
+    display: block;
+    max-width: none;
 }
 
 @media (max-width: 768px) {

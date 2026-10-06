@@ -991,7 +991,7 @@ include 'includes/header.php';
         </div>
         <?php if ($canConfirmPayment): ?>
             <div class="file-popup-footer" id="filePopupResubmitFooter" hidden>
-                <p class="helper file-popup-footer-note">This payment was rejected.</p>
+                <p class="helper file-popup-footer-note">This payment was rejected <?php if (!empty($paymentRejection['comment'])): ?> for the reason: <?= htmlspecialchars($paymentRejection['comment'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?></p>
                 <button class="tool-btn tool-btn--success" type="button" onclick="closeFilePopup(); openPaymentModal();">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#upload-icon" />

@@ -2,16 +2,24 @@
 
 class Personnel extends Controller
 {
-    public UserModel $model;
+    private RecordModel $recordModel;
+    private ProtocolModel $protocolModel;
+    private AnnouncementModel $announcementModel;
+    private SiteSettingModel $settingsModel;
+    private ContactOfficeModel $officeModel;
+    private FaqModel $faqModel;
 
     // ===== SETUP & ACCESS CHECKS =====
     public function __construct()
     {
-        require_once dirname(__DIR__) . '/models/UserModel.php';
-        require_once dirname(__DIR__) . '/models/RecordModel.php';
-        require_once dirname(__DIR__) . '/models/ProtocolModel.php';
+        parent::__construct();
 
-        $this->model = new UserModel();
+        $this->recordModel       = new RecordModel();
+        $this->protocolModel     = new ProtocolModel();
+        $this->announcementModel = new AnnouncementModel();
+        $this->settingsModel     = new SiteSettingModel();
+        $this->officeModel       = new ContactOfficeModel();
+        $this->faqModel          = new FaqModel();
     }
 
     private function requireStaff(bool $ajax = false): void
@@ -51,10 +59,9 @@ class Personnel extends Controller
     {
         $this->requirePersonnel();
 
-        (new RecordModel())->runExpiryDeactivationSweep();
+        $this->recordModel->runExpiryDeactivationSweep();
 
-        $model     = new ProtocolModel();
-        $protocols = $model->getAll();
+        $protocols = $this->protocolModel->getAll();
 
         foreach ($protocols as &$protocol) {
             $protocol['can_endorse'] = $protocol['status'] === 'Reviewed'
@@ -85,8 +92,7 @@ class Personnel extends Controller
         $this->requirePersonnel(true);
         header('Content-Type: application/json');
 
-        $model = new ProtocolModel();
-        echo json_encode(['latest' => $model->getLatestActivityTimestamp()]);
+        echo json_encode(['latest' => $this->protocolModel->getLatestActivityTimestamp()]);
         exit;
     }
 
@@ -97,15 +103,14 @@ class Personnel extends Controller
         header('Content-Type: application/json');
 
         $id   = (int) ($_GET['id'] ?? 0);
-        $user = $id > 0 ? $this->model->getUser($id) : null;
+        $user = $id > 0 ? $this->userModel->getUser($id) : null;
 
         if (! $user) {
             echo json_encode(['ok' => false, 'message' => 'Researcher not found.']);
             exit;
         }
 
-        $protocolModel = new ProtocolModel();
-        $protocols     = $protocolModel->getByUser($id);
+        $protocols     = $this->protocolModel->getByUser($id);
 
         echo json_encode([
             'ok'   => true,
@@ -144,8 +149,7 @@ class Personnel extends Controller
     {
         $this->requirePersonnel();
 
-        $model = new RecordModel();
-        $model->runExpiryDeactivationSweep();
+        $this->recordModel->runExpiryDeactivationSweep();
 
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
@@ -163,13 +167,13 @@ class Personnel extends Controller
         }
         $periodFrom     = trim($_GET['from']   ?? '');
         $periodTo       = trim($_GET['to']     ?? '');
-        $period         = $model->resolvePeriod($periodPreset, $periodFrom, $periodTo);
+        $period         = $this->recordModel->resolvePeriod($periodPreset, $periodFrom, $periodTo);
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
-        $total      = $model->count($search, $school, $animalType, $sex, $researcherType, $status);
-        $records    = $model->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, null, $status);
+        $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status);
+        $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, null, $status);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('personnel/personnel-records', [
@@ -187,11 +191,11 @@ class Personnel extends Controller
             'researcherType'  => $researcherType,
             'status'          => $status,
             'sort'            => $sort,
-            'schools'         => $model->distinctValues('school'),
-            'animalTypes'     => $model->distinctValues('animal_type'),
-            'sexes'         => $model->distinctValues('sex'),
-            'researcherTypes' => $model->distinctValues('researcher_type'),
-            'stats'           => $model->stats($period),
+            'schools'         => $this->recordModel->distinctValues('school'),
+            'animalTypes'     => $this->recordModel->distinctValues('animal_type'),
+            'sexes'         => $this->recordModel->distinctValues('sex'),
+            'researcherTypes' => $this->recordModel->distinctValues('researcher_type'),
+            'stats'           => $this->recordModel->stats($period),
             'period'          => $period,
             'periodPreset'    => $periodPreset,
             'periodFrom'      => $period['from'] ?? $periodFrom,
@@ -213,7 +217,7 @@ class Personnel extends Controller
             ]);
         }
 
-        $record = (new RecordModel())->getById($recordId);
+        $record = $this->recordModel->getById($recordId);
 
         if (!$record || empty($record['file_path'])) {
             $this->renderError(404, 'File Not Found', [
@@ -240,25 +244,27 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        $model = new RecordModel();
         $ref   = trim($_POST['reference_no'] ?? '');
 
         if ($ref === '') {
             $this->jsonError(422, 'IPN is required.');
         }
-        if ($model->refExists($ref)) {
+        if (!preg_match('/^\d{6}$/', $ref)) {
+            $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+        }
+        if ($this->recordModel->refExists($ref)) {
             $this->jsonError(422, 'That IPN already exists.');
         }
 
         $d = $this->sanitizeRecordPost();
-        if ($d['ar_number'] !== '' && $model->arExists($d['ar_number'])) {
+        if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'])) {
             $this->jsonError(422, 'That AR number already exists.');
         }
-        $ok = $model->insert($d);
+        $ok = $this->recordModel->insert($d);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('record_added', $actor['id'], $actor['name'], $actor['role'], 'record', null, "Record added: $ref");
+            $this->recordModel->logAudit('record_added', $actor['id'], $actor['name'], $actor['role'], 'record', null, "Record added: $ref");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record added.' : 'Insert failed.']);
@@ -271,13 +277,12 @@ class Personnel extends Controller
         $this->requireStaff(true);
         header('Content-Type: application/json');
 
-        $model = new RecordModel();
         $id    = (int) ($_GET['id'] ?? 0);
-        $row   = $id > 0 ? $model->getById($id) : null;
+        $row   = $id > 0 ? $this->recordModel->getById($id) : null;
 
         if ($row) {
             $row['has_signed_scan'] = !empty($row['protocol_id'])
-                && (new ProtocolModel())->getLatestVersion((int) $row['protocol_id'], 'signed_scan') !== null;
+                && $this->protocolModel->getLatestVersion((int) $row['protocol_id'], 'signed_scan') !== null;
         }
 
         echo json_encode(
@@ -296,31 +301,35 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        $model = new RecordModel();
         $id    = (int) ($_POST['id'] ?? 0);
 
-        if ($id < 1 || !$model->exists($id)) {
+        if ($id < 1 || !$this->recordModel->exists($id)) {
             $this->jsonError(404, 'Record not found.');
         }
 
         $d       = $this->sanitizeRecordPost();
         $d['id'] = $id;
-        if ($d['ar_number'] !== '' && $model->arExists($d['ar_number'], $id)) {
+        $existingRec = $this->recordModel->getById($id);
+        $ipnChanged  = $d['reference_no'] !== '' && $d['reference_no'] !== ($existingRec['reference_no'] ?? '');
+        if ($ipnChanged && !preg_match('/^\d{6}$/', $d['reference_no'])) {
+            $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+        }
+        if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'], $id)) {
             $this->jsonError(422, 'That AR number already exists.');
         }
-        $ok      = $model->update($d);
+        $ok      = $this->recordModel->update($d);
 
         if ($ok) {
             $actor = $this->actor();
             $ref   = $d['reference_no'] !== '' ? "IPN {$d['reference_no']}" : ($d['title_of_research'] !== '' ? $d['title_of_research'] : "record #$id");
-            $model->logAudit('record_edited', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record edited: $ref");
+            $this->recordModel->logAudit('record_edited', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record edited: $ref");
 
-            $record = $model->getById($id);
+            $record = $this->recordModel->getById($id);
             if ($record && !empty($record['protocol_id']) && $d['reference_no'] !== '') {
-                (new ProtocolModel())->setReferenceNo((int) $record['protocol_id'], $d['reference_no']);
+                $this->protocolModel->setReferenceNo((int) $record['protocol_id'], $d['reference_no']);
             }
             if ($record && !empty($record['protocol_id']) && $d['ar_number'] !== '') {
-                (new ProtocolModel())->setArNumber((int) $record['protocol_id'], $d['ar_number']);
+                $this->protocolModel->setArNumber((int) $record['protocol_id'], $d['ar_number']);
             }
         }
 
@@ -336,20 +345,19 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        $model = new RecordModel();
         $id    = (int) ($_POST['id'] ?? 0);
 
         if ($id < 1) {
             $this->jsonError(400, 'No record id given.');
         }
 
-        $record = $model->getById($id);
-        $ok     = $model->delete($id);
+        $record = $this->recordModel->getById($id);
+        $ok     = $this->recordModel->delete($id);
 
         if ($ok) {
             $actor = $this->actor();
             $ref   = $record && $record['reference_no'] !== '' ? "IPN {$record['reference_no']}" : ($record['title_of_research'] ?? "record #$id");
-            $model->logAudit('record_deleted', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record deleted: $ref");
+            $this->recordModel->logAudit('record_deleted', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record deleted: $ref");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record deleted.' : 'Delete failed.']);
@@ -362,20 +370,19 @@ class Personnel extends Controller
         $this->requirePersonnel();
 
         // ===== READ PERIOD =====
-        $model        = new RecordModel();
         $periodPreset = trim($_GET['period'] ?? '');
         if (! isset(RecordModel::PERIOD_PRESETS[$periodPreset])) {
             $periodPreset = RecordModel::DEFAULT_PERIOD;
         }
-        $period = $model->resolvePeriod(
+        $period = $this->recordModel->resolvePeriod(
             $periodPreset,
             trim($_GET['from'] ?? ''),
             trim($_GET['to']   ?? '')
         );
 
         // ===== LOAD DATA =====
-        $records = $model->getAll('', '', '', '', '', 'newest', 1000000, 0, $period);
-        $stats   = $model->stats($period);
+        $records = $this->recordModel->getAll('', '', '', '', '', 'newest', 1000000, 0, $period);
+        $stats   = $this->recordModel->stats($period);
 
         // ===== STATISTICS SHEET =====
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -437,7 +444,7 @@ class Personnel extends Controller
         $spreadsheet->setActiveSheetIndex(0);
 
         $actor = $this->actor();
-        $model->logAudit('records_exported', $actor['id'], $actor['name'], $actor['role'], 'records', null, 'Exported records to Excel');
+        $this->recordModel->logAudit('records_exported', $actor['id'], $actor['name'], $actor['role'], 'records', null, 'Exported records to Excel');
 
         $filename = 'iacuc-records-' . date('Y-m-d_His') . '.xlsx';
 
@@ -580,23 +587,13 @@ class Personnel extends Controller
 
     private function renderContentTab(string $activeTab): void
     {
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
-        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-        require_once dirname(__DIR__) . '/models/FaqModel.php';
-
-        $announcementModel = new AnnouncementModel();
-        $settingsModel     = new SiteSettingModel();
-        $officeModel       = new ContactOfficeModel();
-        $faqModel          = new FaqModel();
-
         $this->view('personnel/personnel-content', [
             'user'          => $_SESSION['user'],
             'csrf'          => $this->generateCsrfToken(),
-            'announcements' => $announcementModel->getAll(),
-            'settings'      => $settingsModel->getAll(),
-            'offices'       => $officeModel->getAll(),
-            'faqs'          => $faqModel->getAll(),
+            'announcements' => $this->announcementModel->getAll(),
+            'settings'      => $this->settingsModel->getAll(),
+            'offices'       => $this->officeModel->getAll(),
+            'faqs'          => $this->faqModel->getAll(),
             'activeTab'     => $activeTab,
         ]);
     }
@@ -608,17 +605,14 @@ class Personnel extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(true);
 
-        require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
-        $model = new SiteSettingModel();
-
-        $model->setMany([
+        $this->settingsModel->setMany([
             'banner_title'      => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
             'about_paragraph_1' => normalize_pasted_text(trim($_POST['about_paragraph_1'] ?? '')),
             'about_paragraph_2' => normalize_pasted_text(trim($_POST['about_paragraph_2'] ?? '')),
         ]);
 
         $actor = $this->actor();
-        $model->logAudit('site_settings_updated', $actor['id'], $actor['name'], $actor['role'], 'site_settings', null, 'Updated homepage content');
+        $this->settingsModel->logAudit('site_settings_updated', $actor['id'], $actor['name'], $actor['role'], 'site_settings', null, 'Updated homepage content');
 
         $_SESSION['flash_success'] = 'Homepage content updated.';
         $this->redirect('personnel/site_content');
@@ -632,15 +626,12 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-        $model = new ContactOfficeModel();
-
         $data = $this->sanitizeOfficePost();
         if ($data['name'] === '') {
             $this->jsonError(422, 'Office name is required.');
         }
 
-        $ok = $model->insert(
+        $ok = $this->officeModel->insert(
             $data['sort_order'],
             $data['name'],
             null,
@@ -656,7 +647,7 @@ class Personnel extends Controller
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('contact_office_added', $actor['id'], $actor['name'], $actor['role'], 'contact_office', null, "Contact office added: {$data['name']}");
+            $this->officeModel->logAudit('contact_office_added', $actor['id'], $actor['name'], $actor['role'], 'contact_office', null, "Contact office added: {$data['name']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office added.' : 'Insert failed.']);
@@ -669,11 +660,8 @@ class Personnel extends Controller
         $this->requireStaff(true);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-        $model = new ContactOfficeModel();
-
         $id  = (int) ($_GET['id'] ?? 0);
-        $row = $id > 0 ? $model->getById($id) : null;
+        $row = $id > 0 ? $this->officeModel->getById($id) : null;
 
         echo json_encode(
             $row
@@ -691,11 +679,8 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-        $model = new ContactOfficeModel();
-
         $id = (int) ($_POST['id'] ?? 0);
-        if ($id <= 0 || ! $model->getById($id)) {
+        if ($id <= 0 || ! $this->officeModel->getById($id)) {
             $this->jsonError(404, 'Office not found.');
         }
 
@@ -704,7 +689,7 @@ class Personnel extends Controller
             $this->jsonError(422, 'Office name is required.');
         }
 
-        $ok = $model->update(
+        $ok = $this->officeModel->update(
             $id,
             $data['sort_order'],
             $data['name'],
@@ -720,7 +705,7 @@ class Personnel extends Controller
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('contact_office_edited', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office edited: {$data['name']}");
+            $this->officeModel->logAudit('contact_office_edited', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office edited: {$data['name']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office updated.' : 'Update failed.']);
@@ -735,16 +720,13 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-        $model = new ContactOfficeModel();
-
         $id     = (int) ($_POST['id'] ?? 0);
-        $office = $id > 0 ? $model->getById($id) : null;
-        $ok     = $office ? $model->delete($id) : false;
+        $office = $id > 0 ? $this->officeModel->getById($id) : null;
+        $ok     = $office ? $this->officeModel->delete($id) : false;
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('contact_office_deleted', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office deleted: {$office['name']}");
+            $this->officeModel->logAudit('contact_office_deleted', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office deleted: {$office['name']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office deleted.' : 'Delete failed.']);
@@ -776,19 +758,16 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/FaqModel.php';
-        $model = new FaqModel();
-
         $data = $this->sanitizeFaqPost();
         if ($data['question'] === '' || $data['answer'] === '') {
             $this->jsonError(422, 'Both a question and an answer are required.');
         }
 
-        $ok = $model->insert($data['sort_order'], $data['question'], $data['answer']);
+        $ok = $this->faqModel->insert($data['sort_order'], $data['question'], $data['answer']);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('faq_added', $actor['id'], $actor['name'], $actor['role'], 'faq', null, "FAQ added: {$data['question']}");
+            $this->faqModel->logAudit('faq_added', $actor['id'], $actor['name'], $actor['role'], 'faq', null, "FAQ added: {$data['question']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ added.' : 'Insert failed.']);
@@ -801,11 +780,8 @@ class Personnel extends Controller
         $this->requireStaff(true);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/FaqModel.php';
-        $model = new FaqModel();
-
         $id  = (int) ($_GET['id'] ?? 0);
-        $row = $id > 0 ? $model->getById($id) : null;
+        $row = $id > 0 ? $this->faqModel->getById($id) : null;
 
         echo json_encode(
             $row
@@ -823,11 +799,8 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/FaqModel.php';
-        $model = new FaqModel();
-
         $id = (int) ($_POST['id'] ?? 0);
-        if ($id <= 0 || ! $model->getById($id)) {
+        if ($id <= 0 || ! $this->faqModel->getById($id)) {
             $this->jsonError(404, 'FAQ not found.');
         }
 
@@ -836,11 +809,11 @@ class Personnel extends Controller
             $this->jsonError(422, 'Both a question and an answer are required.');
         }
 
-        $ok = $model->update($id, $data['sort_order'], $data['question'], $data['answer']);
+        $ok = $this->faqModel->update($id, $data['sort_order'], $data['question'], $data['answer']);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('faq_edited', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ edited: {$data['question']}");
+            $this->faqModel->logAudit('faq_edited', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ edited: {$data['question']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ updated.' : 'Update failed.']);
@@ -855,16 +828,13 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/FaqModel.php';
-        $model = new FaqModel();
-
         $id  = (int) ($_POST['id'] ?? 0);
-        $faq = $id > 0 ? $model->getById($id) : null;
-        $ok  = $faq ? $model->delete($id) : false;
+        $faq = $id > 0 ? $this->faqModel->getById($id) : null;
+        $ok  = $faq ? $this->faqModel->delete($id) : false;
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('faq_deleted', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ deleted: {$faq['question']}");
+            $this->faqModel->logAudit('faq_deleted', $actor['id'], $actor['name'], $actor['role'], 'faq', $id, "FAQ deleted: {$faq['question']}");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'FAQ deleted.' : 'Delete failed.']);
@@ -886,7 +856,7 @@ class Personnel extends Controller
     {
         $this->requireStaff();
 
-        $auditDateRange = $this->model->getAuditLogDateRange();
+        $auditDateRange = $this->userModel->getAuditLogDateRange();
 
         $today       = date('Y-m-d');
         $ninetyAgo   = date('Y-m-d', strtotime('-90 days'));
@@ -901,8 +871,8 @@ class Personnel extends Controller
         $this->view('personnel/personnel-accounts', array_merge([
             'user'           => $_SESSION['user'],
             'csrf'           => $this->generateCsrfToken(),
-            'pending'        => $this->model->getPendingUsers(),
-            'personnel'      => $this->model->getPersonnelAccounts(),
+            'pending'        => $this->userModel->getPendingUsers(),
+            'personnel'      => $this->userModel->getPersonnelAccounts(),
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
         ], $auditLogPage));
@@ -939,10 +909,10 @@ class Personnel extends Controller
         $fromDate     = $filterDate;
         $toDate       = $filterDate;
 
-        $auditTotal = $this->model->countAuditLogs($fromDate, $toDate);
+        $auditTotal = $this->userModel->countAuditLogs($fromDate, $toDate);
         $auditPages = max(1, (int) ceil($auditTotal / $auditPerPage));
         $auditPage  = min(max(1, $requestedPage), $auditPages);
-        $auditLogs  = $this->model->getAuditLogs($fromDate, $toDate, $auditPerPage, ($auditPage - 1) * $auditPerPage);
+        $auditLogs  = $this->userModel->getAuditLogs($fromDate, $toDate, $auditPerPage, ($auditPage - 1) * $auditPerPage);
 
         $targetNameCache = [];
         foreach ($auditLogs as &$log) {
@@ -989,7 +959,7 @@ class Personnel extends Controller
         }
 
         $actor = $this->actor();
-        $logs  = $this->model->getAuditLogs($fromDate, $toDate);
+        $logs  = $this->userModel->getAuditLogs($fromDate, $toDate);
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
@@ -1022,7 +992,7 @@ class Personnel extends Controller
             ? 'Exported audit logs to Excel (full history)'
             : "Exported audit logs to Excel ({$fromDate} to {$toDate})";
 
-        $this->model->logAudit(
+        $this->userModel->logAudit(
             'audit_logs_exported',
             $actor['id'],
             $actor['name'],
@@ -1081,7 +1051,7 @@ class Personnel extends Controller
         $name = match ($targetType) {
             'user' => $this->userDisplayName($targetId),
             'protocol' => $this->protocolDisplayName($targetId),
-            'record' => $this->recordDisplayName((new RecordModel())->getById($targetId)),
+            'record' => $this->recordDisplayName($this->recordModel->getById($targetId)),
             'announcement' => $this->announcementDisplayName($targetId),
             default => null,
         };
@@ -1108,20 +1078,19 @@ class Personnel extends Controller
 
     private function announcementDisplayName(int $id): ?string
     {
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $announcement = (new AnnouncementModel())->getById($id);
+        $announcement = $this->announcementModel->getById($id);
         return $announcement['title'] ?? null;
     }
 
     private function userDisplayName(int $id): ?string
     {
-        $user = $this->model->getUser($id);
+        $user = $this->userModel->getUser($id);
         return $user['username'] ?? null;
     }
 
     private function protocolDisplayName(int $id): ?string
     {
-        $protocol = (new ProtocolModel())->getById($id);
+        $protocol = $this->protocolModel->getById($id);
         return $protocol['research_title'] ?? null;
     }
 
@@ -1156,10 +1125,10 @@ class Personnel extends Controller
         $WINDOW       = 900;
 
         if (
-            $this->model->countRecentAttempts($ip, $WINDOW) >= $MAX_ATTEMPTS
-            || $this->model->countRecentAttempts($input, $WINDOW) >= $MAX_ATTEMPTS
+            $this->userModel->countRecentAttempts($ip, $WINDOW) >= $MAX_ATTEMPTS
+            || $this->userModel->countRecentAttempts($input, $WINDOW) >= $MAX_ATTEMPTS
         ) {
-            $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
+            $this->userModel->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
             $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
             $this->redirect('personnel/login');
         }
@@ -1169,12 +1138,12 @@ class Personnel extends Controller
             $this->redirect('personnel/login');
         }
 
-        $user = $this->model->getUserByUsername($input) ?? $this->model->getUserByEmail($input);
+        $user = $this->userModel->getUserByUsername($input) ?? $this->userModel->getUserByEmail($input);
 
         if (!$user) {
-            $this->model->recordLoginAttempt($ip);
-            $this->model->recordLoginAttempt($input);
-            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
+            $this->userModel->recordLoginAttempt($ip);
+            $this->userModel->recordLoginAttempt($input);
+            $this->userModel->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
             $_SESSION['flash_error'] = 'No account found with that username or email.';
             $this->redirect('personnel/login');
         }
@@ -1190,15 +1159,15 @@ class Personnel extends Controller
         }
 
         if (!password_verify($password, $user['password'])) {
-            $this->model->recordLoginAttempt($ip);
-            $this->model->recordLoginAttempt($input);
-            $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
+            $this->userModel->recordLoginAttempt($ip);
+            $this->userModel->recordLoginAttempt($input);
+            $this->userModel->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
             $_SESSION['flash_error'] = 'Invalid password. Please try again.';
             $this->redirect('personnel/login');
         }
 
-        $this->model->clearLoginAttempts($ip);
-        $this->model->clearLoginAttempts($input);
+        $this->userModel->clearLoginAttempts($ip);
+        $this->userModel->clearLoginAttempts($input);
 
         session_regenerate_id(true);
         $_SESSION['user'] = [
@@ -1211,10 +1180,10 @@ class Personnel extends Controller
 
         if (empty($user['welcome_seen'])) {
             $_SESSION['user']['show_welcome'] = true;
-            $this->model->markWelcomeSeen((int) $user['id']);
+            $this->userModel->markWelcomeSeen((int) $user['id']);
         }
 
-        $this->model->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Personnel logged in');
+        $this->userModel->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Personnel logged in');
         $this->redirect('personnel/home');
     }
 
@@ -1226,7 +1195,7 @@ class Personnel extends Controller
         }
 
         $actor = $this->actor();
-        $this->model->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Personnel logged out');
+        $this->userModel->logAudit('logout', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Personnel logged out');
 
         session_destroy();
         session_start();
@@ -1236,7 +1205,7 @@ class Personnel extends Controller
     // ===== STAFF REGISTRATION (INVITE ONLY) =====
     private function getValidInvite(string $token): array
     {
-        $invite = $this->model->getValidInviteToken($token);
+        $invite = $this->userModel->getValidInviteToken($token);
         if (!$invite) {
             $this->renderError(403, 'Invalid Invite Link', [
                 'This invite link is invalid or has expired.',
@@ -1309,13 +1278,13 @@ class Personnel extends Controller
         }
 
         if (empty($errors)) {
-            $existing = $this->model->getUserByEmail($email);
+            $existing = $this->userModel->getUserByEmail($email);
             if ($existing) {
                 $errors[] = $existing['role'] === 'researcher'
                     ? 'This email belongs to a researcher account. Please use a different email, or delete your researcher account first.'
                     : 'That email is already taken.';
             }
-            if ($this->model->getUserByUsername($username)) {
+            if ($this->userModel->getUserByUsername($username)) {
                 $errors[] = 'That username is already taken.';
             }
         }
@@ -1331,11 +1300,11 @@ class Personnel extends Controller
             return;
         }
 
-        $ok = $this->model->insertUser($username, $first_name, $last_name, $email, password_hash($password, PASSWORD_DEFAULT), $role, 'pending', null, null, $sex);
+        $ok = $this->userModel->insertUser($username, $first_name, $last_name, $email, password_hash($password, PASSWORD_DEFAULT), $role, 'pending', null, null, $sex);
 
         if ($ok) {
-            $newUserId = $this->model->connection->insert_id;
-            $this->model->consumeInviteToken($token, $newUserId);
+            $newUserId = $this->userModel->connection->insert_id;
+            $this->userModel->consumeInviteToken($token, $newUserId);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
             $this->view('personnel/personnel-register', [
                 'csrf'    => $this->generateCsrfToken(),
@@ -1371,10 +1340,10 @@ class Personnel extends Controller
             $role = 'staff';
         }
 
-        $token = $this->model->createInviteToken($role, 48);
+        $token = $this->userModel->createInviteToken($role, 48);
 
         $actor = $this->actor();
-        $this->model->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
+        $this->userModel->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
 
         $this->view('personnel/personnel-accounts', [
             'user'        => $_SESSION['user'],
@@ -1397,11 +1366,11 @@ class Personnel extends Controller
 
         $id = (int) ($_POST['user_id'] ?? 0);
         if ($id > 0) {
-            $applicant = $this->model->getUser($id);
+            $applicant = $this->userModel->getUser($id);
             $actor     = $this->actor();
 
-            $this->model->logAudit('user_approved', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Approved personnel account: ' . ($applicant['username'] ?? $id));
-            $this->model->approveUser($id);
+            $this->userModel->logAudit('user_approved', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Approved personnel account: ' . ($applicant['username'] ?? $id));
+            $this->userModel->approveUser($id);
 
             if ($applicant) {
                 Notifier::send(
@@ -1438,11 +1407,11 @@ class Personnel extends Controller
 
         $id = (int) ($_POST['user_id'] ?? 0);
         if ($id > 0) {
-            $applicant = $this->model->getUser($id);
+            $applicant = $this->userModel->getUser($id);
             $actor     = $this->actor();
 
-            $this->model->logAudit('user_rejected', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Rejected personnel account: ' . ($applicant['username'] ?? $id));
-            $this->model->rejectUser($id);
+            $this->userModel->logAudit('user_rejected', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Rejected personnel account: ' . ($applicant['username'] ?? $id));
+            $this->userModel->rejectUser($id);
 
             if ($applicant) {
                 Mailer::sendTemplate('application_rejected', ['first_name' => $applicant['first_name']], $applicant['email'], $applicant['first_name'], 'Application Update');
@@ -1479,17 +1448,17 @@ class Personnel extends Controller
             $this->redirect('personnel/accounts?tab=accounts');
         }
 
-        $actorRecord = $this->model->getUser($actor['id']);
+        $actorRecord = $this->userModel->getUser($actor['id']);
         if (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
-            $this->model->logAudit('user_role_change_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting a role change');
+            $this->userModel->logAudit('user_role_change_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting a role change');
             $_SESSION['flash_error'] = 'Incorrect password. Role not changed.';
             $this->redirect('personnel/accounts?tab=accounts');
         }
 
-        $target = $this->model->getUser($id);
+        $target = $this->userModel->getUser($id);
         if ($target && in_array($target['role'], ['staff', 'reviewer'], true)) {
-            $this->model->updateUserRole($id, $role);
-            $this->model->logAudit('user_role_changed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Changed role for {$target['username']} from {$target['role']} to $role");
+            $this->userModel->updateUserRole($id, $role);
+            $this->userModel->logAudit('user_role_changed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Changed role for {$target['username']} from {$target['role']} to $role");
             $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
         } else {
             $_SESSION['flash_error'] = 'Personnel account not found.';
@@ -1617,9 +1586,6 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $model = new AnnouncementModel();
-
         $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
         $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
 
@@ -1634,10 +1600,10 @@ class Personnel extends Controller
         }
 
         $actor = $this->actor();
-        $ok    = $model->insert($title, $body, $imageName, $actor['id'] ?: null);
+        $ok    = $this->announcementModel->insert($title, $body, $imageName, $actor['id'] ?: null);
 
         if ($ok) {
-            $model->logAudit('announcement_added', $actor['id'], $actor['name'], $actor['role'], 'announcement', null, "Announcement added: $title");
+            $this->announcementModel->logAudit('announcement_added', $actor['id'], $actor['name'], $actor['role'], 'announcement', null, "Announcement added: $title");
         } elseif ($imageName) {
 
             $this->deleteAnnouncementImage($imageName);
@@ -1653,11 +1619,8 @@ class Personnel extends Controller
         $this->requireStaff(true);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $model = new AnnouncementModel();
-
         $id  = (int) ($_GET['id'] ?? 0);
-        $row = $id > 0 ? $model->getById($id) : null;
+        $row = $id > 0 ? $this->announcementModel->getById($id) : null;
 
         echo json_encode(
             $row
@@ -1675,14 +1638,11 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $model = new AnnouncementModel();
-
         $id    = (int) ($_POST['id'] ?? 0);
         $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
         $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
 
-        $existing = $id > 0 ? $model->getById($id) : null;
+        $existing = $id > 0 ? $this->announcementModel->getById($id) : null;
         if (!$existing) {
             $this->jsonError(404, 'Announcement not found.');
         }
@@ -1712,11 +1672,11 @@ class Personnel extends Controller
             $this->deleteAnnouncementImage($existing['image_path']);
         }
 
-        $ok = $model->update($id, $title, $body, $imageToSave);
+        $ok = $this->announcementModel->update($id, $title, $body, $imageToSave);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('announcement_edited', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement edited: $title");
+            $this->announcementModel->logAudit('announcement_edited', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement edited: $title");
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Announcement updated.' : 'Update failed.']);
@@ -1731,21 +1691,18 @@ class Personnel extends Controller
         $this->verifyCsrfToken(false);
         header('Content-Type: application/json');
 
-        require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-        $model = new AnnouncementModel();
-
         $id = (int) ($_POST['id'] ?? 0);
         if ($id < 1) {
             $this->jsonError(400, 'No announcement id given.');
         }
 
-        $existing = $model->getById($id);
+        $existing = $this->announcementModel->getById($id);
 
-        $ok = $model->delete($id);
+        $ok = $this->announcementModel->delete($id);
 
         if ($ok) {
             $actor = $this->actor();
-            $model->logAudit('announcement_deleted', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement deleted: #$id");
+            $this->announcementModel->logAudit('announcement_deleted', $actor['id'], $actor['name'], $actor['role'], 'announcement', $id, "Announcement deleted: #$id");
             if ($existing) {
                 $this->deleteAnnouncementImage($existing['image_path']);
             }

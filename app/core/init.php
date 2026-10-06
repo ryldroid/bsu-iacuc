@@ -47,9 +47,18 @@ $_SESSION['last_activity'] = time();
 require_once 'config.php';
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
 require_once 'TextSanitizer.php';
-require_once 'ErrorPage.php';
-require_once 'Mailer.php';
-require_once 'Notifier.php';
-require_once 'Model.php';
-require_once 'Controller.php';
-require_once 'App.php';
+
+// ===== CLASS AUTOLOAD =====
+spl_autoload_register(function (string $class) {
+    if (str_contains($class, '\\')) {
+        return;
+    }
+
+    foreach (['core', 'models'] as $dir) {
+        $file = dirname(__DIR__) . '/' . $dir . '/' . $class . '.php';
+        if (is_file($file)) {
+            require_once $file;
+            return;
+        }
+    }
+});

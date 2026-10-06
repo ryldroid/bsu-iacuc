@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname(__DIR__) . '/core/Model.php';
-
 class RecordModel extends Model
 {
   // ===== STATUS OPTIONS =====
@@ -703,9 +701,6 @@ class RecordModel extends Model
 
   public function runExpiryDeactivationSweep(): int
   {
-    require_once dirname(__DIR__) . '/models/ProtocolModel.php';
-    require_once dirname(__DIR__) . '/models/UserModel.php';
-
     $protocolModel = new ProtocolModel();
     $userModel     = new UserModel();
 

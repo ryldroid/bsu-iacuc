@@ -1,0 +1,530 @@
+<?php
+
+class Schema
+{
+    private mysqli $connection;
+    private Seeder $seeder;
+
+    // ===== SETUP =====
+    public function __construct(mysqli $connection)
+    {
+        $this->connection = $connection;
+        $this->seeder     = new Seeder($connection);
+    }
+
+    // ===== CREATE / UPDATE TABLES =====
+    public function run(): void
+    {
+        $c = $this->connection;
+
+        // ===== USERS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `users` (
+                    `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `username` varchar(50) NOT NULL UNIQUE,
+                    `first_name` varchar(100) NOT NULL,
+                    `last_name` varchar(100) NOT NULL,
+                    `email` varchar(100) NOT NULL,
+                    `phone_number` varchar(20) DEFAULT NULL,
+                    `password` varchar(255) NOT NULL,
+                    `role` varchar(50) DEFAULT 'researcher',
+                    `status` varchar(20) NOT NULL DEFAULT 'active',
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `cert_path` varchar(255) DEFAULT NULL,
+                    `cert_original_name` varchar(255) DEFAULT NULL,
+                    `cert_uploaded_at` timestamp NULL DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('users', 'phone_number', "varchar(20) DEFAULT NULL AFTER `email`");
+        $this->ensureColumn('users', 'email_verified', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email`");
+        $this->ensureColumn('users', 'email_notifications', "tinyint(1) NOT NULL DEFAULT 1 AFTER `email_verified`");
+        $this->ensureColumn('users', 'email_provider_blocked', "tinyint(1) NOT NULL DEFAULT 0 AFTER `email_notifications`");
+        $this->ensureColumn('users', 'school', "varchar(150) DEFAULT NULL AFTER `phone_number`");
+        $this->ensureColumn('users', 'sex', "varchar(20) DEFAULT NULL AFTER `phone_number`");
+        $this->ensureColumn('users', 'welcome_seen', "tinyint(1) NOT NULL DEFAULT 0 AFTER `status`");
+        $this->ensureIndex('users', 'unique_email', "(`email`)", true);
+
+        // ===== RECORDS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `records` (
+                    `id`                     int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `reference_no`           varchar(20)  DEFAULT NULL UNIQUE,
+                    `title_of_research`      text         NOT NULL,
+                    `school`                 varchar(255) NOT NULL DEFAULT '',
+                    `animals_used`           varchar(100) DEFAULT NULL,
+                    `animal_type`            varchar(100) DEFAULT NULL,
+                    `animal_count`           int(11)      DEFAULT NULL,
+                    `principal_investigator` varchar(255) DEFAULT NULL,
+                    `sex`                    varchar(20)  DEFAULT NULL,
+                    `researcher_type`        varchar(50)  DEFAULT NULL,
+                    `research_adviser`       varchar(255) DEFAULT NULL,
+                    `veterinarian`           varchar(255) DEFAULT NULL,
+                    `research_duration`      varchar(100) DEFAULT NULL,
+                    `date_released`          date         DEFAULT NULL,
+                    `received_by`            varchar(255) DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->renameColumn('records', 'gender', 'sex', "varchar(20) DEFAULT NULL");
+        $this->ensureColumn('records', 'research_duration_start', "date DEFAULT NULL AFTER `research_duration`");
+        $this->ensureColumn('records', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
+        $this->ensureColumn('records', 'user_id', "int(11) DEFAULT NULL AFTER `id`");
+        $this->ensureIndex('records', 'idx_records_user_id', "(`user_id`)");
+        $this->ensureColumn('records', 'protocol_id', "int(11) DEFAULT NULL AFTER `user_id`");
+        $this->ensureColumn('records', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
+        $this->ensureIndex('records', 'idx_records_ar_number', "(`ar_number`)", true);
+        $this->ensureIndex('records', 'idx_records_protocol_id', "(`protocol_id`)");
+        $this->ensureColumn('records', 'file_path', "varchar(255) DEFAULT NULL");
+        $this->ensureColumn('records', 'file_original_name', "varchar(255) DEFAULT NULL");
+        $this->ensureColumn('records', 'status', "varchar(20) NOT NULL DEFAULT 'Ongoing'");
+        $this->backfillRecordProtocolLinks();
+        $this->backfillRecordUserLinks();
+        $this->moveRecordArReferences();
+        $this->migrateAdminRoleToStaff();
+
+        // ===== PROTOCOLS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `protocols` (
+                    `id`                   int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `reference_no`         varchar(30)  DEFAULT NULL UNIQUE,
+                    `title`                varchar(255) NOT NULL DEFAULT 'Untitled Protocol',
+                    `updated_at`           timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    `user_id`              int(11)      DEFAULT NULL,
+                    `status`               varchar(30)  NOT NULL DEFAULT 'Under Review',
+                    `submitted_at`         timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `cert_path`            varchar(255) DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->dropColumn('protocols', 'is_pi');
+        $this->dropColumn('protocols', 'auth_path');
+
+        $this->ensureColumn('protocols', 'previous_title', "varchar(255) DEFAULT NULL AFTER `title`");
+        $this->ensureColumn('protocols', 'title_changed_by', "int(11) DEFAULT NULL AFTER `previous_title`");
+        $this->ensureColumn('protocols', 'title_changed_by_name', "varchar(150) DEFAULT NULL AFTER `title_changed_by`");
+        $this->ensureColumn('protocols', 'title_changed_by_role', "varchar(30) DEFAULT NULL AFTER `title_changed_by_name`");
+        $this->ensureColumn('protocols', 'title_changed_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_by_role`");
+        $this->ensureColumn('protocols', 'title_change_seen_by', "int(11) DEFAULT NULL AFTER `title_changed_at`");
+        $this->ensureColumn('protocols', 'deletion_requested_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_at`");
+        $this->ensureColumn('protocols', 'deletion_requested_by', "int(11) DEFAULT NULL AFTER `deletion_requested_at`");
+        $this->ensureColumn('protocols', 'deletion_requested_by_name', "varchar(150) DEFAULT NULL AFTER `deletion_requested_by`");
+        $this->ensureColumn('protocols', 'deletion_requested_by_role', "varchar(30) DEFAULT NULL AFTER `deletion_requested_by_name`");
+        $this->ensureColumn('protocols', 'deletion_request_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_requested_by_role`");
+        $this->ensureColumn('protocols', 'deletion_rejection_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_request_reason`");
+        $this->ensureColumn('protocols', 'deleted_at', "timestamp NULL DEFAULT NULL AFTER `deletion_request_reason`");
+        $this->ensureColumn('protocols', 'deleted_by', "int(11) DEFAULT NULL AFTER `deleted_at`");
+        $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");
+        $this->ensureColumn('protocols', 'deletion_reason', "varchar(1000) DEFAULT NULL AFTER `deleted_by_name`");
+        $this->ensureColumn('protocols', 'payment_status', "enum('unpaid','proof_submitted','rejected','paid') NOT NULL DEFAULT 'unpaid' AFTER `deletion_reason`");
+        $this->ensureColumn('protocols', 'payment_method', "enum('in_person','online') DEFAULT NULL AFTER `payment_status`");
+        $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
+        $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
+        $this->ensureColumn('protocols', 'clearance_claimed_at', "timestamp NULL DEFAULT NULL AFTER `paid_by`");
+        $arNumberIsNew = $c->query("SHOW COLUMNS FROM `protocols` LIKE 'ar_number'")->num_rows === 0;
+        $this->ensureColumn('protocols', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
+        if ($arNumberIsNew) {
+            $c->query("UPDATE `records` r JOIN `protocols` p ON p.id = r.protocol_id SET r.ar_number = p.reference_no, r.reference_no = NULL WHERE p.status IN ('Endorsed','Approved') AND p.reference_no IS NOT NULL");
+            $c->query("UPDATE `protocols` SET ar_number = reference_no, reference_no = NULL WHERE status IN ('Endorsed','Approved') AND reference_no IS NOT NULL");
+        }
+
+        // ===== TITLE HISTORY TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
+                    `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`     int(11)      NOT NULL,
+                    `title`           varchar(255) NOT NULL,
+                    `changed_by`      int(11)      DEFAULT NULL,
+                    `changed_by_name` varchar(150) DEFAULT NULL,
+                    `changed_by_role` varchar(30)  DEFAULT NULL,
+                    `changed_at`      timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_pth_protocol` (`protocol_id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== PROTOCOL VERSIONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_versions` (
+                    `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`    int(11)      NOT NULL,
+                    `version_number` int(11)      NOT NULL DEFAULT 1,
+                    `file_path`      varchar(255) NOT NULL,
+                    `original_name`  varchar(255) NOT NULL,
+                    `file_type`      enum('protocol','cert','clearance') NOT NULL DEFAULT 'protocol',
+                    `uploaded_by`    int(11)      NOT NULL,
+                    `uploaded_at`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    UNIQUE KEY `unique_version` (`protocol_id`, `version_number`, `file_type`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->purgeAuthVersions();
+
+        $this->ensureEnumValues(
+            'protocol_versions',
+            'file_type',
+            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan', 'amendment'],
+            'protocol'
+        );
+
+        $this->ensureColumn('protocol_versions', 'note', "varchar(1000) DEFAULT NULL");
+
+        // ===== ANNOTATIONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `annotations` (
+                `id`          int(11)  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                `version_id`  int(11)  NOT NULL,
+                `page_number` int(11)  NOT NULL,
+                `x`           float    NOT NULL,
+                `y`           float    NOT NULL,
+                `width`       float    NOT NULL,
+                `height`      float    NOT NULL,
+                `comment`     text     NOT NULL,
+                `created_by`  int(11)  NOT NULL,
+                `created_at`  timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                FOREIGN KEY (`version_id`) REFERENCES `protocol_versions`(`id`) ON DELETE CASCADE,
+                FOREIGN KEY (`created_by`) REFERENCES `users`(`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== PASSWORD RESETS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `password_resets` (
+                    `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`    int(11) NOT NULL,
+                    `token`      varchar(64) NOT NULL UNIQUE,
+                    `expires_at` datetime NOT NULL,
+                    `used`       tinyint(1) NOT NULL DEFAULT 0,
+                    INDEX (`token`),
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== EMAIL VERIFICATIONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `email_verifications` (
+                    `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`    int(11) NOT NULL,
+                    `token`      varchar(64) NOT NULL UNIQUE,
+                    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `expires_at` datetime NOT NULL,
+                    `used`       tinyint(1) NOT NULL DEFAULT 0,
+                    INDEX (`token`),
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== AUDIT LOGS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `audit_logs` (
+                    `id`          INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`     INT DEFAULT NULL,
+                    `username`    VARCHAR(100) DEFAULT NULL,
+                    `role`        VARCHAR(50) DEFAULT NULL,
+                    `action`      VARCHAR(100) NOT NULL,
+                    `target_type` VARCHAR(50) DEFAULT NULL,
+                    `target_id`   INT DEFAULT NULL,
+                    `details`     TEXT DEFAULT NULL,
+                    `ip_address`  VARCHAR(45) DEFAULT NULL,
+                    `created_at`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_audit_created_at` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
+
+        $this->dropColumn('protocol_return_reasons', 'wrong_auth');
+
+        // ===== LOGIN ATTEMPTS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `login_attempts` (
+                    `id`           INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `identifier`   VARCHAR(255) NOT NULL,
+                    `attempted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX (`identifier`),
+                    INDEX (`attempted_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== INVITE TOKENS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `invite_tokens` (
+                    `id`         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `token`      VARCHAR(128) NOT NULL UNIQUE,
+                    `role`       VARCHAR(50) NOT NULL DEFAULT 'reviewer',
+                    `used`       TINYINT(1) NOT NULL DEFAULT 0,
+                    `used_by`    INT DEFAULT NULL,
+                    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `expires_at` DATETIME NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== NOTIFICATIONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `notifications` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`    int(11)      NOT NULL,
+                    `type`       varchar(50)  NOT NULL,
+                    `title`      varchar(255) NOT NULL,
+                    `message`    text         DEFAULT NULL,
+                    `link`       varchar(255) DEFAULT NULL,
+                    `is_read`    tinyint(1)   NOT NULL DEFAULT 0,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_notif_user` (`user_id`, `is_read`),
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== ANNOUNCEMENTS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `title`      varchar(255) NOT NULL,
+                    `body`       text         NOT NULL,
+                    `image_path` varchar(255) DEFAULT NULL,
+                    `posted_by`  int(11)      DEFAULT NULL,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`posted_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('announcements', 'image_path', "varchar(255) DEFAULT NULL AFTER `body`");
+
+        // ===== SITE SETTINGS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `site_settings` (
+                    `setting_key`   varchar(100) NOT NULL PRIMARY KEY,
+                    `setting_value` text         DEFAULT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seeder->seedSiteSettings();
+
+        // ===== CONTACT OFFICES TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `contact_offices` (
+                    `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `sort_order`     int(11)      NOT NULL DEFAULT 0,
+                    `name`           varchar(255) NOT NULL,
+                    `logo_path`      varchar(255) DEFAULT NULL,
+                    `address`        text         DEFAULT NULL,
+                    `phone`          text         DEFAULT NULL,
+                    `email`          text         DEFAULT NULL,
+                    `facebook_url`   varchar(500) DEFAULT NULL,
+                    `facebook_label` varchar(255) DEFAULT NULL,
+                    `director_name`  varchar(255) DEFAULT NULL,
+                    `director_role`  varchar(255) DEFAULT NULL,
+                    `director_email` varchar(255) DEFAULT NULL,
+                    `created_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seeder->seedContactOffices();
+        $this->seeder->migrateContactOffices();
+
+        // ===== FAQS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `faqs` (
+                    `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `sort_order` int(11)      NOT NULL DEFAULT 0,
+                    `question`   varchar(500) NOT NULL,
+                    `answer`     text         NOT NULL,
+                    `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `updated_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->seeder->seedFaqs();
+
+        // ===== RETURN REASONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
+                    `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`  int(11)       NOT NULL,
+                    `reviewer_id`  int(11)       NOT NULL,
+                    `wrong_cert`   tinyint(1)    NOT NULL DEFAULT 0,
+                    `other_reason` tinyint(1)    NOT NULL DEFAULT 0,
+                    `comment`      varchar(1000) NOT NULL DEFAULT '',
+                    `created_at`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_prr_protocol` (`protocol_id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
+        $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
+        $this->backfillReturnReasonVersions();
+
+        // ===== PAYMENT PROOF REJECTIONS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
+                    `id`           int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`  int(11)       NOT NULL,
+                    `reviewer_id`  int(11)       NOT NULL,
+                    `comment`      varchar(1000) NOT NULL DEFAULT '',
+                    `created_at`   timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_ppr_protocol` (`protocol_id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`reviewer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== CLEARANCE POOL TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `clearance_pool` (
+                    `id`             int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `file_path`      varchar(255) NOT NULL,
+                    `original_name`  varchar(255) NOT NULL,
+                    `uploaded_by`    int(11)      NOT NULL,
+                    `uploaded_at`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    `protocol_id`    int(11)      DEFAULT NULL,
+                    `assigned_by`    int(11)      DEFAULT NULL,
+                    `assigned_at`    timestamp    NULL DEFAULT NULL,
+                    `version_id`     int(11)      DEFAULT NULL,
+                    INDEX `idx_cp_protocol` (`protocol_id`),
+                    FOREIGN KEY (`uploaded_by`) REFERENCES `users`(`id`),
+                    FOREIGN KEY (`assigned_by`) REFERENCES `users`(`id`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->ensureColumn('clearance_pool', 'version_id', "int(11) DEFAULT NULL AFTER `assigned_at`");
+
+        // ===== PROTOCOL DRAFTS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_drafts` (
+                    `id`                  int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`             int(11)      NOT NULL UNIQUE,
+                    `step`                tinyint(4)   NOT NULL DEFAULT 0,
+                    `agreed_terms`        tinyint(1)   NOT NULL DEFAULT 0,
+                    `agreed_privacy`      tinyint(1)   NOT NULL DEFAULT 0,
+                    `title`               varchar(255) NOT NULL DEFAULT '',
+                    `protocol_file_path`  varchar(255) DEFAULT NULL,
+                    `protocol_file_name`  varchar(255) DEFAULT NULL,
+                    `cert_file_path`      varchar(255) DEFAULT NULL,
+                    `cert_file_name`      varchar(255) DEFAULT NULL,
+                    `updated_at`          timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $this->dropColumn('protocol_drafts', 'is_pi');
+        $this->dropColumn('protocol_drafts', 'auth_file_path');
+        $this->dropColumn('protocol_drafts', 'auth_file_name');
+    }
+
+    // ===== SCHEMA HELPERS =====
+    private function ensureColumn(string $table, string $column, string $definition): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        if ($exists && $exists->num_rows === 0) {
+            $c->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+        }
+    }
+
+    private function renameColumn(string $table, string $from, string $to, string $definition): void
+    {
+        $c = $this->connection;
+
+        $oldExists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$from'");
+        $newExists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$to'");
+        if ($oldExists && $oldExists->num_rows > 0 && $newExists && $newExists->num_rows === 0) {
+            $c->query("ALTER TABLE `$table` CHANGE COLUMN `$from` `$to` $definition");
+        }
+    }
+
+    // ===== ONE-TIME DATA MIGRATIONS =====
+    private function backfillRecordProtocolLinks(): void
+    {
+        $this->connection->query(
+            "UPDATE `records` r
+             JOIN `protocols` p ON p.title = r.title_of_research
+             SET r.protocol_id = p.id
+             WHERE r.protocol_id IS NULL
+               AND (SELECT COUNT(*) FROM `protocols` p2 WHERE p2.title = r.title_of_research) = 1
+               AND (SELECT COUNT(*) FROM `records` r2 WHERE r2.title_of_research = r.title_of_research) = 1"
+        );
+    }
+
+    private function backfillRecordUserLinks(): void
+    {
+        $this->connection->query(
+            "UPDATE `records` r
+             JOIN `protocols` p ON p.id = r.protocol_id
+             SET r.user_id = p.user_id
+             WHERE r.user_id IS NULL"
+        );
+    }
+
+    private function moveRecordArReferences(): void
+    {
+        $this->connection->query(
+            "UPDATE `records`
+             SET ar_number = reference_no, reference_no = NULL
+             WHERE reference_no LIKE 'AR%'
+               AND (ar_number IS NULL OR ar_number = '')
+               AND reference_no NOT IN (
+                   SELECT used FROM (SELECT ar_number AS used FROM `records` WHERE ar_number IS NOT NULL) t
+               )"
+        );
+    }
+
+    private function migrateAdminRoleToStaff(): void
+    {
+        $this->connection->query(
+            "UPDATE `users` SET `role` = 'staff' WHERE `role` = 'admin'"
+        );
+        $this->connection->query(
+            "UPDATE `invite_tokens` SET `role` = 'staff' WHERE `role` = 'admin'"
+        );
+    }
+
+    private function backfillReturnReasonVersions(): void
+    {
+        $this->connection->query(
+            "UPDATE `protocol_return_reasons` r
+             JOIN `protocol_versions` pv
+                ON pv.protocol_id = r.protocol_id
+               AND pv.file_type = 'protocol'
+               AND pv.uploaded_at = (
+                    SELECT MAX(pv2.uploaded_at)
+                    FROM `protocol_versions` pv2
+                    WHERE pv2.protocol_id = r.protocol_id
+                      AND pv2.file_type = 'protocol'
+                      AND pv2.uploaded_at <= r.created_at
+               )
+             SET r.version_id = pv.id
+             WHERE r.version_id IS NULL"
+        );
+    }
+
+    private function purgeAuthVersions(): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `protocol_versions` LIKE 'file_type'");
+        if (! $exists || $exists->num_rows === 0) {
+            return;
+        }
+
+        $result = $c->query("SELECT id, file_path FROM `protocol_versions` WHERE file_type = 'auth'");
+        if (! $result || $result->num_rows === 0) {
+            return;
+        }
+
+        $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
+        while ($row = $result->fetch_assoc()) {
+            $abs = $baseDir . $row['file_path'];
+            if (is_file($abs)) {
+                @unlink($abs);
+            }
+        }
+
+        $c->query("DELETE FROM `protocol_versions` WHERE file_type = 'auth'");
+    }
+
+    // ===== SCHEMA HELPERS (DROP, ENUM, INDEX) =====
+    private function dropColumn(string $table, string $column): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        if ($exists && $exists->num_rows > 0) {
+            $c->query("ALTER TABLE `$table` DROP COLUMN `$column`");
+        }
+    }
+
+    private function ensureEnumValues(string $table, string $column, array $values, string $default): void
+    {
+        $c = $this->connection;
+
+        $result = $c->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if (! $row) {
+            return;
+        }
+
+        $target = "enum(" . implode(',', array_map(fn($v) => "'" . $c->real_escape_string($v) . "'", $values)) . ")";
+        if ($row['Type'] !== $target) {
+            $c->query("ALTER TABLE `$table` MODIFY COLUMN `$column` $target NOT NULL DEFAULT '$default'");
+        }
+    }
+
+    private function ensureIndex(string $table, string $indexName, string $definition, bool $unique = false): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'");
+        if ($exists && $exists->num_rows === 0) {
+            $keyword = $unique ? 'UNIQUE INDEX' : 'INDEX';
+            $c->query("ALTER TABLE `$table` ADD $keyword `$indexName` $definition");
+        }
+    }
+}

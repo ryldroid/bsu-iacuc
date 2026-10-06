@@ -2,14 +2,14 @@
 
 class Submissions extends Controller
 {
-    public ProtocolModel $model;
+    private ProtocolModel $protocolModel;
 
     // ===== SETUP =====
     public function __construct()
     {
-        require_once "../app/models/ProtocolModel.php";
-        require_once "../app/models/UserModel.php";
-        $this->model = new ProtocolModel();
+        parent::__construct();
+
+        $this->protocolModel = new ProtocolModel();
     }
 
     // ===== RESEARCHER ACCESS CHECK =====
@@ -30,11 +30,10 @@ class Submissions extends Controller
         $this->requireResearcher();
 
         $userId    = (int) $_SESSION['user']['user_id'];
-        $protocols = $this->model->getByUser($userId);
+        $protocols = $this->protocolModel->getByUser($userId);
 
-        $userModel     = new UserModel();
-        $hasCertOnFile = $userModel->hasCert($userId);
-        $currentUser   = $userModel->getUser($userId);
+        $hasCertOnFile = $this->userModel->hasCert($userId);
+        $currentUser   = $this->userModel->getUser($userId);
         $isBsu         = stripos(trim($currentUser['school'] ?? ''), 'Benguet State University') !== false;
 
         $statuses = [
@@ -66,7 +65,7 @@ class Submissions extends Controller
         header('Content-Type: application/json');
 
         $userId = (int) $_SESSION['user']['user_id'];
-        echo json_encode(['latest' => $this->model->getLatestActivityTimestamp($userId)]);
+        echo json_encode(['latest' => $this->protocolModel->getLatestActivityTimestamp($userId)]);
         exit;
     }
 }

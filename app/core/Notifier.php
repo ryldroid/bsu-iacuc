@@ -11,14 +11,12 @@ class Notifier
     ?string $link = null,
     array $email = []
   ): void {
-    require_once dirname(__DIR__) . '/models/NotificationModel.php';
     (new NotificationModel())->create($userId, $type, $title, $message, $link);
 
     if (empty($email['template']) || empty($email['to'])) {
       return;
     }
 
-    require_once dirname(__DIR__) . '/models/UserModel.php';
     $recipient = (new UserModel())->getUser($userId);
 
     if ($recipient && !empty($recipient['email_verified']) && !empty($recipient['email_notifications'])) {
@@ -35,8 +33,6 @@ class Notifier
     ?string $link = null,
     array $email = []
   ): void {
-    require_once dirname(__DIR__) . '/models/NotificationModel.php';
-
     $recipients = (new NotificationModel())->createForRole($role, $type, $title, $message, $link);
 
     if (empty($email['template'])) {

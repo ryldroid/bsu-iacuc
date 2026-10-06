@@ -2,14 +2,11 @@
 
 class Contact extends Controller
 {
+  use PublicPageData;
+
   // ===== CONTACT PAGE =====
   public function index()
   {
-    require_once dirname(__DIR__) . '/models/ContactOfficeModel.php';
-    $officeModel = new ContactOfficeModel();
-
-    $this->view('contact', [
-      'offices' => $officeModel->getAll(),
-    ]);
+    $this->view('contact', $this->contactPageData());
   }
 }

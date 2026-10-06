@@ -214,7 +214,7 @@ body {
 }
 
 main {
-    max-width: 90%;
+    max-width: 92%;
     margin: 0 auto;
     padding: 80px 40px;
     flex: 1;
@@ -530,7 +530,6 @@ main a.underlined:hover {
 
 .dashboard-select-trigger:active {
     transform: none;
-    background: var(--hover-surface);
 }
 
 .dashboard-select-trigger:focus,

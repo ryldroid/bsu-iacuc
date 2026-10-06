@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname(__DIR__) . '/core/Model.php';
-
 class ProtocolModel extends Model
 {
     // ===== CREATE PROTOCOL =====
@@ -301,6 +299,23 @@ class ProtocolModel extends Model
 
         $stmt->bind_param('i', $protocolId);
         return $stmt->execute();
+    }
+
+    public function getPaymentRejections(int $protocolId): array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT comment, created_at
+             FROM `payment_proof_rejections`
+             WHERE protocol_id = ?
+             ORDER BY created_at DESC, id DESC"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     public function getLatestPaymentRejection(int $protocolId): ?array

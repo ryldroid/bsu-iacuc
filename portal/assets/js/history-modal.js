@@ -167,7 +167,7 @@ function buildSimpleFileSection(files, label, heading) {
 
       return `
             <div class="history-entry">
-                <div class="history-row${isLatest ? " history-row--latest" : ""}">
+                <div class="history-row">
                     <div class="history-row-meta">
                         <span class="history-ver" title="Version no. (number of times this file was uploaded)">v${v.version_number}</span>
                         ${isLatest ? '<span class="history-latest-badge">Latest</span>' : ""}
@@ -191,10 +191,58 @@ function buildSimpleFileSection(files, label, heading) {
   return `<div class="history-section-label">${escapeHtml(heading || label)}</div>${rows}`;
 }
 
+function buildPaymentHistorySection(events) {
+  if (!events || events.length === 0) return "";
+
+  const rows = events
+    .map((e) => {
+      const when = `${formatDate(e.at)} &middot; ${formatTime(e.at)}`;
+      let title = "";
+      let detail = "";
+      let action = "";
+
+      if (e.type === "proof") {
+        title = "Proof of payment submitted";
+        detail = `<span class="helper">${escapeHtml(e.original_name || "")}</span>`;
+        action = `<button type="button" class="button history-open-btn"
+                        onclick="openFilePopup('${e.file_url}', 'Proof of Payment')">
+                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#review-icon" />
+                        </svg>
+                        Open
+                    </button>`;
+      } else if (e.type === "rejected") {
+        title = "Payment rejected";
+        detail = `<div class="history-return-line">
+                <span class="history-return-note-text"><span class="history-return-note-label">Reason:</span> <span class="history-return-note-body">${escapeHtml(e.comment || "No reason given.")}</span></span>
+            </div>`;
+      } else {
+        title = "Payment verified";
+        detail = `<span class="helper">${e.method === "in_person" ? "Paid in person at CCARD" : "Paid online"}</span>`;
+      }
+
+      return `
+            <div class="history-entry">
+                <div class="history-row">
+                    <div class="history-row-detail">
+                        <span class="history-filename">${title}</span>
+                        <span class="helper">${when}</span>
+                        ${detail}
+                    </div>
+                    ${action}
+                </div>
+            </div>`;
+    })
+    .join("");
+
+  return `<div class="history-section-label">Payment History</div>${rows}`;
+}
+
 // ===== Render history =====
 function renderHistory(data) {
   const sections = [
     buildVersionRows(data.protocol_files, data.protocol_id, data.status),
+    buildPaymentHistorySection(data.payment_history),
     buildSimpleFileSection(
       data.signed_scan_files,
       "Signed Scan",

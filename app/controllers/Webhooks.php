@@ -2,15 +2,6 @@
 
 class Webhooks extends Controller
 {
-  public UserModel $model;
-
-  // ===== SETUP =====
-  public function __construct()
-  {
-    require_once "../app/models/UserModel.php";
-    $this->model = new UserModel();
-  }
-
   // ===== BREVO UNSUBSCRIBE WEBHOOK =====
   public function brevo(): void
   {
@@ -41,11 +32,11 @@ class Webhooks extends Controller
       return;
     }
 
-    $user = $this->model->getUserByEmail($email);
+    $user = $this->userModel->getUserByEmail($email);
 
     if ($user) {
-      $this->model->markEmailProviderUnsubscribed((int) $user['id']);
-      $this->model->logAudit(
+      $this->userModel->markEmailProviderUnsubscribed((int) $user['id']);
+      $this->userModel->logAudit(
         'email_provider_unsubscribed',
         null,
         'Brevo',

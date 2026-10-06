@@ -109,6 +109,8 @@
   left: 22px;
   z-index: 20;
   min-width: 220px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
   max-height: 280px;
   overflow-y: auto;
   background: #1e293b;
@@ -145,6 +147,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .version-dropdown-item-meta {
@@ -157,6 +160,7 @@
 .version-dropdown-item-date {
   font-size: 0.7rem;
   color: #94a3b8;
+  white-space: nowrap;
 }
 
 .version-dropdown-item.is-current .version-dropdown-item-date {
@@ -925,9 +929,16 @@
     font-size: 0.82rem;
   }
 
-  .viewer-topbar-left .ver-badge,
-  .viewer-topbar-left .status-badge {
-    display: none;
+  .viewer-topbar-left {
+    position: relative;
+  }
+
+  .version-switcher {
+    position: static;
+  }
+
+  .version-dropdown-menu {
+    left: 0;
   }
 
   .tool-btn {
@@ -997,18 +1008,11 @@
   .viewer-view-actions,
   .viewer-doc-actions,
   .viewer-review-actions {
-    flex-wrap: wrap;
-    width: 100%;
+    display: contents;
   }
 
   .toolbar-divider {
     display: none;
-  }
-
-  .viewer-doc-actions {
-    margin-top: 0.35rem;
-    padding-top: 0.35rem;
-    border-top: 1px solid #334155;
   }
 
   .title-history-menu {

@@ -432,6 +432,24 @@ function formatDurationRange(?string $start, ?string $end): string
                                             <!-- ACTION BUTTONS -->
                                             <td class="actions-cell">
                                                 <div class="row-actions">
+                                                    <?php if ($isStaff): ?>
+                                                        <button type="button" class="row-btn edit-record-btn"
+                                                            data-id="<?= (int)$r['id'] ?>"
+                                                            aria-label="Edit record">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                                <use href="#edit-icon">
+                                                            </svg>
+                                                        </button>
+
+                                                        <button type="button" class="row-btn delete-record-btn"
+                                                            data-id="<?= (int)$r['id'] ?>"
+                                                            data-title="<?= htmlspecialchars(mb_substr($r['title_of_research'], 0, 60), ENT_QUOTES) ?>"
+                                                            aria-label="Delete record">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                                <use href="#trash-icon">
+                                                            </svg>
+                                                        </button>
+                                                    <?php endif; ?>
                                                     <?php if (!empty($r['file_path'])): ?>
                                                         <a class="row-btn view-record-btn"
                                                             href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>"
@@ -441,24 +459,6 @@ function formatDurationRange(?string $start, ?string $end): string
                                                                 <use href="#eye-icon">
                                                             </svg>
                                                         </a>
-                                                    <?php endif; ?>
-                                                    <?php if ($isStaff): ?>
-                                                        <button type="button" class="row-btn delete-record-btn"
-                                                            data-id="<?= (int)$r['id'] ?>"
-                                                            data-title="<?= htmlspecialchars(mb_substr($r['title_of_research'], 0, 60), ENT_QUOTES) ?>"
-                                                            aria-label="Delete record">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                                <use href="#trash-icon">
-                                                            </svg>
-                                                        </button>
-
-                                                        <button type="button" class="row-btn edit-record-btn"
-                                                            data-id="<?= (int)$r['id'] ?>"
-                                                            aria-label="Edit record">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                                <use href="#edit-icon">
-                                                            </svg>
-                                                        </button>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -673,7 +673,7 @@ function formatDurationRange(?string $start, ?string $end): string
             <div class="records-form-grid">
                 <div class="records-form-group records-form-full">
                     <label for="add_reference_no">IPN <span class="records-required">*</span></label>
-                    <input type="text" id="add_reference_no" name="reference_no" placeholder="e.g. BSU-IACUC-2025-001">
+                    <input type="text" id="add_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="add_ar_number">AR Number</label>
@@ -776,7 +776,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 <input type="hidden" id="edit_id">
                 <div class="records-form-group records-form-full">
                     <label for="edit_reference_no">IPN</label>
-                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. BSU-IACUC-2025-001">
+                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="edit_ar_number">AR Number</label>
@@ -953,6 +953,10 @@ function formatDurationRange(?string $start, ?string $end): string
                     showErr('addError', 'IPN is required.');
                     return;
                 }
+                if (!/^\d{6}$/.test(ref)) {
+                    showErr('addError', 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+                    return;
+                }
                 if (!title) {
                     showErr('addError', 'Title of research is required.');
                     return;
@@ -1029,6 +1033,11 @@ function formatDurationRange(?string $start, ?string $end): string
             hideErr('editError');
 
             const ipnChanged = document.getElementById('edit_reference_no').value.trim() !== editOriginalIpn;
+            const newIpn = document.getElementById('edit_reference_no').value.trim();
+            if (ipnChanged && newIpn !== '' && !/^\d{6}$/.test(newIpn)) {
+                showErr('editError', 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+                return;
+            }
             if (ipnChanged && editHasSignedScan) {
                 const confirmed = await confirmAction(
                     'This record already has a signed scan. Changing the IPN will make the signed scan not match the record.', {

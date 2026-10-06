@@ -332,6 +332,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php elseif ($canConfirmPayment): ?>
                                     <button class="button button--primary"
                                         data-protocol-id="<?= $protocolIdInt ?>"
+                                        data-rejection-reason="<?= htmlspecialchars($paymentStatus === 'rejected' ? ($protocol['payment_rejection_comment'] ?? '') : '', ENT_QUOTES, 'UTF-8') ?>"
+                                        data-research-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
                                         onclick="openPaymentModal(+this.dataset.protocolId)">
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#upload-icon" />
@@ -372,6 +374,44 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <script src="<?= asset_js('file-popup.js') ?>"></script>
 
 <!-- Verify Payment modal -->
+
+<!-- ===== Payment rejected modal: rejection reason + the proof the researcher submitted (read-only) ===== -->
+<div class="modal-backdrop" id="paymentRejectedModalBackdrop">
+    <div class="modal-card file-popup-card review-payment-card">
+        <div class="file-popup-header">
+            <span class="file-popup-title">Payment Proof Rejected</span>
+            <button class="modal-close" type="button" onclick="closePaymentRejectedModal()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="review-payment-summary">
+            <p class="review-payment-summary-title">For the research: "<span id="paymentRejectedTitle"></span>"</p>
+            <div class="return-reason-inline">
+                <p class="return-reason-by">Reason for rejection:</p>
+                <p class="return-reason-comment" id="paymentRejectedReason"></p>
+            </div>
+        </div>
+
+        <div class="review-payment-image-frame" id="paymentRejectedProofFrame">
+            <p class="review-payment-note">Loading your submitted proof&hellip;</p>
+        </div>
+
+        <div class="review-payment-footer">
+            <div class="modal-actions">
+                <button class="button" type="button" onclick="closePaymentRejectedModal()">Close</button>
+                <button class="button btn-apply" type="button" onclick="resubmitFromRejectedModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Resubmit Proof
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ===== Payment modal ===== -->
 <div class="modal-backdrop" id="paymentModalBackdrop">
@@ -469,6 +509,79 @@ function statusIconSvg(string $iconId, int $size = 14): string
         document.getElementById('paymentModalError').hidden = true;
     }
 
+    // ===== Payment rejected modal =====
+    const paymentRejectedModal = document.getElementById('paymentRejectedModalBackdrop');
+    let currentRejectedProtocolId = null;
+
+    function openPaymentRejectedModal(protocolId) {
+        const trigger = document.querySelector(`#protocol-${protocolId} [data-rejection-reason]`);
+        if (!trigger) return;
+
+        currentRejectedProtocolId = protocolId;
+        document.getElementById('paymentRejectedTitle').textContent = trigger.dataset.researchTitle;
+        document.getElementById('paymentRejectedReason').textContent = trigger.dataset.rejectionReason;
+        document.getElementById('paymentRejectedProofFrame').innerHTML =
+            '<p class="review-payment-note">Loading your submitted proof&hellip;</p>';
+        paymentRejectedModal.classList.add('open');
+        loadRejectedProof(protocolId);
+    }
+
+    function closePaymentRejectedModal() {
+        paymentRejectedModal.classList.remove('open');
+        currentRejectedProtocolId = null;
+    }
+
+    function resubmitFromRejectedModal() {
+        const protocolId = currentRejectedProtocolId;
+        closePaymentRejectedModal();
+        openPaymentModal(protocolId);
+    }
+
+    paymentRejectedModal.addEventListener('click', e => {
+        if (e.target === paymentRejectedModal) closePaymentRejectedModal();
+    });
+
+    async function loadRejectedProof(protocolId) {
+        const frame = document.getElementById('paymentRejectedProofFrame');
+        const showNote = text => {
+            frame.innerHTML = '';
+            const note = document.createElement('p');
+            note.className = 'review-payment-note';
+            note.textContent = text;
+            frame.appendChild(note);
+        };
+
+        try {
+            const res = await fetch(ROOT_URL + '/apply/allversions/' + protocolId);
+            const data = await res.json();
+            const latest = data?.payment_proof_files?.[0];
+            if (!latest) {
+                showNote('No proof file is attached because this payment was submitted in person.');
+                return;
+            }
+
+            frame.innerHTML = '';
+            if (/\.pdf$/i.test(latest.original_name || '')) {
+                const link = document.createElement('a');
+                link.href = latest.file_url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.className = 'underlined';
+                link.textContent = 'Open submitted proof (PDF)';
+                frame.appendChild(link);
+                return;
+            }
+
+            const img = document.createElement('img');
+            img.src = latest.file_url;
+            img.alt = 'Submitted proof of payment';
+            img.onerror = () => showNote('Could not load the submitted proof of payment.');
+            frame.appendChild(img);
+        } catch (err) {
+            showNote('Network error while loading the submitted proof.');
+        }
+    }
+
     function openPaymentModal(protocolId) {
         currentPaymentProtocolId = protocolId;
         document.getElementById('payment_proof_file').value = '';
@@ -479,6 +592,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
         }
         document.getElementById('paymentModalError').hidden = true;
         document.getElementById('paymentProofProgress').innerHTML = '';
+
         handlePaymentMethodChange();
         paymentModal.classList.add('open');
     }
@@ -714,6 +828,11 @@ function statusIconSvg(string $iconId, int $size = 14): string
             block: 'center'
         });
         card.classList.add('protocol--highlight');
+
+        if (new URLSearchParams(window.location.search).get('open') === 'payment' &&
+            card.querySelector('[data-rejection-reason]')) {
+            openPaymentRejectedModal(+id);
+        }
     })();
 
     // ===== Continue vs New Application =====

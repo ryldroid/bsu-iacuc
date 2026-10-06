@@ -220,35 +220,37 @@
 }
 
 .pending-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .6rem 1rem;
     background: var(--divider-color-subtle);
     border: 1px solid var(--divider-color);
     border-radius: var(--btn-radius);
-    padding: 1rem;
-    margin: 1rem 0;
+    padding: .65rem .9rem;
+    margin: .5rem 0;
 }
 
 .pending-box .username {
     color: var(--secondary-text);
 }
 
-.pending-box .application-date {
-    font-size: 0.85rem;
+.pending-meta {
+    margin-top: 2px;
+    font-size: 0.85em;
     color: var(--muted-text);
+    overflow-wrap: anywhere;
 }
 
 .pending-box .actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 1em;
 }
 
-.pending-box * {
-    display: inline-block;
-    margin-top: .2em;
-}
-
-.pending-box p {
-    font-size: 0.9em;
+.pending-box .accounts-btn-primary,
+.pending-box .reject-btn {
+    padding: 7px 16px;
 }
 
 .reject-btn {
@@ -287,22 +289,13 @@
         margin: .6rem 0;
     }
 
-    .pending-box p {
-        font-size: 0.82em;
-    }
-
-    .pending-box .username {
-        font-size: 0.82em;
-    }
-
-    .pending-box .application-date {
-        font-size: 0.78rem;
+    .pending-meta {
+        font-size: 0.78em;
     }
 
     .pending-box .actions {
-        display: flex;
+        width: 100%;
         gap: 0.4rem;
-        margin-top: .6em;
     }
 
     .pending-box .actions form {
@@ -358,20 +351,19 @@
 
 .personnel-status-pill {
     display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
+    padding: 2px 9px;
+    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+    border-radius: 4px;
     font-size: 0.78em;
     font-weight: 600;
     white-space: nowrap;
 }
 
 .personnel-status-active {
-    background: var(--status-success-bg);
     color: var(--status-success-text);
 }
 
 .personnel-status-inactive {
-    background: var(--status-danger-bg);
     color: var(--status-danger-text);
 }
 
@@ -531,17 +523,18 @@
 .audit-refresh-btn {
     display: flex;
     border: none;
-    background: none;
     box-shadow: none;
     color: var(--secondary-text);
     cursor: pointer;
     padding: 0.25rem;
     margin: 0;
+    border-radius: 50%;
+    background: var(--hover-surface-soft);
 }
 
 .audit-refresh-btn:hover {
     color: var(--brand-text);
-    background: none;
+    background: var(--brand-surface-faint);
 }
 
 .audit-jump-clear:hover {

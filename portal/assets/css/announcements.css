@@ -297,7 +297,11 @@ h2 {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
-  margin-top: 2px;
+  align-self: center;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: var(--brand-color);
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
   opacity: 0;
   transition: opacity 0.12s;
 }
@@ -325,15 +329,18 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 0;
 }
 
-.ann-row-actions .edit-announcement-btn:hover {
-  background: var(--brand-color-hover);
-  border-color: var(--brand-color-hover);
-  color: var(--text-on-brand);
+.ann-row-actions .row-btn:hover {
+  background: var(--brand-surface-tint);
+  border-color: var(--brand-surface-tint);
+  color: var(--brand-text);
 }
 
-.ann-row-actions .delete-announcement-btn:hover {
+.ann-row-actions .delete-announcement-btn:hover,
+.ann-row-actions .delete-office-btn:hover,
+.ann-row-actions .delete-faq-btn:hover {
   background: var(--danger-color);
   border-color: var(--danger-color);
   color: var(--text-on-brand);

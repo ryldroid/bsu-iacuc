@@ -2,6 +2,14 @@
 
 class Controller
 {
+  protected UserModel $userModel;
+
+  // ===== SETUP =====
+  public function __construct()
+  {
+    $this->userModel = new UserModel();
+  }
+
   // ===== VIEWS & REDIRECTS =====
   public function view(string $name, array $data = []): void
   {
@@ -117,9 +125,7 @@ class Controller
       $this->redirect('user/login');
     }
 
-    require_once dirname(__DIR__) . '/models/UserModel.php';
-    $userModel = new UserModel();
-    $fresh = $userModel->getUser($_SESSION['user']['user_id']);
+    $fresh = $this->userModel->getUser($_SESSION['user']['user_id']);
 
     if ($fresh && $fresh['role'] !== $_SESSION['user']['role']) {
       $_SESSION['user']['role'] = $fresh['role'];
@@ -195,9 +201,6 @@ class Controller
   // ===== FORGOT PASSWORD FLOW =====
   protected function handleForgotPassword(string $forgotRoute, string $resetRoute, string $loginRoute): void
   {
-    require_once dirname(__DIR__) . '/models/UserModel.php';
-    $userModel = new UserModel();
-
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       $this->view('user/forgot_password', [
         'csrf'  => $this->generateCsrfToken(),
@@ -211,10 +214,10 @@ class Controller
 
     $success = 'Please check your email inbox and click on the link to reset your password.';
 
-    $user = $userModel->getUserByEmail($email);
+    $user = $this->userModel->getUserByEmail($email);
     if ($user) {
       $token = bin2hex(random_bytes(32));
-      $userModel->createPasswordReset((int) $user['id'], $token);
+      $this->userModel->createPasswordReset((int) $user['id'], $token);
 
       $reset_url = ROOT . '/' . $resetRoute . '?token=' . $token;
 
@@ -234,14 +237,11 @@ class Controller
   // ===== RESET PASSWORD FLOW =====
   protected function handleResetPassword(string $resetRoute, string $loginRoute): void
   {
-    require_once dirname(__DIR__) . '/models/UserModel.php';
-    $userModel = new UserModel();
-
     // ===== RESET FORM (GET) =====
     $token = $_GET['token'] ?? $_POST['token'] ?? '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-      $reset = $userModel->getPasswordReset($token);
+      $reset = $this->userModel->getPasswordReset($token);
 
       if (!$reset) {
         $this->view('user/reset_password', [
@@ -265,7 +265,7 @@ class Controller
     // ===== SUBMIT NEW PASSWORD (POST) =====
     $this->verifyCsrfToken();
 
-    $reset = $userModel->getPasswordReset($token);
+    $reset = $this->userModel->getPasswordReset($token);
     if (!$reset) {
       $this->view('user/reset_password', [
         'csrf'   => $this->generateCsrfToken(),
@@ -301,7 +301,7 @@ class Controller
 
     // ===== SAVE PASSWORD =====
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $userModel->updatePassword((int) $reset['user_id'], $hash);
+    $ok   = $this->userModel->updatePassword((int) $reset['user_id'], $hash);
 
     if (!$ok) {
       $this->view('user/reset_password', [
@@ -313,9 +313,9 @@ class Controller
       return;
     }
 
-    $userModel->logAudit('password_reset', (int) $reset['user_id'], '', '', 'user', (int) $reset['user_id'], 'Password reset via email link');
+    $this->userModel->logAudit('password_reset', (int) $reset['user_id'], '', '', 'user', (int) $reset['user_id'], 'Password reset via email link');
 
-    $userModel->markResetUsed($token);
+    $this->userModel->markResetUsed($token);
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';
     $this->redirect($loginRoute);
@@ -324,11 +324,8 @@ class Controller
   // ===== EMAIL VERIFICATION =====
   protected function sendEmailVerification(array $user): void
   {
-    require_once dirname(__DIR__) . '/models/UserModel.php';
-    $userModel = new UserModel();
-
     $token = bin2hex(random_bytes(32));
-    $userModel->createEmailVerification((int) $user['id'], $token);
+    $this->userModel->createEmailVerification((int) $user['id'], $token);
 
     $verify_url = ROOT . '/user/verify_email?token=' . $token;
 

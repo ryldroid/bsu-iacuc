@@ -56,7 +56,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <label for="email">Email</label>
             </div>
 
-            <button type="submit">Send Reset Link</button>
+            <button type="submit" class="reset-link-btn">Send Reset Link</button>
         </form>
     </main>
 </div>

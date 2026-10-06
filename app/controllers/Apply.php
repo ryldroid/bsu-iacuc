@@ -2,16 +2,21 @@
 
 class Apply extends Controller
 {
+    private ProtocolModel $protocolModel;
+    private DraftModel $draftModel;
+    private RecordModel $recordModel;
+
     // ===== SETUP =====
     public function __construct()
     {
-        require_once dirname(__DIR__) . '/models/ProtocolModel.php';
-        require_once dirname(__DIR__) . '/models/UserModel.php';
-        require_once dirname(__DIR__) . '/models/DraftModel.php';
+        parent::__construct();
+
+        $this->protocolModel = new ProtocolModel();
+        $this->draftModel    = new DraftModel();
+        $this->recordModel   = new RecordModel();
     }
 
     // ===== HELPERS =====
-
     private function requireProtocolAccess(array $protocol, int $userId, string $role, bool $asPage = false): void
     {
         if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['staff', 'reviewer'])) {
@@ -24,16 +29,22 @@ class Apply extends Controller
         }
     }
 
+    // ===== OWNER LOOKUP =====
+    private function ownerOf(array $protocol)
+    {
+        return $this->userModel->getUser((int) $protocol['user_id']);
+    }
+
     private function actorDisplayName(array $actor): string
     {
-        $user = (new UserModel())->getUser($actor['id']);
+        $user = $this->userModel->getUser($actor['id']);
         $full = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         return $full !== '' ? $full : $actor['name'];
     }
 
-    private function protocolHighlightLink(int $protocolId): string
+    private function protocolHighlightLink(int $protocolId, ?string $open = null): string
     {
-        return 'submissions?highlight=' . $protocolId;
+        return 'submissions?highlight=' . $protocolId . ($open ? '&open=' . $open : '');
     }
 
     private function roleLabel(string $role): string
@@ -48,7 +59,7 @@ class Apply extends Controller
     // ===== NOTIFICATION HELPERS =====
     private function notifyProtocolRenamed(array $protocol, string $oldTitle, string $newTitle, array $actor): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         if (!$owner) {
             return;
         }
@@ -182,7 +193,7 @@ class Apply extends Controller
 
     private function notifyProtocolDeleted(array $protocol, string $reason, array $actor): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         if (!$owner) {
             return;
         }
@@ -217,7 +228,7 @@ class Apply extends Controller
             return;
         }
 
-        $requester = (new UserModel())->getUser($requesterId);
+        $requester = $this->userModel->getUser($requesterId);
         if (!$requester) {
             return;
         }
@@ -248,7 +259,7 @@ class Apply extends Controller
 
     private function notifyStatusChange(array $protocol, string $newStatus): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         if (!$owner) {
             return;
         }
@@ -295,7 +306,7 @@ class Apply extends Controller
 
     private function notifyPaymentVerified(array $protocol, array $actor): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         $title = $protocol['research_title'] ?? 'Untitled Protocol';
 
         if ($owner) {
@@ -331,7 +342,7 @@ class Apply extends Controller
 
     private function notifyPaymentRejected(array $protocol, string $reason, array $actor): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         if (!$owner) {
             return;
         }
@@ -343,7 +354,7 @@ class Apply extends Controller
             'payment_proof_rejected',
             'Payment Proof Rejected',
             'Your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . ". Reason: $reason. Please resubmit.",
-            $this->protocolHighlightLink((int) $protocol['protocol_id']),
+            $this->protocolHighlightLink((int) $protocol['protocol_id'], 'payment'),
             [
                 'template' => 'payment_proof_rejected',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'reason' => $reason, 'protocol_id' => $protocol['protocol_id']],
@@ -356,7 +367,7 @@ class Apply extends Controller
 
     private function notifySignedScanUploaded(array $protocol, array $actor): void
     {
-        $owner = (new UserModel())->getUser((int) $protocol['user_id']);
+        $owner = $this->ownerOf($protocol);
         if (!$owner) {
             return;
         }
@@ -523,13 +534,10 @@ class Apply extends Controller
         header('Content-Type: application/json');
         $this->requirePostMethod();
 
-        $model      = new ProtocolModel();
-        $userModel  = new UserModel();
-        $draftModel = new DraftModel();
         $actor      = $this->actor();
 
         // ===== LOAD DRAFT & TITLE =====
-        $draft = $draftModel->getByUser($actor['id']);
+        $draft = $this->draftModel->getByUser($actor['id']);
         if (!$draft) {
             $this->jsonError(422, 'No draft found. Please fill out the application first.');
         }
@@ -549,12 +557,12 @@ class Apply extends Controller
         $docOriginalName = $draft['protocol_file_name'];
 
         // ===== SUBMITTER & CERTIFICATE CHECK =====
-        $submitter = $userModel->getUser($actor['id']);
+        $submitter = $this->userModel->getUser($actor['id']);
         $docExt    = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
         $researcherName = trim(($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? ''));
         $docOriginalName = $this->protocolDisplayFilename(null, $researcherName, $title, $docExt);
 
-        $existingCert = $userModel->getCert($actor['id']);
+        $existingCert = $this->userModel->getCert($actor['id']);
         $certRelPath  = $draft['cert_file_path'] ?? null;
         if (!$existingCert && (!$certRelPath || !is_file($draftDirAbs . $certRelPath))) {
             $this->jsonError(422, 'Please upload your IACUC Training Certificate.');
@@ -562,7 +570,7 @@ class Apply extends Controller
         $certOriginalName = $draft['cert_file_name'];
 
         // ===== CREATE PROTOCOL & MOVE FILES =====
-        $protocolId = $model->insertProtocol($actor['id'], $title);
+        $protocolId = $this->protocolModel->insertProtocol($actor['id'], $title);
         if (!$protocolId) {
             $this->jsonError(500, 'Could not create protocol record. Please try again.');
         }
@@ -574,20 +582,20 @@ class Apply extends Controller
 
         $docFinal = $finalDir . basename($docRelPath);
         rename($draftDirAbs . $docRelPath, $docFinal);
-        $model->insertVersion($protocolId, $this->relPath($protocolId, $docFinal), $docOriginalName, $actor['id'], 'protocol');
+        $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docFinal), $docOriginalName, $actor['id'], 'protocol');
 
         if ($certRelPath && is_file($draftDirAbs . $certRelPath)) {
             $certFinal = $finalDir . basename($certRelPath);
             rename($draftDirAbs . $certRelPath, $certFinal);
             $relCert = $this->relPath($protocolId, $certFinal);
-            $model->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
-            $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
+            $this->protocolModel->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
+            $this->userModel->saveCert($actor['id'], $relCert, $certOriginalName);
         }
 
         // ===== CLEAR DRAFT & LOG =====
-        $draftModel->clear($actor['id']);
+        $this->draftModel->clear($actor['id']);
 
-        $model->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
+        $this->protocolModel->logAudit('protocol_submitted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol submitted: $title");
 
         // ===== NOTIFY SUBMITTER =====
         Notifier::send(
@@ -630,10 +638,9 @@ class Apply extends Controller
         $this->requireLogin();
         header('Content-Type: application/json');
 
-        $userModel = new UserModel();
         $actor     = $this->actor();
 
-        echo json_encode(['has_cert' => $userModel->hasCert($actor['id'])]);
+        echo json_encode(['has_cert' => $this->userModel->hasCert($actor['id'])]);
         exit;
     }
 
@@ -645,7 +652,7 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        $row   = (new DraftModel())->getByUser($actor['id']);
+        $row   = $this->draftModel->getByUser($actor['id']);
 
         if (!$row) {
             echo json_encode(['exists' => false]);
@@ -689,7 +696,7 @@ class Apply extends Controller
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $actor = $this->actor();
 
-        $ok = (new DraftModel())->saveFields(
+        $ok = $this->draftModel->saveFields(
             $actor['id'],
             (int) ($body['step'] ?? 0),
             (bool) ($body['agreedTerms'] ?? false),
@@ -726,12 +733,11 @@ class Apply extends Controller
         }
         [$absPath, $originalName] = $upload;
 
-        $model = new DraftModel();
-        $old   = $model->getByUser($actor['id']);
+        $old   = $this->draftModel->getByUser($actor['id']);
         $oldPath = $old[$key . '_file_path'] ?? null;
 
         $relPath = $this->relPath($actor['id'], $absPath);
-        $model->saveFile($actor['id'], $key, $relPath, $originalName);
+        $this->draftModel->saveFile($actor['id'], $key, $relPath, $originalName);
 
         if ($oldPath) {
             @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $oldPath);
@@ -753,7 +759,7 @@ class Apply extends Controller
         $this->requireLogin();
 
         $actor = $this->actor();
-        $row   = (new DraftModel())->getByUser($actor['id']);
+        $row   = $this->draftModel->getByUser($actor['id']);
 
         $path = $row[$key . '_file_path'] ?? null;
         if (!$row || !$path) {
@@ -785,11 +791,10 @@ class Apply extends Controller
             $this->jsonError(400, 'Invalid file key.');
         }
 
-        $model = new DraftModel();
-        $row   = $model->getByUser($actor['id']);
+        $row   = $this->draftModel->getByUser($actor['id']);
         $path  = $row[$key . '_file_path'] ?? null;
 
-        $ok = $model->removeFile($actor['id'], $key);
+        $ok = $this->draftModel->removeFile($actor['id'], $key);
 
         if ($path) {
             @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
@@ -809,8 +814,7 @@ class Apply extends Controller
         $this->verifyCsrfHeader();
 
         $actor = $this->actor();
-        $model = new DraftModel();
-        $row   = $model->getByUser($actor['id']);
+        $row   = $this->draftModel->getByUser($actor['id']);
 
         if ($row) {
             foreach (['protocol', 'cert'] as $key) {
@@ -821,7 +825,7 @@ class Apply extends Controller
             }
         }
 
-        $ok = $model->clear($actor['id']);
+        $ok = $this->draftModel->clear($actor['id']);
 
         echo json_encode(['ok' => $ok]);
         exit;
@@ -838,8 +842,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -848,7 +851,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $versions = $this->addFileUrls($model->getVersions($protocolId, 'protocol'));
+        $versions = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'protocol'));
 
         echo json_encode([
             'protocol_id' => $protocolId,
@@ -878,8 +881,7 @@ class Apply extends Controller
             ]);
         }
 
-        $userModel = new UserModel();
-        $cert      = $userModel->getCert($userId);
+        $cert      = $this->userModel->getCert($userId);
 
         if (!$cert) {
             $this->renderError(404, 'No Certificate Found', [
@@ -911,8 +913,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -938,16 +939,16 @@ class Apply extends Controller
             $docExt = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
             $researcherName = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
             $docOriginalName = $this->protocolDisplayFilename($protocol['reference_no'] ?? null, $researcherName, $protocol['research_title'] ?? '', $docExt);
-            $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'protocol');
+            $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'protocol');
             if (!$versionId) {
                 $this->jsonError(500, 'Could not record new version.');
             }
         }
 
-        $model->updateStatus($protocolId, 'Under Review');
+        $this->protocolModel->updateStatus($protocolId, 'Under Review');
         $this->notifyStatusChange($protocol, 'Under Review');
         $this->notifyPersonnelProtocolResubmitted($protocol, $actor);
-        $model->logAudit('protocol_revised', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol # $protocolId resubmitted");
+        $this->protocolModel->logAudit('protocol_revised', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Protocol # $protocolId resubmitted");
         $_SESSION['flash_success'] = 'Your protocol has been resubmitted and is back under review.';
 
         echo json_encode(['success' => true]);
@@ -967,8 +968,7 @@ class Apply extends Controller
         }
 
         // ===== LOAD PROTOCOL =====
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->renderError(404, 'Protocol Not Found', [
@@ -981,10 +981,10 @@ class Apply extends Controller
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
         // ===== PICK VERSION TO SHOW =====
-        $latestVersion = $model->getLatestVersion($protocolId, 'protocol');
+        $latestVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
 
         if ($versionId > 0) {
-            $version = $model->getVersionById($versionId);
+            $version = $this->protocolModel->getVersionById($versionId);
 
             if (
                 !$version
@@ -1014,8 +1014,7 @@ class Apply extends Controller
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
-        $userModel     = new UserModel();
-        $hasCertOnFile = $isPersonnel ? false : $userModel->hasCert($actor['id']);
+        $hasCertOnFile = $isPersonnel ? false : $this->userModel->hasCert($actor['id']);
 
         $isOwner            = $this->isActor($protocol['user_id']);
         $statusKeyForAccess = strtolower($protocol['status']);
@@ -1029,13 +1028,13 @@ class Apply extends Controller
             && !$this->isActor($protocol['title_changed_by'] ?? 0)
             && !$this->isActor($protocol['title_change_seen_by'] ?? 0);
 
-        $titleHistory = $model->getTitleHistory($protocolId);
+        $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
         $canAmend     = $isOwner && !$isPersonnel && $statusKeyForAccess === 'approved';
 
         $this->view('protocol', [
             'protocol'          => $protocol,
             'version'           => $version,
-            'versions'          => $model->getVersions($protocolId, 'protocol'),
+            'versions'          => $this->protocolModel->getVersions($protocolId, 'protocol'),
             'fromFilter'        => $fromFilter,
             'isLatestVersion'   => $isLatestVersion,
             'csrf'              => $this->generateCsrfToken(),
@@ -1043,13 +1042,13 @@ class Apply extends Controller
             'isStaff'           => $actor['role'] === 'staff',
             'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
-            'latestCertVersion' => $model->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
-            'latestPaymentProofVersion' => $model->getLatestVersion($protocolId, 'payment_proof'),
-            'latestSignedScanVersion'   => $model->getLatestVersion($protocolId, 'signed_scan'),
-            'latestClearanceVersion'    => $model->getLatestVersion($protocolId, 'clearance'),
-            'paymentRejection'  => $model->getLatestPaymentRejection($protocolId),
-            'returnReason'      => $model->getLatestReturnReason($protocolId),
-            'reviewerNote'      => $model->getReturnReasonForVersion((int) $version['id']),
+            'latestCertVersion' => $this->protocolModel->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
+            'latestPaymentProofVersion' => $this->protocolModel->getLatestVersion($protocolId, 'payment_proof'),
+            'latestSignedScanVersion'   => $this->protocolModel->getLatestVersion($protocolId, 'signed_scan'),
+            'latestClearanceVersion'    => $this->protocolModel->getLatestVersion($protocolId, 'clearance'),
+            'paymentRejection'  => $this->protocolModel->getLatestPaymentRejection($protocolId),
+            'returnReason'      => $this->protocolModel->getLatestReturnReason($protocolId),
+            'reviewerNote'      => $this->protocolModel->getReturnReasonForVersion((int) $version['id']),
             'hasCertOnFile'     => $hasCertOnFile,
             'canRename'         => $canRename,
             'canRequestDeletion' => $canRequestDeletion,
@@ -1059,7 +1058,7 @@ class Apply extends Controller
             'showTitleChangeBanner' => $showTitleChangeBanner,
             'titleHistory'      => $titleHistory,
             'canAmend'          => $canAmend,
-            'amendments'        => $this->addFileUrls($model->getVersions($protocolId, 'amendment')),
+            'amendments'        => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
             'flashSuccess'      => $_SESSION['flash_success'] ?? '',
             'flashError'        => $_SESSION['flash_error'] ?? '',
         ]);
@@ -1078,8 +1077,7 @@ class Apply extends Controller
             ]);
         }
 
-        $model   = new ProtocolModel();
-        $version = $model->getVersionById($versionId);
+        $version = $this->protocolModel->getVersionById($versionId);
 
         if (!$version) {
             $this->renderError(404, 'File Not Found', [
@@ -1106,12 +1104,12 @@ class Apply extends Controller
         $displayName   = $version['original_name'] ?: basename($filePath);
 
         if ($version['file_type'] === 'protocol') {
-            $owner          = (new UserModel())->getUser((int) $version['owner_id']);
+            $owner          = $this->userModel->getUser((int) $version['owner_id']);
             $ext            = pathinfo($displayName, PATHINFO_EXTENSION) ?: 'pdf';
             $researcherName = trim(($owner['first_name'] ?? '') . ' ' . ($owner['last_name'] ?? ''));
             $displayName    = $this->protocolDisplayFilename($version['reference_no'] ?? null, $researcherName, $version['protocol_title'] ?? '', $ext);
         } elseif ($version['file_type'] === 'clearance') {
-            $owner          = (new UserModel())->getUser((int) $version['owner_id']);
+            $owner          = $this->userModel->getUser((int) $version['owner_id']);
             $ext            = pathinfo($displayName, PATHINFO_EXTENSION) ?: 'pdf';
             $researcherName = trim(($owner['first_name'] ?? '') . ' ' . ($owner['last_name'] ?? ''));
             $displayName    = $this->clearanceDisplayFilename($version['reference_no'] ?? null, $researcherName, $ext);
@@ -1139,7 +1137,7 @@ class Apply extends Controller
             ]);
         }
 
-        $rows = (new ProtocolModel())->getReviewedWithLatestFile();
+        $rows = $this->protocolModel->getReviewedWithLatestFile();
         $ids  = array_map('intval', explode(',', (string) ($_GET['ids'] ?? '')));
         $rows = array_filter($rows, fn($r) => !empty($r['file_path']) && in_array((int) $r['id'], $ids, true));
 
@@ -1176,7 +1174,7 @@ class Apply extends Controller
         }
         $zip->close();
 
-        (new ProtocolModel())->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed protocol(s) downloaded as ZIP');
+        $this->protocolModel->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed protocol(s) downloaded as ZIP');
 
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="reviewed_protocols.zip"');
@@ -1206,12 +1204,11 @@ class Apply extends Controller
         $this->verifyCsrfHeader();
 
         $body   = json_decode(file_get_contents('php://input'), true) ?? [];
-        $model  = new ProtocolModel();
 
         match ($body['action'] ?? '') {
-            'save'   => $this->handleSaveAnnotation($model, $body),
-            'edit'   => $this->handleEditAnnotation($model, $body),
-            'delete' => $this->handleDeleteAnnotation($model, $body),
+            'save'   => $this->handleSaveAnnotation($body),
+            'edit'   => $this->handleEditAnnotation($body),
+            'delete' => $this->handleDeleteAnnotation($body),
             default  => $this->jsonError(400, 'Unknown action.'),
         };
     }
@@ -1223,8 +1220,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing version_id.');
         }
 
-        $model   = new ProtocolModel();
-        $version = $model->getVersionById($versionId);
+        $version = $this->protocolModel->getVersionById($versionId);
 
         if (!$version) {
             $this->jsonError(404, 'Version not found.');
@@ -1236,7 +1232,7 @@ class Apply extends Controller
         }
 
         if (!$this->isPersonnel()) {
-            $latestVersion   = $model->getLatestVersion((int) $version['protocol_id'], 'protocol');
+            $latestVersion   = $this->protocolModel->getLatestVersion((int) $version['protocol_id'], 'protocol');
             $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
 
             if ($isLatestVersion && strtolower($version['protocol_status'] ?? '') !== 'needs revision') {
@@ -1245,11 +1241,11 @@ class Apply extends Controller
             }
         }
 
-        echo json_encode($model->getAnnotations($versionId));
+        echo json_encode($this->protocolModel->getAnnotations($versionId));
         exit;
     }
 
-    private function handleSaveAnnotation(ProtocolModel $model, array $body): void
+    private function handleSaveAnnotation(array $body): void
     {
         $versionId  = (int) ($body['version_id']  ?? 0);
         $pageNumber = (int) ($body['page_number']  ?? 0);
@@ -1264,19 +1260,19 @@ class Apply extends Controller
         }
 
         $actor = $this->actor();
-        $newId = $model->insertAnnotation($versionId, $pageNumber, $x, $y, $width, $height, $comment, $actor['id']);
+        $newId = $this->protocolModel->insertAnnotation($versionId, $pageNumber, $x, $y, $width, $height, $comment, $actor['id']);
 
         if (!$newId) {
             $this->jsonError(500, 'Could not save annotation.');
         }
 
-        $model->logAudit('annotation_added', $actor['id'], $actor['name'], $actor['role'], 'protocol_version', $versionId, "Annotation added on page $pageNumber");
+        $this->protocolModel->logAudit('annotation_added', $actor['id'], $actor['name'], $actor['role'], 'protocol_version', $versionId, "Annotation added on page $pageNumber");
 
         echo json_encode(['id' => $newId, 'ok' => true]);
         exit;
     }
 
-    private function handleEditAnnotation(ProtocolModel $model, array $body): void
+    private function handleEditAnnotation(array $body): void
     {
         $annotId = (int) ($body['id'] ?? 0);
         $comment = trim($body['comment'] ?? '');
@@ -1286,17 +1282,17 @@ class Apply extends Controller
         }
 
         $actor = $this->actor();
-        $ok    = $model->updateAnnotation($annotId, $comment);
+        $ok    = $this->protocolModel->updateAnnotation($annotId, $comment);
 
         if ($ok) {
-            $model->logAudit('annotation_edited', $actor['id'], $actor['name'], $actor['role'], 'annotation', $annotId, 'Annotation comment edited');
+            $this->protocolModel->logAudit('annotation_edited', $actor['id'], $actor['name'], $actor['role'], 'annotation', $annotId, 'Annotation comment edited');
         }
 
         echo json_encode(['ok' => $ok]);
         exit;
     }
 
-    private function handleDeleteAnnotation(ProtocolModel $model, array $body): void
+    private function handleDeleteAnnotation(array $body): void
     {
         $annotId = (int) ($body['id'] ?? 0);
         if ($annotId < 1) {
@@ -1304,10 +1300,10 @@ class Apply extends Controller
         }
 
         $actor = $this->actor();
-        $ok    = $model->deleteAnnotation($annotId);
+        $ok    = $this->protocolModel->deleteAnnotation($annotId);
 
         if ($ok) {
-            $model->logAudit('annotation_deleted', $actor['id'], $actor['name'], $actor['role'], 'annotation', $annotId, 'Annotation deleted');
+            $this->protocolModel->logAudit('annotation_deleted', $actor['id'], $actor['name'], $actor['role'], 'annotation', $annotId, 'Annotation deleted');
         }
 
         echo json_encode(['ok' => $ok]);
@@ -1337,8 +1333,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Invalid parameters.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1370,35 +1365,34 @@ class Apply extends Controller
             if (empty($protocol['reference_no'])) {
                 $this->jsonError(422, 'Assign an IPN to this protocol before it can be endorsed.');
             }
-            if (!$model->getLatestVersion($protocolId, 'signed_scan')) {
+            if (!$this->protocolModel->getLatestVersion($protocolId, 'signed_scan')) {
                 $this->jsonError(422, 'A signed scan must be uploaded before this protocol can be endorsed.');
             }
         }
 
         // ===== CHECKS BEFORE REVIEWED / APPROVED =====
-        $latestProtocolVersion = $model->getLatestVersion($protocolId, 'protocol');
+        $latestProtocolVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
 
         if ($newStatus === 'Reviewed' && !$isRevert) {
-            if ($latestProtocolVersion && $model->getAnnotations((int) $latestProtocolVersion['id'])) {
+            if ($latestProtocolVersion && $this->protocolModel->getAnnotations((int) $latestProtocolVersion['id'])) {
                 $this->jsonError(422, 'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.');
             }
         }
 
-        if ($newStatus === 'Approved' && !$model->getLatestVersion($protocolId, 'clearance')) {
+        if ($newStatus === 'Approved' && !$this->protocolModel->getLatestVersion($protocolId, 'clearance')) {
             $this->jsonError(422, 'A clearance document must be attached before this protocol can be approved.');
         }
 
         // ===== SAVE NEW STATUS =====
-        $ok = $model->updateStatus($protocolId, $newStatus);
+        $ok = $this->protocolModel->updateStatus($protocolId, $newStatus);
 
         if ($ok) {
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
-            $model->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
+            $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
             $this->notifyStatusChange($protocol, $newStatus);
 
             // ===== SNAPSHOT RECORD ON REVIEWED =====
             if ($newStatus === 'Reviewed' && !$isRevert) {
-                require_once dirname(__DIR__) . '/models/RecordModel.php';
                 $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
                 $school = $protocol['submitter_school'] ?? '';
                 $sex = $protocol['submitter_sex'] ?? null;
@@ -1423,7 +1417,7 @@ class Apply extends Controller
                     }
                 }
 
-                (new RecordModel())->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, (int) $protocol['user_id'], $protocolId, $sex, $recordFilePath, $recordFileOriginal);
+                $this->recordModel->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, (int) $protocol['user_id'], $protocolId, $sex, $recordFilePath, $recordFileOriginal);
             }
 
             // ===== SUCCESS MESSAGE =====
@@ -1465,8 +1459,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1496,14 +1489,14 @@ class Apply extends Controller
             }
             [$path, $originalName] = $upload;
 
-            $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'payment_proof');
+            $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'payment_proof');
             if (!$versionId) {
                 $this->jsonError(500, 'Could not record the payment proof. Please try again.');
             }
         }
 
-        $model->submitPaymentProof($protocolId, $method);
-        $model->logAudit('payment_proof_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $method === 'in_person' ? 'Payment confirmed as paid in person' : 'Payment proof uploaded');
+        $this->protocolModel->submitPaymentProof($protocolId, $method);
+        $this->protocolModel->logAudit('payment_proof_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $method === 'in_person' ? 'Payment confirmed as paid in person' : 'Payment proof uploaded');
         $this->notifyPaymentProofUploaded($protocol, $actor);
 
         $_SESSION['flash_success'] = $method === 'in_person'
@@ -1534,8 +1527,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1544,9 +1536,9 @@ class Apply extends Controller
             $this->jsonError(422, 'This protocol has no pending payment confirmation to verify.');
         }
 
-        $ok = $model->markPaid($protocolId, $actor['id']);
+        $ok = $this->protocolModel->markPaid($protocolId, $actor['id']);
         if ($ok) {
-            $model->logAudit('payment_verified', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment marked as paid');
+            $this->protocolModel->logAudit('payment_verified', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment marked as paid');
             $this->notifyPaymentVerified($protocol, $actor);
             $_SESSION['flash_success'] = 'Payment marked as paid.';
         }
@@ -1576,8 +1568,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1589,9 +1580,9 @@ class Apply extends Controller
             $this->jsonError(422, "Payment can't be unmarked once the protocol has moved past this stage.");
         }
 
-        $ok = $model->undoMarkPaid($protocolId);
+        $ok = $this->protocolModel->undoMarkPaid($protocolId);
         if ($ok) {
-            $model->logAudit('payment_unmarked', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment mark undone');
+            $this->protocolModel->logAudit('payment_unmarked', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment mark undone');
             $_SESSION['flash_success'] = 'Payment mark undone. The protocol is back to "proof submitted".';
         }
 
@@ -1622,8 +1613,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Please explain why the payment is being rejected.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1632,9 +1622,9 @@ class Apply extends Controller
             $this->jsonError(422, 'This protocol has no pending payment to reject.');
         }
 
-        $ok = $model->rejectPaymentProof($protocolId, $actor['id'], $comment);
+        $ok = $this->protocolModel->rejectPaymentProof($protocolId, $actor['id'], $comment);
         if ($ok) {
-            $model->logAudit('payment_proof_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Payment proof rejected: $comment");
+            $this->protocolModel->logAudit('payment_proof_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Payment proof rejected: $comment");
             $this->notifyPaymentRejected($protocol, $comment, $actor);
             $_SESSION['flash_success'] = 'Payment rejected. The researcher has been notified to resubmit.';
         }
@@ -1663,8 +1653,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1686,12 +1675,12 @@ class Apply extends Controller
         }
         [$path, $originalName] = $upload;
 
-        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'signed_scan');
+        $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'signed_scan');
         if (!$versionId) {
             $this->jsonError(500, 'Could not record the signed scan. Please try again.');
         }
 
-        $model->logAudit('signed_scan_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Signed scan uploaded');
+        $this->protocolModel->logAudit('signed_scan_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Signed scan uploaded');
         $this->notifySignedScanUploaded($protocol, $actor);
 
         $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to DA-CARFU.';
@@ -1727,8 +1716,7 @@ class Apply extends Controller
             $this->jsonError(422, 'The explanation must be 1000 characters or fewer.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1747,12 +1735,12 @@ class Apply extends Controller
         }
         [$path, $originalName] = $upload;
 
-        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'amendment', $note);
+        $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $path), $originalName, $actor['id'], 'amendment', $note);
         if (!$versionId) {
             $this->jsonError(500, 'Could not record the amendment. Please try again.');
         }
 
-        $model->logAudit('protocol_amended', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Amendment submitted');
+        $this->protocolModel->logAudit('protocol_amended', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Amendment submitted');
         $this->notifyPersonnelProtocolAmended($protocol, $actor, $note);
 
         $_SESSION['flash_success'] = 'Amendment submitted. CCARD has been notified.';
@@ -1781,8 +1769,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Please enter a research title.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1800,13 +1787,13 @@ class Apply extends Controller
             $this->jsonError(422, 'This protocol can only be renamed while it is under review or needs revision.');
         }
 
-        $oldTitle = $model->renameProtocol($protocolId, $newTitle, $actor['id'], $actor['name'], $actor['role']);
+        $oldTitle = $this->protocolModel->renameProtocol($protocolId, $newTitle, $actor['id'], $actor['name'], $actor['role']);
 
         if ($oldTitle === false) {
             $this->jsonError(422, 'Could not rename the protocol. Please choose a different title.');
         }
 
-        $model->logAudit('protocol_renamed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Renamed from \"$oldTitle\" to \"$newTitle\"");
+        $this->protocolModel->logAudit('protocol_renamed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Renamed from \"$oldTitle\" to \"$newTitle\"");
 
         if ($isPersonnel && !$isOwner) {
             $this->notifyProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
@@ -1847,8 +1834,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Please provide a reason for the deletion request.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1862,10 +1848,10 @@ class Apply extends Controller
             $this->jsonError(422, 'A deletion request has already been made for this protocol.');
         }
 
-        $ok = $model->requestDeletion($protocolId, $actor['id'], $actor['name'], $actor['role'], $reason);
+        $ok = $this->protocolModel->requestDeletion($protocolId, $actor['id'], $actor['name'], $actor['role'], $reason);
 
         if ($ok) {
-            $model->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
+            $this->protocolModel->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
             $this->notifyDeletionRequested($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Deletion request sent to administrative staff.';
         }
@@ -1901,17 +1887,16 @@ class Apply extends Controller
             $this->jsonError(422, 'Please provide a reason for deleting this protocol.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
 
-        $ok = $model->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
+        $ok = $this->protocolModel->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
 
         if ($ok) {
-            $model->logAudit('protocol_deleted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Deleted. Reason: $reason");
+            $this->protocolModel->logAudit('protocol_deleted', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Deleted. Reason: $reason");
             $this->notifyProtocolDeleted($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Protocol deleted.';
         }
@@ -1943,8 +1928,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -1954,10 +1938,10 @@ class Apply extends Controller
         }
 
         $reason = trim((string) $protocol['deletion_request_reason']) ?: 'Deletion request approved.';
-        $ok     = $model->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
+        $ok     = $this->protocolModel->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
 
         if ($ok) {
-            $model->logAudit('protocol_deletion_approved', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Approved deletion request. Reason: $reason");
+            $this->protocolModel->logAudit('protocol_deletion_approved', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Approved deletion request. Reason: $reason");
             $this->notifyProtocolDeleted($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Deletion request approved. Protocol deleted.';
         }
@@ -1993,8 +1977,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Please explain why this deletion request is being rejected.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2003,10 +1986,10 @@ class Apply extends Controller
             $this->jsonError(422, 'There is no pending deletion request for this protocol.');
         }
 
-        $ok = $model->rejectDeletionRequest($protocolId, $reason);
+        $ok = $this->protocolModel->rejectDeletionRequest($protocolId, $reason);
 
         if ($ok) {
-            $model->logAudit('protocol_deletion_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Rejected deletion request. Reason: $reason");
+            $this->protocolModel->logAudit('protocol_deletion_rejected', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Rejected deletion request. Reason: $reason");
             $this->notifyDeletionRejected($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Deletion request rejected.';
         }
@@ -2035,8 +2018,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2052,12 +2034,12 @@ class Apply extends Controller
         }
         [$docPath, $docOriginalName] = $docUpload;
 
-        $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'clearance');
+        $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'clearance');
         if (!$versionId) {
             $this->jsonError(500, 'Could not record the clearance file. Please try again.');
         }
 
-        $model->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance uploaded');
+        $this->protocolModel->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance uploaded');
         $_SESSION['flash_success'] = 'Clearance uploaded. You can now mark this protocol as Approved.';
 
         echo json_encode(['success' => true]);
@@ -2076,8 +2058,7 @@ class Apply extends Controller
             ]);
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->renderError(404, 'Protocol Not Found', [
@@ -2088,7 +2069,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
-        $version = $model->getLatestVersion($protocolId, 'clearance');
+        $version = $this->protocolModel->getLatestVersion($protocolId, 'clearance');
         if (!$version) {
             $dashboard = $this->isPersonnel() ? 'personnel/home' : 'submissions';
             $this->renderError(404, 'No Clearance File Found', [
@@ -2103,8 +2084,8 @@ class Apply extends Controller
             $target .= '?download=1';
 
             if ($this->isActor($protocol['user_id'])) {
-                if ($model->markClearanceClaimed($protocolId)) {
-                    $model->logAudit('clearance_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance claimed');
+                if ($this->protocolModel->markClearanceClaimed($protocolId)) {
+                    $this->protocolModel->logAudit('clearance_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance claimed');
                 }
             }
         }
@@ -2132,7 +2113,6 @@ class Apply extends Controller
             $this->jsonError(400, 'Please attach at least one screenshot.');
         }
 
-        $model     = new ProtocolModel();
         $dir       = $this->clearancePoolDir();
         $inserted  = 0;
         $failures  = [];
@@ -2159,14 +2139,14 @@ class Apply extends Controller
             }
             [$path, $originalName] = $upload;
 
-            if ($model->insertClearancePoolItem($path, $originalName, $actor['id']) !== false) {
+            if ($this->protocolModel->insertClearancePoolItem($path, $originalName, $actor['id']) !== false) {
                 $inserted++;
             }
         }
         unset($_FILES['__clearance_pool_single']);
 
         if ($inserted > 0) {
-            $model->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "$inserted screenshot(s) uploaded");
+            $this->protocolModel->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "$inserted screenshot(s) uploaded");
         }
 
         echo json_encode(['success' => $inserted > 0, 'inserted' => $inserted, 'failures' => $failures]);
@@ -2185,20 +2165,19 @@ class Apply extends Controller
             $this->jsonError(403, 'Administrative staff only.');
         }
 
-        $model      = new ProtocolModel();
         $unassigned = array_map(
             fn($item) => $item + ['file_url' => ROOT . '/apply/clearance_pool_file/' . (int) $item['id']],
-            $model->getUnassignedClearancePool()
+            $this->protocolModel->getUnassignedClearancePool()
         );
         $staged = array_map(
             fn($item) => $item + ['file_url' => ROOT . '/apply/clearance_pool_file/' . (int) $item['id']],
-            $model->getStagedClearanceItems()
+            $this->protocolModel->getStagedClearanceItems()
         );
 
         echo json_encode([
             'unassigned' => $unassigned,
             'staged' => $staged,
-            'endorsed_protocols' => $model->getEndorsedProtocols(),
+            'endorsed_protocols' => $this->protocolModel->getEndorsedProtocols(),
         ]);
         exit;
     }
@@ -2216,8 +2195,7 @@ class Apply extends Controller
             ]);
         }
 
-        $model = new ProtocolModel();
-        $item  = $model->getClearancePoolItem($poolId);
+        $item  = $this->protocolModel->getClearancePoolItem($poolId);
 
         if (!$item || !file_exists($item['file_path'])) {
             $this->renderError(404, 'File Not Found', [
@@ -2251,9 +2229,8 @@ class Apply extends Controller
             $this->jsonError(400, 'Invalid parameters.');
         }
 
-        $model    = new ProtocolModel();
-        $item     = $model->getClearancePoolItem($poolId);
-        $protocol = $model->getById($protocolId);
+        $item     = $this->protocolModel->getClearancePoolItem($poolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$item || $item['protocol_id'] !== null) {
             $this->jsonError(422, 'That screenshot is no longer available.');
@@ -2268,7 +2245,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Assign an AR number to this protocol before attaching a clearance.');
         }
 
-        $ok = $model->stageClearancePoolItem($poolId, $protocolId, $actor['id']);
+        $ok = $this->protocolModel->stageClearancePoolItem($poolId, $protocolId, $actor['id']);
         if (!$ok) {
             $this->jsonError(422, 'That screenshot was just matched by someone else.');
         }
@@ -2298,7 +2275,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing pool_id.');
         }
 
-        $ok = (new ProtocolModel())->unstageClearancePoolItem($poolId);
+        $ok = $this->protocolModel->unstageClearancePoolItem($poolId);
         if (!$ok) {
             $this->jsonError(422, 'That screenshot has already been confirmed: use "detach" instead.');
         }
@@ -2328,14 +2305,13 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing pool_id.');
         }
 
-        $model = new ProtocolModel();
-        $item  = $model->getClearancePoolItem($poolId);
+        $item  = $this->protocolModel->getClearancePoolItem($poolId);
 
         if (!$item || $item['protocol_id'] !== null) {
             $this->jsonError(422, 'That screenshot is no longer available to delete.');
         }
 
-        if (!$model->deleteClearancePoolItem($poolId)) {
+        if (!$this->protocolModel->deleteClearancePoolItem($poolId)) {
             $this->jsonError(422, 'Could not delete that screenshot. It may have just been matched.');
         }
 
@@ -2343,7 +2319,7 @@ class Apply extends Controller
             @unlink($item['file_path']);
         }
 
-        $model->logAudit('clearance_pool_item_deleted', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "Deleted pool screenshot: {$item['original_name']}");
+        $this->protocolModel->logAudit('clearance_pool_item_deleted', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "Deleted pool screenshot: {$item['original_name']}");
 
         echo json_encode(['success' => true]);
         exit;
@@ -2374,9 +2350,11 @@ class Apply extends Controller
         if ($refNo === '') {
             $this->jsonError(422, 'IPN is required.');
         }
+        if (!preg_match('/^\d{6}$/', $refNo)) {
+            $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+        }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
@@ -2387,25 +2365,23 @@ class Apply extends Controller
             $this->jsonError(422, 'Verify the payment before assigning an IPN.');
         }
 
-        require_once dirname(__DIR__) . '/models/RecordModel.php';
-        $recordModel    = new RecordModel();
-        $existingRecord = $recordModel->getByProtocolId($protocolId);
+        $existingRecord = $this->recordModel->getByProtocolId($protocolId);
 
-        $refTakenOnProtocols = $protocol['reference_no'] !== $refNo && $model->referenceNoExists($refNo);
-        $refTakenOnRecords   = (!$existingRecord || $existingRecord['reference_no'] !== $refNo) && $recordModel->refExists($refNo);
+        $refTakenOnProtocols = $protocol['reference_no'] !== $refNo && $this->protocolModel->referenceNoExists($refNo);
+        $refTakenOnRecords   = (!$existingRecord || $existingRecord['reference_no'] !== $refNo) && $this->recordModel->refExists($refNo);
         if ($refTakenOnProtocols || $refTakenOnRecords) {
             $this->jsonError(422, 'That IPN already exists.');
         }
 
-        if (!$model->setReferenceNo($protocolId, $refNo)) {
+        if (!$this->protocolModel->setReferenceNo($protocolId, $refNo)) {
             $this->jsonError(500, 'Could not save the IPN. Please try again.');
         }
         if ($existingRecord) {
-            $recordModel->setReferenceNoByProtocolId($protocolId, $refNo);
+            $this->recordModel->setReferenceNoByProtocolId($protocolId, $refNo);
         }
 
         $previousIpn = $protocol['reference_no'] ?? '';
-        $model->logAudit('protocol_ipn_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $previousIpn !== '' ? "IPN changed from $previousIpn to $refNo" : "IPN assigned: $refNo");
+        $this->protocolModel->logAudit('protocol_ipn_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $previousIpn !== '' ? "IPN changed from $previousIpn to $refNo" : "IPN assigned: $refNo");
 
         $_SESSION['flash_success'] = $previousIpn !== ''
             ? "IPN updated to $refNo."
@@ -2444,8 +2420,7 @@ class Apply extends Controller
             $this->jsonError(422, 'AR number is too long.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
@@ -2453,24 +2428,22 @@ class Apply extends Controller
             $this->jsonError(422, 'An AR number can only be assigned to an endorsed protocol.');
         }
 
-        require_once dirname(__DIR__) . '/models/RecordModel.php';
-        $recordModel    = new RecordModel();
-        $existingRecord = $recordModel->getByProtocolId($protocolId);
+        $existingRecord = $this->recordModel->getByProtocolId($protocolId);
 
-        $arTakenOnProtocols = ($protocol['ar_number'] ?? '') !== $arNumber && $model->arNumberExists($arNumber);
-        $arTakenOnRecords   = (!$existingRecord || ($existingRecord['ar_number'] ?? '') !== $arNumber) && $recordModel->arExists($arNumber);
+        $arTakenOnProtocols = ($protocol['ar_number'] ?? '') !== $arNumber && $this->protocolModel->arNumberExists($arNumber);
+        $arTakenOnRecords   = (!$existingRecord || ($existingRecord['ar_number'] ?? '') !== $arNumber) && $this->recordModel->arExists($arNumber);
         if ($arTakenOnProtocols || $arTakenOnRecords) {
             $this->jsonError(422, 'That AR number already exists.');
         }
 
-        if (!$model->setArNumber($protocolId, $arNumber)) {
+        if (!$this->protocolModel->setArNumber($protocolId, $arNumber)) {
             $this->jsonError(500, 'Could not save the AR number. Please try again.');
         }
         if ($existingRecord) {
-            $recordModel->setArNumberByProtocolId($protocolId, $arNumber);
+            $this->recordModel->setArNumberByProtocolId($protocolId, $arNumber);
         }
 
-        $model->logAudit('protocol_ar_number_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "AR number assigned: $arNumber");
+        $this->protocolModel->logAudit('protocol_ar_number_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "AR number assigned: $arNumber");
 
         echo json_encode(['success' => true, 'ar_number' => $arNumber]);
         exit;
@@ -2491,8 +2464,7 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
 
-        $model  = new ProtocolModel();
-        $staged = $model->getStagedClearanceItems();
+        $staged = $this->protocolModel->getStagedClearanceItems();
 
         if (empty($staged)) {
             $this->jsonError(422, 'Nothing is staged to confirm.');
@@ -2522,16 +2494,16 @@ class Apply extends Controller
                 continue;
             }
 
-            $versionId = $model->insertVersion($protocolId, $this->relPath($protocolId, $dest), $item['original_name'], $actor['id'], 'clearance');
-            if (!$versionId || !$model->confirmClearancePoolItem((int) $item['id'], $versionId)) {
+            $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $dest), $item['original_name'], $actor['id'], 'clearance');
+            if (!$versionId || !$this->protocolModel->confirmClearancePoolItem((int) $item['id'], $versionId)) {
                 $failures[] = $item['protocol_title'] . ': could not record the clearance file.';
                 continue;
             }
 
-            $protocol = $model->getById($protocolId);
-            $model->updateStatus($protocolId, 'Approved');
+            $protocol = $this->protocolModel->getById($protocolId);
+            $this->protocolModel->updateStatus($protocolId, 'Approved');
             $this->notifyStatusChange($protocol, 'Approved');
-            $model->logAudit('clearance_confirmed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #{$item['id']} confirmed; marked Approved");
+            $this->protocolModel->logAudit('clearance_confirmed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #{$item['id']} confirmed; marked Approved");
             $confirmed++;
         }
 
@@ -2561,8 +2533,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing pool_id.');
         }
 
-        $model = new ProtocolModel();
-        $item  = $model->getClearancePoolItem($poolId);
+        $item  = $this->protocolModel->getClearancePoolItem($poolId);
 
         if (!$item || $item['protocol_id'] === null) {
             $this->jsonError(422, 'That screenshot is not currently assigned.');
@@ -2572,19 +2543,19 @@ class Apply extends Controller
         }
 
         $protocolId = (int) $item['protocol_id'];
-        $protocol   = $model->getById($protocolId);
+        $protocol   = $this->protocolModel->getById($protocolId);
 
         if ($protocol && strtolower($protocol['status']) === 'approved') {
-            $model->updateStatus($protocolId, 'Endorsed');
+            $this->protocolModel->updateStatus($protocolId, 'Endorsed');
             $this->notifyStatusChange($protocol, 'Endorsed');
         }
 
         if (!empty($item['version_id'])) {
-            $model->deleteVersion((int) $item['version_id']);
+            $this->protocolModel->deleteVersion((int) $item['version_id']);
         }
 
-        $model->unassignClearancePoolItem($poolId);
-        $model->logAudit('clearance_unassigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #$poolId detached; reverted to Endorsed");
+        $this->protocolModel->unassignClearancePoolItem($poolId);
+        $this->protocolModel->logAudit('clearance_unassigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #$poolId detached; reverted to Endorsed");
         $_SESSION['flash_success'] = 'Clearance detached and returned to the pool.';
 
         echo json_encode(['success' => true]);
@@ -2617,8 +2588,7 @@ class Apply extends Controller
         $allowedReasons  = ['wrong_cert'];
         $filteredReasons = array_values(array_filter($body['reasons'] ?? [], fn($r) => in_array($r, $allowedReasons, true)));
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2627,19 +2597,19 @@ class Apply extends Controller
             $this->jsonError(422, 'Only protocols under review can be returned for revision.');
         }
 
-        $currentVersion = $model->getLatestVersion($protocolId, 'protocol');
-        $reasonSaved    = $model->insertReturnReason($protocolId, $actor['id'], $filteredReasons, $comment, $currentVersion['id'] ?? null);
+        $currentVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
+        $reasonSaved    = $this->protocolModel->insertReturnReason($protocolId, $actor['id'], $filteredReasons, $comment, $currentVersion['id'] ?? null);
         if (!$reasonSaved) {
             error_log("insertReturnReason failed for protocol $protocolId");
         }
 
-        $ok = $model->updateStatus($protocolId, 'Needs Revision');
+        $ok = $this->protocolModel->updateStatus($protocolId, 'Needs Revision');
 
         if ($ok) {
             $detail = 'Returned for revision.'
                 . ($filteredReasons ? ' Reasons: ' . implode(', ', $filteredReasons) : '')
                 . ($comment !== '' ? ' Comment: ' . mb_substr($comment, 0, 200) : '');
-            $model->logAudit('protocol_returned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $detail);
+            $this->protocolModel->logAudit('protocol_returned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $detail);
             $this->notifyStatusChange($protocol, 'Needs Revision');
             $_SESSION['flash_success'] = 'Protocol returned for revision. The researcher will be notified to make corrections.';
         }
@@ -2659,8 +2629,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2669,7 +2638,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        echo json_encode(['reason' => $model->getLatestReturnReason($protocolId)]);
+        echo json_encode(['reason' => $this->protocolModel->getLatestReturnReason($protocolId)]);
         exit;
     }
 
@@ -2686,8 +2655,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2710,11 +2678,10 @@ class Apply extends Controller
         [$certPath, $certOriginalName] = $certUpload;
 
         $relCert   = $this->relPath($protocolId, $certPath);
-        $userModel = new UserModel();
-        $model->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
-        $userModel->saveCert($actor['id'], $relCert, $certOriginalName);
+        $this->protocolModel->insertVersion($protocolId, $relCert, $certOriginalName, $actor['id'], 'cert');
+        $this->userModel->saveCert($actor['id'], $relCert, $certOriginalName);
 
-        $model->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Researcher reuploaded training certificate for protocol # $protocolId");
+        $this->protocolModel->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Researcher reuploaded training certificate for protocol # $protocolId");
 
         echo json_encode(['success' => true]);
         exit;
@@ -2736,8 +2703,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol_id.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2746,7 +2712,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $model->markTitleChangeSeen($protocolId, $actor['id']);
+        $this->protocolModel->markTitleChangeSeen($protocolId, $actor['id']);
 
         echo json_encode(['success' => true]);
         exit;
@@ -2763,8 +2729,7 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing protocol ID.');
         }
 
-        $model    = new ProtocolModel();
-        $protocol = $model->getById($protocolId);
+        $protocol = $this->protocolModel->getById($protocolId);
 
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
@@ -2773,15 +2738,28 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $files = $this->addFileUrls($model->getVersions($protocolId, 'protocol'));
-        $files = array_map(function ($v) use ($model, $protocolId, $protocol) {
-            $v['title_at_version'] = $model->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
-            $v['return_reason']    = $model->getReturnReasonForVersion((int) $v['id']);
+        $files = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'protocol'));
+        $files = array_map(function ($v) use ($protocolId, $protocol) {
+            $v['title_at_version'] = $this->protocolModel->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
+            $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id']);
             $v['round_label']      = submission_round_label((int) $v['version_number']);
             return $v;
         }, $files);
 
-        $titleHistory = $model->getTitleHistory($protocolId);
+        $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
+
+        $proofFiles   = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof'));
+        $paymentEvents = [];
+        foreach ($proofFiles as $file) {
+            $paymentEvents[] = ['type' => 'proof', 'at' => $file['uploaded_at'], 'original_name' => $file['original_name'], 'file_url' => $file['file_url']];
+        }
+        foreach ($this->protocolModel->getPaymentRejections($protocolId) as $rejection) {
+            $paymentEvents[] = ['type' => 'rejected', 'at' => $rejection['created_at'], 'comment' => $rejection['comment']];
+        }
+        if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at'])) {
+            $paymentEvents[] = ['type' => 'paid', 'at' => $protocol['paid_at'], 'method' => $protocol['payment_method'] ?? ''];
+        }
+        usort($paymentEvents, fn($a, $b) => strcmp($b['at'], $a['at']));
 
         echo json_encode([
             'protocol_id'    => $protocolId,
@@ -2789,10 +2767,11 @@ class Apply extends Controller
             'status'         => $protocol['status'],
             'reference_no'   => $protocol['reference_no'] ?? '',
             'protocol_files' => $files,
-            'payment_proof_files' => $this->addFileUrls($model->getVersions($protocolId, 'payment_proof')),
-            'signed_scan_files'   => $this->addFileUrls($model->getVersions($protocolId, 'signed_scan')),
-            'clearance_files'     => $this->addFileUrls($model->getVersions($protocolId, 'clearance')),
-            'return_reason'  => $model->getLatestReturnReason($protocolId),
+            'payment_proof_files' => $proofFiles,
+            'payment_history'     => $paymentEvents,
+            'signed_scan_files'   => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'signed_scan')),
+            'clearance_files'     => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'clearance')),
+            'return_reason'  => $this->protocolModel->getLatestReturnReason($protocolId),
             'title_history'  => count($titleHistory) > 1 ? $titleHistory : [],
         ]);
         exit;

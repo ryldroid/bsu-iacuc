@@ -192,6 +192,15 @@
   display: flex;
 }
 
+.protocols-list.selection-mode .protocol:has(.protocol-select-checkbox:not(:disabled)) {
+  cursor: pointer;
+  user-select: none;
+}
+
+.protocol:has(.protocol-select-checkbox:checked) {
+  background-color: var(--brand-surface-tint);
+}
+
 .protocol-select-checkbox {
   margin-bottom: 0;
   transform: scale(1.2);
@@ -232,8 +241,9 @@
 .payment-badge {
   display: inline-block;
   margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 1px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   font-size: 0.68em;
   font-weight: 600;
   vertical-align: middle;
@@ -256,8 +266,8 @@
 }
 
 .payment-badge--paid {
-  background: var(--success-background, #b8d7b8);
-  color: var(--success-text, #062b04);
+  background: var(--brand-color);
+  color: #fff;
 }
 
 .protocol-meta-line {

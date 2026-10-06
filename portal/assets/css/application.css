@@ -439,8 +439,9 @@ main button svg {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 11px;
-    border-radius: 999px;
+    padding: 3px 10px;
+    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+    border-radius: 4px;
     font-size: .72rem;
     font-weight: 600;
     white-space: nowrap;
@@ -454,17 +455,14 @@ main button svg {
 }
 
 .status-pill-required {
-    background: var(--status-danger-bg);
     color: var(--status-danger-text);
 }
 
 .status-pill-done {
-    background: var(--status-success-bg);
     color: var(--status-success-text);
 }
 
 .status-pill-muted {
-    background: var(--divider-color-subtle);
     color: var(--muted-text);
 }
 

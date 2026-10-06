@@ -2,6 +2,8 @@
 
 class Announcements extends Controller
 {
+  use PublicPageData;
+
   // ===== ANNOUNCEMENTS PAGE =====
   public function index()
   {
@@ -9,11 +11,6 @@ class Announcements extends Controller
       $this->redirect('personnel/home');
     }
 
-    require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-    $announcementModel = new AnnouncementModel();
-
-    $this->view('announcements', [
-      'officeAnnouncements' => $announcementModel->getAll(),
-    ]);
+    $this->view('announcements', $this->announcementsPageData());
   }
 }

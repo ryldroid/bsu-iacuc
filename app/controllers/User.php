@@ -2,15 +2,6 @@
 
 class User extends Controller
 {
-  public UserModel $model;
-
-  // ===== SETUP =====
-  public function __construct()
-  {
-    require_once "../app/models/UserModel.php";
-    $this->model = new UserModel();
-  }
-
   // ===== INPUT HELPERS =====
   private function normalizePhoneNumber(string $raw): string
   {
@@ -151,11 +142,11 @@ class User extends Controller
     $MAX_ATTEMPTS = 5;
     $WINDOW       = 900;
 
-    $ipAttempts   = $this->model->countRecentAttempts($ip, $WINDOW);
-    $userAttempts = $this->model->countRecentAttempts($input, $WINDOW);
+    $ipAttempts   = $this->userModel->countRecentAttempts($ip, $WINDOW);
+    $userAttempts = $this->userModel->countRecentAttempts($input, $WINDOW);
 
     if ($ipAttempts >= $MAX_ATTEMPTS || $userAttempts >= $MAX_ATTEMPTS) {
-      $this->model->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
+      $this->userModel->logAudit('login_locked', null, $input, '', 'user', null, 'Login temporarily locked after repeated failed attempts');
       $_SESSION['flash_error'] = 'Too many failed login attempts. Please wait 15 minutes before trying again.';
       $this->redirect('user/login');
     }
@@ -166,23 +157,23 @@ class User extends Controller
     }
 
     // ===== FIND USER & CHECK PASSWORD =====
-    $user = $this->model->getUserByUsername($input)
-      ?? $this->model->getUserByEmail($input);
+    $user = $this->userModel->getUserByUsername($input)
+      ?? $this->userModel->getUserByEmail($input);
 
     if (!$user) {
-      $this->model->recordLoginAttempt($ip);
-      $this->model->recordLoginAttempt($input);
-      $this->model->logAudit('login_failed', null, $input, '', '', null, 'Failed login attempt (no account found)');
+      $this->userModel->recordLoginAttempt($ip);
+      $this->userModel->recordLoginAttempt($input);
+      $this->userModel->logAudit('login_failed', null, $input, '', '', null, 'Failed login attempt (no account found)');
       $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
       $this->redirect('user/login');
     }
 
     if (!password_verify($password, $user['password'])) {
-      $this->model->recordLoginAttempt($ip);
-      $this->model->recordLoginAttempt($input);
+      $this->userModel->recordLoginAttempt($ip);
+      $this->userModel->recordLoginAttempt($input);
       $_SESSION['flash_error'] = 'Invalid password. Please try again.';
 
-      $this->model->logAudit(
+      $this->userModel->logAudit(
         event: 'login_failed',
         actorId: null,
         actorUsername: $input,
@@ -196,8 +187,8 @@ class User extends Controller
     }
 
     // ===== ACCOUNT CHECKS =====
-    $this->model->clearLoginAttempts($ip);
-    $this->model->clearLoginAttempts($input);
+    $this->userModel->clearLoginAttempts($ip);
+    $this->userModel->clearLoginAttempts($input);
 
     if ($user['role'] !== 'researcher') {
       $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
@@ -206,7 +197,7 @@ class User extends Controller
 
     $reactivated = false;
     if (($user['status'] ?? 'active') === 'deactivated') {
-      $this->model->reactivateUser((int) $user['id']);
+      $this->userModel->reactivateUser((int) $user['id']);
       $reactivated = true;
     }
 
@@ -224,11 +215,11 @@ class User extends Controller
     // ===== WELCOME POPUP =====
     if (empty($user['welcome_seen'])) {
       $_SESSION['user']['show_welcome'] = true;
-      $this->model->markWelcomeSeen((int) $user['id']);
+      $this->userModel->markWelcomeSeen((int) $user['id']);
     }
 
     // ===== LOG LOGIN & REDIRECT =====
-    $this->model->logAudit(
+    $this->userModel->logAudit(
       event: 'login_success',
       actorId: (int)$user['id'],
       actorUsername: $user['username'],
@@ -239,7 +230,7 @@ class User extends Controller
     );
 
     if ($reactivated) {
-      $this->model->logAudit('account_reactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Account reactivated by logging in');
+      $this->userModel->logAudit('account_reactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Account reactivated by logging in');
       $_SESSION['flash_success'] = 'Welcome back! Your account has been reactivated.';
     }
 
@@ -282,10 +273,10 @@ class User extends Controller
     }
 
     if (empty($errors)) {
-      if ($this->model->getUserByEmail($email)) {
+      if ($this->userModel->getUserByEmail($email)) {
         $errors[] = 'That email is already taken.';
       }
-      if ($this->model->getUserByUsername($username)) {
+      if ($this->userModel->getUserByUsername($username)) {
         $errors[] = 'That username is already taken.';
       }
     }
@@ -300,7 +291,7 @@ class User extends Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $this->model->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex);
+    $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex);
 
     if ($ok) {
       $_SESSION['new_username'] = $username;
@@ -332,7 +323,7 @@ class User extends Controller
     $uname    = $_SESSION['user']['username'] ?? '';
     $urole    = $_SESSION['user']['role'] ?? '';
 
-    $this->model->logAudit('logout', $uid, $uname, $urole, 'user', $uid, 'User logged out');
+    $this->userModel->logAudit('logout', $uid, $uname, $urole, 'user', $uid, 'User logged out');
 
     session_destroy();
     session_start();
@@ -358,10 +349,10 @@ class User extends Controller
   {
     $this->requireLogin();
 
-    $user = $this->model->getUser($_SESSION['user']['user_id']);
+    $user = $this->userModel->getUser($_SESSION['user']['user_id']);
 
     $certificate = ($user['role'] ?? '') === 'researcher'
-      ? $this->model->getCert((int) $user['id'])
+      ? $this->userModel->getCert((int) $user['id'])
       : null;
 
     $this->view('user/account', [
@@ -401,11 +392,11 @@ class User extends Controller
     $email   = $_SESSION['user']['email'];
     $enabled = !empty($_POST['email_notifications']);
 
-    $this->model->updateEmailNotifications($id, $enabled);
+    $this->userModel->updateEmailNotifications($id, $enabled);
 
     if ($enabled) {
       $resubscribed = Mailer::resubscribe($email);
-      $this->model->updateEmailProviderBlocked($id, !$resubscribed);
+      $this->userModel->updateEmailProviderBlocked($id, !$resubscribed);
 
       $_SESSION['flash_success'] = $resubscribed
         ? 'You will now receive email updates about your protocols.'
@@ -433,7 +424,7 @@ class User extends Controller
     // ===== CLEAN INPUT & VALIDATE =====
     extract($this->sanitizeInputs($_POST));
 
-    $current_user = $this->model->getUser($id);
+    $current_user = $this->userModel->getUser($id);
 
     if ($current_user['role'] === 'researcher') {
       $role = $current_user['role'];
@@ -455,8 +446,8 @@ class User extends Controller
     }
 
     if (empty($errors)) {
-      $existing_email    = $this->model->getUserByEmail($email);
-      $existing_username = $this->model->getUserByUsername($username);
+      $existing_email    = $this->userModel->getUserByEmail($email);
+      $existing_username = $this->userModel->getUserByUsername($username);
 
       if ($existing_email && (int) $existing_email['id'] !== $id) {
         $errors[] = 'That email is already taken.';
@@ -469,7 +460,7 @@ class User extends Controller
     // ===== SHOW ERRORS =====
     if (!empty($errors)) {
       $certificate = $current_user['role'] === 'researcher'
-        ? $this->model->getCert($id)
+        ? $this->userModel->getCert($id)
         : null;
 
       $this->view('user/account', [
@@ -490,7 +481,7 @@ class User extends Controller
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
 
-    $ok = $this->model->updateUser($id, $input);
+    $ok = $this->userModel->updateUser($id, $input);
 
     // ===== AFTER SAVE =====
     if ($ok) {
@@ -500,15 +491,15 @@ class User extends Controller
       $_SESSION['user']['role'] = $role;
 
       if (!empty($password)) {
-        $this->model->logAudit('password_changed', $id, $username, $role, 'user', $id, 'Password changed via account settings');
+        $this->userModel->logAudit('password_changed', $id, $username, $role, 'user', $id, 'Password changed via account settings');
       }
 
       if ($email !== $current_user['email']) {
-        $this->model->markEmailUnverified($id);
+        $this->userModel->markEmailUnverified($id);
         $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
         $_SESSION['user']['email_verified'] = false;
 
-        $this->model->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
+        $this->userModel->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
 
         $_SESSION['flash_success'] = 'Account updated successfully! Verify your new email to keep getting email notifications.';
       } else {
@@ -536,9 +527,6 @@ class User extends Controller
     $username = $_SESSION['user']['username'] ?? '';
     $role     = $_SESSION['user']['role'] ?? '';
 
-    require_once dirname(__DIR__) . '/models/ProtocolModel.php';
-    require_once dirname(__DIR__) . '/models/DraftModel.php';
-
     (new ProtocolModel())->softDeleteAllForUser($id, $username, 'Account deleted by owner');
 
     (new DraftModel())->clear($id);
@@ -547,10 +535,10 @@ class User extends Controller
       $this->rrmdir($draftDir);
     }
 
-    $ok = $this->model->deleteUser($id);
+    $ok = $this->userModel->deleteUser($id);
 
     if ($ok) {
-      $this->model->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
+      $this->userModel->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
 
       session_destroy();
       session_start();
@@ -611,7 +599,7 @@ class User extends Controller
   public function verify_email(): void
   {
     $token  = $_GET['token'] ?? '';
-    $record = $this->model->getEmailVerification($token);
+    $record = $this->userModel->getEmailVerification($token);
 
     if (!$record) {
       $_SESSION['flash_error'] = 'This verification link is invalid or has expired.';
@@ -621,9 +609,9 @@ class User extends Controller
 
     $userId = (int) $record['user_id'];
 
-    $this->model->markEmailVerified($userId);
-    $this->model->markEmailVerificationUsed($token);
-    $this->model->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
+    $this->userModel->markEmailVerified($userId);
+    $this->userModel->markEmailVerificationUsed($token);
+    $this->userModel->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
 
     $_SESSION['flash_success'] = 'Your email has been verified!';
     $this->redirect($this->isLoggedIn() ? 'user/account' : 'user/login');
@@ -640,7 +628,7 @@ class User extends Controller
     $this->verifyCsrfToken();
 
     $id   = (int) $_SESSION['user']['user_id'];
-    $user = $this->model->getUser($id);
+    $user = $this->userModel->getUser($id);
 
     $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/user/account');
 
@@ -650,7 +638,7 @@ class User extends Controller
     }
 
     $cooldown  = 45;
-    $elapsed   = $this->model->secondsSinceLastVerificationEmail($id);
+    $elapsed   = $this->userModel->secondsSinceLastVerificationEmail($id);
 
     if ($elapsed !== null && $elapsed < $cooldown) {
       $_SESSION['flash_error'] = 'Please wait ' . ($cooldown - $elapsed) . ' seconds before requesting another verification link.';

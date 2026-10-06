@@ -2,6 +2,8 @@
 
 class Home extends Controller
 {
+  use PublicPageData;
+
   // ===== HOME PAGE =====
   public function index()
   {
@@ -9,19 +11,6 @@ class Home extends Controller
       $this->redirect('personnel/home');
     }
 
-    require_once dirname(__DIR__) . '/models/SiteSettingModel.php';
-    $settingsModel = new SiteSettingModel();
-
-    require_once dirname(__DIR__) . '/models/FaqModel.php';
-    $faqModel = new FaqModel();
-
-    require_once dirname(__DIR__) . '/models/AnnouncementModel.php';
-    $announcementModel = new AnnouncementModel();
-
-    $this->view('home', [
-      'siteSettings'        => $settingsModel->getAll(),
-      'faqs'                => $faqModel->getAll(),
-      'latestAnnouncements' => array_slice($announcementModel->getAll(), 0, 3),
-    ]);
+    $this->view('home', $this->homePageData());
   }
 }
