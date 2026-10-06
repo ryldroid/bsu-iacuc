@@ -26,6 +26,7 @@ class Mailer
             $mail->Password   = MAIL_PASSWORD;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = MAIL_PORT;
+            $mail->Timeout    = 10; // fail fast when offline instead of hanging for PHPMailer's 300s default
 
             $mail->setFrom($fromEmail ?? MAIL_FROM, $fromName ?? MAIL_FROMNAME);
             $mail->addAddress($toEmail, $toName);

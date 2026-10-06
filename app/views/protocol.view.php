@@ -102,8 +102,7 @@ $resubmitIntro = $certRequired
 include 'includes/header.php';
 ?>
 
-<!-- PDF.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<?php include 'includes/pdfjs.php'; ?>
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
 <?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
@@ -1029,9 +1028,6 @@ include 'includes/header.php';
 </style>
 
 <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
     const PDF_URL = <?= json_encode($fileUrl) ?>;
     const FILE_EXT = <?= json_encode(strtolower(pathinfo($version['original_name'] ?? '', PATHINFO_EXTENSION))) ?>;
     const VERSION_ID = <?= $versionId              ?>;

@@ -9,8 +9,7 @@ $current_role = $old['role'] ?? '';
 $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
 
-<!-- PDF.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<?php include dirname(__DIR__) . '/includes/pdfjs.php'; ?>
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
@@ -261,9 +260,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
 <!-- ===== File popup script ===== -->
 <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
     const filePopupBackdrop = document.getElementById('filePopupBackdrop');
     const filePopupFrame = document.getElementById('filePopupFrame');
     const filePopupPdfPages = document.getElementById('filePopupPdfPages');
