@@ -822,7 +822,7 @@ include 'includes/header.php';
         <div class="modal-card">
             <h2>Verify Payment</h2>
 
-            <p class="modal-notice">The BAI Animal Research Clearance requires a Php 100.00 fee.</p>
+            <p class="modal-notice">The BAI animal research clearance requires a Php 100.00 fee.</p>
 
             <div id="paymentModalError" class="alert error-messages" hidden></div>
 

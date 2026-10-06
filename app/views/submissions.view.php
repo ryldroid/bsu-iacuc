@@ -37,7 +37,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your Animal Research Clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your animal research clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -49,7 +49,7 @@ $statusMeta = [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! You may now download your Animal Research Clearance. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
+        'desc'  => 'Congratulations, your protocol has been approved! You may now download your animal research clearance. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
     ],
 ];
 
@@ -418,7 +418,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
     <div class="modal-card">
         <h2>Payment</h2>
 
-        <p class="modal-notice">The Bureau of Animal Industry processes Animal Research Clearances for a Php 100.00 fee.</p>
+        <p class="modal-notice">The Bureau of Animal Industry processes animal research clearances for a Php 100.00 fee.</p>
 
         <div id="paymentModalError" class="alert error-messages" hidden></div>
 

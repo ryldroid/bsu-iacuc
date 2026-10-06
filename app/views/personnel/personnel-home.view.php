@@ -45,16 +45,16 @@ $statusDescByRole = [
     'staff' => [
         'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "The reviewer has finished the assessment. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC Chair's signature, upload the signed scan, then mark it as Endorsed.",
-        'endorsed'              => "Protocol has been endorsed to DA-CARFU. Upload the released Animal Research Clearances below, assign each protocol's AR number, match each clearance to its protocol, then confirm to mark them Approved.",
-        'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
+        'reviewed'              => "The reviewer has finished the assessment. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC chair's signature, upload the signed scan, then mark it as Endorsed.",
+        'endorsed'              => "Protocol has been endorsed to DA-CARFU. Upload the released animal research clearances below, assign each protocol's AR number, match each clearance to its protocol, then confirm to mark them Approved.",
+        'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC Chair's sign.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released Animal Research Clearances and release them to the researchers.',
-        'approved'              => 'Animal Research Clearances issued! The protocols are now fully approved.',
+        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chair's sign.",
+        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
+        'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
 ];
 
@@ -371,7 +371,7 @@ foreach ($protocols as $p) {
                     <section class="clearance-panel" id="clearancePanel" hidden>
                         <div class="clearance-panel-head">
                             <h2>Clearances</h2>
-                            <p class="helper">Upload the released Animal Research Clearances, then drag each screenshot onto its protocol below. On a touch screen, tap a screenshot, then tap the clearance box of its protocol. Confirm to mark the matched protocols as Approved.</p>
+                            <p class="helper">Upload the released animal research clearances, then drag each screenshot onto its protocol below. On a touch screen, tap a screenshot, then tap the clearance box of its protocol. Confirm to mark the matched protocols as Approved.</p>
                         </div>
 
                         <div class="bulk-actions-bar clearance-actions">
@@ -2472,7 +2472,7 @@ foreach ($protocols as $p) {
                 pattern: /^\d{6}$/,
                 formatError: 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).',
                 maxlength: 6,
-                helper: 'Write this IPN on the printed protocol before the IACUC Chair signs it. It is kept in sync with the Records page.',
+                helper: 'Write this IPN on the printed protocol before the IACUC chair signs it. It is kept in sync with the Records page.',
                 saved: () => window.location.reload()
             },
             ar: {
@@ -2480,7 +2480,7 @@ foreach ($protocols as $p) {
                 api: ASSIGN_AR_NUMBER_API,
                 key: 'ar_number',
                 placeholder: 'AR number from the BAI clearance',
-                helper: 'This is the Animal Research Clearance ID printed on the clearance issued by BAI.',
+                helper: 'This is the animal research clearance ID printed on the clearance issued by BAI.',
                 saved: () => {
                     showFlash('AR number saved.');
                     loadBoard();
