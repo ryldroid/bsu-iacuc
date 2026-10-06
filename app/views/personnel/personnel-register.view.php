@@ -37,9 +37,6 @@ $role = $user['role'] ?? '';
     <script src="<?= asset_js('password-strength.js') ?>" defer></script>
     <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Akt:wght@100..900&family=Alfa+Slab+One&display=swap" rel="stylesheet">
 </head>
 
 <body>

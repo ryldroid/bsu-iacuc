@@ -248,7 +248,8 @@ header nav a:hover::after {
 /* ===== Theme toggle ===== */
 .theme-toggle-wrapper {
     position: relative;
-    margin-right: .5em;
+    /* margin-right: .5em; */
+    margin-left: .5em;
 }
 
 .theme-toggle {

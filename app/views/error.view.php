@@ -20,9 +20,6 @@
   <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
   <link rel="stylesheet" href="<?= asset_css('404.css') ?>">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Akt:wght@100..900&family=Alfa+Slab+One&display=swap" rel="stylesheet">
 </head>
 
 <body>

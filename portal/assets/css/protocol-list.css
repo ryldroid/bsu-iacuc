@@ -699,7 +699,9 @@
   background-color: transparent;
 }
 
-.history-row--round {
+/* Rows without a meta column (rounds, payment events) are detail + action only */
+.history-row--round,
+.history-row:not(:has(.history-row-meta)) {
   grid-template-columns: 1fr auto;
 }
 

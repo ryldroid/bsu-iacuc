@@ -1259,3 +1259,8 @@
 .panel-modal-actions[hidden] {
   display: none;
 }
+
+#annotOfflineNote.helper {
+  margin-bottom: 1em;
+  font-style: italic;
+}

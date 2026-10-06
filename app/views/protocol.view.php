@@ -93,10 +93,10 @@ $resubmitDocs      = [
     ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF only · max 10 MB', 'accept' => 'application/pdf,.pdf', 'required' => true],
 ];
 if ($certRequired) {
-    $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
+    $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged as wrong/incorrect by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
 }
 $resubmitIntro = $certRequired
-    ? 'Upload your revised protocol file, plus the document(s) the reviewer flagged below.'
+    ? 'Upload your revised protocol file, plus your IACUC training certificate, as flagged by the reviewer.'
     : 'Upload your revised protocol file below.';
 
 include 'includes/header.php';
@@ -444,6 +444,7 @@ include 'includes/header.php';
                     </div>
                 <?php endif; ?>
                 <h3>Comments</h3>
+                <p class="helper" id="annotOfflineNote" hidden></p>
                 <div id="annotList">
                     <p class="annot-empty">Loading…</p>
                 </div>
@@ -1136,6 +1137,7 @@ include 'includes/header.php';
     // ===== State =====
     let pdfDoc = null;
     let annotations = [];
+    let annotationsFailed = false;
     let pendingBox = null;
     let dragState = null;
     let editingAnnotId = null;
@@ -1390,16 +1392,63 @@ include 'includes/header.php';
     }
 
     // ===== Load + render annotations =====
+    function queuedAnnotationEntries() {
+        return (window._actionQueue?.load() ?? []).flatMap(entry => {
+            if (!entry.url.includes('/apply/annotate')) return [];
+            try {
+                return [{
+                    entry,
+                    body: JSON.parse(entry.body || '{}')
+                }];
+            } catch {
+                return [];
+            }
+        });
+    }
+
     async function loadAnnotations() {
         try {
             const res = await fetch(ANNOT_API + '?version_id=' + VERSION_ID);
             const data = await res.json();
             annotations = Array.isArray(data) ? data : [];
+            annotationsFailed = false;
         } catch (err) {
             annotations = [];
+            annotationsFailed = true;
         }
+        queuedAnnotationEntries().forEach(({
+            entry,
+            body
+        }) => {
+            if (body.action !== 'save' || body.version_id !== VERSION_ID) return;
+            annotations.push({
+                id: 'queued-' + entry.id,
+                page_number: body.page_number,
+                x: body.x,
+                y: body.y,
+                width: body.width,
+                height: body.height,
+                comment: body.comment,
+                created_at: entry.queuedAt,
+                _queued: true,
+            });
+        });
         renderAnnotations();
     }
+
+    async function commentsStillSyncing() {
+        if (!queuedAnnotationEntries().length) return false;
+        await confirmAction(
+            'Some comments are still waiting to sync. Wait until they finish syncing, then try again.', {
+                okText: 'Back',
+                hideCancel: true
+            }
+        );
+        return true;
+    }
+
+    window.addEventListener('online', loadAnnotations);
+    window.addEventListener('offline', renderSidebar);
 
     // ===== Render annotations & sidebar =====
     function renderAnnotations() {
@@ -1434,12 +1483,15 @@ include 'includes/header.php';
 
     function renderSidebar() {
         const list = document.getElementById('annotList');
+        const offlineNote = document.getElementById('annotOfflineNote');
+        offlineNote.hidden = navigator.onLine || !annotations.length;
+        offlineNote.textContent = annotationsFailed ? 'Saved comments unavailable offline. Showing only your queued comments.' : 'Showing saved comments (offline)';
         if (!annotations.length) {
-            list.innerHTML = '<p class="annot-empty">No comments yet.</p>';
+            list.innerHTML = '<p class="annot-empty">' + (annotationsFailed || !navigator.onLine ? 'Comments unavailable offline.' : 'No comments yet.') + '</p>';
             return;
         }
         list.innerHTML = annotations.map((ann, idx) => `
-        <div class="annot-item${ann._queued ? ' annot-item--queued' : ''}" id="sidebar-${ann.id}" onclick="scrollToAnnotation(${ann.id})">
+        <div class="annot-item${ann._queued ? ' annot-item--queued' : ''}" id="sidebar-${ann.id}" onclick="scrollToAnnotation('${ann.id}')">
             <div class="annot-item-header">
                 <span class="annot-num">${idx + 1}</span>
                 <span class="annot-page">Page ${ann.page_number}</span>
@@ -1609,6 +1661,7 @@ include 'includes/header.php';
 
     // ===== Status update =====
     async function updateStatus(btn, newStatus) {
+        if (await commentsStillSyncing()) return;
         setButtonBusy(btn, true);
         try {
             const res = await fetch(STATUS_API, {
@@ -2216,6 +2269,7 @@ include 'includes/header.php';
         });
 
         async function completeReview(btn) {
+            if (await commentsStillSyncing()) return;
             if (annotations.length) {
                 await confirmAction(
                     'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.', {
@@ -2263,6 +2317,7 @@ include 'includes/header.php';
         });
 
         async function submitReturnRevision() {
+            if (await commentsStillSyncing()) return;
             const ok = await confirmAction(
                 'Return this protocol for revision? The researcher will be notified and asked to resubmit.', {
                     okText: 'Return for Revision',
