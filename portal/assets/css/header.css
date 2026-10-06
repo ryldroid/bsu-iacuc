@@ -96,7 +96,6 @@ header img {
 .header-logo {
     display: flex;
     align-items: center;
-    gap: .5em;
     width: fit-content;
     font-weight: 600;
 }

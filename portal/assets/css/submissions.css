@@ -4,6 +4,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+}
+
+.btn-apply .label-short {
+    display: none;
 }
 
 .apply-actions {
@@ -52,14 +57,16 @@
 }
 
 @media (max-width: 650px) {
-    .submission-header .btn-apply .new-span {
+    .submission-header .btn-apply .label-full {
         display: none;
     }
-}
 
-@media (max-width: 520px) {
-    .submission-header .btn-apply span {
-        display: none;
+    .submission-header .btn-apply .label-short {
+        display: inline;
+    }
+
+    .submission-header .btn-apply {
+        padding: 9px 12px;
     }
 }
 

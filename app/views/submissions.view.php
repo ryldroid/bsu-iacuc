@@ -87,7 +87,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#add-icon" />
                     </svg>
-                    <span>New Application</span>
+                    <span class="label-full">New Application</span>
+                    <span class="label-short">New</span>
                 </a>
             </div>
         </div>
@@ -861,7 +862,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#arrow-right-icon" />
                             </svg>
-                            <span>Resume Application</span>
+                            <span class="label-full">Resume Application</span>
+                            <span class="label-short">Resume</span>
                         </a>
                         <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
                             data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
@@ -872,7 +874,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#add-icon" />
                             </svg>
-                            <span class="new-span">New Application</span>
+                            <span class="label-full">New Application</span>
+                            <span class="label-short">New</span>
                         </button>
                     </div>`;
 

@@ -1117,6 +1117,10 @@ include 'includes/header.php';
         e.stopPropagation();
         const isOpen = versionMenu.classList.toggle('open');
         versionTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+
+        if (isOpen) {
+            positionEdgeAwareDropdown(versionSwitcher, versionMenu);
+        }
     });
 
     document.addEventListener('click', (e) => {

@@ -434,6 +434,15 @@ main button svg {
     margin-bottom: 10px;
 }
 
+.tc-scroll h3 {
+    margin: 14px 0 8px;
+    font-size: 1rem;
+}
+
+.tc-scroll h3:first-child {
+    margin-top: 0;
+}
+
 /* ===== Status pill ===== */
 .status-pill {
     display: inline-flex;

@@ -929,18 +929,6 @@
     font-size: 0.82rem;
   }
 
-  .viewer-topbar-left {
-    position: relative;
-  }
-
-  .version-switcher {
-    position: static;
-  }
-
-  .version-dropdown-menu {
-    left: 0;
-  }
-
   .tool-btn {
     font-size: 0.78rem;
     padding: 0.3rem 0.6rem;

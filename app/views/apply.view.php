@@ -446,7 +446,7 @@ include "includes/scroll-top.php";
                 of Animal Industry, and accrediting bodies as required by law.<br><br>
                 Submitted protocols are confidential institutional documents and will not be disclosed to
                 unauthorized parties. You have the right to request access to your personal data and correct
-                any inaccuracies by contacting the IACUC office.
+                any inaccuracies by contacting the CCARD office.
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn-primary" onclick="closeDocModal('privacy-modal')">Close</button>
@@ -568,13 +568,25 @@ include "includes/scroll-top.php";
         <div class="modal-card">
             <h2>Filling out the fillable PDF</h2>
             <div class="tc-scroll">
+                <h3>On desktop</h3>
                 <ol class="howto-steps">
                     <li>Download the <span class="bold">Fillable PDF</span> above and open it. It should open right in your browser's built-in PDF viewer.</li>
                     <li>Fill in all required fields directly in the browser.</li>
                     <li>When you're done, click the <span class="bold">download icon</span> in the PDF viewer's toolbar, then choose <span class="bold">"With your changes"</span> from the dropdown. This saves your filled-in answers into the file.</li>
                     <li>Come back here and upload that saved PDF in the next step.</li>
                 </ol>
+                
                 <p>You can also open the downloaded PDF in <span class="bold">Adobe Acrobat Reader</span> (free to install), fill it in there, and save with File &gt; Save As.</p>
+
+                <h3>On mobile or tablet</h3>
+                <p>Phone and tablet browsers often can't save a filled-in PDF properly, so use Google Drive instead.</p>
+                <ol class="howto-steps">
+                    <li>Download the <span class="bold">Fillable PDF</span> above, then upload it to your <span class="bold">Google Drive</span>.</li>
+                    <li>Open the file in Google Drive and fill in all required fields.</li>
+                    <li>Download the edited file from Google Drive to your device.</li>
+                    <li>Come back here and upload that downloaded PDF in the next step.</li>
+                </ol>
+
                 <p>If you used the Word (.DOCX) version instead, fill it in normally, then export or convert it to PDF before uploading.</p>
             </div>
             <div class="modal-actions">
