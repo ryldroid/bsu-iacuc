@@ -40,6 +40,7 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
   <?php endif; ?>
 
   <link rel="icon" href="<?= IMGPATH ?>/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="<?= ROOT ?>/favicon.ico" type="image/x-icon">
 
   <script src="<?= asset_js('utils.js') ?>"></script>
   <script src="<?= asset_js('header.js') ?>" defer></script>
@@ -65,10 +66,10 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
   <?php endif; ?>
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-  <link rel="manifest" href="/site.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="<?= ROOT ?>/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="<?= ROOT ?>/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="<?= ROOT ?>/favicon-16x16.png">
+  <link rel="manifest" href="<?= ROOT ?>/site.webmanifest">
 </head>
 
 <body>
