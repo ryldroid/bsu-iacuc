@@ -414,7 +414,7 @@ h2 {
 
 .home-announcement-cont:hover,
 .home-announcement-cont:focus-visible {
-    border-left-color: var(--brand-color-hover);
+    /* border-left-color: var(--brand-color-hover); */
     box-shadow: 0 4px 12px var(--shadow-color-soft);
     transform: translateY(-2px);
     background: none;
