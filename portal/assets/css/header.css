@@ -584,6 +584,7 @@ header [data-tooltip][aria-expanded="true"]::after {
     font-size: 1em;
     font-family: inherit;
     cursor: pointer;
+    margin-left: 0;
 }
 
 #account-dropdown form {

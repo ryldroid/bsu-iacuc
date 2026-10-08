@@ -392,6 +392,7 @@ function formatDateTime(value) {
 
     function close() {
       modal.classList.remove("open");
+      setMobileMenu(false);
     }
 
     closeBtn.addEventListener("click", close);
@@ -404,7 +405,159 @@ function formatDateTime(value) {
       if (e.key === "Escape" && modal.classList.contains("open")) close();
     });
 
-    closeBtn.focus();
+    const restart = bindWelcomeSteps(modal, close);
+
+    function openTour() {
+      if (restart) restart();
+      modal.classList.add("open");
+      closeBtn.focus();
+    }
+
+    // Replay from the account menu (researchers) or the header help button (guests)
+    document.querySelectorAll("[data-welcome-replay]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.getElementById("account-dropdown")?.classList.remove("active");
+        document
+          .querySelector(".my-account-dropdown")
+          ?.setAttribute("aria-expanded", "false");
+        openTour();
+      });
+    });
+
+    // First-time guests see the tour once per browser
+    if (modal.dataset.showOnce && restart) {
+      try {
+        if (!localStorage.getItem("iacuc-tour-seen")) {
+          localStorage.setItem("iacuc-tour-seen", "1");
+          openTour();
+        }
+      } catch (e) {}
+    }
+
+    if (modal.classList.contains("open")) closeBtn.focus();
+  }
+
+  // Open or close the mobile page menu (no-ops on desktop)
+  function setMobileMenu(open) {
+    const menuButton = document.querySelector(".mobile-menu");
+    const isOpen = menuButton?.getAttribute("aria-expanded") === "true";
+    if (menuButton && isOpen !== open) menuButton.click();
+  }
+
+  // Step-by-step spotlight tour (no-ops when the modal has no steps); steps without a target stay centered
+  function bindWelcomeSteps(modal, close) {
+    const steps = modal.querySelectorAll("[data-welcome-step]");
+    if (!steps.length) return null;
+
+    const card = modal.querySelector(".welcome-modal-card");
+    const spotlight = document.getElementById("tourSpotlight");
+    const dotsEl = document.getElementById("welcomeDots");
+    const backBtn = document.getElementById("welcomeBack");
+    const nextBtn = document.getElementById("welcomeNext");
+    const mobileQuery = window.matchMedia("(max-width: 768px)");
+    const SPOT_PAD = 6;
+    const CARD_GAP = 12;
+    const SETTLE_MS = 300;
+    let current = 0;
+    let settleTimer = null;
+
+    dotsEl.innerHTML = Array.from(
+      steps,
+      () => '<span class="welcome-dot"></span>',
+    ).join("");
+    const dots = dotsEl.children;
+
+    function targetSelector(step) {
+      return (
+        (mobileQuery.matches && step.dataset.tourTargetMobile) ||
+        step.dataset.tourTarget
+      );
+    }
+
+    // Bounding box covering every element the selector matches
+    function targetBox(selector) {
+      if (!selector) return null;
+      const rects = Array.from(document.querySelectorAll(selector))
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.width && r.height);
+      if (!rects.length) return null;
+      return {
+        top: Math.min(...rects.map((r) => r.top)) - SPOT_PAD,
+        left: Math.min(...rects.map((r) => r.left)) - SPOT_PAD,
+        right: Math.max(...rects.map((r) => r.right)) + SPOT_PAD,
+        bottom: Math.max(...rects.map((r) => r.bottom)) + SPOT_PAD,
+      };
+    }
+
+    function place() {
+      const box = targetBox(targetSelector(steps[current]));
+      modal.classList.toggle("tour-targeting", !!box);
+      if (!box) {
+        card.style.top = card.style.left = "";
+        return;
+      }
+
+      spotlight.style.top = `${box.top}px`;
+      spotlight.style.left = `${box.left}px`;
+      spotlight.style.width = `${box.right - box.left}px`;
+      spotlight.style.height = `${box.bottom - box.top}px`;
+
+      // Card goes beside the target, else below it, else above it
+      const cardBox = card.getBoundingClientRect();
+      const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
+      let top;
+      let left;
+      if (
+        box.right + CARD_GAP + cardBox.width <=
+        window.innerWidth - CARD_GAP
+      ) {
+        left = box.right + CARD_GAP;
+        top = box.top;
+      } else {
+        left = (box.left + box.right - cardBox.width) / 2;
+        top =
+          box.bottom + CARD_GAP + cardBox.height <=
+          window.innerHeight - CARD_GAP
+            ? box.bottom + CARD_GAP
+            : box.top - CARD_GAP - cardBox.height;
+      }
+      card.style.left = `${clamp(left, CARD_GAP, window.innerWidth - cardBox.width - CARD_GAP)}px`;
+      card.style.top = `${clamp(top, CARD_GAP, window.innerHeight - cardBox.height - CARD_GAP)}px`;
+    }
+
+    function show(n) {
+      current = n;
+      steps.forEach((el, i) => {
+        el.hidden = i !== n;
+      });
+      Array.from(dots).forEach((d, i) => d.classList.toggle("active", i === n));
+      backBtn.hidden = n === 0;
+      nextBtn.textContent = n === steps.length - 1 ? "Finish" : "Next";
+
+      // Header must be visible, and the mobile menu open only for steps inside it
+      window.scrollTo({ top: 0, behavior: "instant" });
+      const selector = targetSelector(steps[n]);
+      const target = selector ? document.querySelector(selector) : null;
+      setMobileMenu(!!target?.closest("#mobileNav"));
+
+      place();
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(place, SETTLE_MS);
+      if (modal.classList.contains("open"))
+        nextBtn.focus({ preventScroll: true });
+    }
+
+    backBtn.addEventListener("click", () => show(current - 1));
+    nextBtn.addEventListener("click", () => {
+      if (current === steps.length - 1) close();
+      else show(current + 1);
+    });
+    window.addEventListener("resize", () => {
+      if (modal.classList.contains("open")) place();
+    });
+
+    show(0);
+    return () => show(0);
   }
 
   // ===== Start up =====

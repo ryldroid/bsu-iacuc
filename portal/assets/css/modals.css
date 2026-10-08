@@ -70,6 +70,103 @@
     padding-right: 30px;
 }
 
+.welcome-intro {
+    color: var(--muted-text);
+    margin-bottom: 1rem;
+}
+
+.welcome-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 1.25rem;
+}
+
+.welcome-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--divider-color);
+    transition: all 0.25s;
+}
+
+.welcome-dot.active {
+    width: 22px;
+    border-radius: 4px;
+    background: var(--brand-text);
+}
+
+.welcome-step[hidden] {
+    display: none;
+}
+
+.welcome-step-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--brand-text);
+    margin-bottom: .3rem;
+}
+
+.welcome-step h3 {
+    font-size: 1rem;
+    margin-bottom: .4rem;
+}
+
+.welcome-step p {
+    line-height: 1.5;
+    /* min-height: 6em; */
+}
+
+.welcome-actions {
+    justify-content: center;
+    margin-top: 1em;
+}
+
+.welcome-actions .welcome-next {
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+}
+
+.welcome-actions .welcome-next:hover {
+    background: var(--brand-color-hover);
+}
+
+/* ===== Spotlight tour (steps that point at a page element) ===== */
+.modal-backdrop.tour-targeting {
+    background: transparent;
+}
+
+.tour-spotlight {
+    display: none;
+    position: fixed;
+    border-radius: var(--radius);
+    outline: 3px solid var(--text-on-brand);
+    box-shadow: 0 0 0 100vmax var(--backdrop-color);
+    pointer-events: none;
+    transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+
+.tour-targeting .tour-spotlight {
+    display: block;
+}
+
+.tour-targeting .welcome-modal-card {
+    position: fixed;
+    margin: 0;
+}
+
+html:has(.modal-backdrop.open.tour-targeting) {
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-spotlight {
+        transition: none;
+    }
+}
+
 .modal-header {
     display: flex;
     align-items: flex-start;

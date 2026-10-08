@@ -46,7 +46,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <span class="helper">(Alphabetic characters (including accented and non-English letters), hyphens, and apostrophes only.)</span>
+            <span class="helper create-acc-helper">(Alphabetic characters (including accented and non-English letters), hyphens, and apostrophes only.)</span>
             <div class="label-group">
                 <div class="input-group">
                     <input type="text" id="first_name" name="first_name" placeholder=" "

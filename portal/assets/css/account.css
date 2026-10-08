@@ -634,3 +634,7 @@ main button:hover {
     color: inherit;
     cursor: text;
 }
+
+.create-acc-helper {
+    text-align: center;
+}

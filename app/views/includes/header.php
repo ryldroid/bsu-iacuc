@@ -157,6 +157,12 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
                 </svg>
                 My Profile</a>
 
+              <button type="button" data-welcome-replay>
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#info-icon" />
+                </svg>
+                Take the Tour
+              </button>
               <?php if ($role === 'researcher'): ?>
                 <form method="POST" action="<?= ROOT ?>/user/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                 <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
@@ -178,6 +184,12 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->
           <?php } else { ?>
+            <button type="button" data-welcome-replay aria-label="Take the tour" data-tooltip="Take the tour">
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#info-icon" />
+              </svg>
+              <span>Tour</span>
+            </button>
             <a href="<?= ROOT ?>/user/login" id="headerLogin" class="auth-btn">Sign In</a>
             <a href="<?= ROOT ?>/user/register" id="headerRegister" class="auth-btn">Register</a>
           <?php } ?>
@@ -286,19 +298,91 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
     </div>
   <?php endif; ?>
 
-  <?php if ($user && !empty($user['show_welcome'])): ?>
-    <div class="modal-backdrop open" id="welcomeModal">
+  <?php
+  $showWelcome = $user && !empty($user['show_welcome']);
+  // Every audience gets a spotlight tour of the website (replayable from the account menu or header help button).
+  // Step format: [title, text, desktop target selector, mobile target selector (optional)]
+  $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
+  $tourWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime from your account menu.'];
+  $tourAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
+  $tourContact = ['Contact Us', 'Find the CCARD office details and how to reach them.', ...$navLink('/contact')];
+  $tourPreview = ['Preview public site', 'See the website the way visitors see it. It opens in a new tab.', '.header-preview-link'];
+  $tourNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
+  $tourTheme = ['Theme', 'Switch between Light, Dark, and Auto to match your device.', '#theme-toggle'];
+  $tourAccount = ['Your account', 'Open this to view My Profile, replay this tour, or log out.', '.my-account-dropdown'];
+  $welcomeSteps = [];
+  if ($role === 'researcher') {
+    $welcomeSteps = [
+      $tourWelcome,
+      ['Page menu', 'These links take you between Home, My Protocols, Announcements, and Contact Us. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
+      $tourAnnouncements,
+      $tourContact,
+      $tourNotifications,
+      $tourTheme,
+      $tourAccount,
+    ];
+  } elseif ($role === 'staff') {
+    $welcomeSteps = [
+      $tourWelcome,
+      ['Page menu', 'These links take you between the Dashboard, Records, Site Content, and Administration. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
+      ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
+      ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
+      ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
+      $tourPreview,
+      $tourNotifications,
+      $tourTheme,
+      $tourAccount,
+    ];
+  } elseif ($role === 'reviewer') {
+    $welcomeSteps = [
+      $tourWelcome,
+      ['Page menu', 'These links take you between the Dashboard and Records. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
+      ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
+      $tourPreview,
+      $tourNotifications,
+      $tourTheme,
+      $tourAccount,
+    ];
+  } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
+    $welcomeSteps = [
+      ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
+      ['Sign in or register', 'Already have an account? Press Sign In. New here? Press Register to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
+      ['Page menu', 'These links take you between Home, Announcements, and Contact Us. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      $tourAnnouncements,
+      $tourContact,
+      $tourTheme,
+    ];
+  }
+  ?>
+
+  <?php if ($welcomeSteps): ?>
+    <div class="modal-backdrop<?= $showWelcome ? ' open' : '' ?>" id="welcomeModal" <?= !$user ? ' data-show-once' : '' ?>>
+      <div class="tour-spotlight" id="tourSpotlight" aria-hidden="true"></div>
       <div class="modal-card welcome-modal-card">
         <button type="button" class="modal-close" id="welcomeModalClose" aria-label="Close">
           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#close-icon" />
           </svg>
         </button>
-        <h2>Welcome to BSU-IACUC!</h2>
-        <p>We're glad to have you here. Explore your dashboard to get started.</p>
+        <div class="welcome-dots" id="welcomeDots" aria-hidden="true"></div>
+        <?php foreach ($welcomeSteps as $i => $step): ?>
+          <?php [$stepTitle, $stepText, $stepTarget, $stepMobileTarget] = array_pad($step, 4, ''); ?>
+          <section class="welcome-step" data-welcome-step<?= $i > 0 ? ' hidden' : '' ?> data-tour-target="<?= htmlspecialchars($stepTarget, ENT_QUOTES, 'UTF-8') ?>" <?= $stepMobileTarget ? ' data-tour-target-mobile="' . htmlspecialchars($stepMobileTarget, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+            <span class="welcome-step-label">Step <?= $i + 1 ?> of <?= count($welcomeSteps) ?></span>
+            <h3><?= htmlspecialchars($stepTitle, ENT_QUOTES, 'UTF-8') ?></h3>
+            <p><?= htmlspecialchars($stepText, ENT_QUOTES, 'UTF-8') ?></p>
+          </section>
+        <?php endforeach; ?>
+        <div class="modal-actions welcome-actions">
+          <button type="button" class="button" id="welcomeBack" hidden>Back</button>
+          <button type="button" class="button welcome-next" id="welcomeNext">Next</button>
+        </div>
       </div>
     </div>
-    <?php unset($_SESSION['user']['show_welcome']); ?>
   <?php endif; ?>
+  <?php unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>
