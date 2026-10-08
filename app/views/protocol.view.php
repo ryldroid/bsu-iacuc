@@ -1211,8 +1211,12 @@ include 'includes/header.php';
                 pdfDoc.numPages + (pdfDoc.numPages === 1 ? ' page' : ' pages');
 
         } catch (err) {
-            document.getElementById('pdfColumn').innerHTML =
-                '<p class="error-msg">File not found.</p>';
+            const message = document.createElement('p');
+            message.className = 'error-msg';
+            message.textContent = err.name === 'MissingPDFException' ?
+                'File not found.' :
+                'Could not load the file (' + (err.message || err.name || 'unknown error') + ').';
+            document.getElementById('pdfColumn').replaceChildren(message);
         }
         await loadAnnotations();
     }

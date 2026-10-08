@@ -31,10 +31,6 @@
 
 @media (max-width: 767px) {
   .status-underline {
-    display: none;
-  }
-
-  .status-filters.has-underline .status-card.active {
-    border-bottom-color: var(--tab-underline);
+    bottom: 0;
   }
 }

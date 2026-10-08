@@ -78,6 +78,11 @@ class Controller
       $this->jsonError(403, 'File type not permitted.');
     }
 
+    while (ob_get_level() > 0) {
+      ob_end_clean();
+    }
+    ini_set('zlib.output_compression', '0');
+
     $disposition = $forceDownload ? 'attachment' : 'inline';
 
     header('Content-Type: ' . $mimeType);
