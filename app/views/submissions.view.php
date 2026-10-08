@@ -49,7 +49,7 @@ $statusMeta = [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! You may now download your animal research clearance. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
+        'desc'  => 'Congratulations, your protocol has been approved! You may now download your animal research clearance. Please also visit the BSU-CCARD office to claim the embossed hard copy. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
     ],
 ];
 
@@ -262,7 +262,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 ?>
                     <div class="protocol" id="protocol-<?= $protocolIdInt ?>" data-status="<?= $statusKey ?>"
                         data-submitted="<?= htmlspecialchars($submittedIso, ENT_QUOTES, 'UTF-8') ?>"
-                        data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
+                        data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>"
+                        data-signed-scan-url="<?= !empty($protocol['latest_signed_scan_version_id']) ? ROOT . '/apply/file/' . (int) $protocol['latest_signed_scan_version_id'] : '' ?>">
 
                         <span class="protocol-status-icon" style="background:<?= $statusMeta[$statusKey]['color'] ?? 'var(--muted-text)' ?>">
                             <?= statusIconSvg($statusMeta[$statusKey]['icon'] ?? 'check-circle-icon', 19) ?>
@@ -884,6 +885,10 @@ include 'includes/tour.php';
         if (new URLSearchParams(window.location.search).get('open') === 'payment' &&
             card.querySelector('[data-rejection-reason]')) {
             openPaymentRejectedModal(+id);
+        }
+
+        if (new URLSearchParams(window.location.search).get('open') === 'signed_scan' && card.dataset.signedScanUrl) {
+            openFilePopup(card.dataset.signedScanUrl, 'Signed Scan');
         }
     })();
 

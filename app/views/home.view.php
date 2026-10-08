@@ -279,6 +279,9 @@ include "includes/scroll-top.php";
                                 <div class="timeline-content">
                                     <h3>Receive Clearance</h3>
                                     <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
+                                    <p class="process-step-note">
+                                        <span class="italic">Note:</span> Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
+                                    </p>
                                 </div>
                             </li>
                         </ol>

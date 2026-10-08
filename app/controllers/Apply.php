@@ -274,7 +274,8 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
             'Protocol Status Updated',
-            'Your protocol ' . Notifier::boldTitle($title) . ' is now: ' . Notifier::bold($newStatus) . '.',
+            'Your protocol ' . Notifier::boldTitle($title) . ' is now: ' . Notifier::bold($newStatus) . '.'
+                . (strtolower($newStatus) === 'approved' ? ' Please visit the CCARD office to claim the embossed hard copy of your clearance.' : ''),
             $link,
             [
                 'template' => 'protocol_status_changed',
@@ -286,20 +287,22 @@ class Apply extends Controller
         );
     }
 
-    private function notifyPaymentProofUploaded(array $protocol, array $actor): void
+    private function notifyPaymentProofUploaded(array $protocol, array $actor, string $method): void
     {
-        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+        $title        = $protocol['research_title'] ?? 'Untitled Protocol';
+        $researcher   = $this->actorDisplayName($actor);
+        $paidInPerson = $method === 'in_person';
 
         Notifier::sendToRole(
             'staff',
             'payment_proof_uploaded',
-            'Payment Proof Uploaded',
-            "{$actor['name']} uploaded proof of payment for " . Notifier::boldTitle($title) . '.',
+            $paidInPerson ? 'Payment Confirmed' : 'Payment Proof Uploaded',
+            $researcher . ($paidInPerson ? ' confirmed payment in person for ' : ' uploaded proof of payment for ') . Notifier::boldTitle($title) . '.',
             'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_uploaded',
-                'vars'     => ['title' => $title, 'actor_name' => $actor['name'], 'protocol_id' => $protocol['protocol_id']],
-                'subject'  => 'Payment Proof Uploaded',
+                'vars'     => ['title' => $title, 'actor_name' => $researcher, 'protocol_id' => $protocol['protocol_id'], 'paid_in_person' => $paidInPerson],
+                'subject'  => $paidInPerson ? 'Payment Confirmed' : 'Payment Proof Uploaded',
             ]
         );
     }
@@ -379,7 +382,7 @@ class Apply extends Controller
             'signed_scan_uploaded',
             'Signed Protocol Uploaded',
             'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chair.',
-            $this->protocolHighlightLink((int) $protocol['protocol_id']),
+            $this->protocolHighlightLink((int) $protocol['protocol_id'], 'signed_scan'),
             [
                 'template' => 'signed_scan_uploaded',
                 'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'protocol_id' => $protocol['protocol_id']],
@@ -1479,7 +1482,7 @@ class Apply extends Controller
 
         $this->protocolModel->submitPaymentProof($protocolId, $method);
         $this->protocolModel->logAudit('payment_proof_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $method === 'in_person' ? 'Payment confirmed as paid in person' : 'Payment proof uploaded');
-        $this->notifyPaymentProofUploaded($protocol, $actor);
+        $this->notifyPaymentProofUploaded($protocol, $actor, $method);
 
         $_SESSION['flash_success'] = $method === 'in_person'
             ? 'Payment confirmed. Administrative staff will verify it shortly.'
