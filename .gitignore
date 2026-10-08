@@ -15,10 +15,14 @@ storage/.schema_checked
 *.log
 
 # ── Dependencies ────────────────────────────────────────────────────
-vendor/
+/vendor/
 
 # ── OS / editor junk ──────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+storage/uploads/records/**
+storage/uploads/clearance_pool/**
+portal/assets/uploads/**
+app.zip

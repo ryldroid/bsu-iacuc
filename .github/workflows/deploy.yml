@@ -29,3 +29,6 @@ jobs:
             .env
             storage/uploads/protocols/**
             vendor/**
+            storage/uploads/records/**
+            storage/uploads/clearance_pool/**
+            portal/assets/uploads/**
