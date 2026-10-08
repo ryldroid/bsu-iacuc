@@ -978,15 +978,28 @@
   }
 
   .records-filters-row {
-    gap: 6px;
-    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .records-filters-row>p {
+    grid-column: 1 / -1;
   }
 
   .records-filter-select {
-    flex: 1 1 45%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .records-clear-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .records-sort-group {
+    grid-column: 1 / -1;
     width: 100%;
     margin-left: 0;
     padding-left: 0;
@@ -1014,40 +1027,47 @@
     display: none;
   }
 
+  /* Card: header chips on top, title, then a two-column detail grid */
   .records-table tbody tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
     padding: 14px;
     background: var(--card-background);
     border: 1px solid var(--divider-color);
     border-radius: var(--btn-radius);
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
   }
 
   .records-table tbody tr:last-child {
     margin-bottom: 0;
   }
 
-  .records-table tbody td {
+  .records-table tbody tr td {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 2px;
     min-width: 0;
     padding: 0;
     border: none;
     white-space: normal;
-  }
-
-  .records-table tbody tr:nth-child(n) td {
     background: none;
+    order: 6;
+    flex: 1 1 calc(50% - 4px);
+    font-size: .88em;
+    color: var(--primary-text);
+    overflow-wrap: anywhere;
   }
 
   .records-table tbody td[data-label]::before {
     content: attr(data-label);
-    font-size: .72em;
+    font-size: .68em;
     font-weight: 700;
-    letter-spacing: .02em;
+    letter-spacing: .04em;
+    text-transform: uppercase;
     color: var(--muted-text);
   }
 
@@ -1055,41 +1075,42 @@
     display: none;
   }
 
-  .records-table tbody td[colspan],
-  .records-table .records-title-cell {
-    grid-column: 1 / -1;
-  }
-
-  .records-table tbody tr td.records-ar,
-  .records-table tbody tr td.records-ref {
-    grid-column: 1;
+  /* Header row: reference, AR number, status, actions */
+  .records-table tbody tr td.records-ref,
+  .records-table tbody tr td.records-ar {
     position: static;
-    justify-self: start;
-    align-self: center;
+    flex: 0 0 auto;
     padding: 3px 8px;
     font-family: monospace;
+    font-size: .85em;
     color: var(--brand-text);
     background: var(--brand-surface-tint);
+    border-radius: 4px;
     box-shadow: none;
   }
 
-  .records-table tbody tr td.records-ar {
-    grid-row: 1;
-  }
-
   .records-table tbody tr td.records-ref {
-    grid-row: 2;
+    order: 1;
   }
 
-  .records-table tbody tr:has(.records-ar:empty) td.records-ref {
-    grid-row: 1;
+  .records-table tbody tr td.records-ar {
+    order: 2;
+  }
+
+  .records-table tbody td[data-label="Status"] {
+    order: 3;
+    flex: 0 0 auto;
+  }
+
+  .records-table tbody td[data-label="Status"]::before {
+    display: none;
   }
 
   .records-table .actions-cell {
-    grid-column: 2;
-    grid-row: 1;
+    order: 4;
+    flex: 0 0 auto;
+    margin-left: auto;
     position: static;
-    justify-self: end;
     width: auto;
   }
 
@@ -1100,6 +1121,40 @@
     background: none;
     box-shadow: none;
     opacity: 1;
+  }
+
+  .records-table .row-actions .row-btn {
+    padding: 8px 10px;
+  }
+
+  /* Title takes the full width under the header row */
+  .records-table tbody td.records-title-cell,
+  .records-table tbody td[colspan] {
+    order: 5;
+    flex: 1 0 100%;
+    padding: 4px 0 8px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+
+  .records-table .records-title-cell .protocol-title-cell {
+    font-size: 1.05em;
+    line-height: 1.35;
+  }
+
+  .records-table tbody td[colspan] {
+    border-bottom: none;
+  }
+
+  .records-expired-tag {
+    display: inline-block;
+    margin-top: 2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: .72rem;
+    font-weight: 600;
+    background: var(--status-danger-bg);
+    color: var(--status-danger-text);
   }
 }
 

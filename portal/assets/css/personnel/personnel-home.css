@@ -16,8 +16,10 @@ main {
 /* ===== Search row (inside the dashboard card, right aligned) ===== */
 .dashboard-search-row {
     display: flex;
-    justify-content: flex-end;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
 }
 
 /* ===== Page header ===== */
@@ -245,9 +247,8 @@ main {
 
 .inbox-search-wrap {
     position: relative;
-    flex: 1;
+    flex: 1 1 220px;
     max-width: 500px;
-    width: 100%;
     margin-left: auto;
 }
 
