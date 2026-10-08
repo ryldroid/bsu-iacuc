@@ -120,6 +120,7 @@ $toReviewCount  = $countsBySlug['to-review']             ?? 0;
 $revisionCount  = $countsBySlug['returned-for-revision'] ?? 0;
 $reviewedCount  = $countsBySlug['reviewed']              ?? 0;
 $endorsedCount  = $countsBySlug['endorsed']              ?? 0;
+$approvedCount  = $countsBySlug['approved']              ?? 0;
 
 $paymentLabels = [
     'unpaid'          => 'Unpaid',
@@ -145,7 +146,7 @@ foreach ($protocols as $p) {
     <link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
 <?php endif; ?>
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
-<script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
+<script src="<?= asset_js('protocol-sort.js') ?>"></script>
 <script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
@@ -159,6 +160,14 @@ foreach ($protocols as $p) {
             <!-- ===== Search bar ===== -->
             <div class="dashboard-search-row">
                 <h1 class="dashboard-page-title">Protocol Inbox</h1>
+                <?php if (($user['role'] ?? '') === 'reviewer'): ?>
+                    <button type="button" class="action-link" data-tour-start="inbox">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#info-icon" />
+                        </svg>
+                        Page tour
+                    </button>
+                <?php endif; ?>
                 <div class="inbox-search-wrap">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -232,7 +241,7 @@ foreach ($protocols as $p) {
                                 <p>Endorsed <span class="status-count"><?= $endorsedCount ?></span></p>
                             </button>
                             <button class="status-card" data-filter="approved" data-label="Approved">
-                                <p>Approved</p>
+                                <p>Approved <span class="status-count"><?= $approvedCount ?></span></p>
                             </button>
                         </div>
                     </div>
@@ -248,27 +257,30 @@ foreach ($protocols as $p) {
                         <div class="sort-wrapper">
                             <select id="inboxSortSelect" class="dashboard-sort-select dashboard-select-trigger" aria-label="Sort protocols">
                                 <option value="newest">Newest Submitted</option>
-                                <option value="oldest">Oldest Submitted</option>
+                                <option value="oldest" selected>Oldest Submitted</option>
                                 <option value="title_asc">Title (A–Z)</option>
                                 <option value="title_desc">Title (Z–A)</option>
                             </select>
 
                             <button type="button" class="mobile-sort-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                                <span id="mobileSortLabel">Newest Submitted</span>
+                                <span id="mobileSortLabel">Oldest Submitted</span>
                                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <use href="#chev-down-icon" />
                                 </svg>
                             </button>
 
                             <div class="dropdown-panel" id="mobileSortOptions">
-                                <button class="status-card active" data-sort="newest">Newest Submitted</button>
-                                <button class="status-card" data-sort="oldest">Oldest Submitted</button>
+                                <button class="status-card" data-sort="newest">Newest Submitted</button>
+                                <button class="status-card active" data-sort="oldest">Oldest Submitted</button>
                                 <button class="status-card" data-sort="title_asc">Title (A–Z)</button>
                                 <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- ===== Results summary ===== -->
+                <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
 
                 <!-- ===== Status legend ===== -->
                 <div class="status-legend-bar">
@@ -912,6 +924,7 @@ foreach ($protocols as $p) {
     const searchInput = document.getElementById('inboxSearchInput');
     const searchClearBtn = document.getElementById('inboxSearchClear');
     const paginationInfo = document.getElementById('paginationInfo');
+    const resultsSummary = document.getElementById('resultsSummary');
     const paginationBtns = document.getElementById('paginationButtons');
     const rowsPerPageSel = document.getElementById('rowsPerPageSelect');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
@@ -937,9 +950,27 @@ foreach ($protocols as $p) {
     let rowsPerPage = 10;
 
     // ===== Sort by =====
-    sortSelect?.addEventListener('change', () => {
-        allRows.sort(protocolSortComparator(sortSelect.value));
+    const SORT_STORAGE_KEY = 'inboxSort';
+    const VIEW_STORAGE_KEY = 'inboxView';
+
+    function saveView() {
+        sessionStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify({
+            filter: activeFilter,
+            search: searchInput?.value ?? '',
+            page: currentPage,
+            rows: rowsPerPage,
+            payment: paymentFilterSelect?.value ?? ''
+        }));
+    }
+
+    function applySort(mode) {
+        allRows.sort(protocolSortComparator(mode));
         allRows.forEach(row => protocolsList.appendChild(row));
+    }
+
+    sortSelect?.addEventListener('change', () => {
+        localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
+        applySort(sortSelect.value);
         currentPage = 1;
         renderTable();
     });
@@ -1284,6 +1315,7 @@ foreach ($protocols as $p) {
         const totalRows = visibleRows.length;
         const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
         if (currentPage > totalPages) currentPage = totalPages;
+        saveView();
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const pageRows = visibleRows.slice(startIndex, startIndex + rowsPerPage);
@@ -1296,6 +1328,10 @@ foreach ($protocols as $p) {
 
         if (noResultsMsg) {
             noResultsMsg.style.display = totalRows === 0 ? 'flex' : 'none';
+        }
+
+        if (resultsSummary) {
+            resultsSummary.textContent = `Showing ${totalRows} protocol${totalRows === 1 ? '' : 's'}`;
         }
 
         if (paginationInfo) {
@@ -1609,10 +1645,63 @@ foreach ($protocols as $p) {
         });
     })();
 
+    // ===== Restore saved sort =====
+    (function restoreSort() {
+        if (!sortSelect) return;
+        const savedSort = localStorage.getItem(SORT_STORAGE_KEY);
+        if ([...sortSelect.options].some(option => option.value === savedSort)) {
+            sortSelect.value = savedSort;
+            mobileSortBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === savedSort));
+            if (mobileSortLabel) mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
+        }
+        applySort(sortSelect.value);
+    })();
+
+    // ===== Restore saved search, rows per page, payment filter and page =====
+    (function restoreView() {
+        const saved = JSON.parse(sessionStorage.getItem(VIEW_STORAGE_KEY) || '{}');
+
+        if (searchInput && saved.search) {
+            searchInput.value = saved.search;
+            searchQuery = saved.search.trim().toLowerCase();
+            searchClearBtn.classList.toggle('visible', searchQuery.length > 0);
+        }
+
+        if (rowsPerPageSel && [...rowsPerPageSel.options].some(option => option.value === String(saved.rows))) {
+            rowsPerPageSel.value = saved.rows;
+            rowsPerPage = parseInt(saved.rows, 10);
+        }
+
+        if (saved.filter !== activeFilter) return;
+        currentPage = saved.page || 1;
+        if (paymentFilterSelect && [...paymentFilterSelect.options].some(option => option.value === saved.payment)) {
+            paymentFilterSelect.value = saved.payment;
+        }
+    })();
+
     // ===== Initial render =====
     renderTable();
 </script>
 
+<?php if (($user['role'] ?? '') === 'reviewer') {
+    $tourId    = 'inbox';
+    $tourSteps = [
+        ['Protocol Inbox', 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
+        ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
+        ['Status filters', 'Filter the inbox by status. It opens on To review, which is your queue. The number next to each name is how many protocols have that status.', '#filterPillsRow'],
+        ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
+        ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means for you.', '.status-legend-bar'],
+    ];
+    if ($protocols) {
+        $tourSteps = array_merge($tourSteps, [
+            ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
+            ['Review', 'Press Review on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show View instead, and View Clearance once approved.', '.protocols-list .protocol .actions:first-visible'],
+            ['Show History', "See every submission round of a protocol, including the researcher's revisions.", '.protocols-list .protocol .actions-secondary:first-visible'],
+            ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
+        ]);
+    }
+    include dirname(__DIR__) . '/includes/tour.php';
+} ?>
 <?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>
 <script>
     window.historyModalConfig = {

@@ -465,6 +465,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     results.dataset.page = data.page;
                     results.dataset.date = date || '';
                     jumpClear.hidden = !date;
+
+                    const url = new URL(location.href);
+                    url.searchParams.set('audit_page', data.page);
+                    if (date) url.searchParams.set('audit_date', date);
+                    else url.searchParams.delete('audit_date');
+                    history.replaceState(history.state, '', url);
                 })
                 .catch(() => {})
                 .finally(() => {

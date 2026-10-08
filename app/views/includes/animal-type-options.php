@@ -1,13 +1,13 @@
 <datalist id="animal-type-options">
-  <option value="Mice">
-  <option value="Rats">
-  <option value="Rabbits">
+  <option value="Bats">
   <option value="Chickens">
-  <option value="Guinea Pigs">
   <option value="Ducks">
-  <option value="Goats">
   <option value="Fish">
   <option value="Frogs">
-  <option value="Bats">
   <option value="Fruit Flies">
+  <option value="Goats">
+  <option value="Guinea Pigs">
+  <option value="Mice">
+  <option value="Rabbits">
+  <option value="Rats">
 </datalist>

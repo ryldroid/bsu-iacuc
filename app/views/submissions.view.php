@@ -69,7 +69,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
-<script src="<?= asset_js('protocol-sort.js') ?>" defer></script>
+<script src="<?= asset_js('protocol-sort.js') ?>"></script>
 <script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
@@ -81,6 +81,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
         <div class="submission-header">
             <h1>My Protocols</h1>
+
+            <button type="button" class="action-link" data-tour-start="protocols">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#info-icon" />
+                </svg>
+                Page tour
+            </button>
 
             <div id="apply-actions-sub">
                 <a href="<?= ROOT ?>/apply" class="btn-apply button">
@@ -303,13 +310,15 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
                             <!-- Actions -->
                             <div class="actions">
-                                <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
-                                    onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <use href="#<?= $needsRevision ? 'upload-icon' : 'eye-icon' ?>" />
-                                    </svg>
-                                    <?= $needsRevision ? 'Review Comments &amp; Re-submit' : 'Open' ?>
-                                </a>
+                                <?php if ($needsRevision): ?>
+                                    <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                        onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#upload-icon" />
+                                        </svg>
+                                        Review Comments &amp; Re-submit
+                                    </a>
+                                <?php endif; ?>
 
                                 <?php if ($isApproved):
                                     $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
@@ -344,6 +353,12 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php endif; ?>
 
                                 <div class="actions-secondary">
+                                    <?php if (!$needsRevision): ?>
+                                        <a class="action-link" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                            onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
+                                            View
+                                        </a>
+                                    <?php endif; ?>
                                     <button class="action-link"
                                         data-protocol-id="<?= $protocolIdInt ?>"
                                         data-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
@@ -367,6 +382,25 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <?php endif; ?>
     </main>
 </div>
+
+<?php
+$tourId    = 'protocols';
+$tourSteps = [
+    ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
+    ['New Application', 'Start a new protocol application here. If you have one in progress, you can resume it from the same spot.', '#apply-actions-sub'],
+    ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters'],
+    ['Sort', 'Change the order of your list: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
+    ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means and what you need to do.', '.status-legend-bar'],
+];
+if ($protocols) {
+    $tourSteps = array_merge($tourSteps, [
+        ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
+        ['Actions', 'When needed you will see Review Comments & Re-submit (after a revision request), View Payment Options (once reviewed), or Claim Clearance (once approved).', '.protocols-list .protocol .actions:first-visible'],
+        ['Open and Show History', 'Open shows the protocol and its files. Show History lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
+    ]);
+}
+include 'includes/tour.php';
+?>
 
 <?php include 'includes/history-modal.php'; ?>
 <script src="<?= asset_js('history-modal.js') ?>"></script>
@@ -696,12 +730,19 @@ function statusIconSvg(string $iconId, int $size = 14): string
     let currentFilter = 'all';
 
     // ===== Sort by =====
-    sortSelect?.addEventListener('change', () => {
+    const SORT_STORAGE_KEY = 'protocolsSort';
+
+    function applySort(mode) {
         const container = document.querySelector(sortSelect.dataset.sortTarget);
         if (!container) return;
         [...container.querySelectorAll('.protocol')]
-        .sort(protocolSortComparator(sortSelect.value))
+        .sort(protocolSortComparator(mode))
             .forEach(card => container.appendChild(card));
+    }
+
+    sortSelect?.addEventListener('change', () => {
+        localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
+        applySort(sortSelect.value);
     });
 
     function hexToRgba(hex, alpha) {
@@ -812,6 +853,16 @@ function statusIconSvg(string $iconId, int $size = 14): string
     function openProtocol(protocolId) {
         window.location.href = ROOT_URL + '/apply/viewer/' + parseInt(protocolId, 10) + '?from=' + encodeURIComponent(currentFilter);
     }
+
+    (function restoreSort() {
+        if (!sortSelect) return;
+        const savedSort = localStorage.getItem(SORT_STORAGE_KEY);
+        if (![...sortSelect.options].some(option => option.value === savedSort)) return;
+        sortSelect.value = savedSort;
+        mobileSortBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === savedSort));
+        if (mobileSortLabel) mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
+        applySort(savedSort);
+    })();
 
     (function restoreFilterFromUrl() {
         const requestedStatus = new URLSearchParams(window.location.search).get('status');

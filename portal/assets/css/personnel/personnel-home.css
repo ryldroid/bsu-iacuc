@@ -340,6 +340,13 @@ main {
     gap: 8px;
 }
 
+.results-summary {
+    margin: 12px 0 0;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--primary-text);
+}
+
 .pagination-info {
     font-size: 0.72em;
     color: var(--muted-text);

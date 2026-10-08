@@ -327,6 +327,10 @@
   text-decoration: none;
   cursor: pointer;
   font-family: var(--font-body);
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .action-link:hover {

@@ -383,12 +383,10 @@ function formatDateTime(value) {
     });
   }
 
-  // ===== Welcome modal =====
-  function bindWelcomeModal() {
-    const modal = document.getElementById("welcomeModal");
-    if (!modal) return;
-
-    const closeBtn = document.getElementById("welcomeModalClose");
+  // ===== Tours (see includes/tour.php) =====
+  function bindTour(modal) {
+    const tourId = modal.dataset.tour;
+    const closeBtn = modal.querySelector(".modal-close");
 
     function close() {
       modal.classList.remove("open");
@@ -405,30 +403,34 @@ function formatDateTime(value) {
       if (e.key === "Escape" && modal.classList.contains("open")) close();
     });
 
-    const restart = bindWelcomeSteps(modal, close);
+    const restart = bindTourSteps(modal, close);
 
     function openTour() {
-      if (restart) restart();
+      restart();
       modal.classList.add("open");
       closeBtn.focus();
     }
 
-    // Replay from the account menu (researchers) or the header help button (guests)
-    document.querySelectorAll("[data-welcome-replay]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.getElementById("account-dropdown")?.classList.remove("active");
-        document
-          .querySelector(".my-account-dropdown")
-          ?.setAttribute("aria-expanded", "false");
-        openTour();
+    document
+      .querySelectorAll(`[data-tour-start="${tourId}"]`)
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .getElementById("account-dropdown")
+            ?.classList.remove("active");
+          document
+            .querySelector(".my-account-dropdown")
+            ?.setAttribute("aria-expanded", "false");
+          openTour();
+        });
       });
-    });
 
-    // First-time guests see the tour once per browser
-    if (modal.dataset.showOnce && restart) {
+    // Auto-open once per browser
+    if (modal.hasAttribute("data-show-once")) {
       try {
-        if (!localStorage.getItem("iacuc-tour-seen")) {
-          localStorage.setItem("iacuc-tour-seen", "1");
+        const seenKey = `iacuc-tour-seen-${tourId}`;
+        if (!localStorage.getItem(seenKey)) {
+          localStorage.setItem(seenKey, "1");
           openTour();
         }
       } catch (e) {}
@@ -444,16 +446,14 @@ function formatDateTime(value) {
     if (menuButton && isOpen !== open) menuButton.click();
   }
 
-  // Step-by-step spotlight tour (no-ops when the modal has no steps); steps without a target stay centered
-  function bindWelcomeSteps(modal, close) {
+  // Step-by-step spotlight tour; steps without a target stay centered. Returns a restart function.
+  function bindTourSteps(modal, close) {
     const steps = modal.querySelectorAll("[data-welcome-step]");
-    if (!steps.length) return null;
-
     const card = modal.querySelector(".welcome-modal-card");
-    const spotlight = document.getElementById("tourSpotlight");
-    const dotsEl = document.getElementById("welcomeDots");
-    const backBtn = document.getElementById("welcomeBack");
-    const nextBtn = document.getElementById("welcomeNext");
+    const spotlight = modal.querySelector(".tour-spotlight");
+    const dotsEl = modal.querySelector(".welcome-dots");
+    const backBtn = modal.querySelector("[data-tour-back]");
+    const nextBtn = modal.querySelector("[data-tour-next]");
     const mobileQuery = window.matchMedia("(max-width: 768px)");
     const SPOT_PAD = 6;
     const CARD_GAP = 12;
@@ -474,12 +474,23 @@ function formatDateTime(value) {
       );
     }
 
-    // Bounding box covering every element the selector matches
+    // Visible elements the selector matches; ending it with ":first-visible" keeps only the first one
+    function targetElements(selector) {
+      if (!selector) return [];
+      const found = Array.from(
+        document.querySelectorAll(selector.replace(/:first-visible$/, "")),
+      ).filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width && r.height;
+      });
+      return selector.endsWith(":first-visible") ? found.slice(0, 1) : found;
+    }
+
+    // Bounding box covering every target element
     function targetBox(selector) {
-      if (!selector) return null;
-      const rects = Array.from(document.querySelectorAll(selector))
-        .map((el) => el.getBoundingClientRect())
-        .filter((r) => r.width && r.height);
+      const rects = targetElements(selector).map((el) =>
+        el.getBoundingClientRect(),
+      );
       if (!rects.length) return null;
       return {
         top: Math.min(...rects.map((r) => r.top)) - SPOT_PAD,
@@ -534,11 +545,17 @@ function formatDateTime(value) {
       backBtn.hidden = n === 0;
       nextBtn.textContent = n === steps.length - 1 ? "Finish" : "Next";
 
-      // Header must be visible, and the mobile menu open only for steps inside it
+      // Header must be visible, the mobile menu open only for steps inside it, and the target on screen
       window.scrollTo({ top: 0, behavior: "instant" });
       const selector = targetSelector(steps[n]);
-      const target = selector ? document.querySelector(selector) : null;
+      const target = targetElements(selector)[0];
       setMobileMenu(!!target?.closest("#mobileNav"));
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          target.scrollIntoView({ block: "center", behavior: "instant" });
+        }
+      }
 
       place();
       clearTimeout(settleTimer);
@@ -563,5 +580,5 @@ function formatDateTime(value) {
   // ===== Start up =====
   bindAutoConfirm();
   bindImageZoomTriggers();
-  bindWelcomeModal();
+  document.querySelectorAll(".tour-modal").forEach(bindTour);
 })();
