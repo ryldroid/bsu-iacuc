@@ -328,6 +328,7 @@ class Schema
         $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
         $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
         $this->backfillReturnReasonVersions();
+        $this->backfillMissingRecords();
 
         // ===== PAYMENT PROOF REJECTIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
@@ -466,6 +467,41 @@ class Schema
              SET r.version_id = pv.id
              WHERE r.version_id IS NULL"
         );
+    }
+
+    // Adds a record for every Reviewed (or later) protocol that has none, e.g. when the
+    // snapshot failed at review time. Reuses RecordModel so it matches the live behaviour.
+    private function backfillMissingRecords(): void
+    {
+        $result = $this->connection->query(
+            "SELECT p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title, p.user_id,
+                    u.first_name AS submitter_first_name, u.last_name AS submitter_last_name,
+                    u.school AS submitter_school, u.sex AS submitter_sex
+             FROM `protocols` p
+             JOIN `users` u ON u.id = p.user_id
+             WHERE p.status IN ('Reviewed', 'Endorsed', 'Approved')
+               AND p.deleted_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM `records` r WHERE r.protocol_id = p.id)"
+        );
+        if (! $result) {
+            return;
+        }
+
+        $records   = new RecordModel();
+        $protocols = new ProtocolModel();
+
+        foreach ($result->fetch_all(MYSQLI_ASSOC) as $protocol) {
+            try {
+                $version = $protocols->getLatestVersion((int) $protocol['protocol_id'], 'protocol');
+                $records->snapshotFromProtocol($protocol, $version);
+
+                if (!empty($protocol['ar_number'])) {
+                    $records->setArNumberByProtocolId((int) $protocol['protocol_id'], $protocol['ar_number']);
+                }
+            } catch (Throwable $e) {
+                error_log("Record backfill failed (protocol #{$protocol['protocol_id']}): " . $e->getMessage());
+            }
+        }
     }
 
     private function purgeAuthVersions(): void

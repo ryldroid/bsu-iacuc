@@ -591,6 +591,59 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  // ===== SNAPSHOT FROM PROTOCOL =====
+  // Creates the record for a Reviewed protocol (once) and attaches its latest protocol file.
+  public function snapshotFromProtocol(array $protocol, ?array $version = null): bool
+  {
+    $protocolId = (int) $protocol['protocol_id'];
+    if ($this->getByProtocolId($protocolId)) {
+      return true;
+    }
+
+    $filePath     = null;
+    $fileOriginal = null;
+
+    if ($version) {
+      $root       = dirname(__DIR__, 2);
+      $source     = $root . '/storage/uploads/protocols/' . $version['file_path'];
+      $recordsDir = $root . '/storage/uploads/records/';
+
+      if (!is_dir($recordsDir)) {
+        @mkdir($recordsDir, 0750, true);
+      }
+
+      $ext         = pathinfo($version['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
+      $safeName    = bin2hex(random_bytes(8)) . '.' . $ext;
+      $destination = $recordsDir . $safeName;
+
+      // Hard link saves disk space, but link() is disabled on some hosts, so fall back to a copy.
+      $stored = is_file($source) && (
+        (function_exists('link') && @link($source, $destination)) || @copy($source, $destination)
+      );
+
+      if ($stored) {
+        $filePath     = $safeName;
+        $fileOriginal = $version['original_name'] ?: basename($source);
+      } else {
+        error_log("Could not attach protocol file to record snapshot (protocol #$protocolId).");
+      }
+    }
+
+    $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
+
+    return $this->insertFromProtocol(
+      $protocol['reference_no'] ?? '',
+      $protocol['research_title'] ?? '',
+      $pi,
+      $protocol['submitter_school'] ?? '',
+      (int) $protocol['user_id'],
+      $protocolId,
+      $protocol['submitter_sex'] ?? null,
+      $filePath,
+      $fileOriginal
+    );
+  }
+
   // ===== PROTOCOL LINK =====
   public function getByProtocolId(int $protocolId): ?array
   {

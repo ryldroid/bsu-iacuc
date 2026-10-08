@@ -1389,36 +1389,18 @@ class Apply extends Controller
         if ($ok) {
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
             $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
-            $this->notifyStatusChange($protocol, $newStatus);
 
             // ===== SNAPSHOT RECORD ON REVIEWED =====
+            // Runs before notifications so a mail or file problem can never skip it.
             if ($newStatus === 'Reviewed' && !$isRevert) {
-                $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-                $school = $protocol['submitter_school'] ?? '';
-                $sex = $protocol['submitter_sex'] ?? null;
-
-                $recordFilePath   = null;
-                $recordFileOriginal = null;
-                if ($latestProtocolVersion) {
-                    $source = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $latestProtocolVersion['file_path'];
-                    $recordsDir = dirname(__DIR__, 2) . '/storage/uploads/records/';
-                    if (!is_dir($recordsDir)) {
-                        mkdir($recordsDir, 0750, true);
-                    }
-                    $ext  = pathinfo($latestProtocolVersion['file_path'], PATHINFO_EXTENSION) ?: 'pdf';
-                    $safeName = bin2hex(random_bytes(8)) . '.' . $ext;
-                    $destination = $recordsDir . $safeName;
-
-                    if (is_file($source) && link($source, $destination)) {
-                        $recordFilePath = $safeName;
-                        $recordFileOriginal = $latestProtocolVersion['original_name'] ?: basename($source);
-                    } else {
-                        error_log("Failed to hard-link protocol file for record snapshot (protocol #$protocolId).");
-                    }
+                try {
+                    $this->recordModel->snapshotFromProtocol($protocol, $latestProtocolVersion);
+                } catch (Throwable $e) {
+                    error_log("Record snapshot failed (protocol #$protocolId): " . $e->getMessage());
                 }
-
-                $this->recordModel->insertFromProtocol($protocol['reference_no'] ?? '', $protocol['research_title'] ?? '', $pi, $school, (int) $protocol['user_id'], $protocolId, $sex, $recordFilePath, $recordFileOriginal);
             }
+
+            $this->notifyStatusChange($protocol, $newStatus);
 
             // ===== SUCCESS MESSAGE =====
             $flashMessages = [
