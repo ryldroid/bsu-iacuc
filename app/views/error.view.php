@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
   <link rel="stylesheet" href="<?= asset_css('404.css') ?>">
 
+  <?php include __DIR__ . '/includes/icons.php'; ?>
 </head>
 
 <body>

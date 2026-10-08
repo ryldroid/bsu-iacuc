@@ -37,6 +37,7 @@ $role = $user['role'] ?? '';
     <script src="<?= asset_js('password-strength.js') ?>" defer></script>
     <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
 
+    <?php include dirname(__DIR__) . '/includes/icons.php'; ?>
 </head>
 
 <body>
