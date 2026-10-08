@@ -86,13 +86,23 @@ $offices  = $offices  ?? [];
             <p style="padding: 1.5rem;">No offices yet.</p>
           <?php else: ?>
             <div class="ann-list">
-              <?php foreach ($offices as $o): ?>
+              <?php foreach ($offices as $index => $o): ?>
                 <div class="ann-row">
                   <div class="ann-row-body">
                     <div class="ann-row-title"><?= htmlspecialchars($o['name'], ENT_QUOTES) ?></div>
                     <div class="ann-row-snippet"><?= htmlspecialchars($o['address'] ?? '', ENT_QUOTES) ?></div>
                   </div>
                   <div class="ann-row-actions">
+                    <button type="button" class="row-btn move-office-btn" data-id="<?= (int) $o['id'] ?>" data-direction="up" aria-label="Move office up" <?= $index === 0 ? 'disabled' : '' ?>>
+                      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-up-icon">
+                      </svg>
+                    </button>
+                    <button type="button" class="row-btn move-office-btn" data-id="<?= (int) $o['id'] ?>" data-direction="down" aria-label="Move office down" <?= $index === count($offices) - 1 ? 'disabled' : '' ?>>
+                      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-down-icon">
+                      </svg>
+                    </button>
                     <button type="button" class="row-btn edit-office-btn" data-id="<?= (int) $o['id'] ?>" aria-label="Edit office">
                       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#edit-icon">
@@ -120,9 +130,9 @@ $offices  = $offices  ?? [];
     <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
       <button type="button" class="modal-close" data-close="officeModal" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#close-icon" />
-          </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#close-icon" />
+        </svg>
       </button>
     </div>
     <div class="records-modal-body">
@@ -152,6 +162,14 @@ $offices  = $offices  ?? [];
         <div class="records-form-group records-form-full">
           <label for="office_facebook_label">Facebook Link Text</label>
           <input type="text" id="office_facebook_label" placeholder="e.g. BSU - CCARD">
+        </div>
+        <div class="records-form-group records-form-full">
+          <label for="office_website_url">Website URL</label>
+          <input type="url" id="office_website_url" placeholder="https://www.bsu.edu.ph">
+        </div>
+        <div class="records-form-group records-form-full">
+          <label for="office_website_label">Website Link Text</label>
+          <input type="text" id="office_website_label" placeholder="e.g. bsu.edu.ph">
         </div>
         <div class="records-form-group records-form-full">
           <label for="office_director_name">Contact Person Name (optional)</label>
@@ -231,6 +249,8 @@ $offices  = $offices  ?? [];
       document.getElementById('office_email').value = data.email ?? '';
       document.getElementById('office_facebook_url').value = data.facebook_url ?? '';
       document.getElementById('office_facebook_label').value = data.facebook_label ?? '';
+      document.getElementById('office_website_url').value = data.website_url ?? '';
+      document.getElementById('office_website_label').value = data.website_label ?? '';
       document.getElementById('office_director_name').value = data.director_name ?? '';
       document.getElementById('office_director_role').value = data.director_role ?? '';
       document.getElementById('office_director_email').value = data.director_email ?? '';
@@ -292,6 +312,8 @@ $offices  = $offices  ?? [];
           email: document.getElementById('office_email').value.trim(),
           facebook_url: document.getElementById('office_facebook_url').value.trim(),
           facebook_label: document.getElementById('office_facebook_label').value.trim(),
+          website_url: document.getElementById('office_website_url').value.trim(),
+          website_label: document.getElementById('office_website_label').value.trim(),
           director_name: document.getElementById('office_director_name').value.trim(),
           director_role: document.getElementById('office_director_role').value.trim(),
           director_email: document.getElementById('office_director_email').value.trim(),
@@ -313,6 +335,22 @@ $offices  = $offices  ?? [];
           });
       });
     }
+
+    // ===== MOVE =====
+    document.querySelectorAll('.move-office-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        post('/personnel/site_content_office_move', {
+          id: btn.dataset.id,
+          direction: btn.dataset.direction
+        }).then(data => {
+          if (data.ok) {
+            location.reload();
+          } else {
+            alert(data.message || 'Move failed.');
+          }
+        });
+      });
+    });
 
     // ===== DELETE =====
     document.querySelectorAll('.delete-office-btn').forEach(btn => {

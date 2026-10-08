@@ -23,7 +23,6 @@ class ContactOfficeModel extends Model
 
   // ===== ADD OFFICE =====
   public function insert(
-    int $sortOrder,
     string $name,
     ?string $logoPath,
     ?string $address,
@@ -31,20 +30,21 @@ class ContactOfficeModel extends Model
     ?string $email,
     ?string $facebookUrl,
     ?string $facebookLabel,
+    ?string $websiteUrl,
+    ?string $websiteLabel,
     ?string $directorName,
     ?string $directorRole,
     ?string $directorEmail
   ): bool {
     $stmt = $this->connection->prepare(
       "INSERT INTO `contact_offices`
-                (sort_order, name, logo_path, address, phone, email, facebook_url, facebook_label, director_name, director_role, director_email)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                (sort_order, name, logo_path, address, phone, email, facebook_url, facebook_label, website_url, website_label, director_name, director_role, director_email)
+             SELECT COALESCE(MAX(sort_order), -1) + 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+             FROM `contact_offices`"
     );
     if (! $stmt) return false;
-    $types = 'i' . str_repeat('s', 10);
     $stmt->bind_param(
-      $types,
-      $sortOrder,
+      str_repeat('s', 12),
       $name,
       $logoPath,
       $address,
@@ -52,6 +52,8 @@ class ContactOfficeModel extends Model
       $email,
       $facebookUrl,
       $facebookLabel,
+      $websiteUrl,
+      $websiteLabel,
       $directorName,
       $directorRole,
       $directorEmail
@@ -62,40 +64,63 @@ class ContactOfficeModel extends Model
   // ===== EDIT OFFICE =====
   public function update(
     int $id,
-    int $sortOrder,
     string $name,
     ?string $address,
     ?string $phone,
     ?string $email,
     ?string $facebookUrl,
     ?string $facebookLabel,
+    ?string $websiteUrl,
+    ?string $websiteLabel,
     ?string $directorName,
     ?string $directorRole,
     ?string $directorEmail
   ): bool {
     $stmt = $this->connection->prepare(
       "UPDATE `contact_offices` SET
-                sort_order = ?, name = ?, address = ?, phone = ?, email = ?,
-                facebook_url = ?, facebook_label = ?, director_name = ?, director_role = ?, director_email = ?
+                name = ?, address = ?, phone = ?, email = ?,
+                facebook_url = ?, facebook_label = ?, website_url = ?, website_label = ?,
+                director_name = ?, director_role = ?, director_email = ?
              WHERE id = ?"
     );
     if (! $stmt) return false;
-    $types = 'i' . str_repeat('s', 9) . 'i';
     $stmt->bind_param(
-      $types,
-      $sortOrder,
+      str_repeat('s', 11) . 'i',
       $name,
       $address,
       $phone,
       $email,
       $facebookUrl,
       $facebookLabel,
+      $websiteUrl,
+      $websiteLabel,
       $directorName,
       $directorRole,
       $directorEmail,
       $id
     );
     return $stmt->execute();
+  }
+
+  // ===== MOVE OFFICE =====
+  public function move(int $id, string $direction): bool
+  {
+    $ids  = array_map('intval', array_column($this->getAll(), 'id'));
+    $from = array_search($id, $ids, true);
+    if ($from === false) return false;
+
+    $to = $direction === 'up' ? $from - 1 : $from + 1;
+    if (! isset($ids[$to])) return true;
+
+    [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
+
+    $stmt = $this->connection->prepare("UPDATE `contact_offices` SET sort_order = ? WHERE id = ?");
+    if (! $stmt) return false;
+    foreach ($ids as $position => $officeId) {
+      $stmt->bind_param('ii', $position, $officeId);
+      $stmt->execute();
+    }
+    return true;
   }
 
   // ===== DELETE OFFICE =====

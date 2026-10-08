@@ -632,7 +632,6 @@ class Personnel extends Controller
         }
 
         $ok = $this->officeModel->insert(
-            $data['sort_order'],
             $data['name'],
             null,
             $data['address'],
@@ -640,6 +639,8 @@ class Personnel extends Controller
             $data['email'],
             $data['facebook_url'],
             $data['facebook_label'],
+            $data['website_url'],
+            $data['website_label'],
             $data['director_name'],
             $data['director_role'],
             $data['director_email']
@@ -691,13 +692,14 @@ class Personnel extends Controller
 
         $ok = $this->officeModel->update(
             $id,
-            $data['sort_order'],
             $data['name'],
             $data['address'],
             $data['phone'],
             $data['email'],
             $data['facebook_url'],
             $data['facebook_label'],
+            $data['website_url'],
+            $data['website_label'],
             $data['director_name'],
             $data['director_role'],
             $data['director_email']
@@ -709,6 +711,33 @@ class Personnel extends Controller
         }
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office updated.' : 'Update failed.']);
+        exit;
+    }
+
+    // ===== SITE CONTENT: MOVE OFFICE =====
+    public function site_content_office_move(): void
+    {
+        $this->requireStaff(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        $id        = (int) ($_POST['id'] ?? 0);
+        $direction = $_POST['direction'] ?? '';
+        $office    = $id > 0 ? $this->officeModel->getById($id) : null;
+
+        if (! $office || ! in_array($direction, ['up', 'down'], true)) {
+            $this->jsonError(404, 'Office not found.');
+        }
+
+        $ok = $this->officeModel->move($id, $direction);
+
+        if ($ok) {
+            $actor = $this->actor();
+            $this->officeModel->logAudit('contact_office_moved', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office moved {$direction}: {$office['name']}");
+        }
+
+        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office moved.' : 'Move failed.']);
         exit;
     }
 
@@ -736,14 +765,24 @@ class Personnel extends Controller
     // ===== OFFICE INPUT CLEANUP =====
     private function sanitizeOfficePost(): array
     {
+        $facebookUrl = trim($_POST['facebook_url'] ?? '');
+        $websiteUrl  = trim($_POST['website_url'] ?? '');
+
+        foreach ([$facebookUrl, $websiteUrl] as $url) {
+            if ($url !== '' && ! preg_match('#^https?://#i', $url)) {
+                $this->jsonError(422, 'Facebook and Website URLs must start with http:// or https://');
+            }
+        }
+
         return [
-            'sort_order'     => (int) ($_POST['sort_order'] ?? 0),
             'name'           => normalize_pasted_text(trim($_POST['name'] ?? '')),
             'address'        => normalize_pasted_text(trim($_POST['address'] ?? '')) ?: null,
             'phone'          => normalize_pasted_text(trim($_POST['phone'] ?? '')) ?: null,
             'email'          => normalize_pasted_text(trim($_POST['email'] ?? '')) ?: null,
-            'facebook_url'   => trim($_POST['facebook_url'] ?? '') ?: null,
+            'facebook_url'   => $facebookUrl ?: null,
             'facebook_label' => normalize_pasted_text(trim($_POST['facebook_label'] ?? '')) ?: null,
+            'website_url'    => $websiteUrl ?: null,
+            'website_label'  => normalize_pasted_text(trim($_POST['website_label'] ?? '')) ?: null,
             'director_name'  => normalize_pasted_text(trim($_POST['director_name'] ?? '')) ?: null,
             'director_role'  => normalize_pasted_text(trim($_POST['director_role'] ?? '')) ?: null,
             'director_email' => trim($_POST['director_email'] ?? '') ?: null,

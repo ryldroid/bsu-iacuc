@@ -79,7 +79,18 @@ $offices = $offices ?? [];
                                         <use href="#facebook-icon" />
                                     </svg>Facebook
                                 </dt>
-                                <dd><a href="<?= htmlspecialchars($office['facebook_url'], ENT_QUOTES) ?>" target="_blank" class="underlined"><?= htmlspecialchars($office['facebook_label'] ?: $office['facebook_url'], ENT_QUOTES) ?></a></dd>
+                                <dd><a href="<?= htmlspecialchars($office['facebook_url'], ENT_QUOTES) ?>" target="_blank" rel="noopener noreferrer" class="underlined"><?= htmlspecialchars($office['facebook_label'] ?: $office['facebook_url'], ENT_QUOTES) ?></a></dd>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($office['website_url'])): ?>
+                            <div class="contact-row">
+                                <dt>
+                                    <svg class="row-icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#website-icon" />
+                                    </svg>Website
+                                </dt>
+                                <dd><a href="<?= htmlspecialchars($office['website_url'], ENT_QUOTES) ?>" target="_blank" rel="noopener noreferrer" class="underlined"><?= htmlspecialchars($office['website_label'] ?: $office['website_url'], ENT_QUOTES) ?></a></dd>
                             </div>
                         <?php endif; ?>
 

@@ -263,6 +263,13 @@
         <path d="M22 12a10 10 0 1 0-11.5 9.87v-6.98H7.9V12h2.6V9.8c0-2.57 1.49-3.99 3.83-3.99 1.11 0 2.27.2 2.27.2v2.5h-1.28c-1.26 0-1.65.78-1.65 1.58V12h2.81l-.45 2.89h-2.36v6.98A10 10 0 0 0 22 12" />
     </symbol>
 
+    <!-- website link -->
+    <symbol id="website-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe-icon lucide-globe">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+        <path d="M2 12h20" />
+    </symbol>
+
     <!-- contact/email -->
     <symbol id="email-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail-icon lucide-mail">
         <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
@@ -274,6 +281,11 @@
     <!-- chevron down -->
     <symbol id="chev-down-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down-icon lucide-chevron-down">
         <path d="m6 9 6 6 6-6" />
+    </symbol>
+
+    <!-- chevron up -->
+    <symbol id="chev-up-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up-icon lucide-chevron-up">
+        <path d="m18 15-6-6-6 6" />
     </symbol>
 
     <!-- arrow right -->

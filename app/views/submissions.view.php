@@ -450,7 +450,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
         <div id="paymentOnlinePanel" hidden>
             <p class="modal-notice">
-                <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank">Contact the CCARD Director</a>
+                <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank" rel="noopener noreferrer">Contact the CCARD Director</a>
                 to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
             </p>
 

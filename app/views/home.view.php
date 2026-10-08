@@ -51,9 +51,9 @@ include "includes/scroll-top.php";
                         </p>
                         <p>
                             The IACUC reviews and endorses animal research protocols in accordance with
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank">Republic Act No. 8485</a></strong> (Animal Welfare Act of 1998), as amended by
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html" class="underlined" target="_blank">Republic Act No. 10631</a></strong>, and
-                            <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
+                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank" rel="noopener noreferrer">Republic Act No. 8485</a></strong> (Animal Welfare Act of 1998), as amended by
+                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html" class="underlined" target="_blank" rel="noopener noreferrer">Republic Act No. 10631</a></strong>, and
+                            <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank" rel="noopener noreferrer">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
                         </p>
                         <div id="apply-actions">
                             <?php if ($previewMode): ?>

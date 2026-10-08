@@ -293,6 +293,9 @@ class Schema
                     `updated_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->ensureColumn('contact_offices', 'website_url', "varchar(500) DEFAULT NULL AFTER `facebook_label`");
+        $this->ensureColumn('contact_offices', 'website_label', "varchar(255) DEFAULT NULL AFTER `website_url`");
+
         $this->seeder->seedContactOffices();
         $this->seeder->migrateContactOffices();
 

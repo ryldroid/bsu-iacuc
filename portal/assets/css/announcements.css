@@ -350,6 +350,11 @@ h2 {
   color: var(--brand-text);
 }
 
+.ann-row-actions .row-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .ann-row-actions .delete-announcement-btn:hover,
 .ann-row-actions .delete-office-btn:hover,
 .ann-row-actions .delete-faq-btn:hover {

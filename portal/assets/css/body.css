@@ -63,7 +63,7 @@
     --focus-ring-color: rgb(48, 159, 23);
 
     --brand-text: var(--brand-color);
-    --nav-icons: #274824ed;
+    --nav-icons: var(--secondary-text);
 
     --tab-text-active: var(--brand-text);
     --tab-underline: var(--brand-color);
