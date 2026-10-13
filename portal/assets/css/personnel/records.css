@@ -55,9 +55,20 @@
   transition: box-shadow 150ms ease, border-color 150ms ease;
 }
 
-.records-metrics .metric-card:hover {
+.records-stat-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.records-stat-link:hover {
   box-shadow: 0 4px 12px var(--shadow-color-soft);
   border-color: var(--brand-color-hover);
+}
+
+.records-stat-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
 .records-metrics .metric-card-label {
@@ -72,29 +83,28 @@
   letter-spacing: -.01em;
 }
 
-.records-stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.records-stat-icon {
-  flex-shrink: 0;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: var(--brand-surface-faint);
-  color: var(--brand-color);
-}
-
 /* ===== Statistics: KPI card extras ===== */
+.records-stat-change {
+  margin-top: 2px;
+  font-size: .78em;
+  font-weight: 600;
+  color: var(--secondary-text);
+}
+
 .records-stat-hint {
   margin-top: 2px;
   font-size: .74em;
   color: var(--muted-text);
+}
+
+/* ===== Statistics: section titles ===== */
+.records-section-title {
+  margin: 22px 0 10px;
+  font-family: var(--font-body);
+  font-size: .95em;
+  font-weight: 700;
+  color: var(--primary-text);
+  text-shadow: none;
 }
 
 /* ===== Statistics: notices ===== */
@@ -111,8 +121,17 @@
 }
 
 .records-data-note {
+  margin-top: 20px;
   background: var(--status-warning-bg);
   color: var(--status-warning-text);
+}
+
+.records-data-note ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .records-data-note svg {
@@ -539,6 +558,24 @@
   color: var(--muted-text);
   margin: 0;
   white-space: nowrap;
+}
+
+.records-filters-row--sticky {
+  position: sticky;
+  top: var(--header-offset, 52px);
+  z-index: 10;
+  margin: 0;
+  padding: 10px 0;
+  background: var(--card-background);
+  border: none;
+  border-bottom: 1px solid var(--divider-color);
+  border-radius: 0;
+  transition: top 0.3s ease;
+}
+
+.records-period-range {
+  font-size: .82em;
+  color: var(--muted-text);
 }
 
 .records-sort-group {

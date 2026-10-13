@@ -50,15 +50,22 @@ $period          = $period          ?? null;
 $periodPreset    = $periodPreset    ?? RecordModel::DEFAULT_PERIOD;
 $periodFrom      = $periodFrom      ?? '';
 $periodTo        = $periodTo        ?? '';
+$listPeriod      = $listPeriod      ?? null;
+$comparison      = $comparison      ?? null;
 $flash_success   = $flash_success   ?? '';
 $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
-$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '';
+$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
 $isStaff = $role === 'staff';
 $colCount = 16;
 
 // ===== Chart helpers =====
+function pluralize(int $count, string $singular, ?string $plural = null): string
+{
+    return $count === 1 ? $singular : ($plural ?? $singular . 's');
+}
+
 function statBarRows(array $breakdown, int $topN = 6, bool $groupOther = true): array
 {
     if (! $breakdown) return [];
@@ -95,7 +102,7 @@ function renderBarList(array $rows, string $emptyText, bool $showShare = true, b
     }
     echo '<ul class="records-bar-chart' . ($stacked ? ' records-bar-chart--stacked' : '') . '">';
     foreach ($rows as $r) {
-        $hover = $r['tooltip'] ?? ($r['protocols'] !== null ? (int) $r['protocols'] . ' protocol(s)' : null);
+        $hover = $r['tooltip'] ?? ($r['protocols'] !== null ? (int) $r['protocols'] . ' ' . pluralize((int) $r['protocols'], 'protocol') : null);
         $title = $hover !== null ? ' title="' . htmlspecialchars((string) $hover, ENT_QUOTES) . '"' : '';
         $fill  = 'records-bar-fill' . ($r['modifier'] !== '' ? ' records-bar-fill--' . $r['modifier'] : '');
         echo '<li class="records-bar-row"' . $title . '>';
@@ -108,15 +115,22 @@ function renderBarList(array $rows, string $emptyText, bool $showShare = true, b
     echo '</ul>';
 }
 
-function renderStatCard(string $icon, string $label, int $value, string $hint): void
+function statChangeText(int $difference): string
 {
-    echo '<div class="metric-card records-stat-card">';
-    echo '<div class="records-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . $icon . '"></use></svg></div>';
-    echo '<div>';
+    if ($difference === 0) return 'No change vs previous period';
+    return ($difference > 0 ? '↑ ' : '↓ ') . number_format(abs($difference)) . ' vs previous period';
+}
+
+function renderStatCard(string $label, int $value, ?int $previous, string $hint, string $href = ''): void
+{
+    $tag        = $href !== '' ? 'a' : 'div';
+    $attributes = $href !== '' ? ' class="metric-card records-stat-link" href="' . htmlspecialchars($href, ENT_QUOTES) . '"' : ' class="metric-card"';
+    echo '<' . $tag . $attributes . '>';
     echo '<div class="metric-card-label">' . htmlspecialchars($label) . '</div>';
     echo '<div class="metric-card-value">' . number_format($value) . '</div>';
+    if ($previous !== null) echo '<div class="records-stat-change">' . statChangeText($value - $previous) . '</div>';
     echo '<div class="records-stat-hint">' . htmlspecialchars($hint) . '</div>';
-    echo '</div></div>';
+    echo '</' . $tag . '>';
 }
 
 function renderColumnChart(array $rows, string $emptyText, string $unit): void
@@ -127,7 +141,7 @@ function renderColumnChart(array $rows, string $emptyText, string $unit): void
     }
     echo '<div class="records-column-chart">';
     foreach ($rows as $r) {
-        $hover = htmlspecialchars($r['label'] . ': ' . number_format($r['total']) . ' ' . $unit, ENT_QUOTES);
+        $hover = htmlspecialchars($r['label'] . ': ' . number_format($r['total']) . ' ' . pluralize($r['total'], $unit), ENT_QUOTES);
         echo '<div class="records-column-col" title="' . $hover . '">';
         echo '<div class="records-column-count">' . number_format($r['total']) . '<small>' . $r['share'] . '%</small></div>';
         echo '<div class="records-column-track"><div class="records-column-fill" style="--column-pct: ' . $r['bar'] . '%"></div></div>';
@@ -193,6 +207,8 @@ $activeTab = ($_GET['tab'] ?? '') === 'statistics' ? 'statistics' : 'records';
 // ===== Page URL helper =====
 function pageUrl(int $p, string $search, string $school, string $animalType, string $sex, string $researcherType, string $sort, string $status = ''): string
 {
+    $periodFilter = ($_GET['in_period'] ?? '') === '1' ? array_intersect_key($_GET, array_flip(['in_period', 'period', 'from', 'to'])) : [];
+
     return '?' . http_build_query(array_filter([
         'page'   => $p,
         'search' => $search,
@@ -202,7 +218,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         'rtype'  => $researcherType,
         'status' => $status,
         'sort'   => $sort !== 'newest' ? $sort : '',
-    ], fn($v) => $v !== '' && $v !== 1 || is_string($v)));
+    ], fn($v) => $v !== '' && $v !== 1 || is_string($v)) + $periodFilter);
 }
 
 // ===== Duration helper =====
@@ -361,7 +377,20 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
 
                     <input type="hidden" name="page" value="1">
+                    <?php if ($listPeriod): ?>
+                        <input type="hidden" name="in_period" value="1">
+                        <?php foreach ($periodParams as $periodKey => $periodValue): ?>
+                            <input type="hidden" name="<?= $periodKey ?>" value="<?= htmlspecialchars($periodValue, ENT_QUOTES) ?>">
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </form>
+
+                <?php if ($listPeriod): ?>
+                    <div class="records-filter-note">
+                        <span>Showing records for <?= htmlspecialchars($listPeriod['label']) ?></span>
+                        <a href="<?= ROOT ?>/personnel/records">Show all records</a>
+                    </div>
+                <?php endif; ?>
 
                 <!-- ===== Table ===== -->
                 <div class="protocol-table-wrap records-table-wrap">
@@ -519,7 +548,7 @@ function formatDurationRange(?string $start, ?string $end): string
                 </div>
 
                 <!-- ===== Period filter ===== -->
-                <form method="GET" action="" class="records-filters-row" id="statsPeriodForm">
+                <form method="GET" action="" class="records-filters-row records-filters-row--sticky" id="statsPeriodForm">
                     <input type="hidden" name="tab" value="statistics">
 
                     <p class="sort-filter-label">
@@ -533,6 +562,13 @@ function formatDurationRange(?string $start, ?string $end): string
                             <option value="<?= $key ?>" <?= $periodPreset === $key ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                         <?php endforeach; ?>
                     </select>
+
+                    <?php if ($period && $periodPreset !== 'custom'): ?>
+                        <span class="records-period-range"><?= htmlspecialchars($periodLabel) ?></span>
+                    <?php endif; ?>
+                    <?php if ($comparison): ?>
+                        <span class="records-period-range">Compared with <?= htmlspecialchars($comparison['period']['label']) ?></span>
+                    <?php endif; ?>
 
                     <span class="records-period-custom" id="statsPeriodCustom" <?= $periodPreset === 'custom' ? '' : 'hidden' ?>>
                         <input type="date" name="from" class="records-filter-select" aria-label="From date" value="<?= htmlspecialchars($periodFrom, ENT_QUOTES) ?>">
@@ -551,59 +587,48 @@ function formatDurationRange(?string $start, ?string $end): string
                     <?php endif; ?>
                 </form>
 
-                <div class="records-filter-note">
-                    <span>Showing statistics for: <?= htmlspecialchars($periodLabel) ?></span>
-                </div>
+                <?php
+                $previousTotals = $comparison['totals'] ?? null;
+                $inboxUrl       = ROOT . '/personnel/home?status=';
+                $recordsUrl     = ROOT . '/personnel/records?' . http_build_query($period ? array_merge(['tab' => 'records', 'in_period' => 1], $periodParams) : ['tab' => 'records']);
+                ?>
 
-                <?php if ($period && $stats['excluded_by_period'] > 0): ?>
-                    <div class="records-data-note">
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon"></use>
-                        </svg>
-                        <span>
-                            <?= number_format($stats['excluded_by_period']) ?> record(s) have no release or review date and can't be placed in this period, so the record counts and charts leave them out.
-                        </span>
-                    </div>
-                <?php endif; ?>
-
-                <!-- ===== Headline numbers ===== -->
+                <!-- ===== Review activity ===== -->
+                <h2 class="records-section-title">Review activity</h2>
                 <div class="metrics-row records-metrics">
                     <?php
-                    renderStatCard('review-icon', 'Protocols Reviewed', $stats['reviewed'], 'Finished review in this period');
+                    renderStatCard('Protocols Reviewed', $stats['reviewed'], $previousTotals['reviewed'] ?? null, 'Finished review', $inboxUrl . 'reviewed');
                     renderStatCard(
-                        'refresh-icon',
                         'Protocols Revised',
                         $stats['revised'],
+                        $previousTotals['revised'] ?? null,
                         $stats['revised'] > 0
-                            ? number_format($stats['revision_submissions']) . ' resubmission(s), avg ' . number_format($stats['avg_revisions'], 1) . ' per protocol'
-                            : 'No resubmissions'
+                            ? number_format($stats['revision_submissions']) . ' ' . pluralize($stats['revision_submissions'], 'resubmission') . ', avg ' . number_format($stats['avg_revisions'], 1) . ' per protocol'
+                            : 'No resubmissions',
+                        $inboxUrl . 'returned-for-revision'
                     );
-                    renderStatCard('check-circle-icon', 'Protocols Endorsed', $stats['endorsed'], 'Endorsed by administrative staff');
-                    renderStatCard('edit-icon', 'Signed by IACUC Chair', $stats['signed'], 'Signed scans uploaded');
-                    renderStatCard('clearance-icon', 'Clearances Returned', $stats['clearances_returned'], 'Clearance documents attached');
-                    renderStatCard('protocols-icon', 'Total Records', $stats['total_records'], number_format($stats['total_records_all']) . ' all time');
-                    renderStatCard(
-                        'shield-check-icon',
-                        'Active Clearances',
-                        $stats['active_clearances'],
-                        'As of today, ' . number_format($stats['expiring_soon']) . ' ending within 30 days'
-                    );
-                    renderStatCard('beaker-icon', 'Total Animals Used', $stats['total_animals'], 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record');
+                    renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', $inboxUrl . 'endorsed');
+                    renderStatCard('Signed by IACUC Chair', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed');
                     ?>
                 </div>
 
-                <?php if ($stats['incomplete_count'] > 0): ?>
-                    <div class="records-data-note">
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon"></use>
-                        </svg>
-                        <span>
-                            <?= number_format($stats['incomplete_count']) ?> of <?= number_format($stats['total_records']) ?> records in this period are missing an animal count, species, or researcher type.
-                            The animal and researcher type figures only count what has been filled in.
-                        </span>
-                    </div>
-                <?php endif; ?>
+                <!-- ===== Records and clearances ===== -->
+                <h2 class="records-section-title">Records and clearances</h2>
+                <div class="metrics-row records-metrics">
+                    <?php
+                    renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', $recordsUrl);
+                    renderStatCard(
+                        'Active Clearances',
+                        $stats['active_clearances'],
+                        null,
+                        'As of today, ' . number_format($stats['expiring_soon']) . ' ending within 30 days'
+                    );
+                    renderStatCard('Clearances Returned', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', $inboxUrl . 'approved');
+                    renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', $recordsUrl);
+                    ?>
+                </div>
 
+                <h2 class="records-section-title">Breakdowns</h2>
                 <!-- ===== Breakdowns ===== -->
                 <div class="records-charts-grid">
                     <div class="metric-card records-bar-card records-chart-wide">
@@ -621,7 +646,7 @@ function formatDurationRange(?string $start, ?string $end): string
                     <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Animals Used by Species</div>
                         <p class="records-card-hint">Total animals across records in this period</p>
-                        <?php renderColumnChart($speciesRows, 'No animal data in this period.', 'animal(s)'); ?>
+                        <?php renderColumnChart($speciesRows, 'No animal data in this period.', 'animal'); ?>
                     </div>
 
                     <div class="metric-card records-bar-card records-chart-wide">
@@ -642,6 +667,27 @@ function formatDurationRange(?string $start, ?string $end): string
                         <?php renderDonut($researcherRows, 'protocols', 'No researcher type data in this period.'); ?>
                     </div>
                 </div>
+
+                <?php if (($period && $stats['excluded_by_period'] > 0) || $stats['incomplete_count'] > 0): ?>
+                    <?php
+                    $excludedCount   = (int) $stats['excluded_by_period'];
+                    $incompleteCount = (int) $stats['incomplete_count'];
+                    $periodRecords   = (int) $stats['total_records'];
+                    ?>
+                    <div class="records-data-note">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#info-icon"></use>
+                        </svg>
+                        <ul>
+                            <?php if ($period && $excludedCount > 0): ?>
+                                <li><?= number_format($excludedCount) ?> <?= pluralize($excludedCount, 'record has', 'records have') ?> no release or review date and can't be placed in this period, so the record counts and charts leave <?= $excludedCount === 1 ? 'it' : 'them' ?> out.</li>
+                            <?php endif; ?>
+                            <?php if ($incompleteCount > 0): ?>
+                                <li><?= number_format($incompleteCount) ?> of <?= number_format($periodRecords) ?> <?= pluralize($periodRecords, 'record') ?> in this period <?= pluralize($incompleteCount, 'is', 'are') ?> missing an animal count, species, or researcher type. The animal and researcher type figures only count what has been filled in.</li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -649,11 +695,12 @@ function formatDurationRange(?string $start, ?string $end): string
 </div>
 
 <?php include dirname(__DIR__) . '/includes/animal-type-options.php'; ?>
+<?php include dirname(__DIR__) . '/includes/person-options.php'; ?>
 
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 
 <!-- ===== ADD RECORD MODAL ===== -->
-<div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+<div class="modal-backdrop" id="addModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
     <div class="modal-card records-modal-card">
         <div class="modal-header records-modal-header">
             <h2 id="addModalTitle">Add Record</h2>
@@ -706,19 +753,16 @@ function formatDurationRange(?string $start, ?string $end): string
                     <label for="add_researcher_type">Researcher Type</label>
                     <select id="add_researcher_type" name="researcher_type">
                         <option value="">Select</option>
-                        <option>Student</option>
-                        <option>Faculty</option>
-                        <option>Staff</option>
-                        <option>Researcher</option>
+                        <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
                     </select>
                 </div>
                 <div class="records-form-group">
                     <label for="add_research_adviser">Research Adviser</label>
-                    <input type="text" id="add_research_adviser" name="research_adviser" placeholder="Full name">
+                    <input type="text" id="add_research_adviser" name="research_adviser" list="adviser-options" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
                     <label for="add_veterinarian">Veterinarian</label>
-                    <input type="text" id="add_veterinarian" name="veterinarian" placeholder="Full name">
+                    <input type="text" id="add_veterinarian" name="veterinarian" list="veterinarian-options" placeholder="Full name">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="add_research_duration_start">Research Duration</label>
@@ -755,7 +799,7 @@ function formatDurationRange(?string $start, ?string $end): string
 </div>
 
 <!-- ===== EDIT RECORD MODAL ===== -->
-<div class="modal-backdrop" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+<div class="modal-backdrop" id="editModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
     <div class="modal-card records-modal-card">
         <div class="modal-header records-modal-header">
             <h2 id="editModalTitle">Edit Record</h2>
@@ -809,19 +853,16 @@ function formatDurationRange(?string $start, ?string $end): string
                     <label for="edit_researcher_type">Researcher Type</label>
                     <select id="edit_researcher_type" name="researcher_type">
                         <option value="">Select</option>
-                        <option>Student</option>
-                        <option>Faculty</option>
-                        <option>Staff</option>
-                        <option>Researcher</option>
+                        <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
                     </select>
                 </div>
                 <div class="records-form-group">
                     <label for="edit_research_adviser">Research Adviser</label>
-                    <input type="text" id="edit_research_adviser" name="research_adviser">
+                    <input type="text" id="edit_research_adviser" name="research_adviser" list="adviser-options">
                 </div>
                 <div class="records-form-group">
                     <label for="edit_veterinarian">Veterinarian</label>
-                    <input type="text" id="edit_veterinarian" name="veterinarian">
+                    <input type="text" id="edit_veterinarian" name="veterinarian" list="veterinarian-options">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label for="edit_research_duration_start">Research Duration</label>
@@ -1011,6 +1052,11 @@ function formatDurationRange(?string $start, ?string $end): string
                         document.getElementById('edit_animal_count').value = d.animal_count ?? '';
                         document.getElementById('edit_sex').value = d.sex ?? '';
                         document.getElementById('edit_researcher_type').value = d.researcher_type ?? '';
+                        ['edit_sex', 'edit_researcher_type'].forEach(id => {
+                            const field = document.getElementById(id);
+                            field.disabled = !!d.user_id;
+                            field.title = d.user_id ? 'Set by the researcher on their account' : '';
+                        });
                         document.getElementById('edit_research_adviser').value = d.research_adviser ?? '';
                         document.getElementById('edit_veterinarian').value = d.veterinarian ?? '';
                         document.getElementById('edit_research_duration_start').value = d.research_duration_start ?? '';

@@ -25,26 +25,36 @@ class DraftModel extends Model
     int $step,
     bool $agreedTerms,
     bool $agreedPrivacy,
-    string $title
+    string $title,
+    array $details
   ): bool {
     $title       = mb_substr(trim($title), 0, 255);
+    $animalType  = mb_substr(trim($details['animal_type'] ?? ''), 0, 100);
+    $adviser     = mb_substr(trim($details['research_adviser'] ?? ''), 0, 255);
+    $veterinarian = mb_substr(trim($details['veterinarian'] ?? ''), 0, 255);
+    $countText   = trim((string) ($details['animal_count'] ?? ''));
+    $animalCount = ctype_digit($countText) ? min((int) $countText, 1000000) : null;
     $agreedT     = $agreedTerms ? 1 : 0;
     $agreedP     = $agreedPrivacy ? 1 : 0;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, title)
-             VALUES (?, ?, ?, ?, ?)
+      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, title, animal_type, animal_count, research_adviser, veterinarian)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 step = VALUES(step),
                 agreed_terms = VALUES(agreed_terms),
                 agreed_privacy = VALUES(agreed_privacy),
-                title = VALUES(title)"
+                title = VALUES(title),
+                animal_type = VALUES(animal_type),
+                animal_count = VALUES(animal_count),
+                research_adviser = VALUES(research_adviser),
+                veterinarian = VALUES(veterinarian)"
     );
     if (! $stmt) {
       return false;
     }
 
-    $stmt->bind_param('iiiis', $userId, $step, $agreedT, $agreedP, $title);
+    $stmt->bind_param('iiiississ', $userId, $step, $agreedT, $agreedP, $title, $animalType, $animalCount, $adviser, $veterinarian);
     return $stmt->execute();
   }
 

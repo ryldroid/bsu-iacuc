@@ -4,6 +4,8 @@ class UserModel extends Model
 {
   public $table = 'users';
 
+  public const RESEARCHER_TYPES = ['Student', 'Faculty', 'Staff', 'Researcher'];
+
   // ===== GETTING USERS =====
 
   public function getUserByEmail($email)
@@ -149,15 +151,16 @@ class UserModel extends Model
     string $status = 'active',
     ?string $phone_number = null,
     ?string $school = null,
-    ?string $sex = null
+    ?string $sex = null,
+    ?string $researcher_type = null
   ): bool {
     $stmt = $this->connection->prepare(
       "INSERT INTO `$this->table`
-      (username, first_name, last_name, email, phone_number, school, sex, password, role, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      (username, first_name, last_name, email, phone_number, school, sex, researcher_type, password, role, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
-    $stmt->bind_param('ssssssssss', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $passwordHash, $role, $status);
+    $stmt->bind_param('sssssssssss', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $researcher_type, $passwordHash, $role, $status);
     return $stmt->execute();
   }
 
@@ -170,24 +173,25 @@ class UserModel extends Model
     $phone_number = $input['phone_number'];
     $school       = $input['school'] ?? null;
     $sex          = $input['sex'] ?? null;
+    $researcher_type = ($input['researcher_type'] ?? '') ?: null;
     $role         = $input['role'];
 
     if (!empty($input['password'])) {
       $password = $input['password'];
       $stmt = $this->connection->prepare(
         "UPDATE $this->table 
-          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, sex=?, role=?, password=? 
+          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, sex=?, researcher_type=?, role=?, password=? 
           WHERE id=?"
       );
 
-      $stmt->bind_param('sssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $role, $password, $id);
+      $stmt->bind_param('ssssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $researcher_type, $role, $password, $id);
     } else {
       $stmt = $this->connection->prepare(
         "UPDATE $this->table 
-          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, sex=?, role=? 
+          SET username=?, first_name=?, last_name=?, email=?, phone_number=?, school=?, sex=?, researcher_type=?, role=? 
           WHERE id=?"
       );
-      $stmt->bind_param('ssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $role, $id);
+      $stmt->bind_param('sssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $researcher_type, $role, $id);
     }
 
     return $stmt->execute();

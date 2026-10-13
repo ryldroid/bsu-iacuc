@@ -139,6 +139,29 @@ class Controller
       $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
       $_SESSION['user']['email']          = $fresh['email'];
     }
+
+    $this->requireResearcherProfile($fresh);
+  }
+
+  // Researchers must have sex and researcher type on file before using the portal
+  private function requireResearcherProfile(?array $fresh): void
+  {
+    if (!$fresh || $fresh['role'] !== 'researcher' || (!empty($fresh['sex']) && !empty($fresh['researcher_type']))) {
+      return;
+    }
+
+    $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping'], true)) {
+      return;
+    }
+
+    $message = 'Please set your sex and researcher type to continue.';
+    if (!str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html')) {
+      $this->jsonError(403, $message);
+    }
+
+    $_SESSION['flash_error'] = $message;
+    $this->redirect('user/account');
   }
 
   // ===== CSRF TOKENS =====

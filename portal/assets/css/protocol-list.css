@@ -333,6 +333,10 @@
   gap: 4px;
 }
 
+.action-link[hidden] {
+  display: none;
+}
+
 .action-link:hover {
   background: none;
   color: var(--brand-color-hover);

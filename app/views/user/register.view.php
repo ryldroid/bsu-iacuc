@@ -94,6 +94,15 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
 
             <div class="input-group">
+                <select id="researcher_type" name="researcher_type" required>
+                    <option value="" disabled <?= empty($old['researcher_type']) ? 'selected' : '' ?>>Select</option>
+                    <?php $selectedResearcherType = $old['researcher_type'] ?? '';
+                    include __DIR__ . '/../includes/researcher-type-options.php'; ?>
+                </select>
+                <label for="researcher_type">Researcher Type</label>
+            </div>
+
+            <div class="input-group">
                 <input type="text" id="school" name="school" list="school-options" placeholder=" "
                     value="<?= htmlspecialchars($old['school'] ?? ''); ?>" required>
                 <label for="school">School</label>

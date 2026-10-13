@@ -274,7 +274,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 </div>
 
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="addAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
+<div class="modal-backdrop" id="addAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header records-modal-header">
       <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
@@ -318,7 +318,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 </div>
 
 <!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="editAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
+<div class="modal-backdrop" id="editAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header records-modal-header">
       <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>
@@ -368,7 +368,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 </div>
 
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
-<div class="modal-backdrop" id="officeModal" role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
+<div class="modal-backdrop" id="officeModal" data-static role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
@@ -436,7 +436,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 </div>
 
 <!-- ===== ADD / EDIT FAQ MODAL (shared) ===== -->
-<div class="modal-backdrop" id="faqModal" role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
+<div class="modal-backdrop" id="faqModal" data-static role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header records-modal-header">
       <h2 id="faqModalTitle">Add FAQ</h2>

@@ -35,11 +35,17 @@ include "includes/scroll-top.php";
     </main>
 </div>
 
+<?php include "includes/file-popup.php"; ?>
+<?php include "includes/animal-type-options.php"; ?>
+<?php include "includes/person-options.php"; ?>
+<script src="<?= asset_js('file-popup.js') ?>"></script>
+
 <script>
     // ===== CONSTANTS =====
     const ROOT = '<?= ROOT ?>';
     const STEPS = ['Requirements', 'Terms', 'Documents', 'Download form', 'Upload and submit', 'Done'];
     const DRAFT_CSRF = NOTIF_CSRF_TOKEN;
+    const PREVIOUS_DETAILS = <?= json_encode($previousDetails ?? []) ?>;
 
     // ===== STATE =====
     let state = {
@@ -51,7 +57,12 @@ include "includes/scroll-top.php";
         certSize: null,
         protocolName: null,
         protocolSize: null,
+        protocolConverted: false,
         title: '',
+        animalType: '',
+        animalCount: '',
+        researchAdviser: '',
+        veterinarian: '',
         submittedId: null,
     };
 
@@ -77,7 +88,11 @@ include "includes/scroll-top.php";
                     step: state.step,
                     agreedTerms: state.agreedTerms,
                     agreedPrivacy: state.agreedPrivacy,
-                    title: state.title
+                    title: state.title,
+                    animalType: state.animalType,
+                    animalCount: state.animalCount,
+                    researchAdviser: state.researchAdviser,
+                    veterinarian: state.veterinarian
                 })
             });
         } catch (e) {}
@@ -93,12 +108,17 @@ include "includes/scroll-top.php";
             state.agreedTerms = d.agreedTerms;
             state.agreedPrivacy = d.agreedPrivacy;
             state.title = d.title;
+            state.animalType = d.animalType;
+            state.animalCount = d.animalCount;
+            state.researchAdviser = d.researchAdviser;
+            state.veterinarian = d.veterinarian;
 
             ['protocol', 'cert'].forEach(key => {
                 const f = d[key];
                 state[key + 'Name'] = f ? f.name : null;
                 state[key + 'Size'] = f ? f.size : null;
             });
+            state.protocolConverted = !!(d.protocol && d.protocol.converted);
         } catch (e) {}
     }
 
@@ -244,7 +264,7 @@ include "includes/scroll-top.php";
             </button>
         </div>`;
         }
-        const accept = key === 'protocol' ? 'application/pdf,.pdf' : '.pdf,.jpg,.jpeg,.png';
+        const accept = key === 'protocol' ? '.pdf,.doc,.docx' : '.pdf,.jpg,.jpeg,.png';
         return `<label class="upload-box">
         <input type="file" accept="${accept}" onchange="handleUpload(event,'${key}')">
         <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -257,7 +277,7 @@ include "includes/scroll-top.php";
 
     function docRow(key, opts) {
         const name = state[key + 'Name'];
-        const accept = key === 'protocol' ? 'application/pdf,.pdf' : '.pdf,.jpg,.jpeg,.png';
+        const accept = key === 'protocol' ? '.pdf,.doc,.docx' : '.pdf,.jpg,.jpeg,.png';
         const checkSvg = `<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#check-circle-icon" />
         </svg>`;
@@ -309,13 +329,15 @@ include "includes/scroll-top.php";
         <span>Make sure your uploads are legible, accurate, and complete before submitting.</span>
     </div>`;
 
-    const signatureNotice = `
+    function convertedNotice() {
+        return `
     <div class="notice notice-info">
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#info-icon" />
         </svg>
-        <span><strong>Signatures required:</strong> Print your completed protocol form and gather all required signatures. Then scan the signed form and upload the signed scan here.</span>
+        <span><strong>Converted to PDF:</strong> Word files are converted to PDF for submission. Please review the converted file, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewDraftFile(event,'protocol')">Preview PDF</a></span>
     </div>`;
+    }
 
     // ===== STEP 0 :  Requirements & Process =====
     function step0() {
@@ -395,6 +417,7 @@ include "includes/scroll-top.php";
             <input type="checkbox" class="consent-checkbox" id="chk-privacy" ${state.agreedPrivacy ? 'checked' : ''}>
             <span>I have read and agree to the
                 <a href="#" class="underlined" onclick="openDocModal(event,'privacy-modal')">privacy policy</a>
+                and consent to the processing of my personal data under the Data Privacy Act of 2012
             </span>
         </label>
     </div>
@@ -420,16 +443,29 @@ include "includes/scroll-top.php";
         <div class="modal-card">
             <h2>Terms of use</h2>
             <div class="tc-scroll">
-                By submitting this application, you agree to comply with all applicable laws, regulations, and
-                institutional policies governing the use of animals in research, teaching, and testing.
-                Information provided must be accurate and complete. Any misrepresentation may result in denial
-                or revocation of approval.<br><br>
-                All animal use activities must be conducted exactly as described and approved. Changes to the
-                approved protocol must be submitted and approved before implementation. You are responsible for
-                ensuring all personnel are appropriately trained and listed on this protocol.<br><br>
-                The IACUC reserves the right to inspect and audit animal use activities at any time.
-                Non-compliance may result in suspension or termination of the protocol and reporting to
-                relevant regulatory authorities.
+                <h3>1. Acceptance of terms</h3>
+                By submitting this application, you confirm that you have read, understood, and agree to be bound by these terms. You also confirm that you are the Principal Investigator of this protocol and that you are authorized to submit it.
+
+                <h3>2. Governing laws and policies</h3>
+                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, Department of Agriculture Administrative Order No. 40, Series of 1999, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission.
+
+                <h3>3. Accuracy of information</h3>
+                Information and documents you submit must be true, accurate, and complete. Any misrepresentation may result in denial, suspension, or revocation of approval.
+
+                <h3>4. Conduct of approved activities</h3>
+                Animal use activities must be conducted exactly as described and approved. Changes to an approved protocol must be submitted and approved before implementation. You are responsible for ensuring that all personnel are appropriately trained and listed on this protocol.
+
+                <h3>5. Monitoring and non-compliance</h3>
+                The IACUC reserves the right to inspect and audit animal use activities at any time. Non-compliance may result in suspension or termination of the protocol and reporting to the relevant regulatory authorities.
+
+                <h3>6. Account responsibility</h3>
+                You are responsible for keeping your login credentials confidential and for all activity under your account. Notify the CCARD office immediately if you suspect unauthorized access.
+
+                <h3>7. Personal data</h3>
+                Your personal data is handled as described in the privacy policy, which forms part of these terms.
+
+                <h3>8. Changes to these terms</h3>
+                The IACUC may update these terms from time to time. Continued use of this system after an update means you accept the revised terms. These terms are governed by the laws of the Republic of the Philippines.
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn-primary" onclick="closeDocModal('terms-modal')">Close</button>
@@ -441,12 +477,35 @@ include "includes/scroll-top.php";
         <div class="modal-card">
             <h2>Privacy policy</h2>
             <div class="tc-scroll">
-                Personal information collected through this application will be used solely for processing your
-                IACUC protocol submission. Data may be shared with relevant institutional offices, the Bureau
-                of Animal Industry, and accrediting bodies as required by law.<br><br>
-                Submitted protocols are confidential institutional documents and will not be disclosed to
-                unauthorized parties. You have the right to request access to your personal data and correct
-                any inaccuracies by contacting the CCARD office.
+                <h3>1. Who we are</h3>
+                The Benguet State University CCARD Institutional Animal Care and Use Committee (IACUC) operates this system and is the personal information controller for the data collected through it. This policy is issued in accordance with Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and the issuances of the National Privacy Commission (NPC).
+
+                <h3>2. Personal data we collect</h3>
+                Account details: your name, username, email address, mobile number, sex, and school or college. Application records: your IACUC protocol form, IACUC training certificate, proof of payment, and related submissions, reviewer comments, and status history. System records: audit logs of actions taken in the system and session information needed to keep your account secure.
+
+                <h3>3. Why we process your data</h3>
+                We process your data only to create and manage your account, receive and review your protocol, communicate with you about its status, issue clearances, keep institutional records, and prepare aggregated statistics. We do not use your data for marketing and we do not sell it.
+
+                <h3>4. Legal basis</h3>
+                We process your personal data based on your consent, given by ticking the box on this page, and to comply with the legal and regulatory obligations of the IACUC under the laws cited in the terms of use. You may withdraw your consent at any time by contacting the CCARD office. Withdrawal does not affect processing already done, and we may be unable to continue reviewing your protocol without the data needed for it.
+
+                <h3>5. Who can see your data</h3>
+                Your data is accessible only to authorized CCARD administrative staff and IACUC reviewers, and to the relevant offices of the University who need it for your protocol. It may be disclosed to the Bureau of Animal Industry and other government or accrediting bodies when required by law. Submitted protocols are confidential institutional documents and will not be disclosed to unauthorized parties.
+
+                <h3>6. How long we keep it</h3>
+                We keep personal data only for as long as needed for the purposes above and as required by law and University records policies. After that it is securely disposed of or anonymized.
+
+                <h3>7. How we protect it</h3>
+                We use reasonable and appropriate organizational, physical, and technical measures, including role-based access, secure sessions with automatic timeout, and audit logging. In case of a personal data breach, we will notify you and the NPC as required by law.
+
+                <h3>8. Your rights</h3>
+                Under the Data Privacy Act you have the right to be informed about how your data is processed, to access your data, to object to its processing, to correct inaccurate data, to request erasure or blocking of your data, to data portability, to be indemnified for damages caused by inaccurate, unlawfully obtained, or unauthorized use of your data, and to file a complaint with the National Privacy Commission (privacy.gov.ph). You may update your details or deactivate or delete your account from your account page. Some records may be retained where the law requires it.
+
+                <h3>9. Contact us</h3>
+                To exercise your rights or ask questions about this policy, contact the CCARD office or the University's Data Protection Officer.
+
+                <h3>10. Changes to this policy</h3>
+                We may update this policy and will post the revised version here.
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn-primary" onclick="closeDocModal('privacy-modal')">Close</button>
@@ -503,50 +562,31 @@ include "includes/scroll-top.php";
 
     // ===== STEP 3:  Download Protocol Form =====
     function step3() {
-        const formPdfUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.pdf';
-        const formDocxUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.docx';
-
-        const formats = [{
-                title: 'Word document (.DOCX)',
-                subtitle: 'Convert to PDF once complete',
-                url: formDocxUrl,
-            },
-            {
-                title: 'Fillable PDF',
-                subtitle: 'Fill in directly from your desktop web browser',
-                url: formPdfUrl,
-            },
-        ];
+        const formUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.docx';
 
         return `
     <div class="page-tag">Step 4 of 5</div>
-    <div class="page-title">Download IACUC protocol form</div>
+    <div class="page-title">Download the official IACUC protocol form</div>
 
     <p class="step-intro-text">
-        Download and complete the official BSU-IACUC protocol form in either format below. Submissions must be in PDF format, so if choosing the DOCX file, convert to PDF to upload. 
+        Complete this form, then upload in the next step.
     </p>
 
-    <p class="step-help-link">
-        <a href="#" class="underlined" onclick="openDocModal(event,'howto-modal')">How do I fill out and save the fillable PDF?</a>
-    </p>
-
-    <div class="section-label">Official IACUC protocol form</div>
     <div class="doc-list">
-    ${formats.map(f => `
     <div class="doc-row">
         <div class="doc-row-info">
-            <div class="doc-row-title">${f.title}</div>
-            <span class="doc-row-sub">${f.subtitle}</span>
+            <div class="doc-row-title">Official IACUC protocol form</div>
+            <span class="doc-row-sub">Word document (.DOCX)</span>
         </div>
         <div class="doc-row-action">
-            <a href="${f.url}" download class="btn-upload-inline">
+            <a href="${formUrl}" download class="btn-upload-inline">
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#download-icon" />
                 </svg>
                 Download
             </a>
         </div>
-    </div>`).join('')}
+    </div>
     </div>
 
     <div class="btn-row">
@@ -562,65 +602,88 @@ include "includes/scroll-top.php";
                 <use href="#arrow-right-icon" />
             </svg>
         </button>
-    </div>
-
-    <div class="modal-backdrop" id="howto-modal">
-        <div class="modal-card">
-            <h2>Filling out the fillable PDF</h2>
-            <div class="tc-scroll">
-                <h3>On desktop</h3>
-                <ol class="howto-steps">
-                    <li>Download the <span class="bold">Fillable PDF</span> above and open it. It should open right in your browser's built-in PDF viewer.</li>
-                    <li>Fill in all required fields directly in the browser.</li>
-                    <li>When you're done, click the <span class="bold">download icon</span> in the PDF viewer's toolbar, then choose <span class="bold">"With your changes"</span> from the dropdown. This saves your filled-in answers into the file.</li>
-                    <li>Come back here and upload that saved PDF in the next step.</li>
-                </ol>
-                
-                <p>You can also open the downloaded PDF in <span class="bold">Adobe Acrobat Reader</span> (free to install), fill it in there, and save with File &gt; Save As.</p>
-
-                <h3>On mobile or tablet</h3>
-                <p>Phone and tablet browsers often can't save a filled-in PDF properly, so use Google Drive instead.</p>
-                <ol class="howto-steps">
-                    <li>Download the <span class="bold">Fillable PDF</span> above, then upload it to your <span class="bold">Google Drive</span>.</li>
-                    <li>Open the file in Google Drive and fill in all required fields.</li>
-                    <li>Download the edited file from Google Drive to your device.</li>
-                    <li>Come back here and upload that downloaded PDF in the next step.</li>
-                </ol>
-
-                <p>If you used the Word (.DOCX) version instead, fill it in normally, then export or convert it to PDF before uploading.</p>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn-primary" onclick="closeDocModal('howto-modal')">Close</button>
-            </div>
-        </div>
     </div>`;
     }
 
-    // ===== STEP 4:  Upload Protocol Form & Enter Title =====
+    // ===== STEP 4:  Upload Protocol Form & Enter Protocol Details =====
+    const DETAIL_FIELDS = [{
+            id: 'inp-title',
+            key: 'title',
+            label: 'Protocol title',
+            attrs: 'maxlength="255" placeholder="e.g. Effects of X on Y in Z model"',
+        },
+        {
+            id: 'inp-animal-type',
+            key: 'animalType',
+            label: 'Animal type',
+            attrs: 'list="animal-type-options" maxlength="100" placeholder="e.g. Mice"'
+        },
+        {
+            id: 'inp-animal-count',
+            key: 'animalCount',
+            label: 'Animal count',
+            type: 'number',
+            attrs: 'min="1" step="1" inputmode="numeric" placeholder="e.g. 30"'
+        },
+        {
+            id: 'inp-adviser',
+            key: 'researchAdviser',
+            label: 'Research adviser',
+            attrs: 'list="adviser-options" maxlength="255" placeholder="Full name"'
+        },
+        {
+            id: 'inp-veterinarian',
+            key: 'veterinarian',
+            label: 'Veterinarian',
+            attrs: 'list="veterinarian-options" maxlength="255" placeholder="Full name"'
+        },
+    ];
+
+    function detailField(f) {
+        return `
+    <div class="field">
+        <label for="${f.id}">${f.label} <span class="req">*</span></label>
+        <input type="${f.type || 'text'}" id="${f.id}" value="${esc(state[f.key])}" ${f.attrs}>
+    </div>
+    ${f.hint ? `<p class="helper field-hint">${f.hint}</p>` : ''}`;
+    }
+
+    function captureDetails() {
+        DETAIL_FIELDS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (el) state[f.key] = el.value.trim();
+        });
+    }
+
+    function prefillFromPrevious() {
+        state.researchAdviser = state.researchAdviser || PREVIOUS_DETAILS.research_adviser || '';
+        state.veterinarian = state.veterinarian || PREVIOUS_DETAILS.veterinarian || '';
+    }
+
     function step4() {
         return `
     <div class="page-tag">Step 5 of 5</div>
-    <div class="page-title">Upload completed form</div>
+    <div class="page-title">Submit your protocol</div>
 
-    <div class="section-label">Protocol title <span class="req">*</span></div>
-    <div class="field">
-        <input type="text" id="inp-title" value="${esc(state.title)}"
-               placeholder="e.g. Effects of X on Y in Z model" maxlength="255">
-    </div>
-    <p class="helper field-hint">Make sure this title matches the Protocol Title on your form exactly.</p>
+    <div class="section-label">Part 1: Upload completed form</div>
+    <p class="step-intro-text">Print, sign, and scan the updated protocol, then upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
 
     <div class="doc-list">
     ${docRow('protocol', {
         title: 'Completed IACUC protocol form',
-        subtitle: 'PDF · max 10 MB',
+        subtitle: 'PDF, DOC, or DOCX · max 10 MB',
         required: true
     })}
     </div>
 
-    <div id="upload-error" class="error-messages is-hidden"></div>
+    ${state.protocolName && state.protocolConverted ? convertedNotice() : ''}
 
-    ${signatureNotice}
-    ${uploadWarningNotice}
+    <div class="section-label section-label--lg-top">Part 2: Protocol details</div>
+    <p class="step-intro-text">Make sure to enter these exactly as written on your form.</p>
+
+    ${DETAIL_FIELDS.map(detailField).join('')}
+
+    <div id="upload-error" class="error-messages is-hidden"></div>
 
     <div class="btn-row">
         <button class="btn-secondary" onclick="goTo(3)">
@@ -682,10 +745,12 @@ include "includes/scroll-top.php";
             saveState();
         });
 
-        const ti = document.getElementById('inp-title');
-        if (ti) ti.addEventListener('input', e => {
-            state.title = e.target.value;
-            saveState();
+        DETAIL_FIELDS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (el) el.addEventListener('input', e => {
+                state[f.key] = e.target.value;
+                saveState();
+            });
         });
     }
 
@@ -726,15 +791,12 @@ include "includes/scroll-top.php";
         const file = event.target.files[0];
         if (!file) return;
 
+        const isWord = key === 'protocol' && !file.name.toLowerCase().endsWith('.pdf');
+
         if (key === 'protocol') {
-            if (file.type !== 'application/pdf') {
-                alert('Only PDF files are accepted for the IACUC protocol form.');
-                event.target.value = '';
-                return;
-            }
             const ext = file.name.split('.').pop().toLowerCase();
-            if (ext !== 'pdf') {
-                alert('Only PDF files are accepted for the IACUC protocol form.');
+            if (!['pdf', 'doc', 'docx'].includes(ext)) {
+                alert('Please upload your IACUC protocol form as a PDF, DOC, or DOCX file.');
                 event.target.value = '';
                 return;
             }
@@ -759,11 +821,8 @@ include "includes/scroll-top.php";
             return;
         }
 
-        const titleInp = document.getElementById('inp-title');
-        if (titleInp) {
-            state.title = titleInp.value;
-            saveState();
-        }
+        captureDetails();
+        saveState();
 
         const fieldMap = {
             protocol: 'protocol_file',
@@ -780,7 +839,12 @@ include "includes/scroll-top.php";
 
         try {
             const json = await uploadWithProgress(ROOT + '/apply/draftupload', fd, {
-                onProgress: pct => bar.update(pct)
+                onProgress: pct => {
+                    bar.update(pct);
+                    if (pct >= 100 && isWord && progressContainer) {
+                        progressContainer.closest('.doc-row-info').querySelector('.doc-row-sub').textContent = 'Converting to PDF, please wait…';
+                    }
+                }
             });
 
             if (json.error) {
@@ -792,6 +856,7 @@ include "includes/scroll-top.php";
 
             state[key + 'Name'] = json.name;
             state[key + 'Size'] = json.size;
+            state.protocolConverted = key === 'protocol' && !!json.converted;
             delete uploadProgress[key];
             render();
         } catch (e) {
@@ -805,8 +870,14 @@ include "includes/scroll-top.php";
     function removeFile(key) {
         state[key + 'Name'] = null;
         state[key + 'Size'] = null;
+        if (key === 'protocol') state.protocolConverted = false;
         render();
         removeDraftFile(key);
+    }
+
+    function previewDraftFile(event, key) {
+        event.preventDefault();
+        openFilePopup(ROOT + '/apply/draftfile/' + key, 'Converted protocol form');
     }
 
     async function removeDraftFile(key) {
@@ -834,13 +905,17 @@ include "includes/scroll-top.php";
 
         errBox.style.display = 'none';
 
-        const titleInp = document.getElementById('inp-title');
-        if (titleInp) {
-            state.title = titleInp.value.trim();
+        captureDetails();
+
+        const missing = DETAIL_FIELDS.find(f => !state[f.key]);
+        if (missing) {
+            errBox.textContent = `Please enter the ${missing.label.toLowerCase()}.`;
+            errBox.style.display = 'flex';
+            return;
         }
 
-        if (!state.title) {
-            errBox.textContent = 'Please enter a protocol title.';
+        if (!Number.isInteger(Number(state.animalCount)) || Number(state.animalCount) < 1) {
+            errBox.textContent = 'Animal count must be a whole number of 1 or more.';
             errBox.style.display = 'flex';
             return;
         }
@@ -895,7 +970,10 @@ include "includes/scroll-top.php";
     // ===== INIT =====
     render();
 
-    loadDraft().then(render);
+    loadDraft().then(() => {
+        prefillFromPrevious();
+        render();
+    });
 
     fetch(ROOT + '/apply/hascert')
         .then(r => r.json())

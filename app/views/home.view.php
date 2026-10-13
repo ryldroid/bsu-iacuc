@@ -239,7 +239,13 @@ include "includes/scroll-top.php";
                                 </span>
                                 <div class="timeline-content">
                                     <h3>Apply for Review</h3>
-                                    <p>Go to the <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.</p>
+                                    <p>
+                                        <a href="<?= ROOT ?>/user/login" class="underlined">Create an account</a>
+                                        or
+                                        <a href="<?= ROOT ?>/user/login" class="underlined">sign back in</a>.
+                                        Afterwards, go to the
+                                        <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.
+                                    </p>
                                 </div>
                             </li>
 
@@ -251,7 +257,7 @@ include "includes/scroll-top.php";
                                 </span>
                                 <div class="timeline-content">
                                     <h3>Track Protocol</h3>
-                                    <p>Track your protocol's status through the dashboard. View reviewer comments and resubmit for as long as revisions are requested. You will be notified of every update through email.</p>
+                                    <p>Track your protocol's status through your dashboard. View reviewer comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
                                 </div>
                             </li>
 
@@ -280,7 +286,7 @@ include "includes/scroll-top.php";
                                     <h3>Receive Clearance</h3>
                                     <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
                                     <p class="process-step-note">
-                                        <span class="italic">Note:</span> Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
+                                        Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
                                     </p>
                                 </div>
                             </li>

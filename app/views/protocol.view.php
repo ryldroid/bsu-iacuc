@@ -90,7 +90,7 @@ $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/a
 
 $flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
 $resubmitDocs      = [
-    ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF only · max 10 MB', 'accept' => 'application/pdf,.pdf', 'required' => true],
+    ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF, DOC, or DOCX · max 10 MB', 'accept' => '.pdf,.doc,.docx', 'required' => true],
 ];
 if ($certRequired) {
     $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged as wrong/incorrect by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
@@ -530,7 +530,7 @@ include 'includes/header.php';
     </div>
 
     <!-- ===== Return for Revision modal ===== -->
-    <div class="modal-backdrop" id="returnRevisionBackdrop">
+    <div class="modal-backdrop" id="returnRevisionBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -625,7 +625,7 @@ include 'includes/header.php';
 
 <?php if ($canAmend): ?>
     <!-- ===== Submit amendment modal (researcher only, approved protocols) ===== -->
-    <div class="modal-backdrop" id="amendmentModalBackdrop">
+    <div class="modal-backdrop" id="amendmentModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -645,7 +645,7 @@ include 'includes/header.php';
                     <div class="doc-row">
                         <div class="doc-row-info">
                             <div class="doc-row-title">Updated protocol <span class="req">*</span></div>
-                            <span class="doc-row-sub" id="amendmentFileName">PDF only, max 10 MB</span>
+                            <span class="doc-row-sub" id="amendmentFileName">PDF, DOC, or DOCX, max 10 MB</span>
                         </div>
                         <div class="doc-row-action">
                             <label class="btn-upload-inline">
@@ -653,17 +653,24 @@ include 'includes/header.php';
                                     <use href="#upload-icon" />
                                 </svg>
                                 Upload
-                                <input type="file" id="amendmentFile" accept="application/pdf,.pdf" onchange="handleAmendmentFile(event)">
+                                <input type="file" id="amendmentFile" accept=".pdf,.doc,.docx" onchange="handleAmendmentFile(event)">
                             </label>
                         </div>
                     </div>
+                </div>
+
+                <div class="notice notice-info is-hidden" id="amendmentConvertedNotice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
                 </div>
 
                 <div class="notice notice-info">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#info-icon" />
                     </svg>
-                    <span><strong>Signatures required:</strong> Print the updated protocol and gather all required signatures. Then scan the signed protocol and upload the signed scan here.</span>
+                    <span><strong>Signatures required:</strong> Print, sign, and scan the updated protocol, then upload the signed copy.</span>
                 </div>
 
                 <label class="return-comment-label" for="amendmentNote">What changed and why <span class="return-comment-optional">(required)</span></label>
@@ -692,7 +699,7 @@ include 'includes/header.php';
 
 <?php if ($canResubmit): ?>
     <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
-    <div class="modal-backdrop" id="reuploadModalBackdrop">
+    <div class="modal-backdrop" id="reuploadModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -710,11 +717,18 @@ include 'includes/header.php';
 
                 <div class="doc-list" id="reuploadDocList"></div>
 
+                <div class="notice notice-info is-hidden" id="reuploadConvertedNotice">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
+                </div>
+
                 <div class="notice notice-info">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#info-icon" />
                     </svg>
-                    <span><strong>Signatures required:</strong> For the revised protocol file, print it and gather all required signatures. Then scan the signed protocol and upload the signed scan.</span>
+                    <span><strong>Signatures required:</strong> Print, sign, and scan the revised protocol, then upload the signed copy.</span>
                 </div>
 
                 <div id="reuploadError" class="error-messages" hidden></div>
@@ -738,7 +752,7 @@ include 'includes/header.php';
 
 <?php if ($canRename): ?>
     <!-- ===== Rename protocol modal ===== -->
-    <div class="modal-backdrop" id="renameModalBackdrop">
+    <div class="modal-backdrop" id="renameModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -774,7 +788,7 @@ include 'includes/header.php';
 
 <?php if ($canDelete || $canRequestDeletion): ?>
     <!-- ===== Delete / request deletion modal ===== -->
-    <div class="modal-backdrop" id="deleteModalBackdrop">
+    <div class="modal-backdrop" id="deleteModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -818,7 +832,7 @@ include 'includes/header.php';
 
 <?php if ($canConfirmPayment): ?>
     <!-- ===== Verify Payment modal ===== -->
-    <div class="modal-backdrop" id="paymentModalBackdrop">
+    <div class="modal-backdrop" id="paymentModalBackdrop" data-static>
         <div class="modal-card">
             <h2>Verify Payment</h2>
 
@@ -892,7 +906,7 @@ include 'includes/header.php';
 
 <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
     <!-- ===== Approve / reject deletion request modal ===== -->
-    <div class="modal-backdrop" id="deletionReviewModalBackdrop">
+    <div class="modal-backdrop" id="deletionReviewModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
                 <div>
@@ -1006,31 +1020,10 @@ include 'includes/header.php';
     #filePopupBackdrop.open {
         display: flex !important;
     }
-
-    .docx-fallback {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        padding: 3rem 2rem;
-        text-align: center;
-        color: var(--text-muted, #6b7280);
-    }
-
-    .docx-fallback svg {
-        opacity: .45;
-    }
-
-    .docx-fallback p {
-        max-width: 28rem;
-        line-height: 1.6;
-    }
 </style>
 
 <script>
     const PDF_URL = <?= json_encode($fileUrl) ?>;
-    const FILE_EXT = <?= json_encode(strtolower(pathinfo($version['original_name'] ?? '', PATHINFO_EXTENSION))) ?>;
     const VERSION_ID = <?= $versionId              ?>;
     const PROTOCOL_ID = <?= $protocolId             ?>;
     const IS_PERSONNEL = <?= $isPersonnel    ? 'true' : 'false' ?>;
@@ -1144,21 +1137,6 @@ include 'includes/header.php';
 
     // ===== Load PDF =====
     async function loadPdf() {
-        if (FILE_EXT === 'docx') {
-            const col = document.getElementById('pdfColumn');
-            const name = <?= json_encode(htmlspecialchars($version['original_name'] ?? 'protocol.docx', ENT_QUOTES, 'UTF-8')) ?>;
-            col.innerHTML =
-                '<div class="docx-fallback">' +
-                '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
-                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-                '<polyline points="14 2 14 8 20 8"/>' +
-                '</svg>' +
-                '<p>This protocol was submitted as a Word document (.docx) and cannot be previewed here.</p>' +
-                '<a class="button" href="' + escapeHtml(PDF_URL) + '" download="' + escapeHtml(name) + '">Download to view</a>' +
-                '</div>';
-            await loadAnnotations();
-            return;
-        }
         try {
             pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
             const col = document.getElementById('pdfColumn');
@@ -2386,16 +2364,46 @@ include 'includes/header.php';
         });
     <?php endif; ?>
 
+    // ===== Convert Word file for review =====
+    function isWordFile(file) {
+        return /\.(doc|docx)$/i.test(file.name);
+    }
+
+    async function stageWordFile(file) {
+        const formData = new FormData();
+        formData.append('staged_file', file);
+
+        const result = await uploadWithProgress(ROOT_URL + '/apply/stageprotocol', formData, {
+            headers: {
+                'X-CSRF-Token': CSRF_TOKEN
+            }
+        });
+        if (result.error) throw new Error(result.error);
+
+        return {
+            staged: true,
+            name: result.name,
+            size: result.size
+        };
+    }
+
+    function previewStagedFile(event) {
+        event.preventDefault();
+        openFilePopup(ROOT_URL + '/apply/stagedfile', 'Converted protocol form');
+    }
+
     <?php if ($canAmend): ?>
         // ===== Submit amendment modal =====
         const AMENDMENT_API = <?= json_encode(ROOT . '/apply/amendment_upload') ?>;
-        const AMENDMENT_FILE_HINT = 'PDF only, max 10 MB';
+        const AMENDMENT_FILE_HINT = 'PDF, DOC, or DOCX, max 10 MB';
         const amendmentBackdrop = document.getElementById('amendmentModalBackdrop');
         const amendmentFile = document.getElementById('amendmentFile');
         const amendmentFileName = document.getElementById('amendmentFileName');
         const amendmentNote = document.getElementById('amendmentNote');
         const amendmentCharCount = document.getElementById('amendmentCharCount');
         const amendmentError = document.getElementById('amendmentError');
+        const amendmentConvertedNotice = document.getElementById('amendmentConvertedNotice');
+        let amendmentStaged = null;
 
         // ===== Amendment modal =====
         function openAmendmentModal() {
@@ -2405,6 +2413,8 @@ include 'includes/header.php';
             amendmentNote.value = '';
             amendmentCharCount.textContent = '0';
             amendmentError.hidden = true;
+            amendmentStaged = null;
+            amendmentConvertedNotice.classList.add('is-hidden');
             document.getElementById('amendmentProgress').innerHTML = '';
             amendmentBackdrop.classList.add('open');
         }
@@ -2421,19 +2431,44 @@ include 'includes/header.php';
             amendmentCharCount.textContent = amendmentNote.value.length;
         });
 
-        function handleAmendmentFile(event) {
+        async function handleAmendmentFile(event) {
             const file = event.target.files[0];
             if (!file) return;
 
+            amendmentStaged = null;
+            amendmentConvertedNotice.classList.add('is-hidden');
+
             const isPdf = file.type === 'application/pdf' && file.name.toLowerCase().endsWith('.pdf');
-            const error = !isPdf ? 'Only PDF files are accepted.' :
+            const error = !isPdf && !isWordFile(file) ? 'Only PDF, DOC, or DOCX files are accepted.' :
                 file.size > 10 * 1024 * 1024 ? 'File is too large. Maximum size is 10 MB.' : null;
 
             amendmentError.textContent = error ?? '';
             amendmentError.hidden = !error;
             amendmentFileName.textContent = error ? AMENDMENT_FILE_HINT : file.name;
             amendmentFileName.classList.toggle('done', !error);
-            if (error) event.target.value = '';
+            if (error) {
+                event.target.value = '';
+                return;
+            }
+            if (isPdf) return;
+
+            const submitBtn = document.getElementById('amendmentSubmitBtn');
+            amendmentFileName.textContent = 'Converting to PDF…';
+            setButtonBusy(submitBtn, true, 'Converting...');
+
+            try {
+                amendmentStaged = await stageWordFile(file);
+                amendmentFileName.textContent = amendmentStaged.name;
+                amendmentConvertedNotice.classList.remove('is-hidden');
+            } catch (err) {
+                amendmentError.textContent = err.message || 'Network error. Please try again.';
+                amendmentError.hidden = false;
+                amendmentFileName.textContent = AMENDMENT_FILE_HINT;
+                amendmentFileName.classList.remove('done');
+                event.target.value = '';
+            }
+
+            setButtonBusy(submitBtn, false);
         }
 
         async function submitAmendment() {
@@ -2469,7 +2504,11 @@ include 'includes/header.php';
 
             const formData = new FormData();
             formData.append('protocol_id', PROTOCOL_ID);
-            formData.append('amendment_file', amendmentFile.files[0]);
+            if (amendmentStaged) {
+                formData.append('use_staged', '1');
+            } else {
+                formData.append('amendment_file', amendmentFile.files[0]);
+            }
             formData.append('note', note);
 
             try {
@@ -2504,6 +2543,7 @@ include 'includes/header.php';
             }
         };
         let resubmitFiles = {};
+        let resubmitConverting = null;
 
         function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
@@ -2514,8 +2554,8 @@ include 'includes/header.php';
         function validateResubmitFile(key, file) {
             const ext = file.name.split('.').pop().toLowerCase();
             if (key === 'protocol') {
-                if (file.type !== 'application/pdf' || ext !== 'pdf') {
-                    return 'Only PDF files are accepted for the IACUC protocol form.';
+                if (!['pdf', 'doc', 'docx'].includes(ext) || (ext === 'pdf' && file.type !== 'application/pdf')) {
+                    return 'Please upload your IACUC protocol form as a PDF, DOC, or DOCX file.';
                 }
             } else if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
                 return 'Only PDF, JPG, or PNG files are accepted.';
@@ -2541,7 +2581,8 @@ include 'includes/header.php';
                     Upload
                     <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
                 </label>`;
-            const subLine = file ?
+            const subLine = resubmitConverting === doc.key ?
+                `<span class="doc-row-sub">Converting to PDF&hellip;</span>` : file ?
                 `<span class="doc-row-sub done">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>` :
                 `<span class="doc-row-sub">${doc.subtitle}</span>`;
 
@@ -2556,9 +2597,10 @@ include 'includes/header.php';
 
         function renderResubmitDocs() {
             document.getElementById('reuploadDocList').innerHTML = RESUBMIT_DOCS.map(resubmitDocRow).join('');
+            document.getElementById('reuploadConvertedNotice').classList.toggle('is-hidden', !(resubmitFiles.protocol && resubmitFiles.protocol.staged));
         }
 
-        function handleResubmitUpload(event, key) {
+        async function handleResubmitUpload(event, key) {
             const file = event.target.files[0];
             if (!file) return;
             const err = validateResubmitFile(key, file);
@@ -2567,12 +2609,33 @@ include 'includes/header.php';
                 event.target.value = '';
                 return;
             }
-            resubmitFiles[key] = file;
+
+            if (key === 'protocol' && isWordFile(file)) {
+                const submitBtn = document.getElementById('reuploadSubmitBtn');
+                resubmitConverting = key;
+                renderResubmitDocs();
+                setButtonBusy(submitBtn, true, 'Converting...');
+
+                delete resubmitFiles[key];
+
+                try {
+                    resubmitFiles[key] = await stageWordFile(file);
+                } catch (error) {
+                    alert(error.message || 'Network error. Please try again.');
+                }
+
+                resubmitConverting = null;
+                setButtonBusy(submitBtn, false);
+            } else {
+                resubmitFiles[key] = file;
+            }
+
             renderResubmitDocs();
         }
 
         function openReuploadModal() {
             resubmitFiles = {};
+            resubmitConverting = null;
             renderResubmitDocs();
             document.getElementById('reuploadError').hidden = true;
             document.getElementById('reuploadProgress').innerHTML = '';
@@ -2592,7 +2655,11 @@ include 'includes/header.php';
         async function uploadProtocolFile(endpoint, fieldName, file, onProgress) {
             const formData = new FormData();
             formData.append('protocol_id', PROTOCOL_ID);
-            if (file) formData.append(fieldName, file);
+            if (file && file.staged) {
+                formData.append('use_staged', '1');
+            } else if (file) {
+                formData.append(fieldName, file);
+            }
 
             return uploadWithProgress(ROOT_URL + endpoint, formData, {
                 onProgress

@@ -494,7 +494,12 @@ class Apply extends Controller
             'png'  => ['image/png', 'image/x-png'],
         ];
 
-        if (in_array($inputName, ['protocol_file', 'clearance_file', 'amendment_file'], true)) {
+        if (in_array($ext, ['doc', 'docx'], true)) {
+            if (!$this->isWordFile($file['tmp_name'], $ext)) {
+                $reason = 'That file isn\'t a valid Word document. Please make sure it opens correctly in Word, or export it to PDF and upload that instead.';
+                return false;
+            }
+        } elseif (in_array($inputName, ['protocol_file', 'clearance_file', 'amendment_file', 'staged_file'], true)) {
             if ($ext !== 'pdf' || !in_array($mime, $mimeMap['pdf'], true)) {
                 $reason = 'That file isn\'t actually a PDF (it looks like it\'s ' . $this->describeMime($mime) . '), even though it\'s named .pdf.';
                 return false;
@@ -521,12 +526,177 @@ class Apply extends Controller
         return move_uploaded_file($file['tmp_name'], $dest) ? [$dest, $cleanOriginal] : false;
     }
 
+    // ===== WORD FILE CHECK =====
+    private function isWordFile(string $path, string $ext): bool
+    {
+        if ($ext === 'doc') {
+            return (string) file_get_contents($path, false, null, 0, 8) === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            return false;
+        }
+
+        $isWord = $zip->locateName('word/document.xml') !== false && $zip->locateName('word/vbaProject.bin') === false;
+        $zip->close();
+
+        return $isWord;
+    }
+
+    // ===== SAVE PROTOCOL UPLOAD (PDF OR WORD, WORD IS CONVERTED) =====
+    private function saveProtocolUpload(string $inputName, string $dir, bool $required, ?string &$reason = null, ?bool &$converted = null): array|false|null
+    {
+        $converted = false;
+        $upload    = $this->saveUpload($inputName, $dir, ['pdf', 'doc', 'docx'], $required, $reason);
+
+        if (!is_array($upload)) {
+            return $upload;
+        }
+
+        [$sourcePath, $originalName] = $upload;
+        $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+
+        if ($ext === 'pdf') {
+            return $upload;
+        }
+
+        $actor = $this->actor();
+
+        if ($this->protocolModel->countRecentActions($actor['id'], 'protocol_converted') >= PdfConverter::HOURLY_LIMIT) {
+            @unlink($sourcePath);
+            $reason = PdfConverter::LIMIT_REACHED;
+            return false;
+        }
+
+        $pdfPath = substr($sourcePath, 0, -strlen($ext)) . 'pdf';
+        $detail  = null;
+
+        if (!PdfConverter::convert($sourcePath, $pdfPath, $reason, $detail)) {
+            @unlink($sourcePath);
+            $this->protocolModel->logAudit('protocol_conversion_failed', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], mb_substr($originalName . ': ' . $detail, 0, 500));
+            return false;
+        }
+
+        $this->protocolModel->logAudit('protocol_converted', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], $originalName . ' converted to PDF');
+
+        $converted = true;
+        return [$pdfPath, substr($originalName, 0, -strlen($ext)) . 'pdf'];
+    }
+
+    // ===== ORIGINAL WORD FILE HELPERS =====
+    private function originalFiles(string $pdfPath): array
+    {
+        $stem = preg_replace('/\.[^.\/]+$/', '', $pdfPath);
+        return array_filter([$stem . '.docx', $stem . '.doc'], 'is_file');
+    }
+
+    private function deleteWithOriginal(string $pdfPath): void
+    {
+        @unlink($pdfPath);
+        foreach ($this->originalFiles($pdfPath) as $original) {
+            @unlink($original);
+        }
+    }
+
+    private function moveOriginal(string $fromPdf, string $toPdf): void
+    {
+        $toStem = preg_replace('/\.[^.\/]+$/', '', $toPdf);
+        foreach ($this->originalFiles($fromPdf) as $original) {
+            rename($original, $toStem . '.' . pathinfo($original, PATHINFO_EXTENSION));
+        }
+    }
+
+    // ===== STAGED PROTOCOL FILE HELPERS =====
+    private function stagingDir(int $userId): string
+    {
+        return dirname(__DIR__, 2) . '/storage/uploads/staging/' . $userId . '/';
+    }
+
+    private function clearStagedProtocol(): void
+    {
+        $path = $_SESSION['staged_protocol']['path'] ?? null;
+        if ($path) {
+            $this->deleteWithOriginal($path);
+        }
+        unset($_SESSION['staged_protocol']);
+    }
+
+    private function takeStagedProtocol(string $dir, ?string &$reason = null): array|false
+    {
+        $staged = $_SESSION['staged_protocol'] ?? null;
+
+        if (!$staged || !is_file($staged['path'])) {
+            $reason = 'Your converted file is no longer available. Please upload it again.';
+            return false;
+        }
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0750, true);
+        }
+
+        $destPath = $dir . basename($staged['path']);
+        $this->moveOriginal($staged['path'], $destPath);
+        rename($staged['path'], $destPath);
+        unset($_SESSION['staged_protocol']);
+
+        return [$destPath, $staged['name']];
+    }
+
+    // ===== STAGE PROTOCOL FILE  (POST /apply/stageprotocol) =====
+
+    public function stageprotocol(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor = $this->actor();
+        $this->clearStagedProtocol();
+
+        $reason = null;
+        $upload = $this->saveProtocolUpload('staged_file', $this->stagingDir($actor['id']), true, $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Upload failed.');
+        }
+        [$absPath, $originalName] = $upload;
+
+        $_SESSION['staged_protocol'] = ['path' => $absPath, 'name' => $originalName];
+
+        echo json_encode([
+            'ok'   => true,
+            'name' => $originalName,
+            'size' => filesize($absPath),
+            'url'  => ROOT . '/apply/stagedfile',
+        ]);
+        exit;
+    }
+
+    // ===== STAGED FILE  (GET /apply/stagedfile) =====
+
+    public function stagedfile(): void
+    {
+        $this->requireLogin();
+
+        $path = $_SESSION['staged_protocol']['path'] ?? null;
+        if (!$path || !is_file($path)) {
+            $this->jsonError(404, 'File not found.');
+        }
+
+        $this->streamFile($path, $_SESSION['staged_protocol']['name']);
+    }
+
     // ===== UPLOAD FORM  (GET /apply) =====
 
     public function index(): void
     {
         $this->requireLogin();
-        $this->view('apply');
+        $this->view('apply', [
+            'previousDetails' => $this->protocolModel->lastDetailsByUser($this->actor()['id']),
+            'advisers'        => $this->recordModel->distinctValues('research_adviser'),
+            'veterinarians'   => $this->recordModel->distinctValues('veterinarian'),
+        ]);
     }
 
     // ===== FIRST UPLOAD  (POST /apply/submit) =====
@@ -549,6 +719,19 @@ class Apply extends Controller
         if ($title === '') {
             $this->jsonError(422, 'Protocol title is required.');
         }
+        $this->rejectDuplicateTitle($title);
+
+        $details = [];
+        foreach (ProtocolModel::DETAIL_FIELDS as $column => $label) {
+            $details[$column] = trim((string) ($draft[$column] ?? ''));
+            if ($details[$column] === '') {
+                $this->jsonError(422, "$label is required.");
+            }
+        }
+        if ((int) $details['animal_count'] < 1) {
+            $this->jsonError(422, 'Animal count must be a whole number of 1 or more.');
+        }
+        $details['animal_count'] = (int) $details['animal_count'];
 
         // ===== CHECK DRAFT FILES =====
         $draftDirAbs = dirname(__DIR__, 2) . '/storage/uploads/drafts/';
@@ -573,7 +756,7 @@ class Apply extends Controller
         $certOriginalName = $draft['cert_file_name'];
 
         // ===== CREATE PROTOCOL & MOVE FILES =====
-        $protocolId = $this->protocolModel->insertProtocol($actor['id'], $title);
+        $protocolId = $this->protocolModel->insertProtocol($actor['id'], $title, $details);
         if (!$protocolId) {
             $this->jsonError(500, 'Could not create protocol record. Please try again.');
         }
@@ -584,6 +767,7 @@ class Apply extends Controller
         }
 
         $docFinal = $finalDir . basename($docRelPath);
+        $this->moveOriginal($draftDirAbs . $docRelPath, $docFinal);
         rename($draftDirAbs . $docRelPath, $docFinal);
         $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docFinal), $docOriginalName, $actor['id'], 'protocol');
 
@@ -669,9 +853,10 @@ class Apply extends Controller
             }
             $abs = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path;
             return [
-                'name' => $row[$key . '_file_name'],
-                'size' => is_file($abs) ? filesize($abs) : null,
-                'url'  => ROOT . '/apply/draftfile/' . $key,
+                'name'      => $row[$key . '_file_name'],
+                'size'      => is_file($abs) ? filesize($abs) : null,
+                'url'       => ROOT . '/apply/draftfile/' . $key,
+                'converted' => !empty($this->originalFiles($abs)),
             ];
         };
 
@@ -681,6 +866,10 @@ class Apply extends Controller
             'agreedTerms'   => (bool) $row['agreed_terms'],
             'agreedPrivacy' => (bool) $row['agreed_privacy'],
             'title'         => $row['title'],
+            'animalType'    => $row['animal_type'] ?? '',
+            'animalCount'   => $row['animal_count'] ?? '',
+            'researchAdviser' => $row['research_adviser'] ?? '',
+            'veterinarian'  => $row['veterinarian'] ?? '',
             'protocol'      => $fileInfo('protocol'),
             'cert'          => $fileInfo('cert'),
         ]);
@@ -704,7 +893,13 @@ class Apply extends Controller
             (int) ($body['step'] ?? 0),
             (bool) ($body['agreedTerms'] ?? false),
             (bool) ($body['agreedPrivacy'] ?? false),
-            (string) ($body['title'] ?? '')
+            (string) ($body['title'] ?? ''),
+            [
+                'animal_type'      => (string) ($body['animalType'] ?? ''),
+                'animal_count'     => (string) ($body['animalCount'] ?? ''),
+                'research_adviser' => (string) ($body['researchAdviser'] ?? ''),
+                'veterinarian'     => (string) ($body['veterinarian'] ?? ''),
+            ]
         );
 
         echo json_encode(['ok' => $ok]);
@@ -727,10 +922,11 @@ class Apply extends Controller
             $this->jsonError(400, 'Invalid file key.');
         }
 
-        $allowedExts = $key === 'protocol' ? ['pdf'] : ['pdf', 'jpg', 'jpeg', 'png'];
-
-        $reason = null;
-        $upload = $this->saveUpload($fieldMap[$key], $this->draftDir($actor['id']), $allowedExts, required: true, reason: $reason);
+        $reason    = null;
+        $converted = false;
+        $upload    = $key === 'protocol'
+            ? $this->saveProtocolUpload($fieldMap[$key], $this->draftDir($actor['id']), true, $reason, $converted)
+            : $this->saveUpload($fieldMap[$key], $this->draftDir($actor['id']), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
         if ($upload === false) {
             $this->jsonError(422, $reason ?? 'Upload failed.');
         }
@@ -743,14 +939,15 @@ class Apply extends Controller
         $this->draftModel->saveFile($actor['id'], $key, $relPath, $originalName);
 
         if ($oldPath) {
-            @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $oldPath);
+            $this->deleteWithOriginal(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $oldPath);
         }
 
         echo json_encode([
-            'ok'   => true,
-            'name' => $originalName,
-            'size' => filesize($absPath),
-            'url'  => ROOT . '/apply/draftfile/' . $key,
+            'ok'        => true,
+            'name'      => $originalName,
+            'size'      => filesize($absPath),
+            'url'       => ROOT . '/apply/draftfile/' . $key,
+            'converted' => $converted,
         ]);
         exit;
     }
@@ -800,7 +997,7 @@ class Apply extends Controller
         $ok = $this->draftModel->removeFile($actor['id'], $key);
 
         if ($path) {
-            @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
+            $this->deleteWithOriginal(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
         }
 
         echo json_encode(['ok' => $ok]);
@@ -823,7 +1020,7 @@ class Apply extends Controller
             foreach (['protocol', 'cert'] as $key) {
                 $path = $row[$key . '_file_path'] ?? null;
                 if ($path) {
-                    @unlink(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
+                    $this->deleteWithOriginal(dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $path);
                 }
             }
         }
@@ -932,9 +1129,11 @@ class Apply extends Controller
         }
 
         $docReason = null;
-        $docUpload = $this->saveUpload('protocol_file', $this->protocolDir($protocolId), ['pdf'], required: false, reason: $docReason);
+        $docUpload = ($_POST['use_staged'] ?? '') === '1'
+            ? $this->takeStagedProtocol($this->protocolDir($protocolId), $docReason)
+            : $this->saveProtocolUpload('protocol_file', $this->protocolDir($protocolId), false, $docReason);
         if ($docUpload === false) {
-            $this->jsonError(422, $docReason ?? 'Upload failed. Only PDF files are accepted (max 10 MB).');
+            $this->jsonError(422, $docReason ?? 'Upload failed. Please attach a PDF, DOC, or DOCX file (max 10 MB).');
         }
 
         if ($docUpload !== null) {
@@ -1714,9 +1913,11 @@ class Apply extends Controller
         }
 
         $reason = null;
-        $upload = $this->saveUpload('amendment_file', $this->protocolDir($protocolId), ['pdf'], required: true, reason: $reason);
+        $upload = ($_POST['use_staged'] ?? '') === '1'
+            ? $this->takeStagedProtocol($this->protocolDir($protocolId), $reason)
+            : $this->saveProtocolUpload('amendment_file', $this->protocolDir($protocolId), true, $reason);
         if ($upload === false) {
-            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the updated protocol (PDF, max 10 MB).');
+            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the updated protocol (PDF, DOC, or DOCX, max 10 MB).');
         }
         [$path, $originalName] = $upload;
 
@@ -1731,6 +1932,15 @@ class Apply extends Controller
         $_SESSION['flash_success'] = 'Amendment submitted. CCARD has been notified.';
         echo json_encode(['success' => true]);
         exit;
+    }
+
+    // ===== DUPLICATE TITLE GUARD (shared by submit and rename) =====
+
+    private function rejectDuplicateTitle(string $title, ?int $excludeId = null): void
+    {
+        if ($this->protocolModel->titleExists($title, $excludeId)) {
+            $this->jsonError(422, 'A protocol with this title already exists. Please use a different title.');
+        }
     }
 
     // ===== RENAME  (POST /apply/rename) =====
@@ -1771,6 +1981,7 @@ class Apply extends Controller
         if (!in_array(strtolower($protocol['status']), ['under review', 'needs revision'], true)) {
             $this->jsonError(422, 'This protocol can only be renamed while it is under review or needs revision.');
         }
+        $this->rejectDuplicateTitle($newTitle, $protocolId);
 
         $oldTitle = $this->protocolModel->renameProtocol($protocolId, $newTitle, $actor['id'], $actor['name'], $actor['role']);
 

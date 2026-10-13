@@ -32,6 +32,7 @@ class User extends Controller
       'phone_number' => $this->normalizePhoneNumber($post['phone_number'] ?? ''),
       'school'       => trim(preg_replace('/[^\p{L}\p{M}\p{N}\s\-\'\.,()&]/u', '', $post['school'] ?? '')),
       'sex'          => in_array($post['sex'] ?? '', ['Male', 'Female'], true) ? $post['sex'] : '',
+      'researcher_type' => in_array($post['researcher_type'] ?? '', UserModel::RESEARCHER_TYPES, true) ? $post['researcher_type'] : '',
       'password'     => $post['password'] ?? '',
       'confirm_pass' => $post['confirm_password'] ?? '',
       'role'         => $post['role'] ?? '',
@@ -48,9 +49,14 @@ class User extends Controller
     string $confirm_pass,
     string $role,
     bool $password_required = true,
-    string $sex = ''
+    string $sex = '',
+    string $researcher_type = ''
   ): array {
     $errors = [];
+
+    if ($role === 'researcher' && empty($researcher_type)) {
+      $errors[] = 'Please select your researcher type.';
+    }
 
     if (empty($sex)) {
       $errors[] = 'Please select your sex.';
@@ -262,9 +268,9 @@ class User extends Controller
 
     extract($this->sanitizeInputs($_POST));
     $school = trim($school ?? '');
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'researcher_type');
 
-    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher', true, $sex);
+    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher', true, $sex, $researcher_type);
 
     if ($school === '') {
       $errors[] = 'Please enter your school.';
@@ -291,7 +297,7 @@ class User extends Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex);
+    $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex, $researcher_type);
 
     if ($ok) {
       $_SESSION['new_username'] = $username;
@@ -370,6 +376,7 @@ class User extends Controller
         'phone_number' => $user['phone_number'] ?? '+63',
         'school'       => $user['school'] ?? '',
         'sex'          => $user['sex'] ?? '',
+        'researcher_type' => $user['researcher_type'] ?? '',
         'role'         => $user['role'],
       ],
     ]);
@@ -433,9 +440,9 @@ class User extends Controller
     }
 
     $school = trim($school ?? '');
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'role');
+    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'researcher_type', 'role');
 
-    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false, $sex);
+    $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false, $sex, $researcher_type);
 
     if ($role === 'researcher') {
       if ($school === '') {
@@ -476,7 +483,7 @@ class User extends Controller
     }
 
     // ===== SAVE CHANGES =====
-    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'role');
+    $input = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'researcher_type', 'role');
     if (!empty($password)) {
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
@@ -485,6 +492,9 @@ class User extends Controller
 
     // ===== AFTER SAVE =====
     if ($ok) {
+      if ($role === 'researcher') {
+        (new RecordModel())->fillBlankDemographics($id, $sex, $researcher_type);
+      }
       $_SESSION['user']['first_name'] = $first_name;
       $_SESSION['user']['username']   = $username;
       $_SESSION['user']['email']      = $email;

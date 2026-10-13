@@ -42,6 +42,7 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
   <?php include __DIR__ . '/icons.php'; ?>
 
   <script src="<?= asset_js('utils.js') ?>"></script>
+  <script src="<?= asset_js('protocol-sort.js') ?>"></script>
   <script src="<?= asset_js('header.js') ?>" defer></script>
   <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
   <script src="<?= asset_js('modals.js') ?>" defer></script>
@@ -58,6 +59,7 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
     <script>
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
+      const CURRENT_USER_ID = <?= json_encode((int) ($user['user_id'] ?? 0)) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
       const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'user/login') ?>;
     </script>
@@ -304,8 +306,9 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
   // Step format: [title, text, desktop target selector, mobile target selector (optional)]
   $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
   $tourWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime from your account menu.'];
+  $tourHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
   $tourAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
-  $tourContact = ['Contact Us', 'Find the CCARD office details and how to reach them.', ...$navLink('/contact')];
+  $tourContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
   $tourPreview = ['Preview public site', 'See the website the way visitors see it. It opens in a new tab.', '.header-preview-link'];
   $tourNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
   $tourTheme = ['Theme', 'Switch between Light, Dark, and Auto to match your device.', '#theme-toggle'];
@@ -315,6 +318,7 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
     $welcomeSteps = [
       $tourWelcome,
       ['Page menu', 'These links take you between Home, My Protocols, Announcements, and Contact Us. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      $tourHome,
       ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
       $tourAnnouncements,
       $tourContact,
@@ -349,8 +353,9 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
   } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
     $welcomeSteps = [
       ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
-      ['Sign in or register', 'Already have an account? Press Sign In. New here? Press Register to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
-      ['Page menu', 'These links take you between Home, Announcements, and Contact Us. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
+      ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+      $tourHome,
       $tourAnnouncements,
       $tourContact,
       $tourTheme,

@@ -146,7 +146,6 @@ foreach ($protocols as $p) {
     <link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
 <?php endif; ?>
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
-<script src="<?= asset_js('protocol-sort.js') ?>"></script>
 <script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
@@ -276,6 +275,13 @@ foreach ($protocols as $p) {
                                 <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
                             </div>
                         </div>
+
+                        <button type="button" class="action-link" id="resetViewBtn" hidden>
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#refresh-icon" />
+                            </svg>
+                            Reset view
+                        </button>
                     </div>
                 </div>
 
@@ -864,7 +870,7 @@ foreach ($protocols as $p) {
     </div>
 
     <!-- Add/Edit IPN and AR number modal -->
-    <div class="modal-backdrop" id="numberModalBackdrop">
+    <div class="modal-backdrop" id="numberModalBackdrop" data-static>
         <div class="modal-card">
             <h2 id="numberModalTitle"></h2>
             <p class="helper" id="numberModalHelper"></p>
@@ -941,27 +947,51 @@ foreach ($protocols as $p) {
     const bulkDownloadBtn = document.getElementById('bulkDownloadBtn');
     const bulkEndorseBtn = document.getElementById('bulkEndorseBtn');
     const sortSelect = document.getElementById('inboxSortSelect');
+    const resetViewBtn = document.getElementById('resetViewBtn');
 
     const allRows = protocolsList ? [...protocolsList.querySelectorAll('.protocol')] : [];
 
-    let activeFilter = 'to-review';
+    const DEFAULT_FILTER = 'to-review';
+    const DEFAULT_ROWS = 10;
+    const DEFAULT_SORT = sortSelect?.value;
+
+    let activeFilter = DEFAULT_FILTER;
     let searchQuery = '';
     let currentPage = 1;
-    let rowsPerPage = 10;
+    let rowsPerPage = DEFAULT_ROWS;
 
     // ===== Sort by =====
-    const SORT_STORAGE_KEY = 'inboxSort';
-    const VIEW_STORAGE_KEY = 'inboxView';
+    const SORT_STORAGE_KEY = CURRENT_USER_ID + ':inboxSort';
+
+    function setUrlParam(params, key, value) {
+        if (value) params.set(key, value);
+        else params.delete(key);
+    }
 
     function saveView() {
-        sessionStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify({
-            filter: activeFilter,
-            search: searchInput?.value ?? '',
-            page: currentPage,
-            rows: rowsPerPage,
-            payment: paymentFilterSelect?.value ?? ''
-        }));
+        const url = new URL(window.location);
+        setUrlParam(url.searchParams, 'q', searchInput?.value.trim());
+        setUrlParam(url.searchParams, 'rows', rowsPerPage !== DEFAULT_ROWS ? rowsPerPage : '');
+        setUrlParam(url.searchParams, 'payment', paymentFilterSelect?.value);
+        setUrlParam(url.searchParams, 'page', currentPage > 1 ? currentPage : '');
+        history.replaceState(null, '', url);
     }
+
+    // ===== Reset view =====
+    function updateResetViewVisibility() {
+        if (!resetViewBtn) return;
+        resetViewBtn.hidden = activeFilter === DEFAULT_FILTER &&
+            sortSelect?.value === DEFAULT_SORT &&
+            rowsPerPage === DEFAULT_ROWS &&
+            !searchQuery &&
+            !paymentFilterSelect?.value &&
+            currentPage === 1;
+    }
+
+    resetViewBtn?.addEventListener('click', () => {
+        localStorage.removeItem(SORT_STORAGE_KEY);
+        window.location.href = window.location.pathname;
+    });
 
     function applySort(mode) {
         allRows.sort(protocolSortComparator(mode));
@@ -1316,6 +1346,7 @@ foreach ($protocols as $p) {
         const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
         if (currentPage > totalPages) currentPage = totalPages;
         saveView();
+        updateResetViewVisibility();
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const pageRows = visibleRows.slice(startIndex, startIndex + rowsPerPage);
@@ -1646,37 +1677,31 @@ foreach ($protocols as $p) {
     })();
 
     // ===== Restore saved sort =====
-    (function restoreSort() {
-        if (!sortSelect) return;
-        const savedSort = localStorage.getItem(SORT_STORAGE_KEY);
-        if ([...sortSelect.options].some(option => option.value === savedSort)) {
-            sortSelect.value = savedSort;
-            mobileSortBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === savedSort));
-            if (mobileSortLabel) mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
-        }
-        applySort(sortSelect.value);
-    })();
+    restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);
 
-    // ===== Restore saved search, rows per page, payment filter and page =====
+    // ===== Restore search, rows per page, payment filter and page from the URL =====
     (function restoreView() {
-        const saved = JSON.parse(sessionStorage.getItem(VIEW_STORAGE_KEY) || '{}');
+        const urlParams = new URLSearchParams(window.location.search);
+        const rowsValue = urlParams.get('rows');
+        const searchText = urlParams.get('q') ?? '';
+        const paymentValue = urlParams.get('payment') ?? '';
 
-        if (searchInput && saved.search) {
-            searchInput.value = saved.search;
-            searchQuery = saved.search.trim().toLowerCase();
+        if (searchInput && searchText) {
+            searchInput.value = searchText;
+            searchQuery = searchText.trim().toLowerCase();
             searchClearBtn.classList.toggle('visible', searchQuery.length > 0);
         }
 
-        if (rowsPerPageSel && [...rowsPerPageSel.options].some(option => option.value === String(saved.rows))) {
-            rowsPerPageSel.value = saved.rows;
-            rowsPerPage = parseInt(saved.rows, 10);
+        if (rowsPerPageSel && [...rowsPerPageSel.options].some(option => option.value === rowsValue)) {
+            rowsPerPageSel.value = rowsValue;
+            rowsPerPage = parseInt(rowsValue, 10);
         }
 
-        if (saved.filter !== activeFilter) return;
-        currentPage = saved.page || 1;
-        if (paymentFilterSelect && [...paymentFilterSelect.options].some(option => option.value === saved.payment)) {
-            paymentFilterSelect.value = saved.payment;
+        if (paymentFilterSelect && !paymentFilterWrapper.hidden && [...paymentFilterSelect.options].some(option => option.value === paymentValue)) {
+            paymentFilterSelect.value = paymentValue;
         }
+
+        currentPage = Math.max(1, parseInt(urlParams.get('page'), 10) || 1);
     })();
 
     // ===== Initial render =====
@@ -1695,7 +1720,7 @@ foreach ($protocols as $p) {
     if ($protocols) {
         $tourSteps = array_merge($tourSteps, [
             ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
-            ['Review', 'Press Review on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show View instead, and View Clearance once approved.', '.protocols-list .protocol .actions:first-visible'],
+            ['Review', 'Press **Review** on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show **View** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
             ['Show History', "See every submission round of a protocol, including the researcher's revisions.", '.protocols-list .protocol .actions-secondary:first-visible'],
             ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
         ]);
@@ -1826,7 +1851,7 @@ foreach ($protocols as $p) {
 <script src="<?= asset_js('file-popup.js') ?>"></script>
 
 <!-- ===== Upload Signed Scan modal (administrative staff only) ===== -->
-<div class="modal-backdrop" id="signedScanModalBackdrop">
+<div class="modal-backdrop" id="signedScanModalBackdrop" data-static>
     <div class="modal-card">
         <h2>Upload Signed Scan</h2>
         <p id="signedScanSubtitle" class="modal-subtitle"></p>
@@ -1955,7 +1980,7 @@ foreach ($protocols as $p) {
 </script>
 
 <!-- ===== Verify Payment modal (administrative staff only): shows the proof image (if any), then Approve / Reject ===== -->
-<div class="modal-backdrop" id="reviewPaymentModalBackdrop">
+<div class="modal-backdrop" id="reviewPaymentModalBackdrop" data-static>
     <div class="modal-card file-popup-card review-payment-card">
         <div class="file-popup-header">
             <span class="file-popup-title">Payment Proof for Validation</span>

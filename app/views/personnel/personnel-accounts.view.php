@@ -315,7 +315,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 <!-- Confirm role change modal -->
 
 <!-- ===== Role change confirmation modal ===== -->
-<div class="modal-backdrop" id="roleConfirmBackdrop">
+<div class="modal-backdrop" id="roleConfirmBackdrop" data-static>
     <div class="modal-card">
         <h2>Confirm Role Change</h2>
         <p class="helper" id="roleConfirmText"></p>

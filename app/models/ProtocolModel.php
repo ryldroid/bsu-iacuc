@@ -3,19 +3,27 @@
 class ProtocolModel extends Model
 {
     // ===== CREATE PROTOCOL =====
-    public function insertProtocol(int $userId, string $title): int | false
+    // Details the researcher enters on submission (column => label), all required
+    public const DETAIL_FIELDS = [
+        'animal_type'      => 'Animal type',
+        'animal_count'     => 'Animal count',
+        'research_adviser' => 'Research adviser',
+        'veterinarian'     => 'Veterinarian',
+    ];
+
+    public function insertProtocol(int $userId, string $title, array $details): int | false
     {
         $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';
 
         $stmt = $this->connection->prepare(
-            "INSERT INTO `protocols` (user_id, title, status)
-            VALUES (?, ?, 'Under Review')"
+            "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'Under Review')"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('is', $userId, $title);
+        $stmt->bind_param('ississ', $userId, $title, $details['animal_type'], $details['animal_count'], $details['research_adviser'], $details['veterinarian']);
         if (! $stmt->execute()) {
             return false;
         }
@@ -24,6 +32,30 @@ class ProtocolModel extends Model
         $this->insertTitleHistory($protocolId, $title, $userId, null, 'researcher');
 
         return $protocolId;
+    }
+
+    // ===== DUPLICATE TITLE CHECK =====
+
+    // Case-insensitive, ignores surrounding spaces. Soft-deleted protocols don't count.
+    // Pass $excludeId when renaming so a protocol never clashes with itself.
+    public function titleExists(string $title, ?int $excludeId = null): bool
+    {
+        $title     = mb_substr(trim($title), 0, 255);
+        $excludeId = $excludeId ?? 0;
+
+        $stmt = $this->connection->prepare(
+            "SELECT 1 FROM `protocols`
+             WHERE LOWER(TRIM(title)) = LOWER(?) AND id != ? AND deleted_at IS NULL
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('si', $title, $excludeId);
+        $stmt->execute();
+
+        return $stmt->get_result()->num_rows > 0;
     }
 
     // ===== RENAME =====
@@ -565,6 +597,23 @@ class ProtocolModel extends Model
         return $row['latest'] ?? null;
     }
 
+    // ===== PREVIOUS DETAILS (pre-fills the submission form) =====
+    public function lastDetailsByUser(int $userId): array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT research_adviser, veterinarian FROM `protocols`
+             WHERE user_id = ? AND deleted_at IS NULL AND research_adviser IS NOT NULL
+             ORDER BY id DESC LIMIT 1"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: [];
+    }
+
     // ===== SINGLE PROTOCOL =====
     public function getById(int $id): ?array
     {
@@ -574,6 +623,10 @@ class ProtocolModel extends Model
                 p.reference_no,
                 p.ar_number,
                 p.title AS research_title,
+                p.animal_type,
+                p.animal_count,
+                p.research_adviser,
+                p.veterinarian,
                 p.status,
                 p.submitted_at,
                 p.updated_at,
@@ -597,7 +650,8 @@ class ProtocolModel extends Model
                 u.first_name AS submitter_first_name,
                 u.last_name AS submitter_last_name,
                 u.school AS submitter_school,
-                u.sex AS submitter_sex
+                u.sex AS submitter_sex,
+                u.researcher_type AS submitter_researcher_type
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1"
@@ -1184,5 +1238,18 @@ class ProtocolModel extends Model
         $stmt->bind_param('i', $userId);
         $stmt->execute();
         return (bool) $stmt->get_result()->fetch_row();
+    }
+
+    // ===== RECENT ACTION COUNT =====
+    public function countRecentActions(int $userId, string $action, int $windowSeconds = 3600): int
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT COUNT(*) AS cnt FROM audit_logs
+              WHERE user_id = ? AND action = ?
+              AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)"
+        );
+        $stmt->bind_param('isi', $userId, $action, $windowSeconds);
+        $stmt->execute();
+        return (int) $stmt->get_result()->fetch_assoc()['cnt'];
     }
 }

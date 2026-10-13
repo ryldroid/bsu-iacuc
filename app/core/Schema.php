@@ -377,6 +377,18 @@ class Schema
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->ensureColumn('protocol_drafts', 'animal_type', "varchar(100) DEFAULT NULL AFTER `title`");
+        $this->ensureColumn('protocol_drafts', 'animal_count', "int(11) DEFAULT NULL AFTER `animal_type`");
+        $this->ensureColumn('protocol_drafts', 'research_adviser', "varchar(255) DEFAULT NULL AFTER `animal_count`");
+        $this->ensureColumn('protocol_drafts', 'veterinarian', "varchar(255) DEFAULT NULL AFTER `research_adviser`");
+
+        $this->ensureColumn('protocols', 'animal_type', "varchar(100) DEFAULT NULL AFTER `title`");
+        $this->ensureColumn('protocols', 'animal_count', "int(11) DEFAULT NULL AFTER `animal_type`");
+        $this->ensureColumn('protocols', 'research_adviser', "varchar(255) DEFAULT NULL AFTER `animal_count`");
+        $this->ensureColumn('protocols', 'veterinarian', "varchar(255) DEFAULT NULL AFTER `research_adviser`");
+
+        $this->ensureColumn('users', 'researcher_type', "varchar(50) DEFAULT NULL AFTER `sex`");
+
         $this->dropColumn('protocol_drafts', 'is_pi');
         $this->dropColumn('protocol_drafts', 'auth_file_path');
         $this->dropColumn('protocol_drafts', 'auth_file_name');
@@ -476,7 +488,8 @@ class Schema
         $result = $this->connection->query(
             "SELECT p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title, p.user_id,
                     u.first_name AS submitter_first_name, u.last_name AS submitter_last_name,
-                    u.school AS submitter_school, u.sex AS submitter_sex
+                    u.school AS submitter_school, u.sex AS submitter_sex, u.researcher_type AS submitter_researcher_type,
+                    p.animal_type, p.animal_count, p.research_adviser, p.veterinarian
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.status IN ('Reviewed', 'Endorsed', 'Approved')

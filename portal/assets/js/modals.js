@@ -582,3 +582,51 @@ function formatDateTime(value) {
   bindImageZoomTriggers();
   document.querySelectorAll(".tour-modal").forEach(bindTour);
 })();
+
+// ===== Modals marked data-static ignore clicks on the backdrop =====
+document.addEventListener(
+  "click",
+  (e) => {
+    if (e.target.matches(".modal-backdrop[data-static]")) e.stopPropagation();
+  },
+  true,
+);
+
+// ===== Ask before closing a changed form (modals marked data-confirm-discard) =====
+["input", "change"].forEach((type) => {
+  document.addEventListener(type, (e) => {
+    const modal =
+      e.isTrusted && e.target.closest(".modal-backdrop[data-confirm-discard]");
+    if (modal) modal.dataset.changed = "true";
+  });
+});
+
+document.addEventListener(
+  "click",
+  async (e) => {
+    const closeBtn = e.target.closest(".modal-close");
+    const modal =
+      closeBtn && closeBtn.closest(".modal-backdrop[data-confirm-discard]");
+    if (!modal || modal.dataset.changed !== "true") return;
+    e.stopPropagation();
+    if (
+      await confirmAction("Discard your changes?", {
+        okText: "Discard",
+        danger: true,
+      })
+    ) {
+      delete modal.dataset.changed;
+      closeBtn.click();
+    }
+  },
+  true,
+);
+
+document
+  .querySelectorAll(".modal-backdrop[data-confirm-discard]")
+  .forEach((modal) => {
+    new MutationObserver(() => delete modal.dataset.changed).observe(modal, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  });

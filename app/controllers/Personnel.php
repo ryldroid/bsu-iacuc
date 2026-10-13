@@ -168,12 +168,13 @@ class Personnel extends Controller
         $periodFrom     = trim($_GET['from']   ?? '');
         $periodTo       = trim($_GET['to']     ?? '');
         $period         = $this->recordModel->resolvePeriod($periodPreset, $periodFrom, $periodTo);
+        $listPeriod     = ($_GET['in_period'] ?? '') === '1' ? $period : null;
         $perPage        = 25;
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
-        $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status);
-        $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, null, $status);
+        $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status, $listPeriod);
+        $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, $listPeriod, $status);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('personnel/personnel-records', [
@@ -195,8 +196,12 @@ class Personnel extends Controller
             'animalTypes'     => $this->recordModel->distinctValues('animal_type'),
             'sexes'         => $this->recordModel->distinctValues('sex'),
             'researcherTypes' => $this->recordModel->distinctValues('researcher_type'),
+            'advisers'        => $this->recordModel->distinctValues('research_adviser'),
+            'veterinarians'   => $this->recordModel->distinctValues('veterinarian'),
             'stats'           => $this->recordModel->stats($period),
             'period'          => $period,
+            'listPeriod'      => $listPeriod,
+            'comparison'      => $this->recordModel->comparison($period),
             'periodPreset'    => $periodPreset,
             'periodFrom'      => $period['from'] ?? $periodFrom,
             'periodTo'        => $period['to'] ?? $periodTo,

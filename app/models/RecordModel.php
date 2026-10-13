@@ -135,6 +135,11 @@ class RecordModel extends Model
         if ($start === null && $end === null) return null;
     }
 
+    return $this->buildPeriod($preset, $start, $end);
+  }
+
+  private function buildPeriod(string $preset, ?string $start, ?string $end): array
+  {
     $parts = [];
     if ($start !== null) $parts[] = self::RECORD_DATE_SQL . " >= '$start'";
     if ($end !== null)   $parts[] = self::RECORD_DATE_SQL . " <= '$end'";
@@ -156,6 +161,39 @@ class RecordModel extends Model
       'missing_sql' => self::RECORD_DATE_SQL . ' IS NULL',
       'label'       => $label,
     ];
+  }
+
+  // The period right before $period, cut to the same elapsed days while $period is still running.
+  public function previousPeriod(?array $period): ?array
+  {
+    if ($period === null || $period['from'] === null || $period['to'] === null) return null;
+
+    $from  = new DateTime($period['from']);
+    $to    = new DateTime($period['to']);
+    $today = new DateTime('today');
+
+    if ($from->format('d') === '01' && $to->format('Y-m-d') === $to->format('Y-m-t')) {
+      $months       = ((int) $to->format('Y') - (int) $from->format('Y')) * 12 + (int) $to->format('n') - (int) $from->format('n') + 1;
+      $previousFrom = (clone $from)->modify("-$months months");
+      $previousTo   = (clone $from)->modify('-1 day');
+    } else {
+      $days         = $from->diff($to)->days + 1;
+      $previousTo   = (clone $from)->modify('-1 day');
+      $previousFrom = (clone $previousTo)->modify('-' . ($days - 1) . ' days');
+    }
+
+    if ($from <= $today && $to > $today) {
+      $elapsedEnd = (clone $previousFrom)->modify('+' . $from->diff($today)->days . ' days');
+      if ($elapsedEnd < $previousTo) $previousTo = $elapsedEnd;
+    }
+
+    return $this->buildPeriod('previous', $previousFrom->format('Y-m-d'), $previousTo->format('Y-m-d'));
+  }
+
+  public function comparison(?array $period): ?array
+  {
+    $previous = $this->previousPeriod($period);
+    return $previous === null ? null : ['period' => $previous, 'totals' => $this->periodTotals($previous)];
   }
 
   private function validDate(string $value): ?string
@@ -222,9 +260,10 @@ class RecordModel extends Model
     string $animalType = '',
     string $sex = '',
     string $researcherType = '',
-    string $status = ''
+    string $status = '',
+    ?array $period = null
   ): int {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, null, $status);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status);
 
     $stmt = $this->connection->prepare("SELECT COUNT(*) FROM `records` $where");
     if (! $stmt) return 0;
@@ -245,23 +284,10 @@ class RecordModel extends Model
     // Record-based stats use the period's record date; workflow stats use event timestamps.
     [$where, $params, $types] = $this->buildFilters('', '', '', '', '', $period);
 
-    // ===== PROTOCOL WORKFLOW (audit log / uploads, within the period) =====
-    $reviewed = $this->protocolEventCount('status_updated', 'Status changed to: Reviewed', $period);
-    $endorsed = $this->protocolEventCount('status_updated', 'Status changed to: Endorsed', $period);
-    $signed   = $this->protocolEventCount('signed_scan_uploaded', null, $period);
-    $revised  = $this->protocolEventCount('protocol_revised', null, $period);
+    $totals = $this->periodTotals($period);
 
     $revisionSubmissions = $this->protocolEventCount('protocol_revised', null, $period, true);
-    $avgRevisions        = $revised > 0 ? round($revisionSubmissions / $revised, 1) : 0.0;
-
-    [$window, $windowParams, $windowTypes] = $this->timeWindow('pv.uploaded_at', $period);
-    $clearancesReturned = (int) ($this->scalarQuery(
-      "SELECT COUNT(DISTINCT pv.protocol_id) FROM `protocol_versions` pv
-       JOIN `protocols` p ON p.id = pv.protocol_id AND p.deleted_at IS NULL
-       WHERE pv.file_type = 'clearance'$window",
-      $windowParams,
-      $windowTypes
-    ) ?? 0);
+    $avgRevisions        = $totals['revised'] > 0 ? round($revisionSubmissions / $totals['revised'], 1) : 0.0;
 
     // ===== REVISIONS PER PROTOCOL / PER PI =====
     [$window, $windowParams, $windowTypes] = $this->timeWindow('al.created_at', $period);
@@ -289,10 +315,8 @@ class RecordModel extends Model
     );
 
     // ===== RECORDS (within the period) =====
-    $totalRecords    = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0);
     $totalRecordsAll = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records`", [], '') ?? 0);
 
-    $totalAnimals = (int) ($this->scalarQuery("SELECT COALESCE(SUM(animal_count), 0) FROM `records` $where", $params, $types) ?? 0);
     $withCount    = (int) ($this->scalarQuery(
       "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count IS NOT NULL"),
       $params,
@@ -358,28 +382,51 @@ class RecordModel extends Model
       ''
     ) ?? 0);
 
-    return [
-      'reviewed'                  => $reviewed,
-      'revised'                   => $revised,
+    return array_merge($totals, [
       'revision_submissions'      => $revisionSubmissions,
       'avg_revisions'             => $avgRevisions,
       'revisions_by_protocol'     => $revisionsByProtocol,
       'revisions_by_pi'           => $revisionsByPi,
-      'endorsed'                  => $endorsed,
-      'signed'                    => $signed,
-      'clearances_returned'       => $clearancesReturned,
-      'total_records'             => $totalRecords,
       'total_records_all'         => $totalRecordsAll,
       'active_clearances'         => $activeClearances,
       'expiring_soon'             => $expiringSoon,
-      'total_animals'             => $totalAnimals,
-      'avg_animals_per_record'    => $withCount > 0 ? round($totalAnimals / $withCount, 1) : 0.0,
+      'avg_animals_per_record'    => $withCount > 0 ? round($totals['total_animals'] / $withCount, 1) : 0.0,
       'species_breakdown'         => $speciesBreakdown,
       'school_breakdown'          => $schoolBreakdown,
       'sex_breakdown'             => $sexBreakdown,
       'researcher_type_breakdown' => $researcherTypeBreakdown,
       'incomplete_count'          => $incompleteCount,
       'excluded_by_period'        => $excludedByPeriod,
+    ]);
+  }
+
+  // ===== PERIOD TOTALS (the numbers compared with the previous period) =====
+  private function periodTotals(?array $period): array
+  {
+    [$where, $params, $types] = $this->buildFilters('', '', '', '', '', $period);
+
+    $reviewed = $this->protocolEventCount('status_updated', 'Status changed to: Reviewed', $period);
+    $endorsed = $this->protocolEventCount('status_updated', 'Status changed to: Endorsed', $period);
+    $signed   = $this->protocolEventCount('signed_scan_uploaded', null, $period);
+    $revised  = $this->protocolEventCount('protocol_revised', null, $period);
+
+    [$window, $windowParams, $windowTypes] = $this->timeWindow('pv.uploaded_at', $period);
+    $clearancesReturned = (int) ($this->scalarQuery(
+      "SELECT COUNT(DISTINCT pv.protocol_id) FROM `protocol_versions` pv
+       JOIN `protocols` p ON p.id = pv.protocol_id AND p.deleted_at IS NULL
+       WHERE pv.file_type = 'clearance'$window",
+      $windowParams,
+      $windowTypes
+    ) ?? 0);
+
+    return [
+      'reviewed'            => $reviewed,
+      'revised'             => $revised,
+      'endorsed'            => $endorsed,
+      'signed'              => $signed,
+      'clearances_returned' => $clearancesReturned,
+      'total_records'       => (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0),
+      'total_animals'       => (int) ($this->scalarQuery("SELECT COALESCE(SUM(animal_count), 0) FROM `records` $where", $params, $types) ?? 0),
     ];
   }
 
@@ -482,7 +529,7 @@ class RecordModel extends Model
 
   public function distinctValues(string $column): array
   {
-    $allowed = ['school', 'animal_type', 'sex', 'researcher_type'];
+    $allowed = ['school', 'animal_type', 'sex', 'researcher_type', 'research_adviser', 'veterinarian'];
     if (! in_array($column, $allowed, true)) return [];
 
     $result = $this->connection->query(
@@ -574,8 +621,9 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
-  public function insertFromProtocol(string $refNo, string $title, string $pi, string $school = '', ?int $userId = null, ?int $protocolId = null, ?string $sex = null, ?string $filePath = null, ?string $fileOriginalName = null): bool
+  public function insertFromProtocol(array $d): bool
   {
+    $refNo = $d['reference_no'] ?? '';
     if ($refNo !== '' && $this->refExists($refNo)) {
       return false;
     }
@@ -583,11 +631,28 @@ class RecordModel extends Model
     $refNoOrNull = $refNo !== '' ? $refNo : null;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, user_id, protocol_id, file_path, file_original_name)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, researcher_type,
+              animal_type, animal_count, research_adviser, veterinarian, user_id, protocol_id, file_path, file_original_name)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     if (! $stmt) return false;
-    $stmt->bind_param('sssssiiss', $refNoOrNull, $title, $pi, $school, $sex, $userId, $protocolId, $filePath, $fileOriginalName);
+    $stmt->bind_param(
+      'sssssssissiiss',
+      $refNoOrNull,
+      $d['title'],
+      $d['principal_investigator'],
+      $d['school'],
+      $d['sex'],
+      $d['researcher_type'],
+      $d['animal_type'],
+      $d['animal_count'],
+      $d['research_adviser'],
+      $d['veterinarian'],
+      $d['user_id'],
+      $d['protocol_id'],
+      $d['file_path'],
+      $d['file_original_name']
+    );
     return $stmt->execute();
   }
 
@@ -631,17 +696,22 @@ class RecordModel extends Model
 
     $pi = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
 
-    return $this->insertFromProtocol(
-      $protocol['reference_no'] ?? '',
-      $protocol['research_title'] ?? '',
-      $pi,
-      $protocol['submitter_school'] ?? '',
-      (int) $protocol['user_id'],
-      $protocolId,
-      $protocol['submitter_sex'] ?? null,
-      $filePath,
-      $fileOriginal
-    );
+    return $this->insertFromProtocol([
+      'reference_no'           => $protocol['reference_no'] ?? '',
+      'title'                  => $protocol['research_title'] ?? '',
+      'principal_investigator' => $pi,
+      'school'                 => $protocol['submitter_school'] ?? '',
+      'sex'                    => $protocol['submitter_sex'] ?? null,
+      'researcher_type'        => $protocol['submitter_researcher_type'] ?? null,
+      'animal_type'            => $protocol['animal_type'] ?? null,
+      'animal_count'           => $protocol['animal_count'] ?? null,
+      'research_adviser'       => $protocol['research_adviser'] ?? null,
+      'veterinarian'           => $protocol['veterinarian'] ?? null,
+      'user_id'                => (int) $protocol['user_id'],
+      'protocol_id'            => $protocolId,
+      'file_path'              => $filePath,
+      'file_original_name'     => $fileOriginal,
+    ]);
   }
 
   // ===== PROTOCOL LINK =====
@@ -670,6 +740,20 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  // ===== FILL BLANKS FROM RESEARCHER PROFILE =====
+  public function fillBlankDemographics(int $userId, string $sex, string $researcherType): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE `records` SET
+               sex = IF(sex IS NULL OR sex = '', ?, sex),
+               researcher_type = IF(researcher_type IS NULL OR researcher_type = '', ?, researcher_type)
+             WHERE user_id = ?"
+    );
+    if (! $stmt) return false;
+    $stmt->bind_param('ssi', $sex, $researcherType, $userId);
+    return $stmt->execute();
+  }
+
   // ===== EDIT & DELETE =====
   public function update(array $d): bool
   {
@@ -682,8 +766,8 @@ class RecordModel extends Model
                animal_type              = ?,
                animal_count             = ?,
                principal_investigator   = ?,
-               sex                   = ?,
-               researcher_type          = ?,
+               sex                      = IF(user_id IS NULL, ?, sex),
+               researcher_type          = IF(user_id IS NULL, ?, researcher_type),
                research_adviser         = ?,
                veterinarian             = ?,
                research_duration_start  = ?,

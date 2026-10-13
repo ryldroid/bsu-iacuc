@@ -23,4 +23,22 @@
         return (a, b) => timestampOf(b) - timestampOf(a);
     }
   };
+
+  // ===== Sort restore =====
+  window.restoreProtocolSort = function (sortSelect, storageKey, applySort) {
+    if (!sortSelect) return;
+    const savedSort = localStorage.getItem(storageKey);
+    if ([...sortSelect.options].some((option) => option.value === savedSort)) {
+      sortSelect.value = savedSort;
+      document
+        .querySelectorAll("#mobileSortOptions .status-card")
+        .forEach((btn) =>
+          btn.classList.toggle("active", btn.dataset.sort === savedSort),
+        );
+      const mobileSortLabel = document.getElementById("mobileSortLabel");
+      if (mobileSortLabel)
+        mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
+    }
+    applySort(sortSelect.value);
+  };
 })();

@@ -69,7 +69,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
-<script src="<?= asset_js('protocol-sort.js') ?>"></script>
 <script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
@@ -396,8 +395,8 @@ $tourSteps = [
 if ($protocols) {
     $tourSteps = array_merge($tourSteps, [
         ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-        ['Actions', 'When needed you will see Review Comments & Re-submit (after a revision request), View Payment Options (once reviewed), or Claim Clearance (once approved).', '.protocols-list .protocol .actions:first-visible'],
-        ['Open and Show History', 'Open shows the protocol and its files. Show History lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
+        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **View Payment Options** (once reviewed), or **Claim Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+        ['Open and Show History', '**Open** shows the protocol and its files. **Show History** lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
     ]);
 }
 include 'includes/tour.php';
@@ -450,7 +449,7 @@ include 'includes/tour.php';
 </div>
 
 <!-- ===== Payment modal ===== -->
-<div class="modal-backdrop" id="paymentModalBackdrop">
+<div class="modal-backdrop" id="paymentModalBackdrop" data-static>
     <div class="modal-card">
         <h2>Payment</h2>
 
@@ -731,7 +730,7 @@ include 'includes/tour.php';
     let currentFilter = 'all';
 
     // ===== Sort by =====
-    const SORT_STORAGE_KEY = 'protocolsSort';
+    const SORT_STORAGE_KEY = CURRENT_USER_ID + ':protocolsSort';
 
     function applySort(mode) {
         const container = document.querySelector(sortSelect.dataset.sortTarget);
@@ -855,15 +854,7 @@ include 'includes/tour.php';
         window.location.href = ROOT_URL + '/apply/viewer/' + parseInt(protocolId, 10) + '?from=' + encodeURIComponent(currentFilter);
     }
 
-    (function restoreSort() {
-        if (!sortSelect) return;
-        const savedSort = localStorage.getItem(SORT_STORAGE_KEY);
-        if (![...sortSelect.options].some(option => option.value === savedSort)) return;
-        sortSelect.value = savedSort;
-        mobileSortBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.sort === savedSort));
-        if (mobileSortLabel) mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
-        applySort(savedSort);
-    })();
+    restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);
 
     (function restoreFilterFromUrl() {
         const requestedStatus = new URLSearchParams(window.location.search).get('status');

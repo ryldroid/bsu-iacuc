@@ -101,7 +101,7 @@ $first_name    = $user['first_name'] ?? '';
 </div>
 
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="addAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
+<div class="modal-backdrop" id="addAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
     <div class="modal-card records-modal-card">
         <div class="modal-header records-modal-header">
             <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
@@ -145,7 +145,7 @@ $first_name    = $user['first_name'] ?? '';
 </div>
 
 <!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="editAnnouncementModal" role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
+<div class="modal-backdrop" id="editAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
     <div class="modal-card records-modal-card">
         <div class="modal-header records-modal-header">
             <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>

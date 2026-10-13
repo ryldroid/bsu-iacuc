@@ -125,7 +125,7 @@ $offices  = $offices  ?? [];
 </div>
 
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
-<div class="modal-backdrop" id="officeModal" role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
+<div class="modal-backdrop" id="officeModal" data-static role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header records-modal-header">
       <h2 id="officeModalTitle">Add Office</h2>
