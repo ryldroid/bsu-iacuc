@@ -97,7 +97,7 @@ class Seeder
             ],
             [
                 4,
-                'BAI Central Office',
+                'Bureau of Animal Industry - Central Office',
                 'bai.webp',
                 'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila',
                 '8528 2240',
@@ -171,7 +171,7 @@ class Seeder
                 ],
                 [
                     4,
-                    'BAI Central Office',
+                    'Bureau of Animal Industry - Central Office',
                     'bai.webp',
                     'BAI Compound, Visayas Avenue, Diliman, Quezon City, Metro Manila',
                     '8528 2240',
@@ -192,7 +192,7 @@ class Seeder
             'Office of the Vice President for Research and Extension'   => 1,
             'Benguet State University - La Trinidad Campus'             => 2,
             $daName                                                     => 3,
-            'BAI Central Office'                                        => 4,
+            'Bureau of Animal Industry - Central Office'                                        => 4,
         ];
         $ord = $c->prepare("UPDATE `contact_offices` SET sort_order = ? WHERE name = ?");
         if ($ord) {

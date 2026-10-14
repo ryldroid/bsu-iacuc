@@ -2,6 +2,8 @@
 
 class ProtocolModel extends Model
 {
+    private const AUTHOR_SQL = "CONCAT(UPPER(LEFT(u.role, 1)), SUBSTRING(u.role, 2), ' - ', u.first_name, ' ', u.last_name)";
+
     // ===== CREATE PROTOCOL =====
     // Details the researcher enters on submission (column => label), all required
     public const DETAIL_FIELDS = [
@@ -288,6 +290,21 @@ class ProtocolModel extends Model
         return $stmt->execute() && $stmt->affected_rows > 0;
     }
 
+    public function setHardCopyReleased(int $protocolId, ?int $releasedBy): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET hard_copy_released_at = IF(? IS NULL, NULL, NOW()), hard_copy_released_by = ?, updated_at = updated_at
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('iii', $releasedBy, $releasedBy, $protocolId);
+        return $stmt->execute();
+    }
+
     public function undoMarkPaid(int $protocolId): bool
     {
         $stmt = $this->connection->prepare(
@@ -428,6 +445,7 @@ class ProtocolModel extends Model
                     p.payment_method,
                     p.paid_at,
                     p.paid_by,
+                    p.hard_copy_released_at,
                     u.first_name,
                     u.last_name,
                     u.school,
@@ -505,6 +523,7 @@ class ProtocolModel extends Model
                 p.payment_method,
                 p.paid_at,
                 p.clearance_claimed_at,
+                p.hard_copy_released_at,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id
@@ -540,7 +559,6 @@ class ProtocolModel extends Model
                 rr.other_reason AS rr_other_reason,
                 rr.comment      AS rr_comment,
                 rr.created_at   AS rr_created_at,
-                CONCAT(u.first_name, ' ', u.last_name) AS rr_reviewer_name,
                 ppr.comment     AS payment_rejection_comment
              FROM `protocols` p
              LEFT JOIN `protocol_return_reasons` rr
@@ -548,7 +566,6 @@ class ProtocolModel extends Model
                     SELECT MAX(id) FROM `protocol_return_reasons`
                     WHERE protocol_id = p.id
                 )
-             LEFT JOIN `users` u ON u.id = rr.reviewer_id
              LEFT JOIN `payment_proof_rejections` ppr
                 ON ppr.id = (
                     SELECT MAX(id) FROM `payment_proof_rejections`
@@ -850,13 +867,13 @@ class ProtocolModel extends Model
 
     // ===== ANNOTATIONS =====
 
-    public function getAnnotations(int $versionId): array
+    public function getAnnotations(int $versionId, bool $withAuthor = false): array
     {
+        $author = $withAuthor ? ', ' . self::AUTHOR_SQL . ' AS author' : '';
         $stmt = $this->connection->prepare(
             "SELECT
                 a.id, a.page_number, a.x, a.y, a.width, a.height,
-                a.comment, a.created_at,
-                u.first_name, u.last_name
+                a.comment, a.created_at$author
              FROM `annotations` a
              JOIN `users` u ON u.id = a.created_by
              WHERE a.version_id = ?
@@ -963,16 +980,15 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
-    public function getLatestReturnReason(int $protocolId): ?array
+    public function getLatestReturnReason(int $protocolId, bool $withAuthor = false): ?array
     {
+        $author = $withAuthor ? ', ' . self::AUTHOR_SQL . ' AS returned_by' : '';
         $stmt = $this->connection->prepare(
             "SELECT
                 r.wrong_cert,
                 r.other_reason,
                 r.comment,
-                r.created_at,
-                u.first_name,
-                u.last_name
+                r.created_at$author
              FROM `protocol_return_reasons` r
              JOIN `users` u ON u.id = r.reviewer_id
              WHERE r.protocol_id = ?
@@ -988,20 +1004,19 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
-    public function getReturnReasonForVersion(int $versionId): ?array
+    public function getReturnReasonForVersion(int $versionId, bool $withAuthor = false): ?array
     {
         if ($versionId < 1) {
             return null;
         }
 
+        $author = $withAuthor ? ', ' . self::AUTHOR_SQL . ' AS returned_by' : '';
         $stmt = $this->connection->prepare(
             "SELECT
                 r.wrong_cert,
                 r.other_reason,
                 r.comment,
-                r.created_at,
-                u.first_name,
-                u.last_name
+                r.created_at$author
              FROM `protocol_return_reasons` r
              JOIN `users` u ON u.id = r.reviewer_id
              WHERE r.version_id = ?

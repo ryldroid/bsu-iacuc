@@ -8,6 +8,76 @@ $hideHeaderAuth = $hideHeaderAuth ?? false;
 $hideHeader     = $hideHeader     ?? false;
 $previewMode     = $previewMode     ?? false;
 $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
+
+// One list of theme options, rendered in the account dropdown and in the visitor theme menu
+$themeModes = [
+  ['light', 'Light', 'sun-icon'],
+  ['dark', 'Dark', 'moon-icon'],
+  ['auto', 'System', 'monitor-icon'],
+];
+
+$showWelcome = $user && !empty($user['show_welcome']);
+// Every audience gets a spotlight guide of the website (replayable from the header help button).
+// Step format: [title, text, desktop target selector, mobile target selector (optional)]
+$navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
+$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime with the question mark button in the header.'];
+$guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
+$guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
+$guideContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
+$guidePreview = ['Preview public site', 'See the website the way visitors see it. It opens in a new tab.', '.header-preview-link'];
+$guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
+$guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
+$guideHelp = ['Guide', 'Replay this tour anytime with the question mark button.', '.header-help'];
+$guideAccount = ['Your account', 'Open this to view **My Account**, switch between Light, Dark, and System theme, or log out.', '.my-account-dropdown'];
+$welcomeSteps = [];
+if ($role === 'researcher') {
+  $welcomeSteps = [
+    $guideWelcome,
+    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideHome,
+    ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
+    $guideAnnouncements,
+    $guideContact,
+    $guideHelp,
+    $guideNotifications,
+    $guideAccount,
+  ];
+} elseif ($role === 'staff') {
+  $welcomeSteps = [
+    $guideWelcome,
+    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
+    ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
+    ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
+    ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
+    $guidePreview,
+    $guideHelp,
+    $guideNotifications,
+    $guideAccount,
+  ];
+} elseif ($role === 'reviewer') {
+  $welcomeSteps = [
+    $guideWelcome,
+    ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
+    ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
+    $guidePreview,
+    $guideHelp,
+    $guideNotifications,
+    $guideAccount,
+  ];
+} elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
+  $welcomeSteps = [
+    ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
+    ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
+    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideHome,
+    $guideAnnouncements,
+    $guideContact,
+    $guideTheme,
+    $guideHelp,
+  ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -85,35 +155,38 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
       </div>
 
       <?php if (!$hideHeaderAuth): ?>
-        <div class="header-auth">
-          <?php if ($user) { ?>
-            <?php if ($role === 'staff' || $role === 'reviewer'): ?>
-              <!-- PREVIEW LIVE SITE -->
-              <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview public site" data-tooltip="Preview public site">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#eye-icon" />
-                </svg>
-              </a>
-            <?php endif; ?>
-          <?php } ?>
-        </div>
-      <?php endif; ?>
+        <!-- THEME (VISITORS ONLY: logged-in users switch theme from the account dropdown) -->
+        <?php if (!$user) include 'theme-toggle.php'; ?>
 
-      <!-- DARK MODE TOGGLE -->
-      <?php include 'theme-toggle.php'; ?>
-
-      <!-- ACCOUNT DROPDOWN (LOGGED IN) -->
-      <?php if (!$hideHeaderAuth): ?>
         <div class="header-auth">
+          <?php if ($user && ($role === 'staff' || $role === 'reviewer')): ?>
+            <!-- PREVIEW LIVE SITE -->
+            <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview public site" data-tooltip="Preview public site">
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#eye-icon" />
+              </svg>
+            </a>
+          <?php endif; ?>
+
+          <!-- GUIDE (HELP) -->
+          <?php if ($welcomeSteps): ?>
+            <button type="button" class="header-help" data-guide-start="welcome" aria-label="View guide on website navigation" data-tooltip="View guide on website navigation">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#question-info-icon" />
+              </svg>
+              <span>Guide</span>
+            </button>
+          <?php endif; ?>
+
           <?php if ($user) { ?>
             <button class="notif-bell"
               aria-expanded="false"
               aria-haspopup="true"
               aria-label="Notifications"
-              data-tooltip="Notifications"
+              data-tooltip="Show notifications"
               aria-controls="notif-dropdown">
 
-              <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#bell-icon" />
               </svg>
               <span class="notif-badge" hidden>0</span>
@@ -135,11 +208,11 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
               aria-expanded="false"
               aria-haspopup="true"
               aria-label="My account"
-              data-tooltip="My account"
+              data-tooltip="Show account settings"
               aria-controls="account-dropdown">
 
               <!-- <img src="<?= IMGPATH ?>/scientist.webp" alt=""> -->
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#account-icon" />
               </svg>
 
@@ -154,17 +227,23 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 
             <div id="account-dropdown">
               <a href="<?= ROOT ?>/user/account">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#account-dropdown-icon" />
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#account-icon" />
                 </svg>
-                My Profile</a>
+                My Account</a>
 
-              <button type="button" data-tour-start="welcome">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#info-icon" />
-                </svg>
-                Take the Tour
-              </button>
+              <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
+                <span>Theme</span>
+                <div class="theme-options">
+                  <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
+                    <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#<?= $themeIcon ?>" />
+                      </svg>
+                    </button>
+                  <?php endforeach; ?>
+                </div>
+              </div>
               <?php if ($role === 'researcher'): ?>
                 <form method="POST" action="<?= ROOT ?>/user/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                 <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
@@ -172,7 +251,7 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
                   <?php endif; ?>
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                   <button type="submit" class="btn-header-logout">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#log-out-icon" />
                     </svg>
                     Log Out
@@ -186,12 +265,6 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 
             <!-- LOG IN/REGISTER (NOT LOGGED IN) -->
           <?php } else { ?>
-            <button type="button" data-tour-start="welcome" aria-label="Take the tour" data-tooltip="Take the tour">
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#info-icon" />
-              </svg>
-              <span>Tour</span>
-            </button>
             <a href="<?= ROOT ?>/user/login" id="headerLogin" class="auth-btn">Sign In</a>
             <a href="<?= ROOT ?>/user/register" id="headerRegister" class="auth-btn">Register</a>
           <?php } ?>
@@ -300,75 +373,12 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
     </div>
   <?php endif; ?>
 
-  <?php
-  $showWelcome = $user && !empty($user['show_welcome']);
-  // Every audience gets a spotlight tour of the website (replayable from the account menu or header help button).
-  // Step format: [title, text, desktop target selector, mobile target selector (optional)]
-  $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
-  $tourWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime from your account menu.'];
-  $tourHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
-  $tourAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
-  $tourContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
-  $tourPreview = ['Preview public site', 'See the website the way visitors see it. It opens in a new tab.', '.header-preview-link'];
-  $tourNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
-  $tourTheme = ['Theme', 'Switch between Light, Dark, and Auto to match your device.', '#theme-toggle'];
-  $tourAccount = ['Your account', 'Open this to view My Profile, replay this tour, or log out.', '.my-account-dropdown'];
-  $welcomeSteps = [];
-  if ($role === 'researcher') {
-    $welcomeSteps = [
-      $tourWelcome,
-      ['Page menu', 'These links take you between Home, My Protocols, Announcements, and Contact Us. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
-      $tourHome,
-      ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
-      $tourAnnouncements,
-      $tourContact,
-      $tourNotifications,
-      $tourTheme,
-      $tourAccount,
-    ];
-  } elseif ($role === 'staff') {
-    $welcomeSteps = [
-      $tourWelcome,
-      ['Page menu', 'These links take you between the Dashboard, Records, Site Content, and Administration. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
-      ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
-      ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
-      ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
-      ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
-      $tourPreview,
-      $tourNotifications,
-      $tourTheme,
-      $tourAccount,
-    ];
-  } elseif ($role === 'reviewer') {
-    $welcomeSteps = [
-      $tourWelcome,
-      ['Page menu', 'These links take you between the Dashboard and Records. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
-      ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
-      ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
-      $tourPreview,
-      $tourNotifications,
-      $tourTheme,
-      $tourAccount,
-    ];
-  } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
-    $welcomeSteps = [
-      ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
-      ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
-      ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
-      $tourHome,
-      $tourAnnouncements,
-      $tourContact,
-      $tourTheme,
-    ];
-  }
-  ?>
-
   <?php if ($welcomeSteps) {
-    $tourId       = 'welcome';
-    $tourSteps    = $welcomeSteps;
-    $tourOpen     = $showWelcome;
-    $tourShowOnce = !$user;
-    include __DIR__ . '/tour.php';
+    $guideId       = 'welcome';
+    $guideSteps    = $welcomeSteps;
+    $guideOpen     = $showWelcome;
+    $guideShowOnce = !$user;
+    include __DIR__ . '/guide.php';
   } ?>
   <?php unset($_SESSION['user']['show_welcome']); ?>
 

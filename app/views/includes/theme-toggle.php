@@ -1,9 +1,8 @@
 <?php
 
-/** @var string|null $themeToggleExtraClass Extra class(es) for positioning/coloring this instance */
-$themeToggleExtraClass = $themeToggleExtraClass ?? '';
+/** @var array $themeModes [mode, label, icon] list defined in header.php */
 ?>
-<div class="theme-toggle-wrapper <?= htmlspecialchars($themeToggleExtraClass, ENT_QUOTES, 'UTF-8') ?>">
+<div class="theme-toggle-wrapper">
   <button
     id="theme-toggle"
     class="theme-toggle"
@@ -28,32 +27,17 @@ $themeToggleExtraClass = $themeToggleExtraClass ?? '';
 
   <div id="theme-menu" role="menu">
     <div class="theme-menu-header" role="presentation">Theme</div>
-    <button type="button" role="menuitemradio" data-mode="light">
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#sun-icon" />
-      </svg>
-      Light
-      <svg class="theme-menu-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#check-icon" />
-      </svg>
-    </button>
-    <button type="button" role="menuitemradio" data-mode="dark">
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#moon-icon" />
-      </svg>
-      Dark
-      <svg class="theme-menu-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#check-icon" />
-      </svg>
-    </button>
-    <button type="button" role="menuitemradio" data-mode="auto">
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#monitor-icon" />
-      </svg>
-      Auto
-      <svg class="theme-menu-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <use href="#check-icon" />
-      </svg>
-    </button>
+    <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
+      <button type="button" role="menuitemradio" data-mode="<?= $themeMode ?>">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#<?= $themeIcon ?>" />
+        </svg>
+        <?= $themeLabel ?>
+
+        <svg class="theme-menu-check" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#check-icon" />
+        </svg>
+      </button>
+    <?php endforeach; ?>
   </div>
 </div>

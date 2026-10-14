@@ -2,6 +2,8 @@
 
 const themeToggleButton = document.querySelector("#theme-toggle");
 const themeMenu = document.querySelector("#theme-menu");
+// Theme options live in the account dropdown (logged in) or the visitor theme menu
+const modeButtons = document.querySelectorAll("button[data-mode]");
 
 // ===== Theme helpers =====
 function getSystemTheme() {
@@ -23,11 +25,9 @@ function applyMode(mode) {
   document.documentElement.setAttribute("data-theme", resolvedTheme);
   document.documentElement.setAttribute("data-theme-mode", mode);
 
-  if (themeMenu) {
-    themeMenu.querySelectorAll("button[data-mode]").forEach((item) => {
-      item.setAttribute("aria-checked", String(item.dataset.mode === mode));
-    });
-  }
+  modeButtons.forEach((item) => {
+    item.setAttribute("aria-checked", String(item.dataset.mode === mode));
+  });
 }
 
 function setMode(mode) {
@@ -48,7 +48,18 @@ function closeThemeMenu() {
 // ===== Apply saved theme =====
 applyMode(getCurrentMode());
 
-// ===== Theme menu =====
+// ===== Theme options (account dropdown or visitor menu) =====
+modeButtons.forEach((item) => {
+  item.addEventListener("click", () => {
+    setMode(item.dataset.mode);
+    if (themeMenu?.contains(item)) {
+      closeThemeMenu();
+      themeToggleButton.focus();
+    }
+  });
+});
+
+// ===== Visitor theme menu =====
 if (themeToggleButton && themeMenu) {
   themeToggleButton.addEventListener("click", () => {
     const isOpen = themeMenu.classList.toggle("active");
@@ -62,14 +73,6 @@ if (themeToggleButton && themeMenu) {
 
   document.addEventListener("header-dropdown-open", (event) => {
     if (event.detail !== "theme") closeThemeMenu();
-  });
-
-  themeMenu.querySelectorAll("button[data-mode]").forEach((item) => {
-    item.addEventListener("click", () => {
-      setMode(item.dataset.mode);
-      closeThemeMenu();
-      themeToggleButton.focus();
-    });
   });
 
   document.addEventListener("click", (event) => {

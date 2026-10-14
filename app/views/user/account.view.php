@@ -17,9 +17,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
     <!-- ===== Account page ===== -->
     <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
-        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
-        <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
-
         <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_personnel ? 'personnel/home' : 'home' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">

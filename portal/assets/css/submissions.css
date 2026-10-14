@@ -7,7 +7,7 @@
     gap: 12px;
 }
 
-.submission-header [data-tour-start] {
+.submission-header [data-guide-start] {
     margin-left: auto;
 }
 
@@ -47,6 +47,17 @@
 .return-reason-comment {
     color: var(--muted-text);
     /* font-style: italic; */
+}
+
+/* ===== Embossed copy reminder shown on an approved card once the clearance is claimed ===== */
+.clearance-reminder {
+    margin-top: .6rem;
+    padding: .5rem .75rem;
+    background: var(--success-background-soft);
+    border-radius: 6px;
+    font-size: .78rem;
+    max-width: 480px;
+    color: var(--status-success-text);
 }
 
 /* ===== RESPONSIVE ===== */

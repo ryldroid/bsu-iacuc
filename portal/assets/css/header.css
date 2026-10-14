@@ -70,6 +70,16 @@ header img {
     cursor: pointer;
     font-size: 1em;
     white-space: nowrap;
+    box-shadow: none;
+    margin-top: 0;
+}
+
+.verify-banner-link:is(:hover, :active) {
+    background: none;
+    color: var(--brand-color-hover);
+    box-shadow: none;
+    transform: none;
+    text-decoration: none;
 }
 
 .verify-banner-close {
@@ -82,6 +92,7 @@ header img {
     align-items: center;
     flex-shrink: 0;
     opacity: 0.75;
+    box-shadow: none;
 }
 
 .verify-banner-close:hover {
@@ -371,38 +382,6 @@ header nav a:hover::after {
     visibility: visible;
 }
 
-.theme-toggle-wrapper.theme-toggle--card .theme-toggle {
-    color: var(--brand-text);
-}
-
-.theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
-    background-color: rgb(255 255 255 / 0.32);
-}
-
-.theme-toggle-wrapper.theme-toggle--card .theme-toggle:active {
-    transform: translateY(2px);
-}
-
-.theme-toggle-wrapper.theme-toggle--floating {
-    position: fixed;
-    top: var(--pinned-top-offset, 16px);
-    right: 16px;
-    margin-right: 0;
-    z-index: 1011;
-    transition: top .2s ease;
-}
-
-.theme-toggle-wrapper.theme-toggle--floating .theme-toggle {
-    width: auto;
-    gap: .3em;
-    padding: 0 8px;
-    color: var(--text-on-image);
-}
-
-.theme-toggle-wrapper.theme-toggle--personnel-login+form h1 {
-    margin-top: 44px;
-}
-
 /* ===== Auth buttons ===== */
 .auth-btn {
     font-size: .85em;
@@ -479,12 +458,19 @@ header [data-tooltip][aria-expanded="true"]::after {
 }
 
 .header-auth {
+    --header-icon-size: 22px;
+
     position: relative;
     display: flex;
     align-items: center;
     gap: .2em;
     flex: 0 0 auto;
     justify-content: flex-end;
+}
+
+.header-auth>button>svg {
+    width: var(--header-icon-size);
+    height: var(--header-icon-size);
 }
 
 .header-auth a {
@@ -518,7 +504,6 @@ header [data-tooltip][aria-expanded="true"]::after {
 
     cursor: pointer;
 
-    margin-left: .5em;
     padding: 5px;
     border-radius: 6px;
     transition: all 0.2s ease;
@@ -539,7 +524,8 @@ header [data-tooltip][aria-expanded="true"]::after {
 }
 
 /* ===== Account dropdown ===== */
-.my-account-dropdown:hover {
+.my-account-dropdown:hover,
+.header-help:hover {
     background-color: var(--tint-on-brand);
 }
 
@@ -595,11 +581,51 @@ header [data-tooltip][aria-expanded="true"]::after {
 #account-dropdown a svg,
 #account-dropdown button svg {
     flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
 
 #account-dropdown a:hover,
 #account-dropdown button:hover {
     background-color: var(--hover-surface);
+}
+
+/* Theme row: label plus a three-way icon switch */
+.dropdown-theme {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+
+    width: 100%;
+    padding: .5em 1em;
+    border-block: 1px solid var(--divider-color-subtle);
+}
+
+.theme-options {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    background-color: var(--hover-surface);
+    border-radius: var(--radius);
+}
+
+#account-dropdown .theme-options button {
+    width: auto;
+    padding: .35em .5em;
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--secondary-text);
+}
+
+#account-dropdown .theme-options button:hover {
+    background-color: transparent;
+    color: var(--primary-text);
+}
+
+#account-dropdown .theme-options button[aria-checked="true"] {
+    background-color: var(--card-background);
+    color: var(--primary-text);
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
 }
 
 /* ===== Mobile header ===== */
@@ -618,38 +644,44 @@ header [data-tooltip][aria-expanded="true"]::after {
         font-size: 16px;
     }
 
-    .header-auth button {
-        gap: 0;
-    }
-
     .header-auth button span:not(.chev-icon):not(.notif-badge),
     .header-auth .header-preview-link span {
         display: none;
     }
 
+    /* One shared size and one shared gap for every header icon button on mobile */
+    .header-auth {
+        --header-icon-size: 24px;
+        gap: .25em;
+    }
+
+    header .theme-toggle-wrapper {
+        margin-right: .25em;
+    }
+
+    .header-auth>button,
+    header .theme-toggle {
+        height: 34px;
+        margin-left: 0;
+        padding: 5px;
+        gap: 0;
+    }
+
     .header-auth .mobile-menu {
-        display: block;
+        display: flex;
         z-index: 999;
     }
 
-    .header-auth svg {
+    .header-auth svg,
+    header .theme-toggle-icon {
         width: 24px;
         height: 24px;
     }
 
-    .header-auth .notif-bell svg {
-        width: 22px;
-        height: 22px;
-    }
-
-    .header-auth .theme-toggle-icon {
-        width: 29px;
-        height: 29px;
-    }
-
-    .header-auth .theme-toggle-icon {
-        width: 29px;
-        height: 29px;
+    /* Icon-only buttons on mobile: no chevron, so every button is the same square */
+    .header-auth .chev-icon,
+    header .theme-toggle .chev-icon {
+        display: none;
     }
 
     .active-link {
@@ -670,14 +702,6 @@ header [data-tooltip][aria-expanded="true"]::after {
 
     .header-auth .greeting {
         display: none;
-    }
-
-    .theme-toggle {
-        padding: 0 0 0 6px;
-    }
-
-    .theme-toggle-wrapper.theme-toggle--card .theme-toggle:hover {
-        background-color: var(--backdrop-color);
     }
 }
 

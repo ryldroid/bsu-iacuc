@@ -381,7 +381,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'signed_scan_uploaded',
             'Signed Protocol Uploaded',
-            'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chair.',
+            'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chairperson.',
             $this->protocolHighlightLink((int) $protocol['protocol_id'], 'signed_scan'),
             [
                 'template' => 'signed_scan_uploaded',
@@ -1242,7 +1242,6 @@ class Apply extends Controller
             'csrf'              => $this->generateCsrfToken(),
             'isPersonnel'           => $isPersonnel,
             'isStaff'           => $actor['role'] === 'staff',
-            'isReviewer'        => $actor['role'] === 'reviewer',
             'backUrl'           => $backUrl,
             'latestCertVersion' => $this->protocolModel->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
             'latestPaymentProofVersion' => $this->protocolModel->getLatestVersion($protocolId, 'payment_proof'),
@@ -1443,7 +1442,7 @@ class Apply extends Controller
             }
         }
 
-        echo json_encode($this->protocolModel->getAnnotations($versionId));
+        echo json_encode($this->protocolModel->getAnnotations($versionId, $this->isPersonnel()));
         exit;
     }
 
@@ -1470,7 +1469,7 @@ class Apply extends Controller
 
         $this->protocolModel->logAudit('annotation_added', $actor['id'], $actor['name'], $actor['role'], 'protocol_version', $versionId, "Annotation added on page $pageNumber");
 
-        echo json_encode(['id' => $newId, 'ok' => true]);
+        echo json_encode(['id' => $newId, 'ok' => true, 'author' => $this->roleLabel($actor['role']) . ' - ' . $this->actorDisplayName($actor)]);
         exit;
     }
 
@@ -1545,6 +1544,7 @@ class Apply extends Controller
         $allowedTransitions = [
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
             'staff'    => [
+                'under review' => ['Needs Revision', 'Reviewed'],
                 'reviewed' => ['Endorsed'],
                 'endorsed' => ['Reviewed', 'Approved'],
                 'approved' => ['Endorsed'],
@@ -1558,6 +1558,10 @@ class Apply extends Controller
 
         $isRevert = ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
             || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
+
+        if ($newStatus === 'Endorsed' && $isRevert && !empty($protocol['hard_copy_released_at'])) {
+            $this->jsonError(422, 'Undo the hard copy pickup before reverting this protocol.');
+        }
 
         // ===== REQUIREMENTS BEFORE ENDORSING =====
         if ($newStatus === 'Endorsed' && !$isRevert) {
@@ -1768,6 +1772,50 @@ class Apply extends Controller
         if ($ok) {
             $this->protocolModel->logAudit('payment_unmarked', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment mark undone');
             $_SESSION['flash_success'] = 'Payment mark undone. The protocol is back to "proof submitted".';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== HARD COPY PICKUP  (POST /apply/hard_copy) =====
+
+    public function hard_copy(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor = $this->actor();
+        if ($actor['role'] !== 'staff') {
+            $this->jsonError(403, 'Administrative staff only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $release    = ($body['action'] ?? '') === 'release';
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $protocol = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (strtolower($protocol['status']) !== 'approved') {
+            $this->jsonError(422, 'The hard copy pickup can only be recorded for approved protocols.');
+        }
+        if ($release === !empty($protocol['hard_copy_released_at'])) {
+            $this->jsonError(422, $release ? 'The hard copy pickup was already recorded.' : 'The hard copy pickup has not been recorded.');
+        }
+
+        $ok = $this->protocolModel->setHardCopyReleased($protocolId, $release ? $actor['id'] : null);
+        if ($ok) {
+            $this->protocolModel->logAudit($release ? 'hard_copy_picked_up' : 'hard_copy_pickup_undone', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $release ? 'Embossed hard copy picked up by the researcher' : 'Hard copy pickup undone');
+            $_SESSION['flash_success'] = $release ? 'Hard copy pickup recorded.' : 'Hard copy pickup undone.';
         }
 
         echo json_encode(['ok' => $ok]);
@@ -2766,8 +2814,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if ($actor['role'] !== 'reviewer') {
-            $this->jsonError(403, 'Reviewer access only.');
+        if (!$this->isPersonnel()) {
+            $this->jsonError(403, 'Administrative staff and reviewers only.');
         }
 
         $this->requirePostMethod();
@@ -2834,7 +2882,7 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        echo json_encode(['reason' => $this->protocolModel->getLatestReturnReason($protocolId)]);
+        echo json_encode(['reason' => $this->protocolModel->getLatestReturnReason($protocolId, $this->isPersonnel())]);
         exit;
     }
 
@@ -2937,7 +2985,7 @@ class Apply extends Controller
         $files = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'protocol'));
         $files = array_map(function ($v) use ($protocolId, $protocol) {
             $v['title_at_version'] = $this->protocolModel->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
-            $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id']);
+            $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id'], $this->isPersonnel());
             $v['round_label']      = submission_round_label((int) $v['version_number']);
             return $v;
         }, $files);
@@ -2967,7 +3015,7 @@ class Apply extends Controller
             'payment_history'     => $paymentEvents,
             'signed_scan_files'   => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'signed_scan')),
             'clearance_files'     => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'clearance')),
-            'return_reason'  => $this->protocolModel->getLatestReturnReason($protocolId),
+            'return_reason'  => $this->protocolModel->getLatestReturnReason($protocolId, $this->isPersonnel()),
             'title_history'  => count($titleHistory) > 1 ? $titleHistory : [],
         ]);
         exit;

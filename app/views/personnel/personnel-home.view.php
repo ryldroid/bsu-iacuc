@@ -43,16 +43,16 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => "Submitted protocols waiting on the reviewer's feedback.",
+        'to-review'             => 'Submitted protocols waiting for review. Open one to leave comments, then return it for revision or complete the review.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "The reviewer has finished the assessment. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC chair's signature, upload the signed scan, then mark it as Endorsed.",
+        'reviewed'              => "The review is finished. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC chairperson's signature, upload the signed scan, then mark it as Endorsed.",
         'endorsed'              => "Protocol has been endorsed to DA-CARFU. Upload the released animal research clearances below, assign each protocol's AR number, match each clearance to its protocol, then confirm to mark them Approved.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chair's sign.",
+        'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
@@ -160,11 +160,11 @@ foreach ($protocols as $p) {
             <div class="dashboard-search-row">
                 <h1 class="dashboard-page-title">Protocol Inbox</h1>
                 <?php if (($user['role'] ?? '') === 'reviewer'): ?>
-                    <button type="button" class="action-link" data-tour-start="inbox">
+                    <button type="button" class="action-link" data-guide-start="inbox">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#info-icon" />
                         </svg>
-                        Page tour
+                        Page guide
                     </button>
                 <?php endif; ?>
                 <div class="inbox-search-wrap">
@@ -450,6 +450,7 @@ foreach ($protocols as $p) {
                         $paymentStatus  = $protocol['payment_status'] ?? 'unpaid';
                         $hasSignedScan  = !empty($protocol['latest_signed_scan_version_id']);
                         $hasIpn         = !empty($protocol['reference_no']);
+                        $hasHardCopyReleased = !empty($protocol['hard_copy_released_at']);
                         $researcherName = htmlspecialchars(
                             $protocol['first_name'] . ' ' . $protocol['last_name'],
                             ENT_QUOTES,
@@ -463,30 +464,28 @@ foreach ($protocols as $p) {
                         $userRole = strtolower($user['role'] ?? '');
                         $actions = [];
 
-                        if ($userRole === 'reviewer') {
+                        if ($statusLower === 'under review') {
+                            $actions = [
+                                [
+                                    'label' => 'Review',
+                                    'action' => 'open',
+                                    'icon' => 'review',
+                                    'primary' => true
+                                ],
+                                [
+                                    'label' => 'Show History',
+                                    'action' => 'show-history',
+                                    'icon' => 'history'
+                                ]
+                            ];
+                        } elseif ($userRole === 'reviewer') {
 
                             switch ($statusLower) {
-
-                                case 'under review':
-                                    $actions = [
-                                        [
-                                            'label' => 'Review',
-                                            'action' => 'open',
-                                            'icon' => 'review',
-                                            'primary' => true
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
-                                        ]
-                                    ];
-                                    break;
 
                                 case 'reviewed':
                                     $actions = [
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review',
                                             'primary' => true
@@ -508,7 +507,7 @@ foreach ($protocols as $p) {
                                             'primary' => true
                                         ],
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
                                         ],
@@ -523,7 +522,7 @@ foreach ($protocols as $p) {
                                 default:
                                     $actions = [
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review',
                                             'primary' => true
@@ -549,7 +548,7 @@ foreach ($protocols as $p) {
                                                 'primary' => true
                                             ],
                                             [
-                                                'label' => 'View',
+                                                'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
                                             ],
@@ -562,7 +561,7 @@ foreach ($protocols as $p) {
                                     } elseif ($paymentStatus !== 'paid') {
                                         $actions = [
                                             [
-                                                'label' => 'View',
+                                                'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review',
                                                 'primary' => true
@@ -582,7 +581,7 @@ foreach ($protocols as $p) {
                                                 'primary' => true
                                             ],
                                             [
-                                                'label' => 'View',
+                                                'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
                                             ],
@@ -606,7 +605,7 @@ foreach ($protocols as $p) {
                                                 'primary' => true
                                             ],
                                             [
-                                                'label' => 'View',
+                                                'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
                                             ],
@@ -635,7 +634,7 @@ foreach ($protocols as $p) {
                                                 'primary' => true
                                             ],
                                             [
-                                                'label' => 'View',
+                                                'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
                                             ],
@@ -671,7 +670,7 @@ foreach ($protocols as $p) {
                                     }
                                     $actions = array_merge($actions, [
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
                                         ],
@@ -694,30 +693,38 @@ foreach ($protocols as $p) {
                                             'label' => 'View Clearance',
                                             'action' => 'view-clearance',
                                             'icon' => 'review',
-                                            'primary' => true
+                                            'primary' => $hasHardCopyReleased
                                         ],
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
+                                        ],
+                                        [
+                                            'label' => $hasHardCopyReleased ? 'Undo Pickup' : 'Confirm Pickup',
+                                            'action' => $hasHardCopyReleased ? 'undo-hard-copy' : 'release-hard-copy',
+                                            'icon' => $hasHardCopyReleased ? 'undo' : 'check',
+                                            'primary' => !$hasHardCopyReleased
                                         ],
                                         [
                                             'label' => 'Show History',
                                             'action' => 'show-history',
                                             'icon' => 'history'
-                                        ],
-                                        [
+                                        ]
+                                    ];
+                                    if (!$hasHardCopyReleased) {
+                                        $actions[] = [
                                             'label' => 'Revert to Endorsed',
                                             'action' => 'revert-approved',
                                             'icon' => 'undo'
-                                        ]
-                                    ];
+                                        ];
+                                    }
                                     break;
 
                                 default:
                                     $actions = [
                                         [
-                                            'label' => 'View',
+                                            'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review',
                                             'primary' => true
@@ -759,6 +766,10 @@ foreach ($protocols as $p) {
                                         <?php if ($statusLower === 'reviewed'): ?>
                                             <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
                                                 <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                        <?php elseif ($statusLower === 'approved'): ?>
+                                            <span class="payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
+                                                <?= $hasHardCopyReleased ? 'Hard copy picked up' : 'Hard copy for pickup' ?>
                                             </span>
                                         <?php endif; ?>
                                     </p>
@@ -912,6 +923,7 @@ foreach ($protocols as $p) {
     const STATUS_API = ROOT_URL + '/apply/status';
     const VERIFY_PAYMENT_API = ROOT_URL + '/apply/verify_payment';
     const UNDO_PAYMENT_API = ROOT_URL + '/apply/undo_payment';
+    const HARD_COPY_API = ROOT_URL + '/apply/hard_copy';
     const REJECT_PAYMENT_API = ROOT_URL + '/apply/reject_payment';
     const SIGNED_SCAN_UPLOAD_API = ROOT_URL + '/apply/signed_scan_upload';
     const CLEARANCE_VIEW_URL = ROOT_URL + '/apply/clearance/';
@@ -1533,6 +1545,20 @@ foreach ($protocols as $p) {
                 }).then(ok => ok && submitPaymentUndo(protocolId, btn));
                 break;
 
+            case 'release-hard-copy':
+                confirmAction('Confirm that the researcher has picked up the embossed hard copy? This will be recorded under your name.', {
+                    okText: 'Confirm Pickup',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitHardCopy(protocolId, 'release', btn));
+                break;
+
+            case 'undo-hard-copy':
+                confirmAction('Undo the pickup? The protocol will show as awaiting pickup again.', {
+                    okText: 'Undo',
+                    cancelText: 'Cancel'
+                }).then(ok => ok && submitHardCopy(protocolId, 'undo', btn));
+                break;
+
             case 'review-payment':
                 openReviewPaymentModal(
                     protocolId,
@@ -1590,6 +1616,33 @@ foreach ($protocols as $p) {
             } else {
                 setButtonBusy(btn, false);
                 alert('Error: ' + (data.error ?? 'Could not undo payment mark.'));
+            }
+        } catch (err) {
+            setButtonBusy(btn, false);
+            alert('Network error. Please try again.');
+        }
+    }
+
+    async function submitHardCopy(protocolId, action, btn) {
+        setButtonBusy(btn, true);
+        try {
+            const res = await fetch(HARD_COPY_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    protocol_id: protocolId,
+                    action
+                }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+                window.location.reload();
+            } else {
+                setButtonBusy(btn, false);
+                alert('Error: ' + (data.error ?? 'Could not update the hard copy pickup.'));
             }
         } catch (err) {
             setButtonBusy(btn, false);
@@ -1709,8 +1762,8 @@ foreach ($protocols as $p) {
 </script>
 
 <?php if (($user['role'] ?? '') === 'reviewer') {
-    $tourId    = 'inbox';
-    $tourSteps = [
+    $guideId    = 'inbox';
+    $guideSteps = [
         ['Protocol Inbox', 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
         ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
         ['Status filters', 'Filter the inbox by status. It opens on To review, which is your queue. The number next to each name is how many protocols have that status.', '#filterPillsRow'],
@@ -1718,14 +1771,14 @@ foreach ($protocols as $p) {
         ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means for you.', '.status-legend-bar'],
     ];
     if ($protocols) {
-        $tourSteps = array_merge($tourSteps, [
+        $guideSteps = array_merge($guideSteps, [
             ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
-            ['Review', 'Press **Review** on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show **View** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
+            ['Review', 'Press **Review** on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
             ['Show History', "See every submission round of a protocol, including the researcher's revisions.", '.protocols-list .protocol .actions-secondary:first-visible'],
             ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
         ]);
     }
-    include dirname(__DIR__) . '/includes/tour.php';
+    include dirname(__DIR__) . '/includes/guide.php';
 } ?>
 <?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>
 <script>
@@ -2586,7 +2639,7 @@ foreach ($protocols as $p) {
                 pattern: /^\d{6}$/,
                 formatError: 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).',
                 maxlength: 6,
-                helper: 'Write this IPN on the printed protocol before the IACUC chair signs it. It is kept in sync with the Records page.',
+                helper: 'Write this IPN on the printed protocol before the IACUC chairperson signs it. It is kept in sync with the Records page.',
                 saved: () => window.location.reload()
             },
             ar: {

@@ -13,9 +13,6 @@ include dirname(__DIR__) . '/includes/header.php';
 
 <div class="body">
     <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
-        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating'; ?>
-        <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
-
         <!-- <a class="btn-back button btn-back--pinned" href="<?= $_SERVER['HTTP_REFERER'] ?? ROOT . '/home' ?>"> -->
         <a class="btn-back button btn-back--pinned" href="<?= ROOT ?>/home">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -32,7 +29,7 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <?php if (!empty($success)): ?>
                 <div class="success-message">
-                    Account created successfully! You can verify your email anytime from your account page. Redirecting...
+                    Account created successfully! Redirecting...
                 </div>
             <?php endif; ?>
 
@@ -46,7 +43,6 @@ include dirname(__DIR__) . '/includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <span class="helper create-acc-helper">(Alphabetic characters (including accented and non-English letters), hyphens, and apostrophes only.)</span>
             <div class="label-group">
                 <div class="input-group">
                     <input type="text" id="first_name" name="first_name" placeholder=" "
@@ -59,6 +55,7 @@ include dirname(__DIR__) . '/includes/header.php';
                     <label for="last_name">Last Name</label>
                 </div>
             </div>
+            <span class="helper name-hint">Letters, hyphens, and apostrophes only.</span>
 
             <div class="input-group">
                 <input type="text" id="username" name="username" placeholder=" "

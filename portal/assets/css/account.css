@@ -238,7 +238,7 @@ main button:hover {
     padding: 10px 15px;
     background-color: var(--success-background);
     color: var(--success-text);
-    margin: 1.5em 0 20px;
+    margin: 1.5em auto 20px;
     width: 80%;
 }
 
@@ -495,8 +495,7 @@ main button:hover {
 
 @media (max-width: 600px) {
 
-    .btn-back.btn-back--pinned,
-    .theme-toggle-wrapper.theme-toggle--floating .theme-toggle {
+    .btn-back.btn-back--pinned {
         background-color: var(--backdrop-color);
     }
 

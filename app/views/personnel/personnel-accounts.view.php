@@ -182,7 +182,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                                         <form method="POST" action="<?= ROOT ?>/personnel/reject"
                                             data-confirm-message="Reject and delete this application?"
-                                            data-confirm-ok-text="Reject"
+                                            data-confirm-ok-text="Confirm"
                                             data-confirm-danger="true">
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
                                             <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">

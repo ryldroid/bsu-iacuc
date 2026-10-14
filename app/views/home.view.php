@@ -257,7 +257,7 @@ include "includes/scroll-top.php";
                                 </span>
                                 <div class="timeline-content">
                                     <h3>Track Protocol</h3>
-                                    <p>Track your protocol's status through your dashboard. View reviewer comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
+                                    <p>Track your protocol's status through your dashboard. View CCARD's comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
                                 </div>
                             </li>
 

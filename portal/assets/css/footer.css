@@ -11,3 +11,32 @@ footer {
     font-size: .85em;
     z-index: 995;
 }
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+footer button,
+footer a {
+    padding: 0;
+    font-size: inherit;
+    color: var(--text-on-brand);
+    background: none;
+    box-shadow: none;
+    text-decoration: underline;
+    font-family: var(--font-default);
+}
+
+footer button:hover,
+footer a:hover {
+    background: none;
+    text-decoration: none;
+}
+
+footer button:active {
+    transform: none;
+    box-shadow: none;
+}

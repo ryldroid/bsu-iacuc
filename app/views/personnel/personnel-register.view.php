@@ -48,11 +48,15 @@ $role = $user['role'] ?? '';
         <main class="main-content wide" id="main-content" tabindex="-1">
 
             <?php if (!empty($success)): ?>
-                <h1>Application Submitted</h1>
-                <div class="success-message">
-                    <p>
-                        Your application has been received and is pending approval.
-                        We'll email you once your account has been reviewed. You can verify your email anytime from your account page. You may now close this window.
+                <div class="success-center">
+                    <div class="success-icon">
+                        <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-circle-icon" />
+                        </svg>
+                    </div>
+                    <h1>Application Submitted</h1>
+                    <p class="success-desc">
+                        Your application has been received and is pending approval. We'll email you once your account has been reviewed. You can verify your email anytime from your account page. You may now close this window.
                     </p>
                 </div>
 
@@ -62,6 +66,8 @@ $role = $user['role'] ?? '';
                     <input type="hidden" name="invite_token" value="<?= htmlspecialchars($token ?? ''); ?>">
 
                     <h1>Personnel Registration</h1>
+
+                    <p class="info-notice">Your registration will be reviewed before you can log in. For inquiries, please contact the administrator who provided you with the link.</p>
 
                     <?php if (!empty($errors)): ?>
                         <div class="error-messages">
@@ -73,7 +79,6 @@ $role = $user['role'] ?? '';
                         </div>
                     <?php endif; ?>
 
-                    <span class="helper">(Alphabetic characters (including accented and non-English letters), hyphens, and apostrophes only.)</span>
                     <div class="label-group">
                         <div class="input-group">
                             <input type="text" id="first_name" name="first_name" placeholder=" "
@@ -86,6 +91,7 @@ $role = $user['role'] ?? '';
                             <label for="last_name">Last Name</label>
                         </div>
                     </div>
+                    <span class="helper name-hint">Letters, hyphens, and apostrophes only.</span>
 
                     <div class="input-group">
                         <input type="text" id="username" name="username" placeholder=" "
@@ -132,7 +138,6 @@ $role = $user['role'] ?? '';
                     <label class="center">Applying as <span class="preset-role bold"><?= htmlspecialchars(ucfirst($preset_role ?? '')); ?></span>.</label>
 
                     <button type="submit">Submit Application</button>
-                    <p class="helper-big">Your registration will be reviewed before you can log in. For inquiries, please contact the administrator who provided you with the link.</p>
                 </form>
             <?php endif; ?>
 

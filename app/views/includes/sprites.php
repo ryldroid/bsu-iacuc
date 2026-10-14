@@ -5,11 +5,11 @@
 
     <!-- ===== HEADER ===== -->
     <!-- my profile dropdown -->
-    <symbol id="account-dropdown-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user-round-icon lucide-circle-user-round">
+    <!-- <symbol id="account-dropdown-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user-round-icon lucide-circle-user-round">
         <path d="M17.925 20.056a6 6 0 0 0-11.851.001" />
         <circle cx="12" cy="11" r="4" />
         <circle cx="12" cy="12" r="10" />
-    </symbol>
+    </symbol> -->
 
     <!-- log out dropdown -->
     <symbol id="log-out-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out-icon lucide-log-out">
@@ -19,11 +19,10 @@
     </symbol>
 
     <!-- menu hamburger (mobile) -->
-    <symbol id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-ellipsis preview-icon">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M17 12h.01" />
-        <path d="M12 12h.01" />
-        <path d="M7 12h.01" />
+    <symbol id="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu preview-icon">
+        <path d="M4 5h16" />
+        <path d="M4 12h16" />
+        <path d="M4 19h16" />
     </symbol>
 
     <!-- sun to light mode -->
@@ -173,9 +172,17 @@
     </symbol>
 
     <!-- account -->
-    <symbol id="account-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+    <symbol id="account-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user-round preview-icon">
+        <path d="M17.925 20.056a6 6 0 0 0-11.851.001" />
+        <circle cx="12" cy="11" r="4" />
+        <circle cx="12" cy="12" r="10" />
     </symbol>
+
+    <!-- <symbol id="account-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user preview-icon">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+    </symbol> -->
 
     <!-- close (X) -->
     <symbol id="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x">
@@ -385,12 +392,5 @@
         <path class="icon-detail" d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
         <path class="icon-detail" d="M16 19h6" />
         <path class="icon-detail" d="m19 16 3 3-3 3" />
-    </symbol>
-
-    <!-- account icon -->
-    <symbol id="account-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-user preview-icon">
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="10" r="3" />
-        <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
     </symbol>
 </svg>

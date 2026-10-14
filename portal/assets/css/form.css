@@ -113,10 +113,27 @@
   padding: 0 5px;
 }
 
-/* ===== Helper spacing ===== */
-.helper+.label-group,
+/* ===== Helper spacing, hints and notices ===== */
 .helper+.input-group {
   margin: 1.2em 0;
+}
+
+.name-hint {
+  display: block;
+  width: 80%;
+  margin: -.6em 0 .5em;
+  text-align: left;
+}
+
+.info-notice {
+  width: 80%;
+  margin: 0 0 1.4em;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+  font-size: .85em;
+  text-align: center;
 }
 
 /* ===== Responsive ===== */

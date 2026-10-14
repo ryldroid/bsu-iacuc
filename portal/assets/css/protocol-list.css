@@ -305,44 +305,6 @@
   gap: 6px;
 }
 
-.action-link+.action-link::before {
-  content: "\00b7";
-  margin-right: 6px;
-  color: var(--muted-text);
-  display: inline-block;
-}
-
-.action-link:hover::before {
-  text-decoration: none;
-}
-
-.action-link {
-  background: none;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  margin-top: 0;
-  font-size: 0.78em;
-  color: var(--brand-text);
-  text-decoration: none;
-  cursor: pointer;
-  font-family: var(--font-body);
-
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.action-link[hidden] {
-  display: none;
-}
-
-.action-link:hover {
-  background: none;
-  color: var(--brand-color-hover);
-  text-decoration: underline;
-}
-
 /* ===== Empty protocol list state ===== */
 .empty-state {
   display: flex;
@@ -1265,4 +1227,5 @@
   align-items: center;
   padding: 0;
   margin-top: 0;
+  box-shadow: none;
 }

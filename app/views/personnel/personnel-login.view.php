@@ -12,9 +12,6 @@ include dirname(__DIR__) . '/includes/sprites.php';
 
 <div class="body">
     <main class="main-content" id="main-content" tabindex="-1">
-        <?php $themeToggleExtraClass = 'theme-toggle--card theme-toggle--floating theme-toggle--personnel-login'; ?>
-        <?php include dirname(__DIR__) . '/includes/theme-toggle.php'; ?>
-
         <a class="btn-back button btn-back--pinned" href="<?= ROOT ?>/home">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#home-icon">

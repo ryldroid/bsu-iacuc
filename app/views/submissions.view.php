@@ -31,13 +31,13 @@ $statusMeta = [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => 'The reviewer found an issue and sent your protocol back. Revise it following the comments and re-submit your file.',
+        'desc'  => 'CCARD found an issue and sent your protocol back. Revise it following the comments and re-submit your file.',
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'The reviewer has finished their assessment. View the payment options to process your animal research clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'CCARD has finished reviewing your protocol. View the payment options to process your animal research clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -81,11 +81,11 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <div class="submission-header">
             <h1>My Protocols</h1>
 
-            <button type="button" class="action-link" data-tour-start="protocols">
+            <button type="button" class="action-link" data-guide-start="protocols">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#info-icon" />
                 </svg>
-                Page tour
+                Page guide
             </button>
 
             <div id="apply-actions-sub">
@@ -289,10 +289,20 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     </div>
                                 <?php endif; ?>
 
+                                <?php if ($isApproved): ?>
+                                    <div class="clearance-reminder">
+                                        <?php if (!empty($protocol['hard_copy_released_at'])): ?>
+                                            <strong>Embossed hard copy picked up</strong> on <?= date(DATE_FORMAT, strtotime($protocol['hard_copy_released_at'])) ?>.
+                                        <?php else: ?>
+                                            <strong>Embossed hard copy ready for pickup.</strong> The downloadable clearance is a temporary (soft copy). Please visit the BSU-CCARD office to claim your embossed hard copy. Office hours: Monday to Friday, 8:00 AM to 5:00 PM. See the <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page for the location.
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+
                                 <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
                                     <div class="return-reason-inline">
                                         <p class="return-reason-by">
-                                            Note from the reviewer:
+                                            Note from CCARD:
                                         </p>
                                         <?php if (!empty($returnIssues)): ?>
                                             <ul class="return-reason-issues">
@@ -334,9 +344,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                             <use href="#download-icon" />
                                         </svg>
                                         <span class="claim-label">
-                                            <span class="label-claim">Claim Clearance</span>
-                                            <span class="label-claimed">Clearance claimed!</span>
-                                            <span class="label-claimed-on">Claimed <span class="claimed-date"><?= htmlspecialchars($clearanceClaimedOn, ENT_QUOTES) ?></span></span>
+                                            <span class="label-claim">Download Clearance</span>
+                                            <span class="label-claimed">Clearance downloaded!</span>
+                                            <span class="label-claimed-on">Downloaded <span class="claimed-date"><?= htmlspecialchars($clearanceClaimedOn, ENT_QUOTES) ?></span></span>
                                         </span>
                                     </a>
                                 <?php elseif ($canConfirmPayment): ?>
@@ -356,7 +366,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <?php if (!$needsRevision): ?>
                                         <a class="action-link" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
                                             onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
-                                            View
+                                            View Protocol
                                         </a>
                                     <?php endif; ?>
                                     <button class="action-link"
@@ -384,8 +394,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
 </div>
 
 <?php
-$tourId    = 'protocols';
-$tourSteps = [
+$guideId    = 'protocols';
+$guideSteps = [
     ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
     ['New Application', 'Start a new protocol application here. If you have one in progress, you can resume it from the same spot.', '#apply-actions-sub'],
     ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters'],
@@ -393,13 +403,13 @@ $tourSteps = [
     ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means and what you need to do.', '.status-legend-bar'],
 ];
 if ($protocols) {
-    $tourSteps = array_merge($tourSteps, [
+    $guideSteps = array_merge($guideSteps, [
         ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **View Payment Options** (once reviewed), or **Claim Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **View Payment Options** (once reviewed), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
         ['Open and Show History', '**Open** shows the protocol and its files. **Show History** lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
     ]);
 }
-include 'includes/tour.php';
+include 'includes/guide.php';
 ?>
 
 <?php include 'includes/history-modal.php'; ?>
@@ -986,7 +996,7 @@ include 'includes/tour.php';
         dismissFlash('flashError', 7000);
     })();
 
-    // ===== Claim Clearance: always download, also open images in a new tab =====
+    // ===== Download Clearance: always download, also open images in a new tab =====
     document.querySelectorAll('.download-clearance-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (!btn.classList.contains('is-claimed')) {

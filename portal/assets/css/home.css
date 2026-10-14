@@ -409,15 +409,6 @@ h2 {
     appearance: none;
     -webkit-appearance: none;
     box-shadow: 0 1px 2px var(--shadow-color-soft);
-    transition: box-shadow 0.15s, transform 0.15s, border-left-color 0.15s;
-}
-
-.home-announcement-cont:hover,
-.home-announcement-cont:focus-visible {
-    /* border-left-color: var(--brand-color-hover); */
-    box-shadow: 0 4px 12px var(--shadow-color-soft);
-    transform: translateY(-2px);
-    background: none;
 }
 
 .home-announcement-cont:hover .home-announcement-top-row time,

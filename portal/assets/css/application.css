@@ -37,6 +37,16 @@ body {
     margin-bottom: 0;
 }
 
+.portal-header .action-link {
+    margin-left: auto;
+}
+
+.portal-header .action-link svg {
+    width: 16px;
+    height: 16px;
+    color: inherit;
+}
+
 /* ===== Progress stepper ===== */
 .stepper {
     display: flex;
@@ -734,43 +744,6 @@ main button svg {
 
 .helper {
     font-size: 0.8em;
-}
-
-/* ===== Success page ===== */
-.success-center {
-    text-align: center;
-    padding: 1rem 0;
-}
-
-.success-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: var(--success-background-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.25rem;
-}
-
-.success-icon svg {
-    width: 30px;
-    height: 30px;
-    color: var(--brand-color-hover);
-}
-
-.success-desc {
-    font-size: .9em;
-    color: var(--muted-text);
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-}
-
-.success-btn-row {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
 }
 
 /* ===== Submit button label ===== */

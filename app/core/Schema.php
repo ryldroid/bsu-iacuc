@@ -115,6 +115,8 @@ class Schema
         $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
         $this->ensureColumn('protocols', 'clearance_claimed_at', "timestamp NULL DEFAULT NULL AFTER `paid_by`");
+        $this->ensureColumn('protocols', 'hard_copy_released_at', "timestamp NULL DEFAULT NULL AFTER `clearance_claimed_at`");
+        $this->ensureColumn('protocols', 'hard_copy_released_by', "int(11) DEFAULT NULL AFTER `hard_copy_released_at`");
         $arNumberIsNew = $c->query("SHOW COLUMNS FROM `protocols` LIKE 'ar_number'")->num_rows === 0;
         $this->ensureColumn('protocols', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
         if ($arNumberIsNew) {

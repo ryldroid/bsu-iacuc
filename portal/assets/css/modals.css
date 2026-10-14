@@ -133,12 +133,12 @@
     background: var(--brand-color-hover);
 }
 
-/* ===== Spotlight tour (steps that point at a page element) ===== */
-.modal-backdrop.tour-targeting {
+/* ===== Spotlight guide (steps that point at a page element) ===== */
+.modal-backdrop.guide-targeting {
     background: transparent;
 }
 
-.tour-spotlight {
+.guide-spotlight {
     display: none;
     position: fixed;
     border-radius: var(--radius);
@@ -148,21 +148,21 @@
     transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
 }
 
-.tour-targeting .tour-spotlight {
+.guide-targeting .guide-spotlight {
     display: block;
 }
 
-.tour-targeting .welcome-modal-card {
+.guide-targeting .welcome-modal-card {
     position: fixed;
     margin: 0;
 }
 
-html:has(.modal-backdrop.open.tour-targeting) {
+html:has(.modal-backdrop.open.guide-targeting) {
     overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tour-spotlight {
+    .guide-spotlight {
         transition: none;
     }
 }

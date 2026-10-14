@@ -25,6 +25,12 @@ include "includes/scroll-top.php";
                     <use href="#beaker-icon" />
                 </svg>
                 <h1>IACUC Application Portal</h1>
+                <button type="button" class="action-link" data-guide-start="apply">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    Page guide
+                </button>
             </div>
 
             <div class="stepper" id="stepper"></div>
@@ -34,6 +40,17 @@ include "includes/scroll-top.php";
 
     </main>
 </div>
+
+<?php
+$guideId    = 'apply';
+$guideSteps = [
+    ['Application', 'Applying for protocol review takes a few short steps. Let us walk through this page.'],
+    ['Progress', 'Each dot is a step: Requirements, Terms, Documents, Download form, Upload and submit, and Done. Finished steps show a check mark.', '#stepper'],
+    ['Current step', 'The step you are on appears here. Read it, finish what it asks, then press **Continue**. Press **Back** to return to an earlier step.', '#page-content'],
+    ['Leave and resume', 'Press **Home** to go back to My Protocols. Your progress is saved, and you can resume the application from there anytime.', '#btn-home'],
+];
+include 'includes/guide.php';
+?>
 
 <?php include "includes/file-popup.php"; ?>
 <?php include "includes/animal-type-options.php"; ?>
@@ -417,7 +434,6 @@ include "includes/scroll-top.php";
             <input type="checkbox" class="consent-checkbox" id="chk-privacy" ${state.agreedPrivacy ? 'checked' : ''}>
             <span>I have read and agree to the
                 <a href="#" class="underlined" onclick="openDocModal(event,'privacy-modal')">privacy policy</a>
-                and consent to the processing of my personal data under the Data Privacy Act of 2012
             </span>
         </label>
     </div>

@@ -93,16 +93,20 @@ function buildReturnLine(reason) {
   }
   const when = reason && reason.created_at ? formatDate(reason.created_at) : "";
   const note = bits.join(" \u00b7 ");
+  const by =
+    reason && reason.returned_by
+      ? " &middot; " + escapeHtml(reason.returned_by)
+      : "";
   return `<div class="history-return-line">
-                <span class="history-tag history-tag--returned">Returned for revision${when ? " &middot; " + when : ""}</span>
+                <span class="history-tag history-tag--returned">Returned for revision${when ? " &middot; " + when : ""}${by}</span>
                 ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ""}
             </div>`;
 }
 
 function signedScanLabel(referenceNo) {
   return referenceNo
-    ? "Protocol Signed by IACUC Chair \u00b7 IPN " + referenceNo
-    : "Protocol Signed by IACUC Chair";
+    ? "Protocol Signed by IACUC Chairperson \u00b7 IPN " + referenceNo
+    : "Protocol Signed by IACUC Chairperson";
 }
 
 function buildVersionRows(versions, protocolId, currentStatus) {

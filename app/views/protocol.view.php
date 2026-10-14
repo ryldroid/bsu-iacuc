@@ -6,7 +6,6 @@
 /** @var string $csrf     */
 /** @var bool   $isPersonnel    */
 /** @var bool   $isStaff    */
-/** @var bool   $isReviewer */
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
 /** @var array|null $latestPaymentProofVersion */
@@ -38,7 +37,7 @@ $statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
 $isCompleted     = in_array($statusKey, ['approved'], true);
 $isLatestVersion = $isLatestVersion ?? true;
 
-$canReview = $isReviewer && $statusKey === 'under review' && $isLatestVersion;
+$canReview = $isPersonnel && $statusKey === 'under review' && $isLatestVersion;
 
 $canResubmit = !$isPersonnel && $isLatestVersion && $statusKey === 'needs revision';
 
@@ -405,7 +404,7 @@ include 'includes/header.php';
     <?php endif; ?>
 
     <?php if ($canReview): ?>
-        <!-- ===== Annotation hint (reviewer only, while under review, latest version only) ===== -->
+        <!-- ===== Annotation hint (personnel only, while under review, latest version only) ===== -->
         <div class="annot-toolbar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414A2 2 0 019 13z" />
@@ -438,7 +437,7 @@ include 'includes/header.php';
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#info-icon" />
                             </svg>
-                            Note from reviewer:
+                            Note from CCARD:
                         </div>
                         <p class="sidebar-reviewer-note-comment"><?= htmlspecialchars($reviewerNote['comment'], ENT_QUOTES, 'UTF-8') ?></p>
                     </div>
@@ -481,7 +480,7 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <!-- ===== Comment dialog (reviewer only, latest version, while under review) ===== -->
+    <!-- ===== Comment dialog (personnel only, latest version, while under review) ===== -->
     <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
             <div class="modal-card">
@@ -1028,7 +1027,6 @@ include 'includes/header.php';
     const PROTOCOL_ID = <?= $protocolId             ?>;
     const IS_PERSONNEL = <?= $isPersonnel    ? 'true' : 'false' ?>;
     const IS_STAFF = <?= $isStaff    ? 'true' : 'false' ?>;
-    const IS_REVIEWER = <?= $isReviewer ? 'true' : 'false' ?>;
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;
     const STATUS_KEY = <?= json_encode($statusKey) ?>;
     const IS_LATEST_VERSION = <?= $isLatestVersion ? 'true' : 'false' ?>;
@@ -1350,6 +1348,7 @@ include 'includes/header.php';
                 width: pendingBox.w,
                 height: pendingBox.h,
                 comment: text,
+                author: data.author,
                 created_at: new Date().toISOString(),
             });
             pendingBox = null;
@@ -1492,7 +1491,7 @@ include 'includes/header.php';
                 </button>` : ''}
             </div>
             <p class="annot-comment">${escapeHtml(ann.comment)}</p>
-            <p class="annot-date">${formatAnnotDate(ann.created_at)}</p>
+            <p class="annot-date">${ann.author ? escapeHtml(ann.author) + ' &middot; ' : ''}${formatAnnotDate(ann.created_at)}</p>
         </div>
     `).join('');
     }
@@ -1556,7 +1555,7 @@ include 'includes/header.php';
         document.getElementById('annotPopupNum').textContent = idx + 1;
         document.getElementById('annotPopupPage').textContent = 'Page ' + ann.page_number;
         document.getElementById('annotPopupComment').textContent = ann.comment;
-        document.getElementById('annotPopupDate').textContent = formatAnnotDate(ann.created_at);
+        document.getElementById('annotPopupDate').textContent = [ann.author, formatAnnotDate(ann.created_at)].filter(Boolean).join(' \u00b7 ');
 
         const actions = document.getElementById('annotPopupActions');
         const editBtn = document.getElementById('annotPopupEdit');

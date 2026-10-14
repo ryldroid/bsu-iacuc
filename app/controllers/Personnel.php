@@ -488,7 +488,7 @@ class Personnel extends Controller
                 ['Revision Submissions', $stats['revision_submissions']],
                 ['Average Revisions per Revised Protocol', $stats['avg_revisions']],
                 ['Protocols Endorsed', $stats['endorsed']],
-                ['Protocols Signed by IACUC Chair', $stats['signed']],
+                ['Protocols Signed by IACUC Chairperson', $stats['signed']],
                 ['Clearances Returned', $stats['clearances_returned']],
                 ['Total Records', $stats['total_records']],
                 ['Active Clearances (as of today)', $stats['active_clearances']],
@@ -899,7 +899,11 @@ class Personnel extends Controller
     public function accounts(): void
     {
         $this->requireStaff();
+        $this->renderAccounts();
+    }
 
+    private function renderAccounts(array $extra = []): void
+    {
         $auditDateRange = $this->userModel->getAuditLogDateRange();
 
         $today       = date('Y-m-d');
@@ -919,7 +923,7 @@ class Personnel extends Controller
             'personnel'      => $this->userModel->getPersonnelAccounts(),
             'auditDateRange' => $auditDateRange,
             'auditDefaults'  => ['from' => $defaultFrom, 'to' => $defaultTo],
-        ], $auditLogPage));
+        ], $auditLogPage, $extra));
     }
 
     // ===== AUDIT LOG VIEWER (AJAX) =====
@@ -1389,9 +1393,7 @@ class Personnel extends Controller
         $actor = $this->actor();
         $this->userModel->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
 
-        $this->view('personnel/personnel-accounts', [
-            'user'        => $_SESSION['user'],
-            'csrf'        => $this->generateCsrfToken(),
+        $this->renderAccounts([
             'invite_url'  => ROOT . '/personnel/register?token=' . $token,
             'invite_role' => $role,
         ]);

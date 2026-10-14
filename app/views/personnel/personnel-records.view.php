@@ -276,6 +276,12 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="dashboard-page-header records-page-header">
                     <div>
                         <h1 class="dashboard-page-title">Records</h1>
+                        <button type="button" class="action-link" data-guide-start="records">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#info-icon" />
+                            </svg>
+                            Page guide
+                        </button>
                         <!-- <p>Protocol entries are automatically added to the records table once the reviewer finishes review.</p> -->
                     </div>
 
@@ -537,7 +543,15 @@ function formatDurationRange(?string $start, ?string $end): string
             <div class="tab-panel" id="panel-statistics" role="tabpanel" aria-labelledby="tab-statistics"
                 data-tab-panel="statistics" <?= $activeTab === 'statistics' ? '' : 'hidden' ?>>
                 <div class="dashboard-page-header">
-                    <h1 class="dashboard-page-title">Statistics</h1>
+                    <div>
+                        <h1 class="dashboard-page-title">Statistics</h1>
+                        <button type="button" class="action-link" data-guide-start="statistics">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#info-icon" />
+                            </svg>
+                            Page guide
+                        </button>
+                    </div>
                     <a class="row-btn records-export-btn"
                         href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($periodParams) ?>">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -608,7 +622,7 @@ function formatDurationRange(?string $start, ?string $end): string
                         $inboxUrl . 'returned-for-revision'
                     );
                     renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', $inboxUrl . 'endorsed');
-                    renderStatCard('Signed by IACUC Chair', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed');
+                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed');
                     ?>
                 </div>
 
@@ -694,6 +708,36 @@ function formatDurationRange(?string $start, ?string $end): string
     </main>
 </div>
 
+<?php
+$guideId    = 'records';
+$guideSteps = [
+    ['Records', 'This table holds every protocol record. Records are added automatically when a protocol is marked **Reviewed**. Let us walk through it.'],
+    ['Search', 'Type here to search the records.', '#panel-records .inbox-search-wrap'],
+];
+if ($isStaff) {
+    $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
+}
+$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort**. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+if ($records) {
+    $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, and status.', '.records-table-wrap'];
+    $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or open its protocol file with the eye icon.' : 'Open the protocol file of a record with the eye icon.', '.records-table .row-actions:first-visible'];
+}
+if ($totalPages > 1) {
+    $guideSteps[] = ['Pagination', 'Move between pages of records.', '.pagination-bar'];
+}
+$guideSteps[] = ['Statistics tab', 'Switch to **Statistics** for totals and charts over a period you choose.', '#tab-statistics'];
+include dirname(__DIR__) . '/includes/guide.php';
+
+$guideId    = 'statistics';
+$guideSteps = [
+    ['Statistics', 'See review activity and record totals for a period you choose. Let us walk through it.'],
+    ['Period', 'Choose the period to report on, including a custom date range. When available, the figures are compared with the previous period.', '#statsPeriodForm'],
+    ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, active clearances, clearances returned, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
+    ['Breakdowns', 'Charts break the period down by resubmissions, animals used, school, researcher sex, and researcher type.', '.records-charts-grid'],
+    ['Download as Excel', 'Download the statistics and records for the chosen period as an Excel file.', '.records-export-btn'],
+];
+include dirname(__DIR__) . '/includes/guide.php';
+?>
 <?php include dirname(__DIR__) . '/includes/animal-type-options.php'; ?>
 <?php include dirname(__DIR__) . '/includes/person-options.php'; ?>
 

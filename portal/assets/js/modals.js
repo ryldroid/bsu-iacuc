@@ -383,9 +383,9 @@ function formatDateTime(value) {
     });
   }
 
-  // ===== Tours (see includes/tour.php) =====
-  function bindTour(modal) {
-    const tourId = modal.dataset.tour;
+  // ===== Guides (see includes/guide.php) =====
+  function bindGuide(modal) {
+    const guideId = modal.dataset.guide;
     const closeBtn = modal.querySelector(".modal-close");
 
     function close() {
@@ -403,16 +403,16 @@ function formatDateTime(value) {
       if (e.key === "Escape" && modal.classList.contains("open")) close();
     });
 
-    const restart = bindTourSteps(modal, close);
+    const restart = bindGuideSteps(modal, close);
 
-    function openTour() {
+    function openGuide() {
       restart();
       modal.classList.add("open");
       closeBtn.focus();
     }
 
     document
-      .querySelectorAll(`[data-tour-start="${tourId}"]`)
+      .querySelectorAll(`[data-guide-start="${guideId}"]`)
       .forEach((btn) => {
         btn.addEventListener("click", () => {
           document
@@ -421,17 +421,17 @@ function formatDateTime(value) {
           document
             .querySelector(".my-account-dropdown")
             ?.setAttribute("aria-expanded", "false");
-          openTour();
+          openGuide();
         });
       });
 
     // Auto-open once per browser
     if (modal.hasAttribute("data-show-once")) {
       try {
-        const seenKey = `iacuc-tour-seen-${tourId}`;
+        const seenKey = `iacuc-guide-seen-${guideId}`;
         if (!localStorage.getItem(seenKey)) {
           localStorage.setItem(seenKey, "1");
-          openTour();
+          openGuide();
         }
       } catch (e) {}
     }
@@ -446,14 +446,14 @@ function formatDateTime(value) {
     if (menuButton && isOpen !== open) menuButton.click();
   }
 
-  // Step-by-step spotlight tour; steps without a target stay centered. Returns a restart function.
-  function bindTourSteps(modal, close) {
+  // Step-by-step spotlight guide; steps without a target stay centered. Returns a restart function.
+  function bindGuideSteps(modal, close) {
     const steps = modal.querySelectorAll("[data-welcome-step]");
     const card = modal.querySelector(".welcome-modal-card");
-    const spotlight = modal.querySelector(".tour-spotlight");
+    const spotlight = modal.querySelector(".guide-spotlight");
     const dotsEl = modal.querySelector(".welcome-dots");
-    const backBtn = modal.querySelector("[data-tour-back]");
-    const nextBtn = modal.querySelector("[data-tour-next]");
+    const backBtn = modal.querySelector("[data-guide-back]");
+    const nextBtn = modal.querySelector("[data-guide-next]");
     const mobileQuery = window.matchMedia("(max-width: 768px)");
     const SPOT_PAD = 6;
     const CARD_GAP = 12;
@@ -469,8 +469,8 @@ function formatDateTime(value) {
 
     function targetSelector(step) {
       return (
-        (mobileQuery.matches && step.dataset.tourTargetMobile) ||
-        step.dataset.tourTarget
+        (mobileQuery.matches && step.dataset.guideTargetMobile) ||
+        step.dataset.guideTarget
       );
     }
 
@@ -502,7 +502,7 @@ function formatDateTime(value) {
 
     function place() {
       const box = targetBox(targetSelector(steps[current]));
-      modal.classList.toggle("tour-targeting", !!box);
+      modal.classList.toggle("guide-targeting", !!box);
       if (!box) {
         card.style.top = card.style.left = "";
         return;
@@ -580,7 +580,7 @@ function formatDateTime(value) {
   // ===== Start up =====
   bindAutoConfirm();
   bindImageZoomTriggers();
-  document.querySelectorAll(".tour-modal").forEach(bindTour);
+  document.querySelectorAll(".guide-modal").forEach(bindGuide);
 })();
 
 // ===== Modals marked data-static ignore clicks on the backdrop =====
