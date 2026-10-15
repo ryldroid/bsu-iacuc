@@ -206,10 +206,10 @@ header nav a:hover::after {
     position: fixed;
     top: 52px;
     right: -100%;
-    bottom: 0;
     z-index: 1000;
 
     width: 500px;
+    height: calc(100dvh - 52px);
     max-width: calc(100% - 40px);
 
     background-color: var(--card-background);
