@@ -23,6 +23,25 @@
     margin-bottom: 0;
 }
 
+/* ===== Font sizes: 1.1rem headings, 0.9rem content, 0.8rem secondary ===== */
+.accounts-card .data-table thead th {
+    font-size: 0.8rem;
+}
+
+.accounts-card .data-table tbody td {
+    font-size: 0.9rem;
+}
+
+.accounts-card .pagination-info {
+    font-size: 0.8rem;
+}
+
+.pending-box,
+.invite-form label,
+.audit-description {
+    font-size: 0.9rem;
+}
+
 .accounts-card h2 {
     font-size: 1.1rem;
     font-weight: 700;
@@ -117,7 +136,7 @@
     color: var(--text-on-brand);
     border: none;
     border-radius: var(--btn-radius);
-    font-size: 0.85em;
+    font-size: 0.9rem;
     font-weight: 600;
     font-family: var(--font-body);
     cursor: pointer;
@@ -176,7 +195,7 @@
 
 #copy-message {
     margin-top: 0.5rem;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--brand-text);
     min-height: 1.5em;
 }
@@ -184,7 +203,7 @@
 /* ===== Pending accounts ===== */
 .pending-count {
     color: var(--muted-text);
-    font-size: 0.85em;
+    font-size: 0.8rem;
     margin-bottom: .75rem;
 }
 
@@ -205,7 +224,7 @@
     align-items: center;
     gap: .5em;
     font-family: var(--font-default);
-    font-size: 1.1em;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--brand-text);
 }
@@ -216,7 +235,7 @@
 
 .empty-state p {
     color: var(--muted-text);
-    font-size: .9em;
+    font-size: 0.9rem;
 }
 
 .pending-box {
@@ -238,7 +257,7 @@
 
 .pending-meta {
     margin-top: 2px;
-    font-size: 0.85em;
+    font-size: 0.8rem;
     color: var(--muted-text);
     overflow-wrap: anywhere;
 }
@@ -255,7 +274,7 @@
 
 .reject-btn {
     padding: 10px 20px;
-    font-size: 0.85em;
+    font-size: 0.9rem;
     font-weight: 600;
     font-family: var(--font-body);
     border: 1px solid var(--danger-color);
@@ -289,10 +308,6 @@
         margin: .6rem 0;
     }
 
-    .pending-meta {
-        font-size: 0.78em;
-    }
-
     .pending-box .actions {
         width: 100%;
         gap: 0.4rem;
@@ -306,7 +321,6 @@
     .pending-box .actions .reject-btn {
         width: 100%;
         padding: 7px 10px;
-        font-size: 0.78em;
     }
 }
 
@@ -320,7 +334,7 @@
 
 .personnel-username {
     display: block;
-    font-size: .85em;
+    font-size: 0.8rem;
     color: var(--muted-text);
 }
 
@@ -332,7 +346,7 @@
     padding: 0.4rem 0.6rem;
     border: 1px solid var(--input-border);
     border-radius: var(--radius);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     background: var(--card-background);
     color: var(--primary-text);
     margin: 0;
@@ -354,7 +368,7 @@
     padding: 2px 9px;
     border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
     border-radius: 4px;
-    font-size: 0.78em;
+    font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
 }
@@ -369,7 +383,7 @@
 
 .personnel-status-btn {
     padding: 6px 14px;
-    font-size: 0.8em;
+    font-size: 0.8rem;
     white-space: nowrap;
 }
 
@@ -379,13 +393,11 @@
 
 @media (max-width: 768px) {
     .personnel-role-select {
-        font-size: 0.78rem;
         padding: 0.35rem 0.4rem;
     }
 
     .personnel-status-btn {
         padding: 6px 10px;
-        font-size: 0.76em;
     }
 }
 
@@ -397,7 +409,7 @@
 
 .role-confirm-field label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--secondary-text);
     margin-bottom: 0.4rem;
@@ -495,7 +507,7 @@
     padding: 0.5rem 0.7rem;
     border: 1px solid var(--input-border);
     border-radius: var(--radius);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     background: var(--card-background);
     color: var(--primary-text);
 }
@@ -509,7 +521,7 @@
     border: none;
     background: none;
     color: var(--brand-color);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     padding: 0.25rem 0;
@@ -553,10 +565,7 @@
 .audit-viewer-table tbody td:first-child,
 .audit-viewer-table tbody td:last-child {
     font-family: monospace;
-}
-
-.audit-viewer-table tbody td:last-child {
-    font-size: .85em;
+    font-size: 0.8rem;
 }
 
 .audit-viewer-table tbody td:nth-child(2) {
@@ -576,7 +585,7 @@
 
 .audit-viewer-role {
     display: block;
-    font-size: .8em;
+    font-size: 0.8rem;
     font-weight: 400;
     color: var(--muted-text);
 }
@@ -593,12 +602,6 @@
 
 .audit-viewer-section .pagination-bar {
     margin-top: 1rem;
-}
-
-@media (max-width: 768px) {
-    .audit-viewer-role {
-        font-size: .78em;
-    }
 }
 
 /* ===== AUDIT LOGS ===== */
@@ -622,7 +625,7 @@
 }
 
 .audit-form .form-section label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--secondary-text);
 }
 
@@ -682,7 +685,6 @@
 
     .audit-form input[type="date"] {
         padding: 0.5rem 0.4rem;
-        font-size: 0.82rem;
     }
 
     .audit-form .audit-full-history,

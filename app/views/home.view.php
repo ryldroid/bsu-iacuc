@@ -10,9 +10,8 @@ $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - 
 $aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
 $aboutParagraph2 = $siteSettings['about_paragraph_2'] ?? '';
 
-$ccardMapQuery = '16.4498918694924,120.59184710000001';
-$ccardMapEmbed = 'https://www.google.com/maps?q=' . $ccardMapQuery . '&z=18&output=embed';
-$ccardMapLink  = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($ccardMapQuery);
+$ccardMapEmbed = 'https://www.google.com/maps?cid=10697978370393166203&z=18&output=embed';
+$ccardMapLink  = 'https://www.google.com/maps/place/Cordillera+Center+for+Animal+Research+and+Development+(CCARD)/data=!4m2!3m1!1s0x0:0x9476daa5c618d17b';
 
 
 include "includes/header.php";
