@@ -16,7 +16,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#home-icon">
             </svg>
-            Visit public page
+            Go to public page
         </a>
 
         <form method="POST" action="<?= ROOT ?>/personnel/login_process">

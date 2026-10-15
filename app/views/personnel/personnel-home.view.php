@@ -133,6 +133,7 @@ foreach ($protocols as $p) {
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 <?php if ($personnelRole === 'staff'): ?>
@@ -906,6 +907,7 @@ foreach ($protocols as $p) {
 <?php endif; ?>
 
 <!-- ===== JavaScript ===== -->
+<script src="<?= asset_js('pagination.js') ?>"></script>
 <script>
     const protocolsData = <?= json_encode($protocols) ?>;
     const ROOT_URL = <?= json_encode(ROOT) ?>;
@@ -932,9 +934,7 @@ foreach ($protocols as $p) {
     const mobileSortLabel = document.getElementById('mobileSortLabel');
     const searchInput = document.getElementById('inboxSearchInput');
     const searchClearBtn = document.getElementById('inboxSearchClear');
-    const paginationInfo = document.getElementById('paginationInfo');
     const resultsSummary = document.getElementById('resultsSummary');
-    const paginationBtns = document.getElementById('paginationButtons');
     const rowsPerPageSel = document.getElementById('rowsPerPageSelect');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const paymentFilterWrapper = document.getElementById('paymentFilterWrapper');
@@ -960,8 +960,14 @@ foreach ($protocols as $p) {
 
     let activeFilter = DEFAULT_FILTER;
     let searchQuery = '';
-    let currentPage = 1;
-    let rowsPerPage = DEFAULT_ROWS;
+    const pager = createPagination({
+        info: document.getElementById('paginationInfo'),
+        buttons: document.getElementById('paginationButtons'),
+        rowsSelect: rowsPerPageSel,
+        defaultRows: DEFAULT_ROWS,
+        noun: 'protocols',
+        onChange: () => renderTable()
+    });
 
     // ===== Sort by =====
     const SORT_STORAGE_KEY = CURRENT_USER_ID + ':inboxSort';
@@ -974,9 +980,9 @@ foreach ($protocols as $p) {
     function saveView() {
         const url = new URL(window.location);
         setUrlParam(url.searchParams, 'q', searchInput?.value.trim());
-        setUrlParam(url.searchParams, 'rows', rowsPerPage !== DEFAULT_ROWS ? rowsPerPage : '');
+        setUrlParam(url.searchParams, 'rows', pager.rows !== DEFAULT_ROWS ? pager.rows : '');
         setUrlParam(url.searchParams, 'payment', paymentFilterSelect?.value);
-        setUrlParam(url.searchParams, 'page', currentPage > 1 ? currentPage : '');
+        setUrlParam(url.searchParams, 'page', pager.page > 1 ? pager.page : '');
         history.replaceState(null, '', url);
     }
 
@@ -985,10 +991,10 @@ foreach ($protocols as $p) {
         if (!resetViewBtn) return;
         resetViewBtn.hidden = activeFilter === DEFAULT_FILTER &&
             sortSelect?.value === DEFAULT_SORT &&
-            rowsPerPage === DEFAULT_ROWS &&
+            pager.rows === DEFAULT_ROWS &&
             !searchQuery &&
             !paymentFilterSelect?.value &&
-            currentPage === 1;
+            pager.page === 1;
     }
 
     resetViewBtn?.addEventListener('click', () => {
@@ -1004,7 +1010,7 @@ foreach ($protocols as $p) {
     sortSelect?.addEventListener('change', () => {
         localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
         applySort(sortSelect.value);
-        currentPage = 1;
+        pager.page = 1;
         renderTable();
     });
 
@@ -1251,7 +1257,7 @@ foreach ($protocols as $p) {
             filterPills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
             activeFilter = pill.dataset.filter;
-            currentPage = 1;
+            pager.page = 1;
 
             pill.scrollIntoView({
                 block: 'nearest',
@@ -1270,7 +1276,7 @@ foreach ($protocols as $p) {
 
     // ===== Payment status filter =====
     paymentFilterSelect?.addEventListener('change', () => {
-        currentPage = 1;
+        pager.page = 1;
         renderTable();
     });
 
@@ -1278,7 +1284,7 @@ foreach ($protocols as $p) {
     searchInput?.addEventListener('input', () => {
         searchQuery = searchInput.value.trim().toLowerCase();
         searchClearBtn.classList.toggle('visible', searchQuery.length > 0);
-        currentPage = 1;
+        pager.page = 1;
         renderTable();
     });
 
@@ -1286,16 +1292,9 @@ foreach ($protocols as $p) {
         searchInput.value = '';
         searchQuery = '';
         searchClearBtn.classList.remove('visible');
-        currentPage = 1;
+        pager.page = 1;
         renderTable();
         searchInput.focus();
-    });
-
-    // ===== Rows-per-page selector =====
-    rowsPerPageSel?.addEventListener('change', () => {
-        rowsPerPage = parseInt(rowsPerPageSel.value, 10);
-        currentPage = 1;
-        renderTable();
     });
 
     // ===== Restore filter from URL param (?status=...) =====
@@ -1346,13 +1345,9 @@ foreach ($protocols as $p) {
         allRows.forEach(row => row.classList.add('protocol-row-hidden'));
 
         const totalRows = visibleRows.length;
-        const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-        if (currentPage > totalPages) currentPage = totalPages;
+        const pageRows = pager.paginate(visibleRows);
         saveView();
         updateResetViewVisibility();
-
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        const pageRows = visibleRows.slice(startIndex, startIndex + rowsPerPage);
 
         pageRows.forEach(row => row.classList.remove('protocol-row-hidden'));
 
@@ -1367,89 +1362,6 @@ foreach ($protocols as $p) {
         if (resultsSummary) {
             resultsSummary.textContent = `Showing ${totalRows} protocol${totalRows === 1 ? '' : 's'}`;
         }
-
-        if (paginationInfo) {
-            if (totalRows === 0) {
-                paginationInfo.textContent = 'No protocols found';
-            } else {
-                const from = startIndex + 1;
-                const to = Math.min(startIndex + rowsPerPage, totalRows);
-                paginationInfo.textContent = `Showing ${from}–${to} of ${totalRows} protocols`;
-            }
-        }
-
-        renderPaginationButtons(totalPages);
-    }
-
-    // ===== Pagination buttons =====
-    function renderPaginationButtons(totalPages) {
-        if (!paginationBtns) return;
-        paginationBtns.innerHTML = '';
-
-        function makeBtn(label, page, isActive) {
-            const btn = document.createElement('button');
-            btn.className = 'pagination-btn' + (isActive ? ' active' : '');
-            btn.textContent = label;
-            btn.addEventListener('click', () => {
-                currentPage = page;
-                renderTable();
-            });
-            return btn;
-        }
-
-        function makeEllipsis() {
-            const span = document.createElement('span');
-            span.className = 'pagination-ellipsis';
-            span.textContent = '...';
-            return span;
-        }
-
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'pagination-btn';
-        prevBtn.innerHTML = '&#8249;';
-        prevBtn.setAttribute('aria-label', 'Previous page');
-        prevBtn.disabled = currentPage === 1;
-        prevBtn.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                renderTable();
-            }
-        });
-        paginationBtns.appendChild(prevBtn);
-
-        const pageSet = buildPageSet(currentPage, totalPages);
-        let prevPageNum = null;
-        pageSet.forEach(pageNum => {
-            if (prevPageNum !== null && pageNum - prevPageNum > 1) {
-                paginationBtns.appendChild(makeEllipsis());
-            }
-            paginationBtns.appendChild(makeBtn(pageNum, pageNum, pageNum === currentPage));
-            prevPageNum = pageNum;
-        });
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'pagination-btn';
-        nextBtn.innerHTML = '&#8250;';
-        nextBtn.setAttribute('aria-label', 'Next page');
-        nextBtn.disabled = currentPage === totalPages;
-        nextBtn.addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderTable();
-            }
-        });
-        paginationBtns.appendChild(nextBtn);
-    }
-
-    // ===== Page number set =====
-    function buildPageSet(current, total) {
-        const pages = new Set();
-        pages.add(1);
-        if (total > 1) pages.add(total);
-        for (let i = Math.max(1, current - 1); i <= Math.min(total, current + 1); i++) {
-            pages.add(i);
-        }
-        return [...pages].sort((a, b) => a - b);
     }
 
     // ===== Row action buttons =====
@@ -1736,16 +1648,13 @@ foreach ($protocols as $p) {
             searchClearBtn.classList.toggle('visible', searchQuery.length > 0);
         }
 
-        if (rowsPerPageSel && [...rowsPerPageSel.options].some(option => option.value === rowsValue)) {
-            rowsPerPageSel.value = rowsValue;
-            rowsPerPage = parseInt(rowsValue, 10);
-        }
+        pager.setRows(rowsValue);
 
         if (paymentFilterSelect && !paymentFilterWrapper.hidden && [...paymentFilterSelect.options].some(option => option.value === paymentValue)) {
             paymentFilterSelect.value = paymentValue;
         }
 
-        currentPage = Math.max(1, parseInt(urlParams.get('page'), 10) || 1);
+        pager.page = Math.max(1, parseInt(urlParams.get('page'), 10) || 1);
     })();
 
     // ===== Initial render =====
@@ -1766,16 +1675,14 @@ $guideSteps = [
 foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
-if ($protocols) {
-    $guideSteps = array_merge($guideSteps, [
-        ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
-        ['Actions', $personnelRole === 'staff'
-            ? 'Press **Review** on a protocol to leave comments or complete the review. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. All other cards show **View Protocol**, and **View Clearance** once approved.'
-            : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
-        ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows the payment history, the scan signed by the IACUC chairperson, and the temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button[data-action="show-history"]:first-visible'],
-        ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
-    ]);
-}
+$guideSteps = array_merge($guideSteps, [
+    ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
+    ['Actions', $personnelRole === 'staff'
+        ? 'Press **Review** on a protocol to leave comments or complete the review. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. All other cards show **View Protocol**, and **View Clearance** once approved.'
+        : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
+    ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows the payment history, the scan signed by the IACUC chairperson, and the temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button[data-action="show-history"]:first-visible'],
+    ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
+]);
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
 <?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>

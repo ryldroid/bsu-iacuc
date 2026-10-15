@@ -23,6 +23,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">

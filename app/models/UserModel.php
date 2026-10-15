@@ -16,6 +16,15 @@ class UserModel extends Model
     return $stmt->get_result()->fetch_assoc() ?: null;
   }
 
+  // True when any account other than $excludeId already uses this email
+  public function isEmailTakenByAnother(string $email, int $excludeId): bool
+  {
+    $stmt = $this->connection->prepare("SELECT 1 FROM $this->table WHERE email = ? AND id != ? LIMIT 1");
+    $stmt->bind_param('si', $email, $excludeId);
+    $stmt->execute();
+    return $stmt->get_result()->num_rows > 0;
+  }
+
   public function getUserByUsername($username)
   {
     $stmt = $this->connection->prepare("SELECT * FROM $this->table WHERE username = ?");

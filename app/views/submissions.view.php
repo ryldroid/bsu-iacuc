@@ -63,6 +63,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
@@ -383,6 +384,20 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     No protocols found with this status
                 </p>
             </div>
+
+            <!-- ===== Pagination ===== -->
+            <div class="pagination-bar" id="paginationBar">
+                <span class="pagination-info" id="paginationInfo"></span>
+                <div class="pagination-buttons" id="paginationButtons"></div>
+                <div class="rows-per-page-wrap">
+                    Rows per page:
+                    <select id="rowsPerPageSelect">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
         <?php endif; ?>
     </main>
 </div>
@@ -399,13 +414,12 @@ $guideSteps = [
 foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
-if ($protocols) {
-    $guideSteps = array_merge($guideSteps, [
-        ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-        ['Actions', '**View Protocol** opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
-        ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows your payment history, the scan signed by the IACUC chairperson, and your temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button:first-visible'],
-    ]);
-}
+$guideSteps = array_merge($guideSteps, [
+    ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
+    ['Actions', '**View Protocol** opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+    ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows your payment history, the scan signed by the IACUC chairperson, and your temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button:first-visible'],
+    ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],
+]);
 include 'includes/guide.php';
 ?>
 
@@ -725,16 +739,54 @@ include 'includes/guide.php';
     }
 </script>
 
+<script src="<?= asset_js('pagination.js') ?>"></script>
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
     const statusMeta = <?= json_encode($statusMeta) ?>;
     const filterBtns = document.querySelectorAll('.status-filters .status-card');
-    const protocolCards = document.querySelectorAll('.protocol');
+    const protocolsContainer = document.querySelector('.protocols-list');
     const sortSelect = document.getElementById('submissionsSortSelect');
     const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
     const mobileSortOptions = document.getElementById('mobileSortOptions');
     const mobileSortLabel = document.getElementById('mobileSortLabel');
     let currentFilter = 'all';
+
+    const pager = createPagination({
+        info: document.getElementById('paginationInfo'),
+        buttons: document.getElementById('paginationButtons'),
+        rowsSelect: document.getElementById('rowsPerPageSelect'),
+        noun: 'protocols',
+        storageKey: CURRENT_USER_ID + ':protocols',
+        onChange: () => renderProtocols()
+    });
+
+    // ===== Remember the page per status filter, so coming back from a protocol lands on the same page =====
+    const PAGE_STORAGE_KEY = CURRENT_USER_ID + ':protocolsPage';
+    const savedPage = JSON.parse(sessionStorage.getItem(PAGE_STORAGE_KEY) || 'null');
+
+    // ===== Render: status filter first, then the current page (cards are already in sorted order) =====
+    function matchingCards() {
+        if (!protocolsContainer) return [];
+        return [...protocolsContainer.querySelectorAll('.protocol')]
+            .filter(card => currentFilter === 'all' || card.dataset.status === currentFilter);
+    }
+
+    function renderProtocols() {
+        if (!protocolsContainer) return;
+        const matching = matchingCards();
+        const pageCards = pager.paginate(matching);
+        sessionStorage.setItem(PAGE_STORAGE_KEY, JSON.stringify({
+            filter: currentFilter,
+            page: pager.page
+        }));
+
+        protocolsContainer.querySelectorAll('.protocol').forEach(card => {
+            card.classList.toggle('protocol-row-hidden', !pageCards.includes(card));
+        });
+
+        const emptyMsg = protocolsContainer.querySelector('.no-results');
+        if (emptyMsg) emptyMsg.style.display = matching.length === 0 ? 'block' : 'none';
+    }
 
     // ===== Sort by =====
     const SORT_STORAGE_KEY = CURRENT_USER_ID + ':protocolsSort';
@@ -750,6 +802,8 @@ include 'includes/guide.php';
     sortSelect?.addEventListener('change', () => {
         localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
         applySort(sortSelect.value);
+        pager.page = 1;
+        renderProtocols();
     });
 
     function hexToRgba(hex, alpha) {
@@ -799,13 +853,8 @@ include 'includes/guide.php';
         }
         history.replaceState(null, '', url);
 
-        protocolCards.forEach(card => {
-            card.style.display = (selected === 'all' || card.dataset.status === selected) ? '' : 'none';
-        });
-
-        const visibleCards = [...protocolCards].filter(c => c.style.display !== 'none');
-        const emptyMsg = document.querySelector('.no-results');
-        if (emptyMsg) emptyMsg.style.display = visibleCards.length === 0 ? 'block' : 'none';
+        pager.page = 1;
+        renderProtocols();
     }
 
     // ===== Mobile sort dropdown open/close =====
@@ -870,11 +919,14 @@ include 'includes/guide.php';
         }
     })();
 
+    if (savedPage && savedPage.filter === currentFilter) pager.page = savedPage.page;
+
     (function highlightFromUrl() {
         const id = new URLSearchParams(window.location.search).get('highlight');
         const card = id && document.getElementById('protocol-' + id);
         if (!card) return;
         applySubmissionsFilter(card.dataset.status);
+        pager.goToItem(matchingCards(), card);
         card.scrollIntoView({
             block: 'center'
         });
@@ -889,6 +941,8 @@ include 'includes/guide.php';
             openFilePopup(card.dataset.signedScanUrl, 'Signed Scan');
         }
     })();
+
+    renderProtocols();
 
     // ===== Continue vs New Application =====
     (function() {

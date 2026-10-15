@@ -453,10 +453,11 @@ class User extends Controller
     }
 
     if (empty($errors)) {
-      $existing_email    = $this->userModel->getUserByEmail($email);
       $existing_username = $this->userModel->getUserByUsername($username);
 
-      if ($existing_email && (int) $existing_email['id'] !== $id) {
+      // Only a changed email needs the uniqueness check, so an unchanged one never blocks saving
+      $emailChanged = strcasecmp($email, $current_user['email']) !== 0;
+      if ($emailChanged && $this->userModel->isEmailTakenByAnother($email, $id)) {
         $errors[] = 'That email is already taken.';
       }
       if ($existing_username && (int) $existing_username['id'] !== $id) {

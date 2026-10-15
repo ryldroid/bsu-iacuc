@@ -154,6 +154,10 @@
   background-color: var(--hover-surface-soft);
 }
 
+.protocol.protocol-row-hidden {
+  display: none;
+}
+
 .protocol--highlight {
   animation: protocolHighlightFade 2s ease forwards;
 }

@@ -668,7 +668,9 @@ class Schema
         $exists = $c->query("SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'");
         if ($exists && $exists->num_rows === 0) {
             $keyword = $unique ? 'UNIQUE INDEX' : 'INDEX';
-            $c->query("ALTER TABLE `$table` ADD $keyword `$indexName` $definition");
+            if (!$c->query("ALTER TABLE `$table` ADD $keyword `$indexName` $definition")) {
+                error_log("Schema: could not add $keyword `$indexName` on `$table`: " . $c->error);
+            }
         }
     }
 }

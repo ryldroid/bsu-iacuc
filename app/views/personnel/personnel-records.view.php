@@ -237,6 +237,7 @@ function formatDurationRange(?string $start, ?string $end): string
 }
 ?>
 
+<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
