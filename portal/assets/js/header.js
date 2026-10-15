@@ -59,8 +59,10 @@ function showSidebar() {
 function openAccountDrawer() {
   closeSidebar();
   closeMoreMenu();
+  setHeaderHidden(false);
 
   accountFrame.src = accountFrame.dataset.src;
+  document.documentElement.classList.add("account-drawer-open");
   accountDrawer.classList.add("show");
   accountDrawer.removeAttribute("inert");
   backdrop.classList.add("active");
@@ -70,6 +72,7 @@ function openAccountDrawer() {
 function closeAccountDrawer() {
   if (!accountDrawer?.classList.contains("show")) return;
   accountDrawer.classList.remove("show");
+  document.documentElement.classList.remove("account-drawer-open");
   accountDrawer.setAttribute("inert", "");
   backdrop.classList.remove("active");
   accountButton.focus();

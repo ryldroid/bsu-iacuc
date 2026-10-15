@@ -219,6 +219,10 @@ header nav a:hover::after {
     right: 0;
 }
 
+html.account-drawer-open {
+    overflow: hidden;
+}
+
 #account-drawer iframe {
     display: block;
     width: 100%;
