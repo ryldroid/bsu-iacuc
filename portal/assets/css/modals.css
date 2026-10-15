@@ -223,7 +223,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 .announcement-modal-image-wrap {
     position: relative;
-    margin: 0 0 14px 0;
+    margin: 20px 0 14px 0;
 }
 
 .announcement-modal-card .announcement-modal-image {
@@ -261,14 +261,24 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 @media (max-width: 700px) {
     .announcement-modal-card {
-        width: calc(100% - 24px);
-        max-height: 90vh;
+        width: calc(100% - 40px);
+        max-height: 75vh;
         overflow-y: auto;
-        margin: 12px;
+        margin: 20px;
+        padding: 1.25rem;
     }
 
     .announcement-modal-card .announcement-modal-image {
-        max-height: 40vh;
+        max-height: 55vh;
+    }
+
+    .announcement-modal-card .announcement-modal-title {
+        font-size: 1rem;
+    }
+
+    .announcement-modal-text {
+        font-size: .85rem;
+        line-height: 1.5;
     }
 }
 

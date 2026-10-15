@@ -10,7 +10,7 @@ header {
     color: var(--text-on-brand);
     box-shadow: 0 2px 4px var(--shadow-color);
 
-    padding: 0 20px;
+    padding: 0 10px;
     height: 52px;
 
     top: 0;
@@ -101,6 +101,9 @@ header img {
 
 /* ===== Logo ===== */
 .header-logo-cont {
+    display: flex;
+    align-items: center;
+    gap: .25em;
     flex: 1;
 }
 
@@ -178,7 +181,7 @@ header nav a:hover::after {
 
     position: fixed;
     top: 0;
-    right: -100%;
+    left: -100%;
     z-index: 999;
 
     height: 100vh;
@@ -187,16 +190,16 @@ header nav a:hover::after {
     box-sizing: border-box;
 
     background-color: var(--card-background-translucent);
-    box-shadow: -4px 0 20px var(--shadow-color-soft);
-    border-left: 3px solid var(--brand-text);
+    box-shadow: 4px 0 20px var(--shadow-color-soft);
+    border-right: 3px solid var(--brand-text);
     color: var(--primary-text);
     backdrop-filter: blur(10px);
 
-    transition: right 250ms ease;
+    transition: left 250ms ease;
 }
 
 .nav-sidebar.show {
-    right: 0;
+    left: 0;
 }
 
 #account-drawer {
@@ -284,7 +287,7 @@ html.account-drawer-open {
 }
 
 /* ===== Auth area ===== */
-.header-auth .mobile-menu {
+.mobile-menu {
     display: none;
     margin-left: 0;
 }
@@ -462,6 +465,11 @@ header [data-tooltip]::after {
     }
 }
 
+header .mobile-menu[data-tooltip]::after {
+    left: 0;
+    right: auto;
+}
+
 header [data-tooltip]:focus-visible::after,
 header [data-tooltip].tooltip-show::after {
     opacity: 1;
@@ -517,9 +525,10 @@ header [data-tooltip][aria-expanded="true"]::after {
     background: var(--tint-on-brand-soft);
     border: 1px solid var(--tint-on-brand);
     font-weight: 600;
+    margin-right: 10px;
 }
 
-.header-auth button {
+:is(.header-auth, .header-logo-cont) button {
     display: flex;
     align-items: center;
     gap: .5em;
@@ -538,7 +547,7 @@ header [data-tooltip][aria-expanded="true"]::after {
     transition: all 0.2s ease;
 }
 
-.header-auth button:active {
+:is(.header-auth, .header-logo-cont) button:active {
     background: var(--brand-tint-active);
 }
 
@@ -689,6 +698,7 @@ header [data-tooltip][aria-expanded="true"]::after {
     }
 
     .header-auth>button,
+    .mobile-menu,
     header .theme-toggle {
         height: 34px;
         margin-left: 0;
@@ -696,12 +706,13 @@ header [data-tooltip][aria-expanded="true"]::after {
         gap: 0;
     }
 
-    .header-auth .mobile-menu {
+    .mobile-menu {
         display: flex;
         z-index: 999;
     }
 
     .header-auth svg,
+    .mobile-menu svg,
     header .theme-toggle-icon {
         width: 24px;
         height: 24px;

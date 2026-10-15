@@ -33,7 +33,7 @@ $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
     $guideHome,
     ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
     $guideAnnouncements,
@@ -45,7 +45,7 @@ if ($role === 'researcher') {
 } elseif ($role === 'staff') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
     ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
@@ -57,7 +57,7 @@ if ($role === 'researcher') {
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
     ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
@@ -68,7 +68,7 @@ if ($role === 'researcher') {
   $welcomeSteps = [
     ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
     ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
-    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
     $guideHome,
     $guideAnnouncements,
     $guideContact,
@@ -85,6 +85,7 @@ if ($role === 'researcher') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google" content="notranslate">
+  <meta name="darkreader-lock">
 
   <?php $default = "BSU-IACUC"; ?>
   <title><?= isset($title) ? "$title - $default" : $default ?></title>
@@ -143,6 +144,19 @@ if ($role === 'researcher') {
   <?php if (!$hideHeader): ?>
     <header>
       <div class="header-logo-cont">
+        <?php if (!$hideHeaderAuth): ?>
+          <!-- MOBILE HAMBURGER ICON -->
+          <button
+            class="mobile-menu"
+            aria-expanded="false"
+            aria-controls="nav-sidebar"
+            aria-label="Menu"
+            data-tooltip="Menu">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#menu-icon" />
+            </svg>
+          </button>
+        <?php endif; ?>
         <a href="<?= $previewMode ? $pubRoot . '/home' : ROOT ?>" class="header-logo">
           <div>
             <!-- <img src="<?= IMGPATH ?>/bsu.webp" alt=""> -->
@@ -268,18 +282,6 @@ if ($role === 'researcher') {
             <a href="<?= ROOT ?>/user/login" id="headerLogin" class="auth-btn">Sign In</a>
             <a href="<?= ROOT ?>/user/register" id="headerRegister" class="auth-btn">Register</a>
           <?php } ?>
-
-          <!-- MOBILE HAMBURGER ICON -->
-          <button
-            class="mobile-menu"
-            aria-expanded="false"
-            aria-controls="nav-sidebar"
-            aria-label="Menu"
-            data-tooltip="Menu">
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#menu-icon" />
-            </svg>
-          </button>
         </div>
       <?php endif; ?>
     </header>

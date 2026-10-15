@@ -46,7 +46,7 @@
 
 /* ===== Theme colors (light) ===== */
 :root {
-    color-scheme: light;
+    color-scheme: only light;
 
     --radius: 4px;
     --btn-radius: 8px;

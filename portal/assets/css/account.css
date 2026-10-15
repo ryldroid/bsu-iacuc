@@ -767,3 +767,27 @@ html.in-drawer .switch-toggle {
     justify-content: space-between;
     font-size: 1em;
 }
+
+/* ===== Account drawer: smaller on phones ===== */
+@media (max-width: 479px) {
+    html.in-drawer {
+        font-size: 14px;
+    }
+
+    html.in-drawer main {
+        padding: 24px 18px 32px;
+    }
+
+    html.in-drawer h1 {
+        margin-bottom: 16px;
+    }
+
+    html.in-drawer :is(.input-group input, .input-group select, .phone-prefix) {
+        padding: 11px 10px;
+    }
+
+    html.in-drawer .settings-section {
+        margin-top: 20px;
+        padding: 16px 16px;
+    }
+}

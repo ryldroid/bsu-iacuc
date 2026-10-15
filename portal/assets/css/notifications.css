@@ -237,18 +237,28 @@
 
 /* ===== Mobile ===== */
 @media (max-width: 768px) {
+
+  #notif-dropdown,
+  .notif-page-list {
+    font-size: .88em;
+  }
+
   #notif-dropdown {
-    width: min(360px, 92vw);
+    width: min(320px, 92vw);
+  }
+
+  .notif-list {
+    max-height: min(420px, 65vh);
   }
 
   .notif-item-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 
   .notif-item-icon svg {
-    width: 17px;
-    height: 17px;
+    width: 16px;
+    height: 16px;
   }
 }
 
