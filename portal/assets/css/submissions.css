@@ -56,7 +56,7 @@
     background: var(--success-background-soft);
     border-radius: 6px;
     font-size: .78rem;
-    max-width: 480px;
+    max-width: 720px;
     color: var(--status-success-text);
 }
 

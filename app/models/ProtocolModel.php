@@ -13,6 +13,14 @@ class ProtocolModel extends Model
         'veterinarian'     => 'Veterinarian',
     ];
 
+    // ===== PAYMENT STATUS LABELS =====
+    public const PAYMENT_LABELS = [
+        'unpaid'          => 'Unpaid',
+        'proof_submitted' => 'Verifying Payment',
+        'rejected'        => 'Payment Rejected',
+        'paid'            => 'Paid',
+    ];
+
     public function insertProtocol(int $userId, string $title, array $details): int | false
     {
         $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';

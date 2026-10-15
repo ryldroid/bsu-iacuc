@@ -507,6 +507,13 @@ class Schema
         $reviewed->bind_param('ssssss', $paidTitle, $unpaidTitle, $paidStep, $unpaidStep, $paidStep, $unpaidStep);
         $reviewed->execute();
 
+        $retitled = $c->prepare(
+            "UPDATE `notifications` SET title = ?
+             WHERE type = 'protocol_status_reviewed' AND title = 'Review Passed: Payment Due'"
+        );
+        $retitled->bind_param('s', $unpaidTitle);
+        $retitled->execute();
+
         $signed = $c->prepare(
             "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
              WHERE type = 'signed_scan_uploaded' AND message NOT LIKE CONCAT('%', ?)"

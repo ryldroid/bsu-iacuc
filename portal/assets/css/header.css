@@ -473,13 +473,13 @@ header [data-tooltip][aria-expanded="true"]::after {
     height: var(--header-icon-size);
 }
 
-.header-auth a {
+.header-auth a:where(:not(.notif-item)) {
     padding: 5px 10px;
     border-radius: var(--radius);
     transition: all 0.2s ease;
 }
 
-.header-auth a:hover,
+.header-auth a:where(:not(.notif-item)):hover,
 #headerRegister:hover {
     background: var(--tint-on-brand);
 }

@@ -45,8 +45,8 @@ $statusDescByRole = [
     'staff' => [
         'to-review'             => 'Submitted protocols waiting for review. Open one to leave comments, then return it for revision or complete the review.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "The review is finished. Confirm the PI's payment, assign the IPN, print the protocol for the IACUC chairperson's signature, upload the signed scan, then mark it as Endorsed.",
-        'endorsed'              => "Protocol has been endorsed to DA-CARFU. Upload the released animal research clearances below, assign each protocol's AR number, match each clearance to its protocol, then confirm to mark them Approved.",
+        'reviewed'              => "The review is finished. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**.",
+        'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
@@ -122,13 +122,6 @@ $reviewedCount  = $countsBySlug['reviewed']              ?? 0;
 $endorsedCount  = $countsBySlug['endorsed']              ?? 0;
 $approvedCount  = $countsBySlug['approved']              ?? 0;
 
-$paymentLabels = [
-    'unpaid'          => 'Unpaid',
-    'proof_submitted' => 'Awaiting Confirmation',
-    'rejected'        => 'Payment Rejected',
-    'paid'            => 'Paid',
-];
-
 // ===== Count reviewed protocols with a file to download, so the =====
 $reviewedDownloadableCount = 0;
 foreach ($protocols as $p) {
@@ -159,14 +152,12 @@ foreach ($protocols as $p) {
             <!-- ===== Search bar ===== -->
             <div class="dashboard-search-row">
                 <h1 class="dashboard-page-title">Protocol Inbox</h1>
-                <?php if (($user['role'] ?? '') === 'reviewer'): ?>
-                    <button type="button" class="action-link" data-guide-start="inbox">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon" />
-                        </svg>
-                        Page guide
-                    </button>
-                <?php endif; ?>
+                <button type="button" class="action-link" data-guide-start="inbox">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    Page guide
+                </button>
                 <div class="inbox-search-wrap">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -348,7 +339,7 @@ foreach ($protocols as $p) {
                                 </label>
                                 <select id="paymentFilterSelect" class="dashboard-select-trigger">
                                     <option value="">All payments</option>
-                                    <?php foreach ($paymentLabels as $paymentValue => $paymentLabel): ?>
+                                    <?php foreach (ProtocolModel::PAYMENT_LABELS as $paymentValue => $paymentLabel): ?>
                                         <option value="<?= $paymentValue ?>"><?= $paymentLabel ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -765,7 +756,7 @@ foreach ($protocols as $p) {
                                         <?= $title ?>
                                         <?php if ($statusLower === 'reviewed'): ?>
                                             <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
-                                                <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                                <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php elseif ($statusLower === 'approved'): ?>
                                             <span class="payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
@@ -1761,25 +1752,32 @@ foreach ($protocols as $p) {
     renderTable();
 </script>
 
-<?php if (($user['role'] ?? '') === 'reviewer') {
-    $guideId    = 'inbox';
-    $guideSteps = [
-        ['Protocol Inbox', 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
-        ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
-        ['Status filters', 'Filter the inbox by status. It opens on To review, which is your queue. The number next to each name is how many protocols have that status.', '#filterPillsRow'],
-        ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
-        ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means for you.', '.status-legend-bar'],
-    ];
-    if ($protocols) {
-        $guideSteps = array_merge($guideSteps, [
-            ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
-            ['Review', 'Press **Review** on a To review protocol to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
-            ['Show History', "See every submission round of a protocol, including the researcher's revisions.", '.protocols-list .protocol .actions-secondary:first-visible'],
-            ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
-        ]);
-    }
-    include dirname(__DIR__) . '/includes/guide.php';
-} ?>
+<?php
+$guideId    = 'inbox';
+$guideSteps = [
+    ['Protocol Inbox', $personnelRole === 'staff'
+        ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
+        : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
+    ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
+    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status.', '#filterPillsRow'],
+    ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
+    ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means for you. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
+];
+foreach (array_values($statusMeta) as $index => $meta) {
+    $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
+}
+if ($protocols) {
+    $guideSteps = array_merge($guideSteps, [
+        ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
+        ['Actions', $personnelRole === 'staff'
+            ? 'Press **Review** on a protocol to leave comments or complete the review. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. All other cards show **View Protocol**, and **View Clearance** once approved.'
+            : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
+        ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows the payment history, the scan signed by the IACUC chairperson, and the temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button[data-action="show-history"]:first-visible'],
+        ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
+    ]);
+}
+include dirname(__DIR__) . '/includes/guide.php';
+?>
 <?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>
 <script>
     window.historyModalConfig = {

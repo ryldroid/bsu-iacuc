@@ -37,7 +37,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'Your protocol passed CCARD review. Press Pay Clearance Fee on the protocol card and pay the Php 100.00 animal research clearance fee. Once the CCARD reviewer verifies your payment, wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'Your protocol passed CCARD review. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. BSU researchers must pay in person, while researchers outside BSU may pay in person or online by contacting the CCARD director. Once CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -49,7 +49,7 @@ $statusMeta = [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! You may now download your animal research clearance. Please also visit the BSU-CCARD office to claim the embossed hard copy. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
+        'desc'  => 'Congratulations, your protocol has been approved! You may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
     ],
 ];
 
@@ -210,7 +210,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
                                 </p>
                                 <p class="legend-info-desc">
-                                    <?= htmlspecialchars($meta['desc'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?= Notifier::toHtml($meta['desc']) ?>
                                 </p>
                             </div>
                         </div>
@@ -249,12 +249,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $isReviewedStatus = strtolower($protocol['status']) === 'reviewed';
                     $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
                     $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
-                    $paymentLabels = [
-                        'unpaid'          => 'Payment Due',
-                        'proof_submitted' => 'Verifying Payment',
-                        'rejected'        => 'Payment Rejected',
-                        'paid'            => 'Paid',
-                    ];
                     $versionNum    = submission_round_label((int) ($protocol['latest_version'] ?? 1));
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
@@ -274,7 +268,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
                                     <?php if ($statusKey === 'reviewed'): ?>
                                         <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
-                                            <?= htmlspecialchars($paymentLabels[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                            <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                     <?php endif; ?>
                                 </p>
@@ -294,7 +288,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <?php if (!empty($protocol['hard_copy_released_at'])): ?>
                                             <strong>Embossed hard copy picked up</strong> on <?= date(DATE_FORMAT, strtotime($protocol['hard_copy_released_at'])) ?>.
                                         <?php else: ?>
-                                            <strong>Embossed hard copy ready for pickup.</strong> The downloadable clearance is a temporary (soft copy). Please visit the BSU-CCARD office to claim your embossed hard copy. Office hours: Monday to Friday, 8:00 AM to 5:00 PM. See the <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page for the location.
+                                            <strong>Your embossed hard copy is ready for pickup.</strong> The downloadable clearance is for temporary reference only. Please visit the BSU-CCARD Office to claim your embossed hard copy during office hours, Monday to Friday, 8:00 AM to 5:00 PM. For the office location, please visit our <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page.
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
@@ -400,13 +394,16 @@ $guideSteps = [
     ['New Application', 'Start a new protocol application here. If you have one in progress, you can resume it from the same spot.', '#apply-actions-sub'],
     ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters'],
     ['Sort', 'Change the order of your list: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
-    ['Status colors', 'Every status has its own color and icon. Press the question mark at the end of this bar to see what each status means and what you need to do.', '.status-legend-bar'],
+    ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means and what you need to do. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];
+foreach (array_values($statusMeta) as $index => $meta) {
+    $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
+}
 if ($protocols) {
     $guideSteps = array_merge($guideSteps, [
         ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
-        ['Open and Show History', '**Open** shows the protocol and its files. **Show History** lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
+        ['Actions', '**View Protocol** opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+        ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows your payment history, the scan signed by the IACUC chairperson, and your temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button:first-visible'],
     ]);
 }
 include 'includes/guide.php';

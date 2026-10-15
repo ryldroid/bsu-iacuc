@@ -107,7 +107,7 @@ function notifDateGroup(string $dateStr): string
           <?php if ($page > 1): ?>
             <a href="<?= notifPageUrl($page - 1) ?>" class="notif-page-btn" title="Previous">‹</a>
           <?php else: ?>
-            <span class="notif-page-btn" style="opacity:.35;cursor:default">‹</span>
+            <span class="notif-page-btn disabled">‹</span>
           <?php endif; ?>
 
           <?php
@@ -124,7 +124,7 @@ function notifDateGroup(string $dateStr): string
           <?php if ($page < $totalPages): ?>
             <a href="<?= notifPageUrl($page + 1) ?>" class="notif-page-btn" title="Next">›</a>
           <?php else: ?>
-            <span class="notif-page-btn" style="opacity:.35;cursor:default">›</span>
+            <span class="notif-page-btn disabled">›</span>
           <?php endif; ?>
         </div>
       </div>
