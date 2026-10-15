@@ -243,7 +243,7 @@ class Controller
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
 
     $cooldown = 45;
-    $success  = "Please check your email inbox (and your spam folder) and click on the link to reset your password. If you request another link, please wait {$cooldown} seconds.";
+    $success  = "Please check your email inbox or spam folder for the password reset link. If you need to request another link, please wait {$cooldown} seconds before trying again.";
 
     $user     = $this->userModel->getUserByEmail($email);
     $elapsed  = $user ? $this->userModel->secondsSinceLastPasswordReset((int) $user['id']) : null;

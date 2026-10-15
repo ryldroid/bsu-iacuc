@@ -37,10 +37,6 @@ body {
     margin-bottom: 0;
 }
 
-.portal-header .action-link {
-    margin-left: auto;
-}
-
 .portal-header .action-link svg {
     width: 16px;
     height: 16px;

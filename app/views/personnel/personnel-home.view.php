@@ -153,12 +153,8 @@ foreach ($protocols as $p) {
             <!-- ===== Search bar ===== -->
             <div class="dashboard-search-row">
                 <h1 class="dashboard-page-title">Protocol Inbox</h1>
-                <button type="button" class="action-link" data-guide-start="inbox">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    Page guide
-                </button>
+                <?php $pageGuideId = 'inbox';
+                include dirname(__DIR__) . '/includes/page-guide.php'; ?>
                 <div class="inbox-search-wrap">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">

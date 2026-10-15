@@ -40,12 +40,18 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
         <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
         <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
-            <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
+            <button type="button" role="tab" class="has-guide" id="tab-audit-logs" data-tab="audit-logs"
                 aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
                 aria-controls="panel-audit-logs">Audit Logs</button>
-            <button type="button" role="tab" id="tab-accounts" data-tab="accounts"
+            <?php $tabGuideId = 'audit-logs';
+            $tabGuideLabel = 'Audit Logs';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
+            <button type="button" role="tab" class="has-guide" id="tab-accounts" data-tab="accounts"
                 aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
                 aria-controls="panel-accounts">Manage Accounts</button>
+            <?php $tabGuideId = 'accounts';
+            $tabGuideLabel = 'Manage Accounts';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
         </div>
 
         <div id="accountsTabPanels">
@@ -298,6 +304,33 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
     </main>
 </div>
+
+<?php
+$guideId    = 'audit-logs';
+$guideSteps = [
+    ['Audit Logs', 'This page keeps a record of actions taken in the system. Let us walk through it.'],
+    ['Audit log viewer', 'Each entry shows when it happened, who did it, the action, what it affected, the details, and the IP address.', '#audit-log-results'],
+    ['Refresh and date', 'Press the refresh icon to load the latest entries, or pick a date to see only that day. **Show all** brings every entry back.', '.audit-jump-to-date'],
+];
+if ($auditPages > 1) {
+    $guideSteps[] = ['Pagination', 'Move between pages of entries.', '#audit-log-results .pagination-bar'];
+}
+$guideSteps[] = ['Download Audit Logs', 'Export entries to Excel for the dates you choose. The default is the last 90 days, or tick **Export full history** for everything.', '#auditForm'];
+$guideSteps[] = ['Manage Accounts tab', 'Switch to **Manage Accounts** to approve new personnel and manage roles.', '#tab-accounts'];
+include dirname(__DIR__) . '/includes/guide.php';
+
+$guideId    = 'accounts';
+$guideSteps = [
+    ['Manage Accounts', 'Approve new personnel, invite staff or reviewers, and manage roles. Let us walk through it.'],
+];
+if ($isStaff) {
+    $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
+    $guideSteps[] = ['Registration link', 'Choose a role and generate a registration link to send to a new staff member or reviewer. The link works for 48 hours.', '.invite-section'];
+}
+$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed.', '.personnel-manage-section'];
+$guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
+include dirname(__DIR__) . '/includes/guide.php';
+?>
 
 <!-- Confirm role change modal -->
 

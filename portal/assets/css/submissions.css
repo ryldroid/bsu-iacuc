@@ -2,12 +2,12 @@
 
 .submission-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     gap: 12px;
 }
 
-.submission-header [data-guide-start] {
+.submission-header #apply-actions-sub {
     margin-left: auto;
 }
 

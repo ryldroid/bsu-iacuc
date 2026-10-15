@@ -25,12 +25,8 @@ include "includes/scroll-top.php";
                     <use href="#beaker-icon" />
                 </svg>
                 <h1>IACUC Application Portal</h1>
-                <button type="button" class="action-link" data-guide-start="apply">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    Page guide
-                </button>
+                <?php $pageGuideId = 'apply';
+                include 'includes/page-guide.php'; ?>
             </div>
 
             <div class="stepper" id="stepper"></div>

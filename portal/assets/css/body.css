@@ -343,6 +343,36 @@ button:active,
     gap: 4px;
 }
 
+/* ===== Guide "?" disc (page and tab guides) ===== */
+.guide-disc {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 50%;
+    padding: 2px;
+    margin: 0;
+    color: var(--text-on-brand);
+    cursor: pointer;
+}
+
+.guide-disc svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-on-brand);
+}
+
+.guide-disc .guide-disc-fill {
+    fill: var(--brand-color);
+}
+
+.guide-disc:hover .guide-disc-fill {
+    fill: var(--brand-color-hover);
+}
+
 .action-link[hidden] {
     display: none;
 }

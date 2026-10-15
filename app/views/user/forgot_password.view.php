@@ -36,6 +36,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <?php
             $alertType = 'success';
             $alertMessages = $success;
+            $alertAutoDismiss = 0;
             include dirname(__DIR__) . '/includes/alert.php';
             ?>
 

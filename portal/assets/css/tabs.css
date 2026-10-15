@@ -41,6 +41,35 @@
   border-radius: var(--btn-radius) var(--btn-radius) 0 0;
 }
 
+/* ===== Tab guide "?" (sits inside the active tab) ===== */
+.tab-strip button[aria-selected="true"].has-guide {
+  padding-right: 40px;
+}
+
+.tab-strip button.tab-guide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  position: relative;
+  z-index: 1;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  padding: 2px;
+  margin: 0 6px 0 -38px;
+  color: var(--text-on-brand);
+}
+
+.tab-strip button.tab-guide:hover {
+  color: var(--text-on-brand);
+  background: none;
+}
+
+.tab-strip button[aria-selected="false"]+.tab-guide {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .tab-strip {
     gap: 2px;

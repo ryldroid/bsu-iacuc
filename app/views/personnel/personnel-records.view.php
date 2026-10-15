@@ -256,12 +256,18 @@ function formatDurationRange(?string $start, ?string $end): string
 
         <!-- ===== Tabs: Records / Statistics ===== -->
         <div class="tab-strip" role="tablist" aria-label="Records sections" data-tab-panels="recordsTabPanels" data-tab-param="tab">
-            <button type="button" role="tab" id="tab-records" data-tab="records"
+            <button type="button" role="tab" class="has-guide" id="tab-records" data-tab="records"
                 aria-selected="<?= $activeTab === 'records' ? 'true' : 'false' ?>"
                 aria-controls="panel-records">Records</button>
-            <button type="button" role="tab" id="tab-statistics" data-tab="statistics"
+            <?php $tabGuideId = 'records';
+            $tabGuideLabel = 'Records';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
+            <button type="button" role="tab" class="has-guide" id="tab-statistics" data-tab="statistics"
                 aria-selected="<?= $activeTab === 'statistics' ? 'true' : 'false' ?>"
                 aria-controls="panel-statistics">Statistics</button>
+            <?php $tabGuideId = 'statistics';
+            $tabGuideLabel = 'Statistics';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
         </div>
 
         <div id="recordsTabPanels">
@@ -271,12 +277,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="dashboard-page-header records-page-header">
                     <div>
                         <h1 class="dashboard-page-title">Records</h1>
-                        <button type="button" class="action-link" data-guide-start="records">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#info-icon" />
-                            </svg>
-                            Page guide
-                        </button>
                         <!-- <p>Protocol entries are automatically added to the records table once the reviewer finishes review.</p> -->
                     </div>
 
@@ -540,12 +540,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="dashboard-page-header">
                     <div>
                         <h1 class="dashboard-page-title">Statistics</h1>
-                        <button type="button" class="action-link" data-guide-start="statistics">
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#info-icon" />
-                            </svg>
-                            Page guide
-                        </button>
                     </div>
                     <a class="row-btn records-export-btn"
                         href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($periodParams) ?>">

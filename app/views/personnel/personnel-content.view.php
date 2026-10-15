@@ -40,14 +40,20 @@ $activeTab     = $activeTab     ?? 'announcements';
     <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
     <div class="tab-strip" role="tablist" aria-label="Content sections" data-tab-panels="contentTabPanels">
-      <button type="button" role="tab" id="tab-announcements" data-tab="announcements"
+      <button type="button" role="tab" class="has-guide" id="tab-announcements" data-tab="announcements"
         data-tab-href="<?= ROOT ?>/personnel/announcements"
         aria-selected="<?= $activeTab === 'announcements' ? 'true' : 'false' ?>"
         aria-controls="panel-announcements">Announcements</button>
-      <button type="button" role="tab" id="tab-site_content" data-tab="site_content"
+      <?php $tabGuideId = 'site-announcements';
+      $tabGuideLabel = 'Announcements';
+      include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
+      <button type="button" role="tab" class="has-guide" id="tab-site_content" data-tab="site_content"
         data-tab-href="<?= ROOT ?>/personnel/site_content"
         aria-selected="<?= $activeTab === 'site_content' ? 'true' : 'false' ?>"
         aria-controls="panel-site_content">Homepage</button>
+      <?php $tabGuideId = 'site-homepage';
+      $tabGuideLabel = 'Homepage';
+      include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
     </div>
 
     <div id="contentTabPanels">
@@ -255,6 +261,36 @@ $activeTab     = $activeTab     ?? 'announcements';
     </div>
   </main>
 </div>
+
+<?php
+$guideId    = 'site-announcements';
+$guideSteps = [
+  ['Announcements', 'These are the announcements shown on the public Announcements page. Let us walk through it.'],
+  ['Add Announcement', 'Post a new announcement. The title, content, and image are each optional.', '#addAnnouncementBtn'],
+];
+if ($announcements) {
+  $guideSteps[] = ['Announcement list', 'Each row shows the photo, title, caption, and the date it was posted.', '#panel-announcements .ann-list'];
+  $guideSteps[] = ['Row actions', 'Edit an announcement to change its text, replace its photo, or remove the photo. Delete takes it off the public page.', '#panel-announcements .ann-row-actions:first-visible'];
+}
+$guideSteps[] = ['Homepage tab', 'Switch to **Homepage** to edit the homepage banner, contact offices, and FAQ.', '#tab-site_content'];
+include dirname(__DIR__) . '/includes/guide.php';
+
+$guideId    = 'site-homepage';
+$guideSteps = [
+  ['Homepage', 'Edit what visitors see on the public homepage and Contact page. Let us walk through it.'],
+  ['Homepage Content', 'Change the banner title and the first two "What is IACUC?" paragraphs. Press **Save Changes** and confirm to apply your edits.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
+  ['Add Office', 'Add an office card to the public Contact page.', '#addOfficeBtn'],
+];
+if ($offices) {
+  $guideSteps[] = ['Office list', 'Use the arrows to change the order the offices appear in, or edit and delete an office.', '#office-list .ann-row-actions:first-visible'];
+}
+$guideSteps[] = ['Add FAQ', 'Add a question and answer to the FAQ on the public homepage.', '#addFaqBtn'];
+if ($faqs) {
+  $guideSteps[] = ['FAQ list', 'Edit or delete a question. Changes show on the homepage right away.', '#panel-site_content .sections > .accounts-card:nth-child(3) .ann-row-actions:first-visible'];
+}
+$guideSteps[] = ['Announcements tab', 'Switch to **Announcements** to post and manage announcements.', '#tab-announcements'];
+include dirname(__DIR__) . '/includes/guide.php';
+?>
 
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="addAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">

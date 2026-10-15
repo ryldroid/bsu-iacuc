@@ -384,6 +384,19 @@ function formatDateTime(value) {
   }
 
   // ===== Guides (see includes/guide.php) =====
+  const guideOpeners = {};
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-guide-start]");
+    const open = btn && guideOpeners[btn.dataset.guideStart];
+    if (!open) return;
+    document.getElementById("account-dropdown")?.classList.remove("active");
+    document
+      .querySelector(".my-account-dropdown")
+      ?.setAttribute("aria-expanded", "false");
+    open();
+  });
+
   function bindGuide(modal) {
     const guideId = modal.dataset.guide;
     const closeBtn = modal.querySelector(".modal-close");
@@ -411,19 +424,7 @@ function formatDateTime(value) {
       closeBtn.focus();
     }
 
-    document
-      .querySelectorAll(`[data-guide-start="${guideId}"]`)
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          document
-            .getElementById("account-dropdown")
-            ?.classList.remove("active");
-          document
-            .querySelector(".my-account-dropdown")
-            ?.setAttribute("aria-expanded", "false");
-          openGuide();
-        });
-      });
+    guideOpeners[guideId] = openGuide;
 
     // Auto-open once per browser
     if (modal.hasAttribute("data-show-once")) {

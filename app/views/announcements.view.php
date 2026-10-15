@@ -21,12 +21,6 @@ include "includes/scroll-top.php";
 
         <div class="announcements-header">
             <h1 class="announcements-title">Announcements</h1>
-            <button type="button" class="action-link" data-guide-start="announcements">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#info-icon" />
-                </svg>
-                Page guide
-            </button>
         </div>
 
         <div class="announcements-sections">
@@ -178,18 +172,6 @@ include "includes/scroll-top.php";
 
     </main>
 </div>
-
-<?php
-$guideId    = 'announcements';
-$guideSteps = [
-    ['Announcements', 'This page gathers the latest news from the CCARD office and its partner pages. Let us walk through it.'],
-];
-if (!empty($officeAnnouncements)) {
-    $guideSteps[] = ['From Our Office', 'Updates posted by the office, newest first. Press a card to read the full message and see its photo.', '.office-announcements-list'];
-}
-$guideSteps[] = ['From Our Partner Pages', 'Recent posts from partner Facebook pages, so you can follow related updates without leaving this page.', '.fb-cards h2'];
-include 'includes/guide.php';
-?>
 
 <?php include "includes/footer.php"; ?>
 

@@ -82,12 +82,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
         <div class="submission-header">
             <h1>My Protocols</h1>
 
-            <button type="button" class="action-link" data-guide-start="protocols">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#info-icon" />
-                </svg>
-                Page guide
-            </button>
+            <?php $pageGuideId = 'protocols';
+            include 'includes/page-guide.php'; ?>
 
             <div id="apply-actions-sub">
                 <a href="<?= ROOT ?>/apply" class="btn-apply button">
