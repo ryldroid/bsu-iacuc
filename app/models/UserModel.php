@@ -335,7 +335,7 @@ class UserModel extends Model
   public function createPasswordReset(int $user_id, string $token): bool
   {
     $stmt = $this->connection->prepare(
-      "DELETE FROM password_resets WHERE user_id = ?"
+      "DELETE FROM password_resets WHERE user_id = ? AND (used = 1 OR expires_at <= NOW())"
     );
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
@@ -344,7 +344,8 @@ class UserModel extends Model
       "INSERT INTO password_resets (user_id, token, expires_at)
         VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))"
     );
-    $stmt->bind_param('is', $user_id, $token);
+    $hash = hash('sha256', $token);
+    $stmt->bind_param('is', $user_id, $hash);
     return $stmt->execute();
   }
 
@@ -354,17 +355,23 @@ class UserModel extends Model
       "SELECT * FROM password_resets
         WHERE token = ? AND used = 0 AND expires_at > NOW()"
     );
-    $stmt->bind_param('s', $token);
+    $hash = hash('sha256', $token);
+    $stmt->bind_param('s', $hash);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc() ?: null;
   }
 
-  public function markResetUsed(string $token): bool
+  public function secondsSinceLastPasswordReset(int $user_id): ?int
+  {
+    return $this->secondsSinceLatestToken('password_resets', $user_id);
+  }
+
+  public function markResetsUsed(int $user_id): bool
   {
     $stmt = $this->connection->prepare(
-      "UPDATE password_resets SET used = 1 WHERE token = ?"
+      "UPDATE password_resets SET used = 1 WHERE user_id = ?"
     );
-    $stmt->bind_param('s', $token);
+    $stmt->bind_param('i', $user_id);
     return $stmt->execute();
   }
 
@@ -435,9 +442,14 @@ class UserModel extends Model
 
   public function secondsSinceLastVerificationEmail(int $user_id): ?int
   {
+    return $this->secondsSinceLatestToken('email_verifications', $user_id);
+  }
+
+  private function secondsSinceLatestToken(string $table, int $user_id): ?int
+  {
     $stmt = $this->connection->prepare(
       "SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) AS elapsed
-        FROM email_verifications WHERE user_id = ?
+        FROM $table WHERE user_id = ?
         ORDER BY created_at DESC LIMIT 1"
     );
     $stmt->bind_param('i', $user_id);

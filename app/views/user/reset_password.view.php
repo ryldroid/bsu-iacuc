@@ -26,28 +26,32 @@ include dirname(__DIR__) . '/includes/header.php';
             include dirname(__DIR__) . '/includes/alert.php';
             ?>
 
-            <div class="input-group">
-                <input type="password" id="password" name="password" placeholder=" " required>
-                <label for="password">New Password</label>
-            </div>
+            <?php if ($token === ''): ?>
+                <p class="underlined-p"><a class="underlined" href="<?= ROOT ?>/<?= str_replace('reset_password', 'forgot_password', $route) ?>">Request a new link</a></p>
+            <?php else: ?>
+                <div class="input-group">
+                    <input type="password" id="password" name="password" placeholder=" " required>
+                    <label for="password">New Password</label>
+                </div>
 
-            <div class="input-group">
-                <input type="password" id="confirm_password" name="confirm_password" placeholder=" " required>
-                <label for="confirm_password">Confirm New Password</label>
-            </div>
+                <div class="input-group">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder=" " required>
+                    <label for="confirm_password">Confirm New Password</label>
+                </div>
 
-            <div class="password-requirements">
-                Password must contain:
-                <ul>
-                    <li>At least 8 characters</li>
-                    <li>Uppercase letter</li>
-                    <li>Lowercase letter</li>
-                    <li>Number</li>
-                    <li>Special character (! @ # $ % ^ &amp; *)</li>
-                </ul>
-            </div>
+                <div class="password-requirements">
+                    Password must contain:
+                    <ul>
+                        <li>At least 8 characters</li>
+                        <li>Uppercase letter</li>
+                        <li>Lowercase letter</li>
+                        <li>Number</li>
+                        <li>Special character (! @ # $ % ^ &amp; *)</li>
+                    </ul>
+                </div>
 
-            <button type="submit">Reset Password</button>
+                <button type="submit">Reset Password</button>
+            <?php endif; ?>
         </form>
     </main>
 </div>

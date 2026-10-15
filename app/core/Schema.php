@@ -190,6 +190,8 @@ class Schema
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->ensureColumn('password_resets', 'created_at', "timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP() AFTER `token`");
+
         // ===== EMAIL VERIFICATIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `email_verifications` (
                     `id`         int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -201,6 +203,10 @@ class Schema
                     INDEX (`token`),
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        // ===== CLEAN UP OLD TOKENS =====
+        $c->query("DELETE FROM password_resets WHERE expires_at < DATE_SUB(NOW(), INTERVAL 1 DAY)");
+        $c->query("DELETE FROM email_verifications WHERE expires_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
 
         // ===== AUDIT LOGS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `audit_logs` (

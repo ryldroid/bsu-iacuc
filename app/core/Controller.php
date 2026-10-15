@@ -244,17 +244,23 @@ class Controller
 
     $success = 'Please check your email inbox and click on the link to reset your password.';
 
-    $user = $this->userModel->getUserByEmail($email);
-    if ($user) {
+    $user     = $this->userModel->getUserByEmail($email);
+    $cooldown = 45;
+    $elapsed  = $user ? $this->userModel->secondsSinceLastPasswordReset((int) $user['id']) : null;
+
+    if ($user && ($elapsed === null || $elapsed >= $cooldown)) {
       $token = bin2hex(random_bytes(32));
-      $this->userModel->createPasswordReset((int) $user['id'], $token);
 
-      $reset_url = ROOT . '/' . $resetRoute . '?token=' . $token;
+      if ($this->userModel->createPasswordReset((int) $user['id'], $token)) {
+        $reset_url = ROOT . '/' . $resetRoute . '?token=' . $token;
 
-      Mailer::sendTemplate('password_reset', [
-        'first_name' => $user['first_name'],
-        'reset_url'  => $reset_url,
-      ], $user['email'], $user['first_name'], 'Password Reset');
+        Mailer::sendTemplate('password_reset', [
+          'first_name' => $user['first_name'],
+          'reset_url'  => $reset_url,
+        ], $user['email'], $user['first_name'], 'Password Reset');
+      } else {
+        error_log('Password reset token insert failed: ' . $this->userModel->connection->error);
+      }
     }
 
     $this->view('user/forgot_password', [
@@ -344,7 +350,7 @@ class Controller
 
     $this->userModel->logAudit('password_reset', (int) $reset['user_id'], '', '', 'user', (int) $reset['user_id'], 'Password reset via email link');
 
-    $this->userModel->markResetUsed($token);
+    $this->userModel->markResetsUsed((int) $reset['user_id']);
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';
     $this->redirect($loginRoute);
