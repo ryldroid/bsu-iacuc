@@ -242,16 +242,18 @@ class Controller
     $this->verifyCsrfToken();
     $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
 
-    $success = 'Please check your email inbox and click on the link to reset your password.';
+    $cooldown = 45;
+    $success  = "Please check your email inbox (and your spam folder) and click on the link to reset your password. If you request another link, please wait {$cooldown} seconds.";
 
     $user     = $this->userModel->getUserByEmail($email);
-    $cooldown = 45;
     $elapsed  = $user ? $this->userModel->secondsSinceLastPasswordReset((int) $user['id']) : null;
 
     if ($user && ($elapsed === null || $elapsed >= $cooldown)) {
       $token = bin2hex(random_bytes(32));
 
       if ($this->userModel->createPasswordReset((int) $user['id'], $token)) {
+        $this->userModel->logAudit('password_reset_requested', (int) $user['id'], '', '', 'user', (int) $user['id'], 'Password reset requested');
+
         $reset_url = ROOT . '/' . $resetRoute . '?token=' . $token;
 
         Mailer::sendTemplate('password_reset', [
@@ -275,6 +277,7 @@ class Controller
   {
     // ===== RESET FORM (GET) =====
     $token = $_GET['token'] ?? $_POST['token'] ?? '';
+    $token = is_string($token) ? $token : '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       $reset = $this->userModel->getPasswordReset($token);
