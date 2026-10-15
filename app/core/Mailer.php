@@ -55,7 +55,7 @@ class Mailer
         $isSecurity = in_array($template, self::ACCOUNT_SECURITY_TEMPLATES, true);
 
         if (!$isSecurity) {
-            $body .= self::notificationFooter();
+            $body .= self::notificationFooter($toEmail);
         }
 
         return self::send(
@@ -106,11 +106,17 @@ class Mailer
     }
 
     // ===== NOTIFICATION FOOTER =====
-    private static function notificationFooter(): string
+    private static function notificationFooter(string $toEmail): string
     {
-        $url = ROOT . '/user/account';
+        $url = ROOT . '/user/email_preferences?email=' . rawurlencode($toEmail) . '&token=' . self::preferencesToken($toEmail);
         return '<p style="margin-top:16px;font-size:12px;color:#888;">'
-            . 'You can manage email notification preferences in your <a href="' . $url . '">account settings</a>.'
+            . 'Click here to <a href="' . $url . '">manage your email preferences</a>.'
             . '</p>';
+    }
+
+    // ===== PREFERENCES LINK TOKEN =====
+    public static function preferencesToken(string $email): string
+    {
+        return hash_hmac('sha256', strtolower($email), MAIL_PASSWORD);
     }
 }

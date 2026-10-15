@@ -394,24 +394,60 @@ class User extends Controller
 
     $this->verifyCsrfToken();
 
-    $id      = (int) $_SESSION['user']['user_id'];
-    $email   = $_SESSION['user']['email'];
-    $enabled = !empty($_POST['email_notifications']);
-
-    $this->userModel->updateEmailNotifications($id, $enabled);
-
-    if ($enabled) {
-      $resubscribed = Mailer::resubscribe($email);
-      $this->userModel->updateEmailProviderBlocked($id, !$resubscribed);
-
-      $_SESSION['flash_success'] = $resubscribed
-        ? 'You will now receive email updates about your protocols.'
-        : 'Preference saved, but we couldn\'t confirm with our email provider that you\'re unblocked. If you previously unsubscribed via email, you may need to try again shortly.';
-    } else {
-      $_SESSION['flash_success'] = 'Email updates about your protocols have been turned off.';
-    }
+    $_SESSION['flash_success'] = $this->saveEmailNotifications(
+      (int) $_SESSION['user']['user_id'],
+      $_SESSION['user']['email'],
+      !empty($_POST['email_notifications'])
+    );
 
     $this->redirect('user/account');
+  }
+
+  // ===== EMAIL PREFERENCES (SIGNED EMAIL LINK, NO LOGIN) =====
+
+  public function email_preferences(): void
+  {
+    $email = trim((string) ($_GET['email'] ?? ''));
+    $token = (string) ($_GET['token'] ?? '');
+    $user  = hash_equals(Mailer::preferencesToken($email), $token) ? $this->userModel->getUserByEmail($email) : null;
+
+    if (!$user) {
+      $this->renderError(403, 'Invalid Link', ['This email preferences link is invalid or no longer works.']);
+      return;
+    }
+
+    $enabled = (bool) $user['email_notifications'];
+    $success = '';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+      $this->verifyCsrfToken();
+      $enabled = ($_POST['email_notifications'] ?? '') === '1';
+      $success = $this->saveEmailNotifications((int) $user['id'], $user['email'], $enabled);
+    }
+
+    $this->view('user/email_preferences', [
+      'csrf'    => $this->generateCsrfToken(),
+      'action'  => ROOT . '/user/email_preferences?email=' . rawurlencode($email) . '&token=' . $token,
+      'enabled' => $enabled,
+      'success' => $success,
+    ]);
+  }
+
+  // Saves the preference and, when turning it on, asks Brevo to unblock the address
+  private function saveEmailNotifications(int $id, string $email, bool $enabled): string
+  {
+    $this->userModel->updateEmailNotifications($id, $enabled);
+
+    if (!$enabled) {
+      return 'Email updates about your protocols have been turned off.';
+    }
+
+    $resubscribed = Mailer::resubscribe($email);
+    $this->userModel->updateEmailProviderBlocked($id, !$resubscribed);
+
+    return $resubscribed
+      ? 'You will now receive email updates about your protocols.'
+      : 'Preference saved, but we couldn\'t confirm with our email provider that you\'re unblocked. If you previously unsubscribed via email, you may need to try again shortly.';
   }
 
   // ===== UPDATE ACCOUNT =====
@@ -488,6 +524,8 @@ class User extends Controller
       $input['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
 
+    $profileWasIncomplete = $role === 'researcher' && (empty($current_user['sex']) || empty($current_user['researcher_type']));
+
     $ok = $this->userModel->updateUser($id, $input);
 
     // ===== AFTER SAVE =====
@@ -519,7 +557,7 @@ class User extends Controller
       $_SESSION['flash_error'] = 'Update failed. Please try again.';
     }
 
-    $this->redirect('user/account');
+    $this->redirect($ok && $profileWasIncomplete ? 'home' : 'user/account');
   }
 
   // ===== DELETE ACCOUNT =====
