@@ -135,8 +135,9 @@ main {
 .bulk-actions-bar .row-btn-outline {
     background: var(--card-background);
     color: var(--brand-text);
-    border: 1px solid var(--divider-color);
+    /* border: 1px solid var(--divider-color); */
     box-shadow: none;
+    border: 1px solid var(--brand-color-hover);
 }
 
 .bulk-actions-bar .row-btn-outline:hover {

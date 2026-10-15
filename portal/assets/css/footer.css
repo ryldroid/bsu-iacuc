@@ -40,3 +40,24 @@ footer button:active {
     transform: none;
     box-shadow: none;
 }
+
+/* ===== Developer contact ===== */
+.footer-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+}
+
+.footer-contact a.footer-contact-icon {
+    display: inline-flex;
+    text-decoration: none;
+    opacity: .85;
+}
+
+.footer-contact a.footer-contact-icon:hover,
+.footer-contact a.footer-contact-icon:focus-visible {
+    opacity: 1;
+}

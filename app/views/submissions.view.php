@@ -765,7 +765,7 @@ include 'includes/guide.php';
         });
 
         const emptyMsg = protocolsContainer.querySelector('.no-results');
-        if (emptyMsg) emptyMsg.style.display = matching.length === 0 ? 'block' : 'none';
+        if (emptyMsg) emptyMsg.classList.toggle('is-visible', matching.length === 0);
     }
 
     // ===== Sort by =====

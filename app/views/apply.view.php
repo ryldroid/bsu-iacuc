@@ -542,7 +542,7 @@ include 'includes/guide.php';
 
         return `
     <div class="page-tag">Step 3 of 5</div>
-    <div class="page-title">Attach documents</div>
+    <div class="page-title">Attach training certificate</div>
 
     ${!state.certAlready ? `
     <p class="step-intro-text">

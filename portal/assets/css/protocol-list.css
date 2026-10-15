@@ -113,14 +113,16 @@
 
 /* ===== Protocol cards ===== */
 .no-results {
+  display: none;
+  align-items: center;
+  justify-content: center;
   padding: 30px;
   text-align: center;
-  display: none;
+  gap: 6px;
 }
 
-.protocols-list #noResultsMsg {
-  justify-content: center;
-  gap: 6px;
+.no-results.is-visible {
+  display: flex;
 }
 
 .protocols-list {
@@ -958,7 +960,8 @@
   }
 
   .protocol-meta-line {
-    font-size: 0.65em;
+    font-size: 0.75em;
+    line-height: 1.3em;
   }
 
   .actions {

@@ -1424,8 +1424,8 @@ class Apply extends Controller
             return;
         }
 
-        if (!$this->isPersonnel()) {
-            $this->jsonError(403, 'Administrative staff only.');
+        if ($this->actor()['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewers only.');
         }
 
         $this->requirePostMethod();
@@ -1571,7 +1571,6 @@ class Apply extends Controller
         $allowedTransitions = [
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
             'staff'    => [
-                'under review' => ['Needs Revision', 'Reviewed'],
                 'reviewed' => ['Endorsed'],
                 'endorsed' => ['Reviewed', 'Approved'],
                 'approved' => ['Endorsed'],
@@ -2841,8 +2840,8 @@ class Apply extends Controller
         header('Content-Type: application/json');
 
         $actor = $this->actor();
-        if (!$this->isPersonnel()) {
-            $this->jsonError(403, 'Administrative staff and reviewers only.');
+        if ($actor['role'] !== 'reviewer') {
+            $this->jsonError(403, 'Reviewers only.');
         }
 
         $this->requirePostMethod();

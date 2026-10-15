@@ -43,14 +43,14 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => 'Submitted protocols waiting for review. Open one to leave comments, then return it for revision or complete the review.',
-        'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
-        'reviewed'              => "The review is finished. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**.",
+        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols and view their attached IACUC training certificates by clicking **View Protocol**.',
+        'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
+        'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**.",
         'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
-        'to-review'             => 'Submitted protocols waiting on your feedback.',
+        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols and view their attached IACUC training certificates by clicking **View Protocol**.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
@@ -329,9 +329,6 @@ foreach ($protocols as $p) {
 
                         <div class="bulk-select-controls" id="bulkSelectControls" hidden>
                             <span class="bulk-select-count" id="bulkSelectCount">0 selected</span>
-                            <button type="button" class="row-btn row-btn-outline" id="selectAllBtn">
-                                Select All
-                            </button>
                             <button type="button" class="row-btn row-btn-primary" id="bulkDownloadBtn" disabled>
                                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <use href="#download-icon" />
@@ -343,6 +340,9 @@ foreach ($protocols as $p) {
                                     <use href="#check-icon" />
                                 </svg>
                                 Mark Selected as Endorsed
+                            </button>
+                            <button type="button" class="row-btn row-btn-outline" id="selectAllBtn">
+                                Select All
                             </button>
                         </div>
 
@@ -437,19 +437,27 @@ foreach ($protocols as $p) {
                         $actions = [];
 
                         if ($statusLower === 'under review') {
-                            $actions = [
+                            $actions = $userRole === 'reviewer' ? [
                                 [
                                     'label' => 'Review',
                                     'action' => 'open',
                                     'icon' => 'review',
                                     'primary' => true
                                 ],
+                            ] : [
+                                [
+                                    'label' => 'View Protocol',
+                                    'action' => 'view',
+                                    'icon' => 'review'
+                                ],
+                            ];
+                            $actions = array_merge($actions, [
                                 [
                                     'label' => 'Show History',
                                     'action' => 'show-history',
                                     'icon' => 'history'
                                 ]
-                            ];
+                            ]);
                         } elseif ($userRole === 'reviewer') {
 
                             switch ($statusLower) {
@@ -459,8 +467,7 @@ foreach ($protocols as $p) {
                                         [
                                             'label' => 'View Protocol',
                                             'action' => 'view',
-                                            'icon' => 'review',
-                                            'primary' => true
+                                            'icon' => 'review'
                                         ],
                                         [
                                             'label' => 'Show History',
@@ -496,8 +503,7 @@ foreach ($protocols as $p) {
                                         [
                                             'label' => 'View Protocol',
                                             'action' => 'view',
-                                            'icon' => 'review',
-                                            'primary' => true
+                                            'icon' => 'review'
                                         ],
                                         [
                                             'label' => 'Show History',
@@ -535,8 +541,7 @@ foreach ($protocols as $p) {
                                             [
                                                 'label' => 'View Protocol',
                                                 'action' => 'view',
-                                                'icon' => 'review',
-                                                'primary' => true
+                                                'icon' => 'review'
                                             ],
                                             [
                                                 'label' => 'Show History',
@@ -698,8 +703,7 @@ foreach ($protocols as $p) {
                                         [
                                             'label' => 'View Protocol',
                                             'action' => 'view',
-                                            'icon' => 'review',
-                                            'primary' => true
+                                            'icon' => 'review'
                                         ],
                                         [
                                             'label' => 'Show History',
@@ -1643,7 +1647,7 @@ foreach (array_values($statusMeta) as $index => $meta) {
 $guideSteps = array_merge($guideSteps, [
     ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details.", '.protocols-list .protocol:first-visible'],
     ['Actions', $personnelRole === 'staff'
-        ? 'Press **Review** on a protocol to leave comments or complete the review. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. All other cards show **View Protocol**, and **View Clearance** once approved.'
+        ? 'Protocols **To Review** are handled by the reviewers, so their cards only offer **View Protocol**. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. **View Protocol** is always available as a secondary link, and **View Clearance** appears once approved.'
         : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
     ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows the payment history, the scan signed by the IACUC chairperson, and the temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button[data-action="show-history"]:first-visible'],
     ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],

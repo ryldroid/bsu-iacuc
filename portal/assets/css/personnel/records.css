@@ -254,7 +254,6 @@
   color: var(--muted-text);
 }
 
-/* Stacked rows: label on top (clamped to two lines), bar and count underneath */
 .records-bar-chart--stacked .records-bar-row {
   grid-template-columns: 1fr auto;
   row-gap: 5px;
@@ -632,6 +631,45 @@
   color: var(--brand-color-hover);
 }
 
+/* ===== Mobile toggles ===== */
+.records-toggle {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 7px 10px;
+  font-size: .85em;
+  font-weight: 600;
+  font-family: var(--font-body);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  background: var(--card-background);
+  color: var(--secondary-text);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.records-toggle:hover {
+  border-color: var(--brand-color-hover);
+}
+
+.records-toggle svg:last-child {
+  margin-left: auto;
+  transition: transform .2s ease;
+}
+
+.records-toggle[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}
+
+.records-details-cell {
+  display: none;
+}
+
+.records-count {
+  margin: 0 0 8px;
+}
+
 /* ===== Records table ===== */
 .records-table-wrap .protocol-table-scroll {
   cursor: grab;
@@ -791,8 +829,8 @@
   gap: 6px;
   padding: 6px;
   border-radius: var(--radius);
-  background: var(--brand-color);
-  box-shadow: 0 1px 3px var(--shadow-color-soft);
+  /* background: var(--card-background); */
+  /* box-shadow: 0 1px 3px var(--shadow-color-soft); */
   opacity: 0;
   transition: opacity 0.12s;
 }
@@ -813,11 +851,11 @@
   font: inherit;
   font-size: .78em;
   line-height: 1;
-  border: 1px solid var(--divider-color);
+  border: 1px solid var(--brand-color);
   border-radius: var(--radius);
   box-shadow: none;
-  background: var(--card-background);
-  color: var(--secondary-text);
+  background: var(--brand-color);
+  color: var(--text-on-brand);
 
   display: flex;
   align-items: center;
@@ -826,9 +864,9 @@
 }
 
 .records-table .row-actions .row-btn:hover {
-  background: var(--brand-surface-tint);
-  border-color: var(--brand-surface-tint);
-  color: var(--brand-text);
+  background: var(--brand-color-hover);
+  border-color: var(--brand-color-hover);
+  color: var(--text-on-brand);
 }
 
 /* ===== Delete record button ===== */
@@ -1035,6 +1073,10 @@
     justify-self: start;
   }
 
+  .records-filters-row select[name="status"] {
+    grid-column: 1 / -1;
+  }
+
   .records-sort-group {
     grid-column: 1 / -1;
     width: 100%;
@@ -1049,6 +1091,34 @@
     flex: 1 1 auto;
   }
 
+  .records-filters-toggle {
+    display: flex;
+    width: 100%;
+    margin-top: 14px;
+  }
+
+  .records-filters-row {
+    margin-top: 8px;
+  }
+
+  .records-filters-row:not(.open) {
+    display: none;
+  }
+
+  .records-table tbody tr:not(.details-open) td.records-detail {
+    display: none;
+  }
+
+  .records-table tbody tr td.records-details-cell {
+    display: flex;
+    order: 8;
+    flex: 1 0 100%;
+  }
+
+  .records-details-toggle {
+    display: inline-flex;
+  }
+
   .records-table-wrap .protocol-table-scroll {
     border: none;
     overflow: visible;
@@ -1060,26 +1130,29 @@
     display: block;
   }
 
+  .records-table {
+    overflow: hidden;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+  }
+
   .records-table thead {
     display: none;
   }
 
-  /* Card: header chips on top, title, then a two-column detail grid */
+  /* ===== Record cards ===== */
   .records-table tbody tr {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding: 14px;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
     background: var(--card-background);
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    box-shadow: 0 1px 3px var(--shadow-color-soft);
+    border-bottom: 1px solid var(--divider-color);
   }
 
   .records-table tbody tr:last-child {
-    margin-bottom: 0;
+    border-bottom: none;
   }
 
   .records-table tbody tr td {
@@ -1092,9 +1165,9 @@
     border: none;
     white-space: normal;
     background: none;
-    order: 6;
-    flex: 1 1 calc(50% - 4px);
-    font-size: .88em;
+    order: 9;
+    flex: 1 1 calc(50% - 6px);
+    font-size: .85em;
     color: var(--primary-text);
     overflow-wrap: anywhere;
   }
@@ -1112,14 +1185,25 @@
     display: none;
   }
 
-  /* Header row: reference, AR number, status, actions */
+  /* ===== Card header ===== */
+  .records-table tbody td[data-label="Status"] {
+    order: 1;
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .records-table tbody td[data-label="Status"]::before {
+    display: none;
+  }
+
   .records-table tbody tr td.records-ref,
   .records-table tbody tr td.records-ar {
     position: static;
     flex: 0 0 auto;
+    align-self: center;
     padding: 3px 8px;
     font-family: monospace;
-    font-size: .85em;
+    font-size: .8em;
     color: var(--brand-text);
     background: var(--brand-surface-tint);
     border-radius: 4px;
@@ -1127,25 +1211,17 @@
   }
 
   .records-table tbody tr td.records-ref {
-    order: 1;
-  }
-
-  .records-table tbody tr td.records-ar {
     order: 2;
   }
 
-  .records-table tbody td[data-label="Status"] {
+  .records-table tbody tr td.records-ar {
     order: 3;
-    flex: 0 0 auto;
-  }
-
-  .records-table tbody td[data-label="Status"]::before {
-    display: none;
   }
 
   .records-table .actions-cell {
     order: 4;
     flex: 0 0 auto;
+    align-self: center;
     margin-left: auto;
     position: static;
     width: auto;
@@ -1161,22 +1237,42 @@
   }
 
   .records-table .row-actions .row-btn {
-    padding: 8px 10px;
+    padding: 9px 11px;
   }
 
-  /* Title takes the full width under the header row */
+  /* ===== Card title ===== */
   .records-table tbody td.records-title-cell,
   .records-table tbody td[colspan] {
     order: 5;
     flex: 1 0 100%;
-    padding: 4px 0 8px;
-    margin-bottom: 2px;
-    border-bottom: 1px solid var(--divider-color);
+    padding: 2px 0 0;
   }
 
   .records-table .records-title-cell .protocol-title-cell {
     font-size: 1.05em;
+    font-weight: 700;
     line-height: 1.35;
+  }
+
+  /* ===== Card key details ===== */
+  .records-table tbody td[data-label="Researcher"],
+  .records-table tbody td[data-label="Researcher Type"],
+  .records-table tbody td[data-label="School"] {
+    font-size: .95em;
+    font-weight: 600;
+  }
+
+  .records-table tbody td[data-label="Researcher"] {
+    order: 6;
+  }
+
+  .records-table tbody td[data-label="Researcher Type"] {
+    order: 7;
+  }
+
+  .records-table tbody td[data-label="School"] {
+    order: 8;
+    flex: 1 0 100%;
   }
 
   .records-table tbody td[colspan] {

@@ -53,6 +53,7 @@
     margin: 0;
     padding: 9px 12px;
     font-family: var(--font-body);
+    justify-content: center;
 }
 
 /* ===== Announcement & welcome modals ===== */
@@ -909,4 +910,10 @@ html:has(.modal-backdrop.open.guide-targeting) {
     font-size: .8rem;
     font-weight: 600;
     color: var(--secondary-text);
+}
+
+@media (max-width: 480px) {
+    .modal-actions button {
+        flex: 1 1 auto;
+    }
 }

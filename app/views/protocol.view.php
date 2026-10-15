@@ -37,7 +37,7 @@ $statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
 $isCompleted     = in_array($statusKey, ['approved'], true);
 $isLatestVersion = $isLatestVersion ?? true;
 
-$canReview = $isPersonnel && $statusKey === 'under review' && $isLatestVersion;
+$canReview = $isPersonnel && !$isStaff && $statusKey === 'under review' && $isLatestVersion;
 
 $canResubmit = !$isPersonnel && $isLatestVersion && $statusKey === 'needs revision';
 

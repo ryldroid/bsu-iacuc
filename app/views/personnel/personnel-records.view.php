@@ -277,7 +277,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 <div class="dashboard-page-header records-page-header">
                     <div>
                         <h1 class="dashboard-page-title">Records</h1>
-                        <!-- <p>Protocol entries are automatically added to the records table once the reviewer finishes review.</p> -->
                     </div>
 
                     <div class="inbox-search-wrap">
@@ -310,8 +309,17 @@ function formatDurationRange(?string $start, ?string $end): string
                 <!-- ===== Filters ===== -->
                 <form method="GET" action="" id="recordsFilterForm">
 
-                    <!-- Filter selects -->
-                    <div class="records-filters-row">
+                    <button type="button" class="records-toggle records-filters-toggle" aria-expanded="<?= $hasFilters ? 'true' : 'false' ?>" aria-controls="recordsFilters">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#filter-icon" />
+                        </svg>
+                        Filters
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-down-icon" />
+                        </svg>
+                    </button>
+
+                    <div class="records-filters-row<?= $hasFilters ? ' open' : '' ?>" id="recordsFilters">
                         <p class="sort-filter-label">
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#filter-icon" />
@@ -393,6 +401,8 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
                 <?php endif; ?>
 
+                <p class="pagination-info records-count"><?= number_format($total) ?> <?= pluralize($total, 'record') ?></p>
+
                 <!-- ===== Table ===== -->
                 <div class="protocol-table-wrap records-table-wrap">
                     <div class="protocol-table-scroll">
@@ -414,7 +424,6 @@ function formatDurationRange(?string $start, ?string $end): string
                                     <th class="col-date">Date Released</th>
                                     <th class="col-recv">Received By</th>
                                     <th class="col-status">Status</th>
-                                    <!-- ACTION BUTTONS column -->
                                     <th class="col-actions" aria-label="Actions"></th>
                                 </tr>
                             </thead>
@@ -434,27 +443,34 @@ function formatDurationRange(?string $start, ?string $end): string
                                 <?php else: ?>
                                     <?php foreach ($records as $i => $r): ?>
                                         <tr>
-                                            <td class="date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
-                                            <td class="date-cell records-ar"><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
+                                            <td class="records-detail date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
+                                            <td class="records-detail date-cell records-ar"><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
                                             <td class="records-title-cell">
                                                 <div class="protocol-title-cell">
                                                     <?= htmlspecialchars($r['title_of_research']) ?>
                                                 </div>
                                             </td>
                                             <td class="researcher-cell" data-label="School"><?= htmlspecialchars($r['school'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Animal Type"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Count"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
+                                            <td class="records-detail date-cell" data-label="Animal Type"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
+                                            <td class="records-detail date-cell" data-label="Count"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
                                             <td class="researcher-cell" data-label="Researcher"><?= htmlspecialchars($r['principal_investigator'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Researcher Sex"><?= htmlspecialchars($r['sex'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
-                                            <td class="researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
-                                            <td class="researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Duration"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
-                                            <td class="date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
-                                            <td class="researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
+                                            <td class="records-detail date-cell" data-label="Researcher Sex"><?= htmlspecialchars($r['sex'] ?? '') ?></td>
+                                            <td class="records-detail date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
+                                            <td class="records-detail researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
+                                            <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
+                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
+                                            <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                             <?php $rowStatus = in_array($r['status'] ?? '', RecordModel::STATUSES, true) ? $r['status'] : RecordModel::DEFAULT_STATUS; ?>
                                             <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
-                                            <!-- ACTION BUTTONS -->
+                                            <td class="records-details-cell">
+                                                <button type="button" class="records-toggle records-details-toggle" aria-expanded="false">
+                                                    Details
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                        <use href="#chev-down-icon" />
+                                                    </svg>
+                                                </button>
+                                            </td>
                                             <td class="actions-cell">
                                                 <div class="row-actions">
                                                     <?php if ($isStaff): ?>
@@ -970,6 +986,21 @@ include dirname(__DIR__) . '/includes/guide.php';
                 clearSearch.classList.toggle('visible', searchInput.value.length > 0);
             });
         }
+
+        // ===== Mobile toggles =====
+        document.querySelectorAll('.records-filters-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const open = document.getElementById(btn.getAttribute('aria-controls')).classList.toggle('open');
+                btn.setAttribute('aria-expanded', open);
+            });
+        });
+
+        document.querySelectorAll('.records-details-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const open = btn.closest('tr').classList.toggle('details-open');
+                btn.setAttribute('aria-expanded', open);
+            });
+        });
 
         // ===== AJAX helper =====
         function post(url, body) {

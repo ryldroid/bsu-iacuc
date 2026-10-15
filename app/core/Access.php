@@ -12,6 +12,7 @@
  *   auth       any logged-in user (researcher, staff or reviewer)
  *   researcher researchers only
  *   personnel  staff or reviewer
+ *   reviewer   reviewers only
  *   staff      administrative staff only
  *
  * Controllers keep their own checks too (defense in depth); this table is the
@@ -144,7 +145,7 @@ class Access
       // staff + reviewer
       'status' => 'personnel',
       'delete' => 'personnel',
-      'return_revision' => 'personnel',
+      'return_revision' => 'reviewer',
       // administrative staff only
       'download_selected' => 'staff',
       'verify_payment' => 'staff',
@@ -198,6 +199,7 @@ class Access
       'auth'       => true,
       'researcher' => $role === 'researcher',
       'personnel'  => in_array($role, ['staff', 'reviewer'], true),
+      'reviewer'   => $role === 'reviewer',
       'staff'      => $role === 'staff',
       default      => false, // unknown rule name: fail closed
     };
