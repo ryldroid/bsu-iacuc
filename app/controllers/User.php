@@ -476,11 +476,8 @@ class User extends Controller
 
     $current_user = $this->userModel->getUser($id);
 
-    if ($current_user['role'] === 'researcher') {
-      $role = $current_user['role'];
-    } else {
-      $role = in_array($role, ['staff', 'reviewer']) ? $role : $current_user['role'];
-    }
+    // The role is NEVER taken from the form. Roles are only changed by staff through personnel/update_role.
+    $role = $current_user['role'];
 
     $school = trim($school ?? '');
     $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'researcher_type', 'role');
@@ -575,6 +572,12 @@ class User extends Controller
   public function delete()
   {
     $this->requireLogin();
+
+    // Personnel accounts are managed by staff; only researchers may delete their own account here
+    if (($_SESSION['user']['role'] ?? '') !== 'researcher') {
+      $_SESSION['flash_error'] = 'Personnel accounts cannot be deleted from this page.';
+      $this->redirect('user/account');
+    }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
       $this->redirect('user/account');

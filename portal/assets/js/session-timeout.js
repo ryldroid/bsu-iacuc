@@ -64,15 +64,14 @@
         forceLogout();
         return;
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     armTimers();
   }
 
   // ===== Force logout =====
   function forceLogout() {
     var loginPath = window.SESSION_LOGIN_PATH || "user/login";
-    window.location.href = NOTIF_ROOT + "/" + loginPath;
+    window.top.location.href = NOTIF_ROOT + "/" + loginPath;
   }
 
   // ===== Activity listeners =====

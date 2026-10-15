@@ -199,6 +199,39 @@ header nav a:hover::after {
     right: 0;
 }
 
+#account-drawer {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    z-index: 1000;
+
+    height: 100vh;
+    width: 500px;
+    max-width: 100%;
+
+    background-color: var(--card-background);
+    box-shadow: -4px 0 20px var(--shadow-color-soft);
+
+    transition: right 250ms ease;
+}
+
+#account-drawer.show {
+    right: 0;
+}
+
+#account-drawer iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #account-drawer {
+        transition: none;
+    }
+}
+
 #sidebar-backdrop {
     display: none;
     position: fixed;
@@ -438,14 +471,6 @@ header [data-tooltip][aria-expanded="true"]::after {
     visibility: hidden !important;
 }
 
-/* ===== Preview live site link ===== */
-.header-auth .header-preview-link {
-    display: flex;
-    align-items: center;
-    gap: .5em;
-    font-size: .85em;
-}
-
 /* ===== Preview label ===== */
 .header-auth .preview-tag {
     padding: 5px 10px;
@@ -523,13 +548,14 @@ header [data-tooltip][aria-expanded="true"]::after {
     border-radius: 50%;
 }
 
-/* ===== Account dropdown ===== */
-.my-account-dropdown:hover,
+/* ===== Header menu ===== */
+.header-account:hover,
+.header-more:hover,
 .header-help:hover {
     background-color: var(--tint-on-brand);
 }
 
-#account-dropdown {
+#header-menu {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
@@ -546,14 +572,14 @@ header [data-tooltip][aria-expanded="true"]::after {
     box-shadow: 0 4px 12px var(--shadow-color-soft);
 }
 
-#account-dropdown.active {
+#header-menu.active {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-#account-dropdown a,
-#account-dropdown button {
+#header-menu a,
+#header-menu button {
     padding: .75em 1em;
     text-decoration: none;
     width: 100%;
@@ -573,20 +599,20 @@ header [data-tooltip][aria-expanded="true"]::after {
     margin-left: 0;
 }
 
-#account-dropdown form {
+#header-menu form {
     width: 100%;
     margin: 0;
 }
 
-#account-dropdown a svg,
-#account-dropdown button svg {
+#header-menu a svg,
+#header-menu button svg {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
 }
 
-#account-dropdown a:hover,
-#account-dropdown button:hover {
+#header-menu a:hover,
+#header-menu button:hover {
     background-color: var(--hover-surface);
 }
 
@@ -610,19 +636,19 @@ header [data-tooltip][aria-expanded="true"]::after {
     border-radius: var(--radius);
 }
 
-#account-dropdown .theme-options button {
+#header-menu .theme-options button {
     width: auto;
     padding: .35em .5em;
     border-radius: calc(var(--radius) - 2px);
     color: var(--secondary-text);
 }
 
-#account-dropdown .theme-options button:hover {
+#header-menu .theme-options button:hover {
     background-color: transparent;
     color: var(--primary-text);
 }
 
-#account-dropdown .theme-options button[aria-checked="true"] {
+#header-menu .theme-options button[aria-checked="true"] {
     background-color: var(--card-background);
     color: var(--primary-text);
     box-shadow: 0 1px 3px var(--shadow-color-soft);
@@ -644,8 +670,7 @@ header [data-tooltip][aria-expanded="true"]::after {
         font-size: 16px;
     }
 
-    .header-auth button span:not(.chev-icon):not(.notif-badge),
-    .header-auth .header-preview-link span {
+    .header-auth button span:not(.chev-icon):not(.notif-badge) {
         display: none;
     }
 

@@ -10,7 +10,16 @@ class Controller
     $this->userModel = new UserModel();
 
     if ($this->isLoggedIn()) {
-      $this->requireResearcherProfile($this->userModel->getUser($_SESSION['user']['user_id']));
+      $fresh = $this->userModel->getUser($_SESSION['user']['user_id']);
+
+      if (!$fresh) {
+        // The account no longer exists (deleted): drop the stale login
+        unset($_SESSION['user']);
+      } else {
+        // Always trust the database for the role, never a stale session (e.g. after a role change)
+        $_SESSION['user']['role'] = $fresh['role'];
+        $this->requireResearcherProfile($fresh);
+      }
     }
   }
 

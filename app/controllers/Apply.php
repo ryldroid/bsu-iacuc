@@ -17,6 +17,16 @@ class Apply extends Controller
     }
 
     // ===== HELPERS =====
+    // ===== RESEARCHER-ONLY GUARD =====
+    private function requireResearcher(bool $asPage = false): void
+    {
+        if ($this->isPersonnel()) {
+            $asPage
+                ? $this->redirect('personnel/home')
+                : $this->jsonError(403, 'This action is for researchers only.');
+        }
+    }
+
     private function requireProtocolAccess(array $protocol, int $userId, string $role, bool $asPage = false): void
     {
         if ((int) $protocol['user_id'] !== $userId && !in_array($role, ['staff', 'reviewer'])) {
@@ -654,6 +664,7 @@ class Apply extends Controller
     public function stageprotocol(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
@@ -684,6 +695,7 @@ class Apply extends Controller
     public function stagedfile(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
 
         $path = $_SESSION['staged_protocol']['path'] ?? null;
         if (!$path || !is_file($path)) {
@@ -698,6 +710,7 @@ class Apply extends Controller
     public function index(): void
     {
         $this->requireLogin();
+        $this->requireResearcher(true);
         $this->view('apply', [
             'previousDetails' => $this->protocolModel->lastDetailsByUser($this->actor()['id']),
             'advisers'        => $this->recordModel->distinctValues('research_adviser'),
@@ -710,6 +723,7 @@ class Apply extends Controller
     public function submit(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
 
@@ -829,6 +843,7 @@ class Apply extends Controller
     public function hascert(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
 
         $actor     = $this->actor();
@@ -842,6 +857,7 @@ class Apply extends Controller
     public function draft(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
 
         $actor = $this->actor();
@@ -887,6 +903,7 @@ class Apply extends Controller
     public function draftsave(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
@@ -917,6 +934,7 @@ class Apply extends Controller
     public function draftupload(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
 
@@ -963,6 +981,7 @@ class Apply extends Controller
     public function draftfile(string $key = ''): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
 
         $actor = $this->actor();
         $row   = $this->draftModel->getByUser($actor['id']);
@@ -985,6 +1004,7 @@ class Apply extends Controller
     public function draftremovefile(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
@@ -1015,6 +1035,7 @@ class Apply extends Controller
     public function draftclear(): void
     {
         $this->requireLogin();
+        $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
         $this->verifyCsrfHeader();

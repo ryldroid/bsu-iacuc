@@ -1,14 +1,20 @@
 // ===== DROPDOWNS AND SIDEBAR NAVIGATION =====
 
-const accountButton = document.querySelector(".my-account-dropdown");
-const dropdown = document.querySelector("#account-dropdown");
+const accountButton = document.querySelector(".header-account");
+const moreButton = document.querySelector(".header-more");
+const moreMenu = document.querySelector("#header-menu");
 const sidebar = document.querySelector(".nav-sidebar");
 const mobileMenu = document.querySelector(".mobile-menu");
 const backdrop = document.querySelector("#sidebar-backdrop");
 const mobileNav = document.querySelector('nav[aria-label="Mobile navigation"]');
 const media = window.matchMedia("(max-width: 768px)");
+const accountDrawer = document.querySelector("#account-drawer");
+const accountFrame = accountDrawer?.querySelector("iframe");
 
-backdrop?.addEventListener("click", closeSidebar);
+backdrop?.addEventListener("click", () => {
+  closeSidebar();
+  closeAccountDrawer();
+});
 mobileMenu?.addEventListener("click", showSidebar);
 media.addEventListener("change", (e) => updateNavbar(e));
 
@@ -37,10 +43,7 @@ function closeSidebar() {
 function showSidebar() {
   const isOpen = sidebar.classList.contains("show");
 
-  if (dropdown && accountButton) {
-    dropdown.classList.remove("active");
-    accountButton.setAttribute("aria-expanded", "false");
-  }
+  closeMoreMenu();
 
   if (isOpen) {
     closeSidebar();
@@ -52,25 +55,62 @@ function showSidebar() {
   }
 }
 
-// ===== Account dropdown =====
+// ===== Account drawer =====
+function openAccountDrawer() {
+  closeSidebar();
+  closeMoreMenu();
+
+  accountFrame.src = accountFrame.dataset.src;
+  accountDrawer.classList.add("show");
+  accountDrawer.removeAttribute("inert");
+  backdrop.classList.add("active");
+  accountFrame.focus();
+}
+
+function closeAccountDrawer() {
+  if (!accountDrawer?.classList.contains("show")) return;
+  accountDrawer.classList.remove("show");
+  accountDrawer.setAttribute("inert", "");
+  backdrop.classList.remove("active");
+  accountButton.focus();
+}
+
+window.closeAccountDrawer = closeAccountDrawer;
+
+accountButton?.addEventListener("click", openAccountDrawer);
+
+accountDrawer?.addEventListener("transitionend", () => {
+  if (!accountDrawer.classList.contains("show"))
+    accountFrame.src = "about:blank";
+});
+
+// ===== More menu =====
 document.addEventListener("header-dropdown-open", (event) => {
   if (event.detail !== "sidebar") closeSidebar();
 });
 
-if (accountButton && dropdown) {
-  accountButton.addEventListener("click", () => {
-    const isOpen = dropdown.classList.toggle("active");
-    accountButton.setAttribute("aria-expanded", isOpen);
-    closeSidebar();
+function closeMoreMenu() {
+  moreMenu?.classList.remove("active");
+  moreButton?.setAttribute("aria-expanded", "false");
+}
+
+if (moreButton && moreMenu) {
+  moreButton.addEventListener("click", () => {
+    const isOpen = moreMenu.classList.toggle("active");
+    moreButton.setAttribute("aria-expanded", isOpen);
+    if (isOpen) {
+      document.dispatchEvent(
+        new CustomEvent("header-dropdown-open", { detail: "more" }),
+      );
+    }
   });
 
   document.addEventListener("click", (event) => {
-    const clickedInside =
-      accountButton.contains(event.target) || dropdown.contains(event.target);
-
-    if (!clickedInside) {
-      dropdown.classList.remove("active");
-      accountButton.setAttribute("aria-expanded", "false");
+    if (
+      !moreButton.contains(event.target) &&
+      !moreMenu.contains(event.target)
+    ) {
+      closeMoreMenu();
     }
   });
 }
@@ -78,8 +118,8 @@ if (accountButton && dropdown) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closeSidebar();
-    dropdown?.classList.remove("active");
-    accountButton?.setAttribute("aria-expanded", "false");
+    closeAccountDrawer();
+    closeMoreMenu();
   }
 });
 

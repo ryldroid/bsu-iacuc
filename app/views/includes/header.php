@@ -20,15 +20,15 @@ $showWelcome = $user && !empty($user['show_welcome']);
 // Every audience gets a spotlight guide of the website (replayable from the header help button).
 // Step format: [title, text, desktop target selector, mobile target selector (optional)]
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
-$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime with the question mark button in the header.'];
+$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime from **Guide** in the three dots menu in the header.'];
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
 $guideContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
-$guidePreview = ['Preview public site', 'See the website the way visitors see it. It opens in a new tab.', '.header-preview-link'];
 $guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
 $guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
 $guideHelp = ['Guide', 'Replay this tour anytime with the question mark button.', '.header-help'];
-$guideAccount = ['Your account', 'Open this to view **My Account**, switch between Light, Dark, and System theme, or log out.', '.my-account-dropdown'];
+$guideAccount = ['Your account', 'Open this to view and update **My Account**.', '.header-account'];
+$guideMore = ['More options', 'Open this menu to ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'replay this guide, switch between Light, Dark, and System theme, or log out.', '.header-more'];
 $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
@@ -38,9 +38,9 @@ if ($role === 'researcher') {
     ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
     $guideAnnouncements,
     $guideContact,
-    $guideHelp,
     $guideNotifications,
     $guideAccount,
+    $guideMore,
   ];
 } elseif ($role === 'staff') {
   $welcomeSteps = [
@@ -50,10 +50,9 @@ if ($role === 'researcher') {
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
     ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
-    $guidePreview,
-    $guideHelp,
     $guideNotifications,
     $guideAccount,
+    $guideMore,
   ];
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
@@ -61,10 +60,9 @@ if ($role === 'researcher') {
     ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top right to open them.', 'aside nav ul', '.mobile-menu'],
     ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
-    $guidePreview,
-    $guideHelp,
     $guideNotifications,
     $guideAccount,
+    $guideMore,
   ];
 } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
   $welcomeSteps = [
@@ -159,17 +157,8 @@ if ($role === 'researcher') {
         <?php if (!$user) include 'theme-toggle.php'; ?>
 
         <div class="header-auth">
-          <?php if ($user && ($role === 'staff' || $role === 'reviewer')): ?>
-            <!-- PREVIEW LIVE SITE -->
-            <a href="<?= ROOT ?>/preview/home" class="header-preview-link" target="_blank" rel="noopener" aria-label="Preview public site" data-tooltip="Preview public site">
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#eye-icon" />
-              </svg>
-            </a>
-          <?php endif; ?>
-
-          <!-- GUIDE (HELP) -->
-          <?php if ($welcomeSteps): ?>
+          <!-- GUIDE (HELP, VISITORS ONLY: logged-in users open it from the more menu) -->
+          <?php if ($welcomeSteps && !$user): ?>
             <button type="button" class="header-help" data-guide-start="welcome" aria-label="View guide on website navigation" data-tooltip="View guide on website navigation">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#question-info-icon" />
@@ -203,34 +192,48 @@ if ($role === 'researcher') {
               </div>
             </div>
 
-            <!-- <span class="greeting">Hello, </span> -->
-            <button class="my-account-dropdown"
-              aria-expanded="false"
-              aria-haspopup="true"
+            <!-- MY ACCOUNT (OPENS THE SLIDE-IN) -->
+            <button class="header-account"
               aria-label="My account"
-              data-tooltip="Show account settings"
-              aria-controls="account-dropdown">
+              data-tooltip="Show account settings">
 
-              <!-- <img src="<?= IMGPATH ?>/scientist.webp" alt=""> -->
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#account-icon" />
               </svg>
 
               <span><?= htmlspecialchars($first_name, ENT_QUOTES, 'UTF-8') ?></span>
-
-              <span class="chev-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#chev-down-icon" />
-                </svg>
-              </span>
             </button>
 
-            <div id="account-dropdown">
-              <a href="<?= ROOT ?>/user/account">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#account-icon" />
-                </svg>
-                My Account</a>
+            <!-- MORE OPTIONS -->
+            <button class="header-more"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-label="More options"
+              data-tooltip="More options"
+              aria-controls="header-menu">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#more-icon" />
+              </svg>
+            </button>
+
+            <div id="header-menu">
+              <?php if ($role === 'staff' || $role === 'reviewer'): ?>
+                <a href="<?= ROOT ?>/preview/home" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#eye-icon" />
+                  </svg>
+                  Preview public site</a>
+              <?php endif; ?>
+
+              <?php if ($welcomeSteps): ?>
+                <button type="button" data-guide-start="welcome">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#question-info-icon" />
+                  </svg>
+                  Guide
+                </button>
+              <?php endif; ?>
 
               <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
                 <span>Theme</span>
@@ -244,19 +247,16 @@ if ($role === 'researcher') {
                   <?php endforeach; ?>
                 </div>
               </div>
-              <?php if ($role === 'researcher'): ?>
-                <form method="POST" action="<?= ROOT ?>/user/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
-                <?php elseif ($role === 'staff' || $role === 'reviewer'): ?>
-                  <form method="POST" action="<?= ROOT ?>/personnel/logout" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
-                  <?php endif; ?>
-                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                  <button type="submit" class="btn-header-logout">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <use href="#log-out-icon" />
-                    </svg>
-                    Log Out
-                  </button>
-                  </form>
+
+              <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                <button type="submit" class="btn-header-logout">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#log-out-icon" />
+                  </svg>
+                  Log Out
+                </button>
+              </form>
             </div>
 
             <!-- PREVIEW (PERSONNEL VIEWING THE PUBLIC SITE) -->
@@ -383,3 +383,10 @@ if ($role === 'researcher') {
   <?php unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>
+
+  <?php if ($user && !$hideHeader && !$hideHeaderAuth): ?>
+    <!-- ===== Account drawer ===== -->
+    <div id="account-drawer" role="dialog" aria-modal="true" aria-label="My Account" inert>
+      <iframe title="My Account" data-src="<?= ROOT ?>/user/account"></iframe>
+    </div>
+  <?php endif; ?>

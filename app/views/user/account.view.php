@@ -8,6 +8,9 @@ include dirname(__DIR__) . '/includes/header.php';
 $current_role = $old['role'] ?? '';
 $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
+<script>
+    if (window.self !== window.top) document.documentElement.classList.add('in-drawer');
+</script>
 
 <?php include dirname(__DIR__) . '/includes/pdfjs.php'; ?>
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
@@ -16,7 +19,12 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 <div class="body">
 
     <!-- ===== Account page ===== -->
-    <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
+    <main class="main-content main-content--pinned-nav wide" id="main-content" tabindex="-1">
+        <button type="button" class="modal-close account-close" onclick="parent.closeAccountDrawer()" aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#close-icon" />
+            </svg>
+        </button>
         <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_personnel ? 'personnel/home' : 'home' ?>">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
@@ -211,7 +219,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
             <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
 
-            <form method="POST" action="<?= ROOT ?>/user/delete"
+            <form method="POST" action="<?= ROOT ?>/user/delete" target="_top"
                 data-confirm-message="Are you sure? This cannot be undone."
                 data-confirm-ok-text="Delete Account"
                 data-confirm-danger="true">
@@ -227,7 +235,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                 </div>
             </form>
 
-            <form class="logout-form" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out"
+            <form class="logout-form" target="_top" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out"
                 action="<?= ROOT ?>/<?= $is_personnel ? 'personnel/logout' : 'user/logout' ?>" method="POST">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
                 <button type="submit" class="btn-logout">Log Out</button>
@@ -352,7 +360,9 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     });
 
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeFilePopup();
+        if (e.key !== 'Escape') return;
+        if (filePopupBackdrop.classList.contains('open')) return closeFilePopup();
+        if (!e.defaultPrevented) parent.closeAccountDrawer?.();
     });
 </script>
 
