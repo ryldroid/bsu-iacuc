@@ -362,6 +362,11 @@ class User extends Controller
   {
     $this->requireLogin();
 
+    // Only the header's account panel (an iframe, loaded with ?panel=1) renders this page; direct visits open the panel instead
+    if (!isset($_GET['panel'])) {
+      $this->redirect(($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home?account=1' : 'personnel/home?account=1');
+    }
+
     $user = $this->userModel->getUser($_SESSION['user']['user_id']);
 
     $certificate = ($user['role'] ?? '') === 'researcher'
@@ -370,7 +375,6 @@ class User extends Controller
 
     $this->view('user/account', [
       'csrf'           => $this->generateCsrfToken(),
-      'errors'         => !empty($_SESSION['flash_error']) ? [$_SESSION['flash_error']] : [],
       'certificate'    => $certificate,
       'email_verified' => (bool) $user['email_verified'],
       'email_notifications' => (bool) $user['email_notifications'],
@@ -387,7 +391,6 @@ class User extends Controller
         'role'         => $user['role'],
       ],
     ]);
-    unset($_SESSION['flash_error']);
   }
 
   // ===== EMAIL NOTIFICATIONS TOGGLE (POST /user/notifications) =====
@@ -408,7 +411,7 @@ class User extends Controller
       !empty($_POST['email_notifications'])
     );
 
-    $this->redirect('user/account');
+    $this->redirect('user/account?panel=1');
   }
 
   // ===== EMAIL PREFERENCES (SIGNED EMAIL LINK, NO LOGIN) =====
@@ -565,7 +568,7 @@ class User extends Controller
       $_SESSION['flash_error'] = 'Update failed. Please try again.';
     }
 
-    $this->redirect($ok && $profileWasIncomplete ? 'home' : 'user/account');
+    $this->redirect($ok && $profileWasIncomplete ? 'home' : 'user/account?panel=1');
   }
 
   // ===== DELETE ACCOUNT =====
@@ -589,7 +592,14 @@ class User extends Controller
     $username = $_SESSION['user']['username'] ?? '';
     $role     = $_SESSION['user']['role'] ?? '';
 
-    (new ProtocolModel())->softDeleteAllForUser($id, $username, 'Account deleted by owner');
+    $protocolModel = new ProtocolModel();
+
+    if ($protocolModel->hasActiveProtocols($id)) {
+      $_SESSION['flash_error'] = 'You cannot delete your account while you have protocols that are still being processed.';
+      $this->redirect('user/account');
+    }
+
+    $protocolModel->softDeleteAllForUser($id, 'Deleted User', 'Account deleted by owner');
 
     (new DraftModel())->clear($id);
     $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';

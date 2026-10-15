@@ -49,21 +49,17 @@ html.in-drawer main {
     border-radius: 0;
 }
 
-html.in-drawer :is(footer, .verify-banner, .btn-back--pinned) {
+html.in-drawer :is(footer, .verify-banner) {
     display: none;
 }
 
 .account-close {
-    display: none;
+    display: inline-flex;
     position: absolute;
     top: 12px;
     right: 12px;
     width: auto;
     margin: 0;
-}
-
-html.in-drawer .account-close {
-    display: inline-flex;
 }
 
 main form {
@@ -238,7 +234,7 @@ main button:hover {
     color: var(--brand-text);
     border: 1px solid var(--brand-text);
     margin-right: 25.4px;
-
+    width: unset;
 }
 
 .account-deactivation-note {
@@ -299,7 +295,7 @@ main button:hover {
 
 .popup-wrap {
     display: flex;
-    gap: .3em;
+    gap: .5em;
     align-items: center;
 }
 
@@ -576,16 +572,20 @@ main button:hover {
         padding: 20px 24px;
     }
 
+    .popup-wrap {
+        position: relative;
+    }
+
+    .info-wrapper {
+        position: static;
+    }
+
     .info-popup {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        bottom: auto;
-        transform: translate(-50%, -50%);
-        width: min(280px, calc(100vw - 40px));
+        left: 0;
+        right: 0;
+        transform: none;
+        width: auto;
         max-width: none;
-        box-shadow: 0 4px 16px var(--shadow-color);
-        z-index: 500;
     }
 }
 
@@ -682,7 +682,7 @@ html.in-drawer h1 {
     text-align: left;
 }
 
-html.in-drawer :is(.input-group, .label-group, .form-alert, .password-requirements, .email-verify-resend, .settings-section, .certificate-section, .switch-toggle) {
+html.in-drawer :is(.input-group, .label-group, .password-requirements, .email-verify-resend, .settings-section, .certificate-section, .switch-toggle) {
     width: 100%;
 }
 
@@ -700,7 +700,7 @@ html.in-drawer .label-group {
 
 html.in-drawer :is(.input-group input, .input-group select, .phone-prefix) {
     padding: 14px 12px;
-    font-size: 1em;
+    /* font-size: 1em; */
 }
 
 html.in-drawer .input-group .password-field-wrap input {
@@ -725,7 +725,7 @@ html.in-drawer .email-verify-resend {
 }
 
 html.in-drawer .helper {
-    font-size: .9em;
+    /* font-size: .9em; */
     text-align: left;
 }
 
@@ -745,8 +745,12 @@ html.in-drawer .btn-save {
     width: 100%;
 }
 
-html.in-drawer .btn-logout {
-    margin-right: 0;
+html.in-drawer .settings-section form:has(:is(.btn-delete, .btn-logout)) {
+    width: 100%;
+}
+
+html.in-drawer :is(.btn-delete, .btn-logout) {
+    flex: 1;
 }
 
 html.in-drawer .settings-section {
@@ -756,16 +760,16 @@ html.in-drawer .settings-section {
 }
 
 html.in-drawer .settings-section h2 {
-    font-size: 1.15em;
+    /* font-size: 1.15em; */
 }
 
 html.in-drawer .certificate-section-header h2 {
-    font-size: 1.1em;
+    /* font-size: 1.1em; */
 }
 
 html.in-drawer .switch-toggle {
     justify-content: space-between;
-    font-size: 1em;
+    /* font-size: 1em; */
 }
 
 /* ===== Account drawer: smaller on phones ===== */

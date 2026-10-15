@@ -1,5 +1,7 @@
 <link rel="stylesheet" href="<?= asset_css('footer.css') ?>">
 
+<?php if (!defined('FORM_ALERT_JS_LOADED')) include __DIR__ . '/flash.php'; ?>
+
 <footer>
   <div class="footer-links">
     <?php if (!empty($welcomeSteps)): ?>

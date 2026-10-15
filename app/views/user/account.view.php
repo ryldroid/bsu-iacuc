@@ -9,7 +9,7 @@ $current_role = $old['role'] ?? '';
 $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
 <script>
-    if (window.self !== window.top) document.documentElement.classList.add('in-drawer');
+    document.documentElement.classList.add('in-drawer');
 </script>
 
 <?php include dirname(__DIR__) . '/includes/pdfjs.php'; ?>
@@ -18,19 +18,19 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
 <div class="body">
 
-    <!-- ===== Account page ===== -->
-    <main class="main-content main-content--pinned-nav wide" id="main-content" tabindex="-1">
+    <!-- ===== Account panel ===== -->
+    <main class="main-content" id="main-content" tabindex="-1">
         <button type="button" class="modal-close account-close" onclick="parent.closeAccountDrawer()" aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#close-icon" />
             </svg>
         </button>
-        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_personnel ? 'personnel/home' : 'home' ?>">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#back-icon">
-            </svg>
-            Back
-        </a>
+
+        <!-- ===== Toasts ===== -->
+        <?php
+        $toastError = $errors ?? null;
+        include dirname(__DIR__) . '/includes/flash.php';
+        ?>
 
         <?php if (empty($email_verified)): ?>
             <!-- ===== Resend verification form ===== -->
@@ -48,19 +48,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
             <h1>My Account</h1>
-
-            <?php
-            $alertType = 'success';
-            $alertMessages = $_SESSION['flash_success'] ?? '';
-            unset($_SESSION['flash_success']);
-            include dirname(__DIR__) . '/includes/alert.php';
-            ?>
-
-            <?php
-            $alertType = 'error';
-            $alertMessages = $errors ?? [];
-            include dirname(__DIR__) . '/includes/alert.php';
-            ?>
 
             <?php if (!empty($certificate)): ?>
                 <!-- ===== Training certificate ===== -->
@@ -217,7 +204,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         <section class="settings-section">
             <h2>Account Actions</h2>
 
-            <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
+            <!-- <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p> -->
 
             <form method="POST" action="<?= ROOT ?>/user/delete" target="_top"
                 data-confirm-message="Are you sure? This cannot be undone."
@@ -230,7 +217,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#info-icon" />
                         </svg>
-                        <span class="info-popup">Deleting your account permanently removes your personal account details and training certificate from our records. Your submitted protocols and files are kept, as required by IACUC recordkeeping rules, but will no longer be linked to your account. This action cannot be undone, though you may register again afterward using the same details.</span>
+                        <span class="info-popup">Deleting your account will permanently remove your personal details and training certificate. Your submitted protocols and their files will be retained in an archive for internal recordkeeping. Although they will no longer be linked to your account, they may still contain personal information you provided. Please note that account deletion is permanent and cannot be undone.</span>
                     </div>
                 </div>
             </form>

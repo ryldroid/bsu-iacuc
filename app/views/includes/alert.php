@@ -10,7 +10,7 @@
 $alertType     = $alertType ?? 'error';
 $alertMessages = array_values(array_filter((array) ($alertMessages ?? []), 'strlen'));
 $alertIsError  = $alertType === 'error';
-$alertDelay    = $alertIsError ? 0 : (int) ($alertAutoDismiss ?? 4000);
+$alertDelay    = $alertIsError ? 5000 : (int) ($alertAutoDismiss ?? 4000);
 
 if ($alertMessages):
 ?>

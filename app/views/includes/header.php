@@ -389,6 +389,6 @@ if ($role === 'researcher') {
   <?php if ($user && !$hideHeader && !$hideHeaderAuth): ?>
     <!-- ===== Account drawer ===== -->
     <div id="account-drawer" role="dialog" aria-modal="true" aria-label="My Account" inert>
-      <iframe title="My Account" data-src="<?= ROOT ?>/user/account"></iframe>
+      <iframe title="My Account" data-src="<?= ROOT ?>/user/account?panel=1"></iframe>
     </div>
   <?php endif; ?>

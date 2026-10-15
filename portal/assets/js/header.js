@@ -14,6 +14,7 @@ const accountFrame = accountDrawer?.querySelector("iframe");
 backdrop?.addEventListener("click", () => {
   closeSidebar();
   closeAccountDrawer();
+  closeMoreMenu();
 });
 mobileMenu?.addEventListener("click", showSidebar);
 media.addEventListener("change", (e) => updateNavbar(e));
@@ -57,8 +58,9 @@ function showSidebar() {
 
 // ===== Account drawer =====
 function openAccountDrawer() {
-  closeSidebar();
-  closeMoreMenu();
+  document.dispatchEvent(
+    new CustomEvent("header-dropdown-open", { detail: "account" }),
+  );
   setHeaderHidden(false);
 
   accountFrame.src = accountFrame.dataset.src;
@@ -69,32 +71,36 @@ function openAccountDrawer() {
   accountFrame.focus();
 }
 
-function closeAccountDrawer() {
+function closeAccountDrawer(restoreFocus = true) {
   if (!accountDrawer?.classList.contains("show")) return;
   accountDrawer.classList.remove("show");
   document.documentElement.classList.remove("account-drawer-open");
   accountDrawer.setAttribute("inert", "");
+  accountFrame.src = "about:blank";
   backdrop.classList.remove("active");
-  accountButton.focus();
+  if (restoreFocus) accountButton.focus();
 }
 
 window.closeAccountDrawer = closeAccountDrawer;
 
-accountButton?.addEventListener("click", openAccountDrawer);
-
-accountDrawer?.addEventListener("transitionend", () => {
-  if (!accountDrawer.classList.contains("show"))
-    accountFrame.src = "about:blank";
-});
+accountButton?.addEventListener("click", () =>
+  accountDrawer.classList.contains("show")
+    ? closeAccountDrawer()
+    : openAccountDrawer(),
+);
 
 // ===== More menu =====
 document.addEventListener("header-dropdown-open", (event) => {
   if (event.detail !== "sidebar") closeSidebar();
+  if (event.detail !== "more") closeMoreMenu();
+  if (event.detail !== "account") closeAccountDrawer(false);
 });
 
 function closeMoreMenu() {
-  moreMenu?.classList.remove("active");
+  if (!moreMenu?.classList.contains("active")) return;
+  moreMenu.classList.remove("active");
   moreButton?.setAttribute("aria-expanded", "false");
+  backdrop?.classList.remove("active");
 }
 
 if (moreButton && moreMenu) {
@@ -105,6 +111,9 @@ if (moreButton && moreMenu) {
       document.dispatchEvent(
         new CustomEvent("header-dropdown-open", { detail: "more" }),
       );
+      backdrop?.classList.add("active");
+    } else {
+      backdrop?.classList.remove("active");
     }
   });
 
@@ -315,3 +324,9 @@ if (mainHeader) {
     }
   });
 })();
+
+// Opens the panel when a redirect lands here with ?account=1
+if (accountButton && new URLSearchParams(location.search).has("account")) {
+  openAccountDrawer();
+  history.replaceState(null, "", location.pathname);
+}

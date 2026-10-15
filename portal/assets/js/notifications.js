@@ -4,6 +4,7 @@ const notifDropdown = document.querySelector("#notif-dropdown");
 const notifBadge = document.querySelector(".notif-badge");
 const notifList = document.querySelector(".notif-list");
 const notifMarkAll = document.querySelector(".notif-mark-all");
+const notifBackdrop = document.querySelector("#sidebar-backdrop");
 
 const NOTIF_INDEX_URL = NOTIF_ROOT + "/notifications";
 const NOTIF_MARKREAD_URL = NOTIF_ROOT + "/notifications/markread";
@@ -76,8 +77,7 @@ async function loadNotifications() {
     const data = await res.json();
     renderBadge(data.unread_count);
     renderList(data.items);
-  } catch (e) {
-  }
+  } catch (e) {}
 }
 
 async function markRead(id) {
@@ -108,6 +108,13 @@ async function markAllRead() {
 
 // ===== Bell dropdown & clicks =====
 if (notifBell && notifDropdown) {
+  function closeNotifDropdown() {
+    if (!notifDropdown.classList.contains("active")) return;
+    notifDropdown.classList.remove("active");
+    notifBell.setAttribute("aria-expanded", "false");
+    notifBackdrop?.classList.remove("active");
+  }
+
   notifBell.addEventListener("click", () => {
     const isOpen = notifDropdown.classList.toggle("active");
     notifBell.setAttribute("aria-expanded", isOpen);
@@ -116,24 +123,21 @@ if (notifBell && notifDropdown) {
       document.dispatchEvent(
         new CustomEvent("header-dropdown-open", { detail: "notif" }),
       );
+      notifBackdrop?.classList.add("active");
+    } else {
+      notifBackdrop?.classList.remove("active");
     }
   });
 
   document.addEventListener("header-dropdown-open", (event) => {
-    if (event.detail !== "notif") {
-      notifDropdown.classList.remove("active");
-      notifBell.setAttribute("aria-expanded", "false");
-    }
+    if (event.detail !== "notif") closeNotifDropdown();
   });
 
   document.addEventListener("click", (event) => {
     const clickedInside =
       notifBell.contains(event.target) || notifDropdown.contains(event.target);
 
-    if (!clickedInside) {
-      notifDropdown.classList.remove("active");
-      notifBell.setAttribute("aria-expanded", "false");
-    }
+    if (!clickedInside) closeNotifDropdown();
   });
 
   notifList?.addEventListener("click", (event) => {

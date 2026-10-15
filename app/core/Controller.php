@@ -162,7 +162,7 @@ class Controller
     }
 
     $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
-    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping', 'user/email_preferences', 'user/verify_email'], true)) {
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping', 'user/email_preferences', 'user/verify_email'], true) || ($route === 'home' && isset($_GET['account']))) {
       return;
     }
 
@@ -172,7 +172,7 @@ class Controller
     }
 
     $_SESSION['flash_error'] = $message;
-    $this->redirect('user/account');
+    $this->redirect('home?account=1');
   }
 
   // ===== CSRF TOKENS =====

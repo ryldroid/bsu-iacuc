@@ -247,7 +247,8 @@ class UserModel extends Model
     $stmt = $this->connection->prepare(
       "UPDATE $this->table
           SET username = ?, first_name = 'Deleted', last_name = 'User',
-              email = ?, phone_number = NULL, password = ?, status = 'deleted',
+              email = ?, phone_number = NULL, school = NULL, sex = NULL, researcher_type = NULL,
+              password = ?, status = 'deleted',
               cert_path = NULL, cert_original_name = NULL, cert_uploaded_at = NULL
         WHERE id = ?"
     );
