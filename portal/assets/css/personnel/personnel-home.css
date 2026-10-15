@@ -17,7 +17,7 @@ main {
 .dashboard-search-row {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: .6em;
     flex-wrap: wrap;
     margin-bottom: 1rem;
 }

@@ -1,541 +1,359 @@
 <?php
-$title = 'Administration';
+$title = 'My Account';
+$hideHeader = true;
+$hideHeaderAuth = true;
+
 include dirname(__DIR__) . '/includes/header.php';
-include dirname(__DIR__) . '/includes/scroll-top.php';
 
-$user   = $user ?? $_SESSION['user'] ?? [];
-$csrf   = $csrf ?? '';
-$isStaff = ($user['role'] ?? '') === 'staff';
-$auditDateRange = $auditDateRange ?? ['earliest' => null, 'latest' => null];
-$auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
-$auditLogs      = $auditLogs      ?? [];
-$auditPage      = $auditPage      ?? 1;
-$auditPages     = $auditPages     ?? 1;
-$auditTotal     = $auditTotal     ?? 0;
-$auditPerPage   = $auditPerPage   ?? 10;
-$auditFilterDate = $auditFilterDate ?? null;
-$auditOffset    = ($auditPage - 1) * $auditPerPage;
-
-$allowedTabs = ['audit-logs', 'accounts'];
-$activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', $allowedTabs, true)
-    ? $_GET['tab']
-    : $allowedTabs[0]);
+$current_role = $old['role'] ?? '';
+$is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
+<?php include dirname(__DIR__) . '/includes/pdfjs.php'; ?>
+<link rel="stylesheet" href="<?= asset_css('account.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
 <div class="body">
-    <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
 
-    <main class="main-content" id="main-content" tabindex="-1">
+    <!-- ===== Account page ===== -->
+    <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
+        <a class="btn-back button btn-back--pinned" id="account-back" href="<?= ROOT ?>/<?= $is_personnel ? 'personnel/home' : 'home' ?>">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#back-icon">
+            </svg>
+            Back
+        </a>
 
-        <div class="dashboard-page-header">
-            <h1 class="dashboard-page-title">Administration</h1>
-        </div>
+        <?php if (empty($email_verified)): ?>
+            <!-- ===== Resend verification form ===== -->
+            <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/user/resend_verification"
+                data-confirm-message="Send a verification link to <?= htmlspecialchars($old['email'] ?? '') ?>?"
+                data-confirm-ok-text="Send">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+            </form>
+        <?php endif; ?>
 
-        <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
+        <!-- ===== Account form ===== -->
+        <form class="account-form" method="POST" action="<?= ROOT ?>/user/update"
+            data-confirm-message="Save changes to your account?"
+            data-confirm-ok-text="Save Changes">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-        <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
-            <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"
-                aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
-                aria-controls="panel-audit-logs">Audit Logs</button>
-            <button type="button" role="tab" id="tab-accounts" data-tab="accounts"
-                aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
-                aria-controls="panel-accounts">Manage Accounts</button>
-        </div>
+            <h1>My Account</h1>
 
-        <div id="accountsTabPanels">
-            <div class="tab-panel" id="panel-audit-logs" role="tabpanel" aria-labelledby="tab-audit-logs"
-                data-tab-panel="audit-logs" <?= $activeTab === 'audit-logs' ? '' : 'hidden' ?>>
-                <div class="dashboard-page-header">
-                    <button type="button" class="action-link" data-guide-start="audit-logs">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon" />
-                        </svg>
-                        Page guide
-                    </button>
-                </div>
-                <div class="sections-column">
-                    <!-- AUDIT LOG VIEWER -->
-                    <section class="accounts-card audit-viewer-section" id="audit-log-viewer">
-                        <div class="audit-viewer-header">
-                            <h2>
-                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#history-icon" />
-                                </svg>
-                                Audit Log Viewer
-                            </h2>
+            <?php
+            $alertType = 'success';
+            $alertMessages = $_SESSION['flash_success'] ?? '';
+            unset($_SESSION['flash_success']);
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
-                            <div class="audit-jump-to-date">
-                                <button type="button" id="audit-refresh" class="audit-refresh-btn" aria-label="Refresh audit logs" title="Refresh">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <use href="#refresh-icon" />
-                                    </svg>
-                                </button>
-                                <input type="date" id="audit-jump-date"
-                                    value="<?= htmlspecialchars($auditFilterDate ?? '') ?>"
-                                    <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
-                                    <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
-                                <button type="button" id="audit-jump-clear" class="accounts-btn-primary" <?= empty($auditFilterDate) ? 'hidden' : '' ?>>
-                                    Show all
-                                </button>
-                            </div>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $errors ?? [];
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
+
+            <?php if (!empty($certificate)): ?>
+                <!-- ===== Training certificate ===== -->
+                <section class="certificate-section">
+                    <div class="certificate-section-header">
+                        <div>
+                            <h2>Your IACUC Training Certificate</h2>
+                            <?php if (!empty($certificate['cert_uploaded_at'])): ?>
+                                <p class="helper">Uploaded <?= htmlspecialchars(date(DATE_FORMAT, strtotime($certificate['cert_uploaded_at'])), ENT_QUOTES, 'UTF-8') ?></p>
+                            <?php endif; ?>
                         </div>
-
-                        <div id="audit-log-results" data-page="<?= $auditPage ?>" data-date="<?= htmlspecialchars($auditFilterDate ?? '') ?>">
-                            <?php include __DIR__ . '/partials/audit-log-results.view.php'; ?>
-                        </div>
-                    </section>
-
-                    <!-- DOWNLOAD AUDIT LOGS -->
-                    <section class="accounts-card audit-section">
-                        <h2>Download Audit Logs</h2>
-                        <p class="audit-description">Export system activity logs to Excel (default at 90 days selection)</p>
-
-                        <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-
-                            <div class="form-section">
-                                <label for="audit-from-date">From</label>
-                                <input type="date" id="audit-from-date" name="from_date"
-                                    value="<?= htmlspecialchars($auditDefaults['from']) ?>"
-                                    <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
-                                    <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
-                            </div>
-
-                            <div class="form-section">
-                                <label for="audit-to-date">To</label>
-                                <input type="date" id="audit-to-date" name="to_date"
-                                    value="<?= htmlspecialchars($auditDefaults['to']) ?>"
-                                    <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
-                                    <?= $auditDateRange['latest'] ? 'max="' . htmlspecialchars($auditDateRange['latest']) . '"' : '' ?>>
-                            </div>
-
-                            <div class="form-section audit-full-history">
-                                <label class="audit-checkbox-label">
-                                    <input type="checkbox" id="audit-full-history" name="full_history" value="1">
-                                    Export full history
-                                </label>
-                            </div>
-
-                            <button type="submit" class="accounts-btn-primary">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#download-icon" />
-                                </svg>
-                                Download Audit Logs
-                            </button>
-                        </form>
-                    </section>
-                </div>
-            </div>
-
-            <div class="tab-panel" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts"
-                data-tab-panel="accounts" <?= $activeTab === 'accounts' ? '' : 'hidden' ?>>
-                <div class="dashboard-page-header">
-                    <button type="button" class="action-link" data-guide-start="accounts">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon" />
-                        </svg>
-                        Page guide
-                    </button>
-                </div>
-                <?php if ($isStaff): ?>
-                    <!-- PENDING ACCOUNTS -->
-                    <section class="accounts-card pending-section">
-                        <h2>Pending Personnel Approvals</h2>
-
-                        <?php if (empty($pending)): ?>
-                            <div class="empty-state">
-                                <h3>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <use href="#check-circle-icon" />
-                                    </svg>
-                                    All caught up
-                                </h3>
-                                <p>No pending applications right now.</p>
-                            </div>
-
-                        <?php else: ?>
-                            <p class="pending-count"><?= count($pending); ?> pending application(s)</p>
-
-                            <?php foreach ($pending as $applicant): ?>
-                                <div class="pending-box">
-                                    <div>
-                                        <span class="bold"><?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></span>
-                                        <span class="username">@<?= htmlspecialchars($applicant['username']); ?></span>
-                                        <div class="pending-meta">
-                                            <?= htmlspecialchars($applicant['email']); ?>
-                                            &middot; <?= htmlspecialchars($applicant['role']); ?>
-                                            &middot; <?= date(DATETIME_FORMAT, strtotime($applicant['created_at'])) ?>
-                                        </div>
-                                    </div>
-
-                                    <div class="actions">
-                                        <form method="POST" action="<?= ROOT ?>/personnel/approve"
-                                            data-confirm-message="Approve this application?"
-                                            data-confirm-ok-text="Approve">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
-                                            <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
-                                            <button type="submit" class="accounts-btn-primary">Approve</button>
-                                        </form>
-
-                                        <form method="POST" action="<?= ROOT ?>/personnel/reject"
-                                            data-confirm-message="Reject and delete this application?"
-                                            data-confirm-ok-text="Confirm"
-                                            data-confirm-danger="true">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
-                                            <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
-                                            <button type="submit" class="reject-btn">Reject</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </section>
-
-                    <!-- GENERATE INVITE LINK -->
-                    <section class="accounts-card invite-section">
-                        <h2>Personnel Registration Link</h2>
-
-                        <form class="invite-form" action="<?= ROOT ?>/personnel/generate_invite" method="POST">
-                            <input type="hidden"
-                                name="csrf_token"
-                                value="<?= htmlspecialchars($csrf) ?>">
-
-                            <div class="form-section">
-                                <label for="invite-role">Select Role:</label>
-                                <select name="invite_role" id="invite-role">
-                                    <option value="staff">Administrative Staff</option>
-                                    <option value="reviewer">Reviewer</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="accounts-btn-primary">
-                                Generate Invite Link
-                            </button>
-                        </form>
-
-                        <?php if (!empty($invite_url)): ?>
-                            <div class="invite-link-container">
-                                <label for="invite-link">Invite Link</label>
-
-                                <div class="invite-link-row">
-                                    <input
-                                        id="invite-link"
-                                        type="text"
-                                        readonly
-                                        value="<?= htmlspecialchars($invite_url) ?>">
-
-                                    <button
-                                        type="button"
-                                        class="accounts-btn-primary"
-                                        onclick="copyInviteLink()">
-                                        Copy
-                                    </button>
-                                </div>
-
-                                <p id="copy-message"></p>
-                            </div>
-                        <?php endif; ?>
-                    </section>
-                <?php endif; ?>
-
-                <!-- MANAGE PERSONNEL & ROLES -->
-                <section class="accounts-card personnel-manage-section">
-                    <h2>
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#shield-check-icon" />
-                        </svg>
-                        CCARD Personnel
-                    </h2>
-
-                    <?php if (empty($personnel)): ?>
-                        <div class="empty-state">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#check-circle-icon" />
-                                </svg>
-                                No personnel yet
-                            </h3>
-                            <p>Approved staff and reviewers will appear here.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="data-table-wrap">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($personnel as $p): ?>
-                                        <?php
-                                        $isSelf = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
-                                        ?>
-                                        <tr>
-                                            <td>
-                                                <span class="personnel-name">
-                                                    <?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>
-                                                    <?php if ($isSelf): ?>
-                                                        <span class="personnel-status-pill personnel-status-active personnel-you-tag">You</span>
-                                                    <?php endif; ?>
-                                                </span>
-                                                <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
-                                            </td>
-                                            <td>
-                                                <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
-                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                    <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                    <input type="hidden" name="password" class="personnel-role-password">
-                                                    <select name="role" class="personnel-role-select"
-                                                        data-username="<?= htmlspecialchars($p['username']) ?>"
-                                                        data-original-role="<?= htmlspecialchars($p['role']) ?>"
-                                                        <?= $isSelf ? 'disabled' : '' ?>
-                                                        onchange="handleRoleChange(this)">
-                                                        <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
-                                                        <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
-                                                    </select>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                        <button type="button" class="button"
+                            data-cert-url="<?= htmlspecialchars(ROOT . '/apply/cert/' . (int) $_SESSION['user']['user_id'], ENT_QUOTES, 'UTF-8') ?>"
+                            onclick="openFilePopup(this.dataset.certUrl, 'IACUC Training Certificate')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#open-mail-icon" />
+                            </svg>
+                            View
+                        </button>
+                    </div>
                 </section>
-            </div>
-        </div>
+            <?php endif; ?>
 
+            <div class="label-group">
+                <div class="input-group">
+                    <input type="text" id="first_name" name="first_name" placeholder=" "
+                        value="<?= htmlspecialchars($old['first_name'] ?? ''); ?>" required>
+                    <label for="first_name" id="first_name_label">First Name <span class="required-asterisk">*</span></label>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="last_name" name="last_name" placeholder=" "
+                        value="<?= htmlspecialchars($old['last_name'] ?? ''); ?>" required>
+                    <label for="last_name">Last Name <span class="required-asterisk">*</span></label>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="username" name="username" placeholder=" "
+                    value="<?= htmlspecialchars($old['username'] ?? ''); ?>" required>
+                <label for="username">Username <span class="required-asterisk">*</span></label>
+            </div>
+
+            <div class="input-group">
+                <input type="email" id="email" name="email" placeholder=" "
+                    value="<?= htmlspecialchars($old['email'] ?? ''); ?>" required>
+                <label for="email">
+                    Email <span class="required-asterisk">*</span>
+                    <?php if (empty($email_verified)): ?>
+                        <span class="email-verify-badge email-badge">Unverified</span>
+                    <?php else: ?>
+                        <span class="email-verified-badge email-badge">Verified</span>
+                    <?php endif; ?>
+                </label>
+            </div>
+
+            <?php if (empty($email_verified)): ?>
+                <button type="submit" form="resend-verification-form" class="email-verify-resend">Verify email</button>
+            <?php endif; ?>
+
+            <div class="input-group">
+
+                <!-- ===== Phone field ===== -->
+                <div class="phone-field-wrap">
+                    <span class="phone-prefix">+63</span>
+                    <input type="tel" id="phone_number" name="phone_number" placeholder=" "
+                        inputmode="numeric" pattern="9[0-9]{9}" maxlength="10"
+                        value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $old['phone_number'] ?? '')); ?>" required>
+                </div>
+                <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
+            </div>
+
+            <div class="input-group">
+                <select id="sex" name="sex" required>
+                    <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>Select</option>
+                    <option value="Male" <?= ($old['sex'] ?? '') === 'Male' ? 'selected' : '' ?>>Male</option>
+                    <option value="Female" <?= ($old['sex'] ?? '') === 'Female' ? 'selected' : '' ?>>Female</option>
+                </select>
+                <label for="sex">Sex <span class="required-asterisk">*</span></label>
+            </div>
+
+            <?php if (($old['role'] ?? '') === 'researcher'): ?>
+                <div class="input-group">
+                    <select id="researcher_type" name="researcher_type" required>
+                        <option value="" disabled <?= empty($old['researcher_type']) ? 'selected' : '' ?>>Select</option>
+                        <?php $selectedResearcherType = $old['researcher_type'] ?? '';
+                        include __DIR__ . '/../includes/researcher-type-options.php'; ?>
+                    </select>
+                    <label for="researcher_type">Researcher Type <span class="required-asterisk">*</span></label>
+                </div>
+
+                <div class="input-group">
+                    <input type="text" id="school" name="school" list="school-options" placeholder=" "
+                        value="<?= htmlspecialchars($old['school'] ?? ''); ?>" required>
+                    <label for="school">School <span class="required-asterisk">*</span></label>
+                </div>
+                <?php include __DIR__ . '/../includes/school-options.php'; ?>
+            <?php endif; ?>
+
+            <span class="helper">Leave the password fields blank to keep your current password.</span>
+
+            <div class="input-group">
+                <input type="password" id="password" name="password" placeholder=" ">
+                <label for="password">New Password</label>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="confirm_password" name="confirm_password" placeholder=" ">
+                <label for="confirm_password">Confirm New Password</label>
+            </div>
+
+            <div class="password-requirements">
+                Password must contain:
+                <ul>
+                    <li>At least 8 characters</li>
+                    <li>Uppercase letter</li>
+                    <li>Lowercase letter</li>
+                    <li>Number</li>
+                    <li>Special character (! @ # $ % ^ &amp; *)</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-save btn-green">Save Changes</button>
+        </form>
+
+        <!-- ===== Email notifications ===== -->
+        <section class="settings-section">
+            <div class="popup-wrap">
+                <h2>Email Notifications</h2>
+                <div class="info-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span class="info-popup">If you unsubscribed directly through your email client and wish to receive emails again, turn this toggle off and then on again. The system cannot detect the unsubscribe automatically.</span>
+                </div>
+            </div>
+
+            <form class="notifications-form" method="POST" action="<?= ROOT ?>/user/notifications" id="notifications-form">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+                <label class="switch-toggle" for="email_notifications">
+                    <span class="switch-toggle-label">Email me about protocol updates</span>
+                    <span class="switch-toggle-control">
+                        <input type="checkbox" id="email_notifications" name="email_notifications" value="1"
+                            <?= !empty($email_notifications) ? 'checked' : '' ?> onchange="this.form.submit()">
+                        <span class="switch-toggle-track"></span>
+                    </span>
+                </label>
+            </form>
+
+            <?php if (!empty($email_provider_blocked)): ?>
+                <p class="helper email-provider-blocked-note">You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</p>
+            <?php endif; ?>
+        </section>
+
+        <section class="settings-section">
+            <h2>Account Actions</h2>
+
+            <p class="helper account-deactivation-note">Accounts are deactivated automatically once your animal research clearance expires and you have no other protocols being processed. Your info, protocols, and training certificate will be kept, but your protocols will be hidden from CCARD personnel.</p>
+
+            <form method="POST" action="<?= ROOT ?>/user/delete"
+                data-confirm-message="Are you sure? This cannot be undone."
+                data-confirm-ok-text="Delete Account"
+                data-confirm-danger="true">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+                <div class="popup-wrap">
+                    <button type="submit" class="btn-delete btn-red">Delete Account</button>
+                    <div class="info-wrapper">
+                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#info-icon" />
+                        </svg>
+                        <span class="info-popup">Deleting your account permanently removes your personal account details and training certificate from our records. Your submitted protocols and files are kept, as required by IACUC recordkeeping rules, but will no longer be linked to your account. This action cannot be undone, though you may register again afterward using the same details.</span>
+                    </div>
+                </div>
+            </form>
+
+            <form class="logout-form" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out"
+                action="<?= ROOT ?>/<?= $is_personnel ? 'personnel/logout' : 'user/logout' ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
+                <button type="submit" class="btn-logout">Log Out</button>
+            </form>
+        </section>
     </main>
 </div>
 
-<?php
-$guideId    = 'audit-logs';
-$guideSteps = [
-    ['Audit Logs', 'This page keeps a record of actions taken in the system. Let us walk through it.'],
-    ['Audit log viewer', 'Each entry shows when it happened, who did it, the action, what it affected, the details, and the IP address.', '#audit-log-results'],
-    ['Refresh and date', 'Press the refresh icon to load the latest entries, or pick a date to see only that day. **Show all** brings every entry back.', '.audit-jump-to-date'],
-];
-if ($auditPages > 1) {
-    $guideSteps[] = ['Pagination', 'Move between pages of entries.', '#audit-log-results .pagination-bar'];
-}
-$guideSteps[] = ['Download Audit Logs', 'Export entries to Excel for the dates you choose. The default is the last 90 days, or tick **Export full history** for everything.', '#auditForm'];
-$guideSteps[] = ['Manage Accounts tab', 'Switch to **Manage Accounts** to approve new personnel and manage roles.', '#tab-accounts'];
-include dirname(__DIR__) . '/includes/guide.php';
+<!-- File popup modal -->
 
-$guideId    = 'accounts';
-$guideSteps = [
-    ['Manage Accounts', 'Approve new personnel, invite staff or reviewers, and manage roles. Let us walk through it.'],
-];
-if ($isStaff) {
-    $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
-    $guideSteps[] = ['Registration link', 'Choose a role and generate a registration link to send to a new staff member or reviewer. The link works for 48 hours.', '.invite-section'];
-}
-$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed.', '.personnel-manage-section'];
-$guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
-include dirname(__DIR__) . '/includes/guide.php';
-?>
-
-<!-- Confirm role change modal -->
-
-<!-- ===== Role change confirmation modal ===== -->
-<div class="modal-backdrop" id="roleConfirmBackdrop" data-static>
-    <div class="modal-card">
-        <h2>Confirm Role Change</h2>
-        <p class="helper" id="roleConfirmText"></p>
-
-        <div id="roleConfirmError" class="alert error-messages" hidden></div>
-
-        <div class="role-confirm-field">
-            <label for="roleConfirmPassword">Enter your password to confirm</label>
-            <input type="password" id="roleConfirmPassword" class="role-confirm-password" autocomplete="current-password">
+<!-- ===== File popup ===== -->
+<div class="modal-backdrop" id="filePopupBackdrop">
+    <div class="modal-card file-popup-card">
+        <div class="file-popup-header">
+            <span class="file-popup-title" id="filePopupTitle"></span>
+            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
         </div>
-
-        <div class="modal-actions">
-            <button class="button" type="button" onclick="closeRoleConfirm()">Cancel</button>
-            <button class="button btn-apply" type="button" id="roleConfirmSubmitBtn" onclick="submitRoleConfirm()">Confirm</button>
+        <div class="file-popup-frame" id="filePopupFrame">
+            <div id="filePopupPdfPages" class="file-popup-pdf-pages" hidden></div>
+            <img id="filePopupImg" alt="">
+            <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
         </div>
     </div>
 </div>
 
-<!-- ===== Scripts ===== -->
-<script src="<?= asset_js('tabs.js') ?>" defer></script>
-<script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
-
+<!-- ===== File popup script ===== -->
 <script>
-    // ===== Copy invite link =====
-    function copyInviteLink() {
-        const input = document.getElementById('invite-link');
+    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
+    const filePopupFrame = document.getElementById('filePopupFrame');
+    const filePopupPdfPages = document.getElementById('filePopupPdfPages');
+    const filePopupImg = document.getElementById('filePopupImg');
+    const filePopupMessage = document.getElementById('filePopupMessage');
+    let filePopupObjectUrl = null;
 
-        navigator.clipboard.writeText(input.value)
-            .then(() => {
-                document.getElementById('copy-message').textContent =
-                    'Copied to clipboard!';
-            })
-            .catch(() => {
-                document.getElementById('copy-message').textContent =
-                    'Failed to copy.';
+    function showFilePopupState(state) {
+        filePopupPdfPages.hidden = state !== 'pdf';
+        filePopupImg.hidden = state !== 'img';
+        filePopupMessage.hidden = state !== 'message';
+    }
+
+    async function renderPopupPdf(fileUrl) {
+        filePopupPdfPages.innerHTML = '';
+        const frameWidth = filePopupFrame.clientWidth;
+        const doc = await pdfjsLib.getDocument(fileUrl).promise;
+
+        for (let p = 1; p <= doc.numPages; p++) {
+            const page = await doc.getPage(p);
+            const scale = Math.min(1.5, (frameWidth - 48) / page.getViewport({
+                scale: 1
+            }).width);
+            const vp = page.getViewport({
+                scale
             });
+
+            const canvas = document.createElement('canvas');
+            const outputScale = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(vp.width * outputScale);
+            canvas.height = Math.floor(vp.height * outputScale);
+            canvas.style.width = vp.width + 'px';
+            canvas.style.height = vp.height + 'px';
+            filePopupPdfPages.appendChild(canvas);
+
+            await page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: vp,
+                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
+            }).promise;
+        }
     }
 
-    const auditFullHistoryCheckbox = document.getElementById('audit-full-history');
-    const auditFromDate = document.getElementById('audit-from-date');
-    const auditToDate = document.getElementById('audit-to-date');
+    async function openFilePopup(fileUrl, title) {
+        document.getElementById('filePopupTitle').textContent = title;
+        filePopupBackdrop.classList.add('open');
+        filePopupFrame.scrollTop = 0;
 
-    if (auditFullHistoryCheckbox) {
-        auditFullHistoryCheckbox.addEventListener('change', () => {
-            const disabled = auditFullHistoryCheckbox.checked;
-            auditFromDate.disabled = disabled;
-            auditToDate.disabled = disabled;
-        });
-    }
+        filePopupMessage.textContent = 'Loading…';
+        showFilePopupState('message');
 
-    // ===== Role change: confirm with password =====
-    (function() {
-        const backdrop = document.getElementById('roleConfirmBackdrop');
-        const text = document.getElementById('roleConfirmText');
-        const error = document.getElementById('roleConfirmError');
-        const passwordInput = document.getElementById('roleConfirmPassword');
-        const submitBtn = document.getElementById('roleConfirmSubmitBtn');
+        try {
+            const res = await fetch(fileUrl);
+            if (!res.ok) throw new Error('Failed to load file');
 
-        if (!backdrop) return;
+            const contentType = res.headers.get('content-type') || '';
 
-        let pendingSelect = null;
-
-        window.handleRoleChange = function(select) {
-            pendingSelect = select;
-
-            const roleLabel = select.options[select.selectedIndex].text;
-            const username = select.dataset.username;
-
-            text.textContent = `Change @${username}'s role to ${roleLabel}?`;
-            error.hidden = true;
-            passwordInput.value = '';
-
-            backdrop.classList.add('open');
-            passwordInput.focus();
-        };
-
-        window.closeRoleConfirm = function() {
-            backdrop.classList.remove('open');
-            if (pendingSelect) {
-                pendingSelect.value = pendingSelect.dataset.originalRole;
-                pendingSelect = null;
-            }
-        };
-
-        window.submitRoleConfirm = function() {
-            if (!pendingSelect) return;
-
-            const password = passwordInput.value;
-            if (!password) {
-                error.textContent = 'Please enter your password.';
-                error.hidden = false;
-                passwordInput.focus();
+            if (contentType.includes('pdf')) {
+                await renderPopupPdf(fileUrl);
+                showFilePopupState('pdf');
+                filePopupFrame.scrollTop = 0;
                 return;
             }
 
-            const form = pendingSelect.closest('form');
-            form.querySelector('.personnel-role-password').value = password;
+            const blob = await res.blob();
 
-            setButtonBusy(submitBtn, true, 'Confirming...');
-            pendingSelect = null;
-            form.submit();
-        };
+            if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = URL.createObjectURL(blob);
 
-        backdrop.addEventListener('click', (e) => {
-            if (e.target === backdrop) closeRoleConfirm();
-        });
-
-        passwordInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                submitRoleConfirm();
-            }
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && backdrop.classList.contains('open')) closeRoleConfirm();
-        });
-    })();
-
-    // ===== Audit log viewer: pagination & jump to date =====
-    (function() {
-        const results = document.getElementById('audit-log-results');
-        const jumpDate = document.getElementById('audit-jump-date');
-        const jumpClear = document.getElementById('audit-jump-clear');
-        const refreshButton = document.getElementById('audit-refresh');
-
-        if (!results) return;
-
-        function loadAuditPage(page, date) {
-            results.classList.add('is-loading');
-
-            const params = new URLSearchParams({
-                audit_page: page
-            });
-            if (date) params.set('audit_date', date);
-
-            fetch(`<?= ROOT ?>/personnel/auditLogResults?${params.toString()}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (!data.ok) return;
-
-                    results.innerHTML = data.html;
-                    results.dataset.page = data.page;
-                    results.dataset.date = date || '';
-                    jumpClear.hidden = !date;
-
-                    const url = new URL(location.href);
-                    url.searchParams.set('audit_page', data.page);
-                    if (date) url.searchParams.set('audit_date', date);
-                    else url.searchParams.delete('audit_date');
-                    history.replaceState(history.state, '', url);
-                })
-                .catch(() => {})
-                .finally(() => {
-                    results.classList.remove('is-loading');
-                });
+            filePopupImg.src = filePopupObjectUrl;
+            filePopupImg.alt = title;
+            showFilePopupState('img');
+        } catch (err) {
+            filePopupMessage.textContent = 'Could not load this file.';
+            showFilePopupState('message');
         }
+    }
 
-        results.addEventListener('click', (event) => {
-            const link = event.target.closest('.js-audit-page');
-            if (!link) return;
-
-            event.preventDefault();
-            loadAuditPage(link.dataset.page, results.dataset.date);
-        });
-
-        if (jumpDate) {
-            jumpDate.addEventListener('change', () => {
-                loadAuditPage(1, jumpDate.value);
-            });
+    function closeFilePopup() {
+        filePopupBackdrop.classList.remove('open');
+        filePopupPdfPages.innerHTML = '';
+        filePopupImg.removeAttribute('src');
+        if (filePopupObjectUrl) {
+            URL.revokeObjectURL(filePopupObjectUrl);
+            filePopupObjectUrl = null;
         }
+    }
 
-        if (refreshButton) {
-            refreshButton.addEventListener('click', () => {
-                loadAuditPage(results.dataset.page, results.dataset.date);
-            });
-        }
+    filePopupBackdrop.addEventListener('click', e => {
+        if (e.target === filePopupBackdrop) closeFilePopup();
+    });
 
-        if (jumpClear) {
-            jumpClear.addEventListener('click', () => {
-                jumpDate.value = '';
-                jumpClear.hidden = true;
-                loadAuditPage(1, '');
-            });
-        }
-    })();
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeFilePopup();
+    });
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
