@@ -33,23 +33,17 @@ include dirname(__DIR__) . '/includes/header.php';
                 Enter your email and we'll send you a reset link.
             </p>
 
-            <?php if (!empty($success)): ?>
-                <div class="success-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($success) ?>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'success';
+            $alertMessages = $success;
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
-            <?php if (!empty($error)): ?>
-                <div class="error-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $error ?? '';
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <div class="input-group">
                 <input type="email" id="email" name="email" placeholder=" " required>

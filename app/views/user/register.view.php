@@ -27,21 +27,20 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <h1>Create Account</h1>
 
-            <?php if (!empty($success)): ?>
-                <div class="success-message">
-                    Account created successfully! Redirecting...
-                </div>
-            <?php endif; ?>
+            <?php
+            if (!empty($success)) {
+                $alertType = 'success';
+                $alertMessages = 'Account created successfully! Redirecting...';
+                $alertAutoDismiss = 0;
+                include dirname(__DIR__) . '/includes/alert.php';
+            }
+            ?>
 
-            <?php if (!empty($errors)): ?>
-                <div class="error-messages">
-                    <ul>
-                        <?php foreach ($errors as $err): ?>
-                            <li><?= htmlspecialchars($err); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $errors ?? [];
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <div class="label-group">
                 <div class="input-group">

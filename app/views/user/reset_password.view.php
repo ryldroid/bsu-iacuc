@@ -20,15 +20,11 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <h1>Reset Password</h1>
 
-            <?php if (!empty($errors)): ?>
-                <div class="error-messages">
-                    <ul>
-                        <?php foreach ($errors as $err): ?>
-                            <li><?= htmlspecialchars($err) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $errors ?? [];
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <div class="input-group">
                 <input type="password" id="password" name="password" placeholder=" " required>

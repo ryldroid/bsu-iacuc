@@ -16,7 +16,7 @@ include dirname(__DIR__) . '/includes/sprites.php';
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#home-icon">
             </svg>
-            Go to public page
+            Visit public page
         </a>
 
         <form method="POST" action="<?= ROOT ?>/personnel/login_process">
@@ -25,24 +25,18 @@ include dirname(__DIR__) . '/includes/sprites.php';
             <h1 class="personnel-login-h1">Personnel Login</h1>
             <p class="form-label">For CCARD personnel only.</p>
 
-            <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="success-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($_SESSION['flash_success']); ?>
-                </div>
-                <?php unset($_SESSION['flash_success']); ?>
-            <?php endif; ?>
+            <?php
+            $alertType = 'success';
+            $alertMessages = $_SESSION['flash_success'] ?? '';
+            unset($_SESSION['flash_success']);
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
-            <?php if (!empty($error)): ?>
-                <div class="error-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $error ?? '';
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <div class="input-group">
                 <input type="text" id="username" name="username" placeholder=" " required>

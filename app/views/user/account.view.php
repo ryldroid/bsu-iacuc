@@ -39,27 +39,20 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             data-confirm-ok-text="Save Changes">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-            <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="success-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($_SESSION['flash_success']); ?>
-                </div>
-                <?php unset($_SESSION['flash_success']); ?>
-            <?php endif; ?>
-
-            <?php if (!empty($errors)): ?>
-                <div class="error-messages">
-                    <ul>
-                        <?php foreach ($errors as $err): ?>
-                            <li><?= htmlspecialchars($err); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
             <h1>My Account</h1>
+
+            <?php
+            $alertType = 'success';
+            $alertMessages = $_SESSION['flash_success'] ?? '';
+            unset($_SESSION['flash_success']);
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
+
+            <?php
+            $alertType = 'error';
+            $alertMessages = $errors ?? [];
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <?php if (!empty($certificate)): ?>
                 <!-- ===== Training certificate ===== -->
@@ -361,15 +354,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') closeFilePopup();
     });
-
-    const accountSuccessMessage = document.querySelector('.account-form .success-message');
-    if (accountSuccessMessage) {
-        setTimeout(() => {
-            accountSuccessMessage.style.transition = 'opacity 0.4s ease';
-            accountSuccessMessage.style.opacity = '0';
-            setTimeout(() => accountSuccessMessage.remove(), 400);
-        }, 3000);
-    }
 </script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

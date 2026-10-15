@@ -246,7 +246,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
     font-size: .8rem;
     color: var(--secondary-text);
     margin-bottom: 10px;
-    text-align: left;
+    text-align: center;
     /* font-style: italic; */
 }
 

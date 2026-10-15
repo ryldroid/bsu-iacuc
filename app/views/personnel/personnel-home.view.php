@@ -175,23 +175,7 @@ foreach ($protocols as $p) {
                 </div>
             </div>
 
-            <!-- ===== Flash messages ===== -->
-            <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="alert success-message" id="flashSuccess">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#check-icon" />
-                    </svg>
-                    <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-                </div>
-                <?php unset($_SESSION['flash_success']); ?>
-            <?php endif; ?>
-
-            <?php if (!empty($_SESSION['flash_error'])): ?>
-                <div class="alert error-messages" id="flashError">
-                    <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
-                </div>
-                <?php unset($_SESSION['flash_error']); ?>
-            <?php endif; ?>
+            <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
             <?php if (empty($protocols)): ?>
                 <!-- ===== Empty state ===== -->
@@ -1587,21 +1571,6 @@ foreach ($protocols as $p) {
         }
     }
 
-    // ===== Flash message auto-dismiss =====
-    (function() {
-        function dismissFlash(id, delay) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            setTimeout(() => {
-                el.style.transition = 'opacity 0.4s ease';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 420);
-            }, delay);
-        }
-        dismissFlash('flashSuccess', 4000);
-        dismissFlash('flashError', 7000);
-    })();
-
     // ===== Status legend info panel (single click to open/close) =====
     (function() {
         const wrapper = document.getElementById('legendInfoWrapper');
@@ -2171,22 +2140,7 @@ include dirname(__DIR__) . '/includes/guide.php';
             loadBoard();
         }
 
-        // ===== Flash & thumbnail helpers =====
-        function showFlash(message, isError = false) {
-            const existing = document.getElementById('flashSuccess');
-            if (existing) existing.remove();
-
-            const flash = document.createElement('div');
-            flash.className = isError ? 'alert error-messages' : 'alert success-message';
-            flash.id = 'flashSuccess';
-            flash.textContent = message;
-
-            const main = document.getElementById('main-content');
-            main.insertBefore(flash, main.firstChild);
-
-            setTimeout(() => flash.remove(), 4000);
-        }
-
+        // ===== Thumbnail helpers =====
         function isImage(name) {
             return /\.(jpe?g|png)$/i.test(name || '');
         }
@@ -2222,7 +2176,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 const res = await fetch(CLEARANCE_POOL_API);
                 boardData = await res.json();
             } catch (err) {
-                showFlash('Could not load the clearances. Please refresh.', true);
+                showToast('Could not load the clearances. Please refresh.', 'error');
                 return;
             }
             if (selectedPoolId !== null && !(boardData.unassigned || []).some(item => Number(item.id) === selectedPoolId)) {
@@ -2395,12 +2349,12 @@ include dirname(__DIR__) . '/includes/guide.php';
 
                 if (data.success) {
                     const skipped = (data.failures && data.failures.length) ? ' Some files were skipped: ' + data.failures.join(' ') : '';
-                    showFlash(`${data.inserted} screenshot(s) uploaded.${skipped}`, !!skipped);
+                    showToast(`${data.inserted} screenshot(s) uploaded.${skipped}`, skipped ? 'error' : 'success');
                 } else {
-                    showFlash((data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.'), true);
+                    showToast((data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.'), 'error');
                 }
             } catch (err) {
-                showFlash(err.message || 'Network error. Please try again.', true);
+                showToast(err.message || 'Network error. Please try again.', 'error');
             }
 
             bar.remove();
@@ -2476,9 +2430,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                     }),
                 });
                 const data = await res.json();
-                if (!data.success) showFlash(data.error || 'Could not match that screenshot.', true);
+                if (!data.success) showToast(data.error || 'Could not match that screenshot.', 'error');
             } catch (err) {
-                showFlash('Network error. Please try again.', true);
+                showToast('Network error. Please try again.', 'error');
             }
             loadBoard();
         }
@@ -2496,9 +2450,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                     }),
                 });
                 const data = await res.json();
-                if (!data.success) showFlash(data.error || 'Could not undo that match.', true);
+                if (!data.success) showToast(data.error || 'Could not undo that match.', 'error');
             } catch (err) {
-                showFlash('Network error. Please try again.', true);
+                showToast('Network error. Please try again.', 'error');
             }
             loadBoard();
         }
@@ -2524,9 +2478,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                     }),
                 });
                 const data = await res.json();
-                if (!data.success) showFlash(data.error || 'Could not delete that screenshot.', true);
+                if (!data.success) showToast(data.error || 'Could not delete that screenshot.', 'error');
             } catch (err) {
-                showFlash('Network error. Please try again.', true);
+                showToast('Network error. Please try again.', 'error');
             }
             loadBoard();
         }
@@ -2554,7 +2508,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 placeholder: 'AR number from the BAI clearance',
                 helper: 'This is the animal research clearance ID printed on the clearance issued by BAI.',
                 saved: () => {
-                    showFlash('AR number saved.');
+                    showToast('AR number saved.');
                     loadBoard();
                 }
             }

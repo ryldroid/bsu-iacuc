@@ -248,17 +248,11 @@ function formatDurationRange(?string $start, ?string $end): string
     <!-- ===== Records page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
-        <!-- ===== Flash messages ===== -->
-        <?php if ($flash_success): ?>
-            <div class="alert success-message" id="flashSuccess">
-                <?= htmlspecialchars($flash_success, ENT_QUOTES, 'UTF-8') ?>
-            </div>
-        <?php endif; ?>
-        <?php if ($flash_error): ?>
-            <div class="alert error-messages" id="flashError">
-                <?= htmlspecialchars($flash_error, ENT_QUOTES, 'UTF-8') ?>
-            </div>
-        <?php endif; ?>
+        <?php
+        $toastSuccess = $flash_success;
+        $toastError   = $flash_error;
+        include dirname(__DIR__) . '/includes/flash.php';
+        ?>
 
         <!-- ===== Tabs: Records / Statistics ===== -->
         <div class="tab-strip" role="tablist" aria-label="Records sections" data-tab-panels="recordsTabPanels" data-tab-param="tab">
@@ -1253,23 +1247,8 @@ include dirname(__DIR__) . '/includes/guide.php';
         const pendingFlash = sessionStorage.getItem('records_flash');
         if (pendingFlash) {
             sessionStorage.removeItem('records_flash');
-            const flash = document.createElement('div');
-            flash.className = 'alert success-message';
-            flash.id = 'flashSuccess';
-            flash.textContent = pendingFlash;
-            const main = document.getElementById('main-content');
-            main.insertBefore(flash, main.firstChild);
-            setTimeout(() => flash.remove(), 4000);
+            showToast(pendingFlash);
         }
-
-        // ===== Auto-dismiss PHP flash messages =====
-        function dismissFlash(id, delay) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            setTimeout(() => el.remove(), delay);
-        }
-        dismissFlash('flashSuccess', 4000);
-        dismissFlash('flashError', 7000);
 
     })();
 </script>

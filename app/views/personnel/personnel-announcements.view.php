@@ -26,6 +26,8 @@ $first_name    = $user['first_name'] ?? '';
     <!-- ===== Announcements page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
+        <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
+
         <div class="dashboard-page-header records-page-header">
             <div>
                 <h1 class="dashboard-page-title">Manage Announcements</h1>
@@ -473,12 +475,7 @@ $first_name    = $user['first_name'] ?? '';
         const pendingFlash = sessionStorage.getItem('announcements_flash');
         if (pendingFlash) {
             sessionStorage.removeItem('announcements_flash');
-            const flash = document.createElement('div');
-            flash.className = 'alert success-message';
-            flash.textContent = pendingFlash;
-            const main = document.getElementById('main-content');
-            main.insertBefore(flash, main.firstChild);
-            setTimeout(() => flash.remove(), 4000);
+            showToast(pendingFlash);
         }
     })();
 </script>

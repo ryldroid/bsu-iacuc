@@ -24,24 +24,18 @@ include dirname(__DIR__) . '/includes/header.php';
 
             <h1>Login</h1>
 
-            <?php if (!empty($_SESSION['flash_success'])): ?>
-                <div class="success-message login-success">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($_SESSION['flash_success']); ?>
-                </div>
-                <?php unset($_SESSION['flash_success']); ?>
-            <?php endif; ?>
+            <?php
+            $alertType = 'success';
+            $alertMessages = $_SESSION['flash_success'] ?? '';
+            unset($_SESSION['flash_success']);
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
-            <?php if (!empty($error)): ?>
-                <div class="error-message">
-                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon">
-                    </svg>
-                    <?= htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
+            <?php
+            $alertType = 'error';
+            $alertMessages = $error ?? '';
+            include dirname(__DIR__) . '/includes/alert.php';
+            ?>
 
             <div class="input-group">
                 <input type="text" id="username" name="username" placeholder=" " value="<?= htmlspecialchars($prefill ?? ''); ?>" required>

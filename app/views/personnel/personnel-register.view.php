@@ -69,15 +69,11 @@ $role = $user['role'] ?? '';
 
                     <p class="info-notice">Your registration will be reviewed before you can log in. For inquiries, please contact the administrator who provided you with the link.</p>
 
-                    <?php if (!empty($errors)): ?>
-                        <div class="error-messages">
-                            <ul>
-                                <?php foreach ($errors as $err): ?>
-                                    <li><?= htmlspecialchars($err); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
+                    <?php
+                    $alertType = 'error';
+                    $alertMessages = $errors ?? [];
+                    include dirname(__DIR__) . '/includes/alert.php';
+                    ?>
 
                     <div class="label-group">
                         <div class="input-group">

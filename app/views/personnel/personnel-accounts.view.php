@@ -37,21 +37,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
             <h1 class="dashboard-page-title">Administration</h1>
         </div>
 
-        <?php if (!empty($_SESSION['flash_success'])): ?>
-            <div class="alert success-message" id="flashSuccess">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#check-icon" />
-                </svg>
-                <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-            </div>
-            <?php unset($_SESSION['flash_success']); ?>
-        <?php endif; ?>
-        <?php if (!empty($_SESSION['flash_error'])): ?>
-            <div class="alert error-messages" id="flashError">
-                <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
-            </div>
-            <?php unset($_SESSION['flash_error']); ?>
-        <?php endif; ?>
+        <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
         <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
             <button type="button" role="tab" id="tab-audit-logs" data-tab="audit-logs"

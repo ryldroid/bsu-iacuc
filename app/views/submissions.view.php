@@ -100,28 +100,12 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
         </div>
 
-        <?php if (isset($_GET['submitted'])): ?>
-            <div class="alert success-message" id="flashSuccess">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#check-icon">
-                </svg>
-                Your protocol has been submitted successfully. We will review it shortly.
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($_SESSION['flash_success'])): ?>
-            <div class="alert success-message" id="flashSuccess">
-                <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-            </div>
-            <?php unset($_SESSION['flash_success']); ?>
-        <?php endif; ?>
-
-        <?php if (!empty($_SESSION['flash_error'])): ?>
-            <div class="alert error-messages" id="flashError">
-                <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
-            </div>
-            <?php unset($_SESSION['flash_error']); ?>
-        <?php endif; ?>
+        <?php
+        $toastSuccess = isset($_GET['submitted'])
+            ? 'Your protocol has been submitted successfully. We will review it shortly.'
+            : ($_SESSION['flash_success'] ?? '');
+        include __DIR__ . '/includes/flash.php';
+        ?>
 
         <!-- Status filter bar -->
         <div class="dashboard-filter-row">
@@ -1030,21 +1014,6 @@ include 'includes/guide.php';
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closePanel();
         });
-    })();
-
-    // ===== Auto-dismiss flash messages =====
-    (function() {
-        function dismissFlash(elementId, delayMs) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            setTimeout(() => {
-                el.style.transition = 'opacity 0.4s ease';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 420);
-            }, delayMs);
-        }
-        dismissFlash('flashSuccess', 4000);
-        dismissFlash('flashError', 7000);
     })();
 
     // ===== Download Clearance: always download, also open images in a new tab =====

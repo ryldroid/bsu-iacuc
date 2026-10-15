@@ -98,8 +98,7 @@ class User extends Controller
       $pw_reqs = $this->validatePasswordRequirements($password);
       if (!empty($pw_reqs)) {
         $errors[] = 'Password must contain: ' . implode(', ', $pw_reqs) . '.';
-      }
-      if ($password !== $confirm_pass) {
+      } elseif ($password !== $confirm_pass) {
         $errors[] = 'Passwords do not match.';
       }
     }

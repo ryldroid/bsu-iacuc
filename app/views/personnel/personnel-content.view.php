@@ -37,15 +37,7 @@ $activeTab     = $activeTab     ?? 'announcements';
       <h1 class="dashboard-page-title">Edit Site Content</h1>
     </div>
 
-    <?php if (!empty($_SESSION['flash_success'])): ?>
-      <div class="alert success-message" id="flashSuccess">
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#check-icon" />
-        </svg>
-        <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-      </div>
-      <?php unset($_SESSION['flash_success']); ?>
-    <?php endif; ?>
+    <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
     <div class="tab-strip" role="tablist" aria-label="Content sections" data-tab-panels="contentTabPanels">
       <button type="button" role="tab" id="tab-announcements" data-tab="announcements"
@@ -175,15 +167,6 @@ $activeTab     = $activeTab     ?? 'announcements';
                 Add Office
               </button>
             </div>
-            <div id="officeMoveStatus" aria-live="polite"></div>
-            <template id="officeMoveMessage">
-              <div class="alert success-message">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#check-icon" />
-                </svg>
-                <span></span>
-              </div>
-            </template>
             <div class="records-table-wrap">
               <?php if (empty($offices)): ?>
                 <p style="padding: 1.5rem;">No offices yet.</p>
@@ -741,12 +724,7 @@ $activeTab     = $activeTab     ?? 'announcements';
     const pendingFlash = sessionStorage.getItem('announcements_flash');
     if (pendingFlash) {
       sessionStorage.removeItem('announcements_flash');
-      const flash = document.createElement('div');
-      flash.className = 'alert success-message';
-      flash.textContent = pendingFlash;
-      const main = document.getElementById('main-content');
-      main.insertBefore(flash, main.firstChild);
-      setTimeout(() => flash.remove(), 4000);
+      showToast(pendingFlash);
     }
   })();
 </script>
@@ -900,13 +878,6 @@ $activeTab     = $activeTab     ?? 'announcements';
     // ===== MOVE =====
     const officeList = document.getElementById('office-list');
 
-    function showOfficeNotice(message) {
-      const notice = document.getElementById('officeMoveMessage').content.firstElementChild.cloneNode(true);
-      notice.querySelector('span').textContent = message;
-      document.getElementById('officeMoveStatus').replaceChildren(notice);
-      setTimeout(() => notice.remove(), 4000);
-    }
-
     function refreshMoveButtons() {
       const rows = [...officeList.children];
       rows.forEach((row, index) => {
@@ -932,7 +903,7 @@ $activeTab     = $activeTab     ?? 'announcements';
             row.nextElementSibling.after(row);
           }
           refreshMoveButtons();
-          showOfficeNotice(data.message);
+          showToast(data.message);
         });
       });
     });

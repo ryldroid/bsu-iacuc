@@ -473,24 +473,6 @@
   min-height: unset;
 }
 
-.viewer-flash-success {
-  background: #052e16;
-  color: #86efac;
-}
-
-.viewer-flash-success svg {
-  color: #4ade80;
-}
-
-.viewer-flash-error {
-  background: #3f0d0d;
-  color: #fca5a5;
-}
-
-.viewer-flash-error svg {
-  color: #f87171;
-}
-
 .tool-btn--warn {
   background: #b45309;
   border-color: #fbbf24;

@@ -373,23 +373,11 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <?php if (!empty($flashSuccess)): ?>
-        <div class="return-reason-bar viewer-flash-success" id="viewerFlashSuccess">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#check-icon" />
-            </svg>
-            <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($flashError)): ?>
-        <div class="return-reason-bar viewer-flash-error" id="viewerFlashError">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#info-icon" />
-            </svg>
-            <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
+    <?php
+    $toastSuccess = $flashSuccess ?? '';
+    $toastError   = $flashError ?? '';
+    include __DIR__ . '/includes/flash.php';
+    ?>
 
     <?php if (!$isStaff && !empty($protocol['deletion_requested_at'])): ?>
         <div class="return-reason-bar deletion-request-bar">
@@ -1037,21 +1025,6 @@ include 'includes/header.php';
     const ROOT_URL = <?= json_encode(ROOT) ?>;
     const CAN_RESUBMIT = <?= $canResubmit ? 'true' : 'false' ?>;
     const RESUBMIT_DOCS = <?= json_encode($resubmitDocs) ?>;
-
-    // ===== Auto-dismiss viewer flash messages =====
-    (function() {
-        function dismissFlash(elementId, delayMs) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            setTimeout(() => {
-                el.style.transition = 'opacity 0.4s ease';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 420);
-            }, delayMs);
-        }
-        dismissFlash('viewerFlashSuccess', 4000);
-        dismissFlash('viewerFlashError', 7000);
-    })();
 
     // ===== Version switcher dropdown =====
     const versionTrigger = document.getElementById('versionSwitcherTrigger');

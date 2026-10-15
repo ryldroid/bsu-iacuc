@@ -30,15 +30,7 @@ $offices  = $offices  ?? [];
       <h1 class="dashboard-page-title">Site Content</h1>
     </div>
 
-    <?php if (!empty($_SESSION['flash_success'])): ?>
-      <div class="alert success-message" id="flashSuccess">
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#check-icon" />
-        </svg>
-        <?= htmlspecialchars($_SESSION['flash_success'], ENT_QUOTES, 'UTF-8') ?>
-      </div>
-      <?php unset($_SESSION['flash_success']); ?>
-    <?php endif; ?>
+    <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
     <div class="sections">
       <!-- HOMEPAGE CONTENT -->
