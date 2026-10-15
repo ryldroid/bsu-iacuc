@@ -70,7 +70,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'protocol_renamed',
             'Protocol Renamed',
-            Notifier::boldTitle($oldTitle) . ' was renamed to ' . Notifier::boldTitle($newTitle) . " by $roleLabel - {$actor['name']}.",
+            Notifier::boldTitle($oldTitle) . ' was renamed to ' . Notifier::boldTitle($newTitle) . " by $roleLabel - {$actor['name']}. " . Notifier::NEXT_STEPS['protocol_renamed'],
             $this->protocolHighlightLink((int) $protocol['protocol_id']),
             [
                 'template' => 'protocol_renamed',
@@ -98,7 +98,7 @@ class Apply extends Controller
                 $personnelRole,
                 'protocol_renamed',
                 'Protocol Renamed',
-                "$roleLabel {$actor['name']} renamed " . Notifier::boldTitle($oldTitle) . ' to ' . Notifier::boldTitle($newTitle) . '.',
+                "$roleLabel {$actor['name']} renamed " . Notifier::boldTitle($oldTitle) . ' to ' . Notifier::boldTitle($newTitle) . '. ' . Notifier::NEXT_STEPS['protocol_renamed'],
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
                     'template' => 'protocol_renamed_personnel',
@@ -125,7 +125,7 @@ class Apply extends Controller
                 $personnelRole,
                 'protocol_resubmitted',
                 'Protocol Re-submitted',
-                "$roleLabel {$actor['name']} resubmitted " . Notifier::boldTitle($title) . ' for review.',
+                "$roleLabel {$actor['name']} resubmitted " . Notifier::boldTitle($title) . ' for review. ' . Notifier::NEXT_STEPS['protocol_resubmitted'],
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
                     'template' => 'protocol_resubmitted_personnel',
@@ -150,7 +150,7 @@ class Apply extends Controller
                 $personnelRole,
                 'protocol_amended',
                 'Protocol Amended',
-                "{$actor['name']} submitted an amendment for " . Notifier::boldTitle($title) . '.',
+                "{$actor['name']} submitted an amendment for " . Notifier::boldTitle($title) . '. ' . Notifier::NEXT_STEPS['protocol_amended'],
                 'apply/viewer/' . $protocol['protocol_id'],
                 [
                     'template' => 'protocol_amended_personnel',
@@ -175,7 +175,7 @@ class Apply extends Controller
             'staff',
             'protocol_deletion_requested',
             'Deletion Requested',
-            "$roleLabel {$actor['name']} requested deletion of " . Notifier::boldTitle($title) . ". Reason: $reason",
+            "$roleLabel {$actor['name']} requested deletion of " . Notifier::boldTitle($title) . '. ' . Notifier::NEXT_STEPS['protocol_deletion_requested'] . " Reason: $reason",
             'apply/viewer/' . $protocol['protocol_id'] . '?open=deletion_request',
             [
                 'template' => 'protocol_deletion_requested',
@@ -204,7 +204,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'protocol_deleted',
             'Protocol Deleted',
-            'Your protocol ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('deleted') . " by {$actor['name']}. Reason: $reason",
+            'Your protocol ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('deleted') . " by {$actor['name']}. " . Notifier::NEXT_STEPS['protocol_deleted'] . " Reason: $reason",
             'submissions',
             [
                 'template' => 'protocol_deleted',
@@ -239,7 +239,7 @@ class Apply extends Controller
             $requesterId,
             'protocol_deletion_rejected',
             'Deletion Request Rejected',
-            'Your request to delete ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . " by {$actor['name']}. Reason: $rejectionReason",
+            'Your request to delete ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . " by {$actor['name']}. " . Notifier::NEXT_STEPS['protocol_deletion_rejected'] . " Reason: $rejectionReason",
             'apply/viewer/' . $protocol['protocol_id'] . '?open=deletion_rejected',
             [
                 'template' => 'protocol_deletion_rejected',
@@ -270,19 +270,25 @@ class Apply extends Controller
             ? 'apply/viewer/' . $protocol['protocol_id']
             : $this->protocolHighlightLink((int) $protocol['protocol_id']);
 
+        $noticeKey = strtolower($newStatus);
+        if ($noticeKey === 'reviewed' && ($protocol['payment_status'] ?? '') === 'paid') {
+            $noticeKey = 'reviewed paid';
+        }
+
+        [$noticeTitle, $nextStep] = Notifier::STATUS_NOTICES[$noticeKey];
+
         Notifier::send(
             (int) $protocol['user_id'],
             'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
-            'Protocol Status Updated',
-            'Your protocol ' . Notifier::boldTitle($title) . ' is now: ' . Notifier::bold($newStatus) . '.'
-                . (strtolower($newStatus) === 'approved' ? ' Please visit the CCARD office to claim the embossed hard copy of your clearance.' : ''),
+            $noticeTitle,
+            'Your protocol ' . Notifier::boldTitle($title) . ' ' . $nextStep,
             $link,
             [
                 'template' => 'protocol_status_changed',
-                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus, 'protocol_id' => $protocol['protocol_id']],
+                'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => $newStatus, 'next_step' => $nextStep, 'protocol_id' => $protocol['protocol_id']],
                 'to'       => $owner['email'] ?? '',
                 'name'     => $owner['first_name'] ?? '',
-                'subject'  => 'Protocol Status Updated',
+                'subject'  => $noticeTitle,
             ]
         );
     }
@@ -297,7 +303,7 @@ class Apply extends Controller
             'staff',
             'payment_proof_uploaded',
             $paidInPerson ? 'Payment Confirmed' : 'Payment Proof Uploaded',
-            $researcher . ($paidInPerson ? ' confirmed payment in person for ' : ' uploaded proof of payment for ') . Notifier::boldTitle($title) . '.',
+            $researcher . ($paidInPerson ? ' confirmed payment in person for ' : ' uploaded proof of payment for ') . Notifier::boldTitle($title) . '. ' . Notifier::NEXT_STEPS['payment_proof_uploaded'],
             'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_uploaded',
@@ -317,7 +323,7 @@ class Apply extends Controller
                 (int) $protocol['user_id'],
                 'payment_verified',
                 'Payment Verified',
-                'Your payment for ' . Notifier::boldTitle($title) . ' has been ' . Notifier::bold('verified') . '.',
+                'Your payment for ' . Notifier::boldTitle($title) . ' has been ' . Notifier::bold('verified') . '. ' . Notifier::PAYMENT_VERIFIED_NEXT_STEP,
                 $this->protocolHighlightLink((int) $protocol['protocol_id']),
                 [
                     'template' => 'payment_verified',
@@ -356,7 +362,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'payment_proof_rejected',
             'Payment Proof Rejected',
-            'Your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . ". Reason: $reason. Please resubmit.",
+            'Your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('rejected') . ". Reason: $reason. " . Notifier::PAYMENT_REJECTED_NEXT_STEP,
             $this->protocolHighlightLink((int) $protocol['protocol_id'], 'payment'),
             [
                 'template' => 'payment_proof_rejected',
@@ -381,7 +387,7 @@ class Apply extends Controller
             (int) $protocol['user_id'],
             'signed_scan_uploaded',
             'Signed Protocol Uploaded',
-            'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chairperson.',
+            'View your protocol ' . Notifier::boldTitle($title) . ' signed by the IACUC chairperson. ' . Notifier::SIGNED_SCAN_NEXT_STEP,
             $this->protocolHighlightLink((int) $protocol['protocol_id'], 'signed_scan'),
             [
                 'template' => 'signed_scan_uploaded',
@@ -789,7 +795,7 @@ class Apply extends Controller
             $actor['id'],
             'protocol_submitted',
             'Protocol Submitted',
-            'Your protocol ' . Notifier::boldTitle($title) . ' has been submitted and is now ' . Notifier::bold('under review') . '.',
+            'Your protocol ' . Notifier::boldTitle($title) . ' has been submitted and is now ' . Notifier::bold('under review') . '. ' . Notifier::NEXT_STEPS['protocol_submitted'],
             $this->protocolHighlightLink($protocolId),
             [
                 'template' => 'protocol_submitted',
@@ -805,7 +811,7 @@ class Apply extends Controller
             'staff',
             'new_submission_staff',
             'New Protocol Submitted',
-            ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . ' submitted ' . Notifier::boldTitle($title) . '.',
+            ($submitter['first_name'] ?? '') . ' ' . ($submitter['last_name'] ?? '') . ' submitted ' . Notifier::boldTitle($title) . '. ' . Notifier::NEXT_STEPS['new_submission_staff'],
             'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted_staff',

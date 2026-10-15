@@ -37,7 +37,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'CCARD has finished reviewing your protocol. View the payment options to process your animal research clearance. After payment verification, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'Your protocol passed CCARD review. Press Pay Clearance Fee on the protocol card and pay the Php 100.00 animal research clearance fee. Once the CCARD reviewer verifies your payment, wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -250,8 +250,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
                     $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
                     $paymentLabels = [
-                        'unpaid'          => 'Unpaid',
-                        'proof_submitted' => 'Awaiting Confirmation',
+                        'unpaid'          => 'Payment Due',
+                        'proof_submitted' => 'Verifying Payment',
                         'rejected'        => 'Payment Rejected',
                         'paid'            => 'Paid',
                     ];
@@ -358,7 +358,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#upload-icon" />
                                         </svg>
-                                        View Payment Options
+                                        Pay Clearance Fee
                                     </button>
                                 <?php endif; ?>
 
@@ -405,7 +405,7 @@ $guideSteps = [
 if ($protocols) {
     $guideSteps = array_merge($guideSteps, [
         ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **View Payment Options** (once reviewed), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+        ['Actions', 'When needed you will see **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
         ['Open and Show History', '**Open** shows the protocol and its files. **Show History** lists every submission round of a protocol, including your revisions.', '.protocols-list .protocol .actions-secondary:first-visible'],
     ]);
 }
@@ -461,9 +461,9 @@ include 'includes/guide.php';
 <!-- ===== Payment modal ===== -->
 <div class="modal-backdrop" id="paymentModalBackdrop" data-static>
     <div class="modal-card">
-        <h2>Payment</h2>
+        <h2>Pay Clearance Fee</h2>
 
-        <p class="modal-notice">The Bureau of Animal Industry processes animal research clearances for a Php 100.00 fee.</p>
+        <p class="modal-notice">Your protocol passed review. To get your animal research clearance from the Bureau of Animal Industry, pay the Php 100.00 fee below.</p>
 
         <div id="paymentModalError" class="alert error-messages" hidden></div>
 

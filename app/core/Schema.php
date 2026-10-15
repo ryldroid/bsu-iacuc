@@ -255,6 +255,8 @@ class Schema
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $this->backfillStatusNotifications();
+
         // ===== ANNOUNCEMENTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
                     `id`         int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -462,6 +464,87 @@ class Schema
         $this->connection->query(
             "UPDATE `invite_tokens` SET `role` = 'staff' WHERE `role` = 'admin'"
         );
+    }
+
+    private function backfillStatusNotifications(): void
+    {
+        $c       = $this->connection;
+        $notices = Notifier::STATUS_NOTICES;
+
+        $legacy = $c->prepare(
+            "UPDATE `notifications`
+             SET type = ?, message = CONCAT('Your protocol \"**', SUBSTRING(SUBSTRING_INDEX(message, '\" is now: ', 1), 16), '**\" is now: ', ?, '.')
+             WHERE type = 'protocol_status_changed' AND message LIKE CONCAT('Your protocol \"%\" is now: ', ?, '.%')"
+        );
+        foreach (['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'] as $label) {
+            $type = 'protocol_status_' . str_replace(' ', '_', strtolower($label));
+            $legacy->bind_param('sss', $type, $label, $label);
+            $legacy->execute();
+        }
+
+        $update = $c->prepare(
+            "UPDATE `notifications`
+             SET title = ?, message = CONCAT(SUBSTRING_INDEX(message, '**\" ', 1), '**\" ', ?)
+             WHERE type = ? AND message LIKE '%**\" %' AND message NOT LIKE CONCAT('%', ?)"
+        );
+        foreach (['under review', 'needs revision', 'endorsed', 'approved'] as $status) {
+            [$title, $nextStep] = $notices[$status];
+            $type = 'protocol_status_' . str_replace(' ', '_', $status);
+            $update->bind_param('ssss', $title, $nextStep, $type, $nextStep);
+            $update->execute();
+        }
+
+        $reviewed = $c->prepare(
+            "UPDATE `notifications` n
+             LEFT JOIN `protocols` p ON p.id = CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(n.link, 'highlight=', -1), '&', 1) AS UNSIGNED)
+             SET n.title = IF(p.payment_status = 'paid', ?, ?),
+                 n.message = CONCAT(SUBSTRING_INDEX(n.message, '**\" ', 1), '**\" ', IF(p.payment_status = 'paid', ?, ?))
+             WHERE n.type = 'protocol_status_reviewed' AND n.message LIKE '%**\" %'
+               AND n.message NOT LIKE CONCAT('%', IF(p.payment_status = 'paid', ?, ?))"
+        );
+        [$paidTitle, $paidStep]     = $notices['reviewed paid'];
+        [$unpaidTitle, $unpaidStep] = $notices['reviewed'];
+        $reviewed->bind_param('ssssss', $paidTitle, $unpaidTitle, $paidStep, $unpaidStep, $paidStep, $unpaidStep);
+        $reviewed->execute();
+
+        $signed = $c->prepare(
+            "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
+             WHERE type = 'signed_scan_uploaded' AND message NOT LIKE CONCAT('%', ?)"
+        );
+        $step = Notifier::SIGNED_SCAN_NEXT_STEP;
+        $signed->bind_param('ss', $step, $step);
+        $signed->execute();
+
+        $appendStep = $c->prepare(
+            "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
+             WHERE type = ? AND message NOT LIKE CONCAT('%', ?)"
+        );
+        $insertStep = $c->prepare(
+            "UPDATE `notifications`
+             SET message = CONCAT(SUBSTRING_INDEX(message, ' Reason: ', 1), ' ', ?, ' Reason: ', SUBSTRING(message, LOCATE(' Reason: ', message) + 9))
+             WHERE type = ? AND message LIKE '% Reason: %' AND message NOT LIKE CONCAT('%', ?, ' Reason: %')"
+        );
+        foreach (Notifier::NEXT_STEPS as $type => $step) {
+            $statement = in_array($type, ['protocol_deleted', 'protocol_deletion_rejected', 'protocol_deletion_requested'], true) ? $insertStep : $appendStep;
+            $statement->bind_param('sss', $step, $type, $step);
+            $statement->execute();
+        }
+
+        $verified = $c->prepare(
+            "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
+             WHERE type = 'payment_verified' AND message NOT LIKE CONCAT('%', ?)"
+        );
+        $step = Notifier::PAYMENT_VERIFIED_NEXT_STEP;
+        $verified->bind_param('ss', $step, $step);
+        $verified->execute();
+
+        $rejected = $c->prepare(
+            "UPDATE `notifications` SET message = REPLACE(message, 'Please resubmit.', ?)
+             WHERE type = 'payment_proof_rejected' AND message LIKE '%Please resubmit.'"
+        );
+        $step = Notifier::PAYMENT_REJECTED_NEXT_STEP;
+        $rejected->bind_param('s', $step);
+        $rejected->execute();
     }
 
     private function backfillReturnReasonVersions(): void

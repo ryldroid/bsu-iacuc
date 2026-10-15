@@ -2,6 +2,34 @@
 
 class Notifier
 {
+  // ===== STATUS NOTIFICATION TEXT =====
+  public const STATUS_NOTICES = [
+    'under review'   => ['Protocol Under Review', 'is now under review by CCARD. No action needed for now. You will be notified if revisions are needed or once the review is finished.'],
+    'needs revision' => ['Revision Needed', 'was returned by CCARD for revision. Open it, read the comments, then fix your files and re-submit.'],
+    'reviewed'       => ['Review Passed: Payment Due', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to My Protocols and press "Pay Clearance Fee" on this protocol.'],
+    'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for it to be endorsed to DA-CARFU.'],
+    'endorsed'       => ['Protocol Endorsed', 'has been endorsed to DA-CARFU. No action needed. Please wait while BAI processes your animal research clearance.'],
+    'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy.'],
+  ];
+
+  public const SIGNED_SCAN_NEXT_STEP = 'No action needed. It will be endorsed to DA-CARFU next.';
+
+  public const NEXT_STEPS = [
+    'protocol_submitted'          => 'No action needed. You will be notified of any feedback.',
+    'protocol_renamed'            => 'No action needed.',
+    'protocol_deleted'            => 'No action needed.',
+    'protocol_deletion_rejected'  => 'Your protocol stays active, so no action is needed.',
+    'new_submission_staff'        => 'Open it to start the review.',
+    'protocol_resubmitted'        => 'Open it to review the revisions.',
+    'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
+    'protocol_deletion_requested' => 'Open it to approve or reject the request.',
+    'payment_proof_uploaded'      => 'Open it to verify the payment.',
+  ];
+
+  public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to DA-CARFU.';
+
+  public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
+
   // ===== SEND TO ONE USER =====
   public static function send(
     int $userId,

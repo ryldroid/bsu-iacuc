@@ -9,6 +9,6 @@ ob_start();
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
 <p>Your payment proof for protocol <strong><?= htmlspecialchars($title) ?></strong> was rejected.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
-<p>Please resubmit your proof of payment at: <a href="<?= ROOT ?>/submissions?highlight=<?= $protocol_id ?>"><?= ROOT ?>/submissions?highlight=<?= $protocol_id ?></a></p>
+<p>Press "Pay Clearance Fee" on your protocol and submit your payment again at: <a href="<?= ROOT ?>/submissions?highlight=<?= $protocol_id ?>"><?= ROOT ?>/submissions?highlight=<?= $protocol_id ?></a></p>
 <p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

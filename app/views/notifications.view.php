@@ -38,6 +38,16 @@ function notifTimeAgo(string $dateStr): string
   if ($days < 7) return "{$days}d ago";
   return date(DATE_FORMAT, strtotime($dateStr));
 }
+
+// ===== Date group helper =====
+function notifDateGroup(string $dateStr): string
+{
+  $day = date('Y-m-d', strtotime($dateStr));
+  if ($day === date('Y-m-d')) return 'Today';
+  if ($day === date('Y-m-d', strtotime('-1 day'))) return 'Yesterday';
+  if (strtotime($dateStr) > strtotime('-7 days')) return 'This week';
+  return 'Earlier';
+}
 ?>
 
 <div class="body">
@@ -56,11 +66,17 @@ function notifTimeAgo(string $dateStr): string
       <?php if (! $items): ?>
         <div class="notif-empty">You're all caught up.</div>
       <?php else: ?>
+        <?php $currentGroup = ''; ?>
         <?php foreach ($items as $item): ?>
           <?php
           $isUnread = (int) $item['is_read'] === 0;
           $href     = $item['link'] ? ROOT . '/' . $item['link'] : '#';
+          $group    = notifDateGroup($item['created_at']);
           ?>
+          <?php if ($group !== $currentGroup): ?>
+            <?php $currentGroup = $group; ?>
+            <h2 class="notif-group-heading"><?= $group ?></h2>
+          <?php endif; ?>
           <a href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"
             class="notif-item<?= $isUnread ? ' unread' : '' ?>"
             data-id="<?= (int) $item['id'] ?>">

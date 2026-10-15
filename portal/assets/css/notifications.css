@@ -35,8 +35,8 @@
   top: calc(100% + 8px);
   right: 0;
 
-  width: 340px;
-  max-width: min(340px, 90vw);
+  width: 420px;
+  max-width: min(420px, 90vw);
 
   background-color: var(--card-background);
   color: var(--primary-text);
@@ -86,7 +86,7 @@
 
 /* ===== Notification list & items ===== */
 .notif-list {
-  max-height: 420px;
+  max-height: min(520px, 70vh);
   overflow-y: auto;
 }
 
@@ -171,7 +171,7 @@
 }
 
 .notif-item-title {
-  font-weight: 600;
+  font-weight: 500;
   font-size: .93em;
   margin-bottom: .2em;
 }
@@ -187,6 +187,10 @@
   font-size: .75em;
   opacity: .6;
   margin-top: .35em;
+}
+
+.notif-item.unread .notif-item-title {
+  font-weight: 700;
 }
 
 .notif-item-dot {
@@ -244,6 +248,12 @@
 }
 
 /* ===== Full notifications page ===== */
+.notif-page-header,
+.notif-page-list,
+.notif-page-pagination {
+  max-width: 760px;
+}
+
 .notif-page-header {
   display: flex;
   align-items: center;
@@ -278,6 +288,19 @@
 
 .notif-page-list .notif-item {
   padding: 1em 1.2em;
+}
+
+.notif-group-heading {
+  margin: 0;
+  padding: .7em 1.2em;
+  border-bottom: 1px solid var(--divider-color-subtle);
+
+  font-family: var(--font-body);
+  font-size: .75em;
+  font-weight: 600;
+  letter-spacing: .04em;
+  /* text-transform: uppercase; */
+  opacity: .7;
 }
 
 .notif-page-pagination {
