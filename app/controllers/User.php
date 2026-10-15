@@ -218,9 +218,8 @@ class User extends Controller
     ];
 
     // ===== WELCOME POPUP =====
-    if (empty($user['welcome_seen'])) {
-      $_SESSION['user']['show_welcome'] = true;
-      $this->userModel->markWelcomeSeen((int) $user['id']);
+    if (!empty($user['sex']) && !empty($user['researcher_type'])) {
+      $this->showWelcomeOnce($user);
     }
 
     // ===== LOG LOGIN & REDIRECT =====
@@ -240,6 +239,15 @@ class User extends Controller
     }
 
     $this->redirect('submissions');
+  }
+
+  // Welcome guide shows once, after the researcher has set sex and researcher type
+  private function showWelcomeOnce(array $user): void
+  {
+    if (empty($user['welcome_seen'])) {
+      $_SESSION['user']['show_welcome'] = true;
+      $this->userModel->markWelcomeSeen((int) $user['id']);
+    }
   }
 
   // ===== REGISTER =====
@@ -532,6 +540,9 @@ class User extends Controller
     if ($ok) {
       if ($role === 'researcher') {
         (new RecordModel())->fillBlankDemographics($id, $sex, $researcher_type);
+        if ($profileWasIncomplete) {
+          $this->showWelcomeOnce($current_user);
+        }
       }
       $_SESSION['user']['first_name'] = $first_name;
       $_SESSION['user']['username']   = $username;

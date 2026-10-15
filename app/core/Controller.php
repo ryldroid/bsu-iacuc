@@ -8,6 +8,10 @@ class Controller
   public function __construct()
   {
     $this->userModel = new UserModel();
+
+    if ($this->isLoggedIn()) {
+      $this->requireResearcherProfile($this->userModel->getUser($_SESSION['user']['user_id']));
+    }
   }
 
   // ===== VIEWS & REDIRECTS =====
@@ -139,8 +143,6 @@ class Controller
       $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
       $_SESSION['user']['email']          = $fresh['email'];
     }
-
-    $this->requireResearcherProfile($fresh);
   }
 
   // Researchers must have sex and researcher type on file before using the portal
@@ -151,7 +153,7 @@ class Controller
     }
 
     $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
-    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping'], true)) {
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping', 'user/email_preferences', 'user/verify_email'], true)) {
       return;
     }
 
