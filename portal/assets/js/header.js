@@ -10,8 +10,18 @@ const mobileNav = document.querySelector('nav[aria-label="Mobile navigation"]');
 const media = window.matchMedia("(max-width: 768px)");
 const accountDrawer = document.querySelector("#account-drawer");
 const accountFrame = accountDrawer?.querySelector("iframe");
+const accountRequired = new URLSearchParams(location.search).has("required");
+window.accountRequired = accountRequired;
+document.documentElement.classList.toggle("account-required", accountRequired);
+
+function setBackdrop(active) {
+  if (!active && accountRequired) return;
+  backdrop?.classList.toggle("active", active);
+}
+window.setBackdrop = setBackdrop;
 
 backdrop?.addEventListener("click", () => {
+  if (accountRequired) return;
   closeSidebar();
   closeAccountDrawer();
   closeMoreMenu();
@@ -24,7 +34,7 @@ function openSidebar() {
   sidebar.classList.add("show");
   sidebar.removeAttribute("inert");
   sidebar.querySelector("a").focus();
-  backdrop.classList.add("active");
+  setBackdrop(true);
 
   mobileMenu.setAttribute("aria-expanded", "true");
   mobileNav.removeAttribute("aria-hidden");
@@ -34,7 +44,7 @@ function closeSidebar() {
   if (!sidebar || !mobileMenu) return;
   sidebar.classList.remove("show");
   sidebar.setAttribute("inert", "");
-  backdrop.classList.remove("active");
+  setBackdrop(false);
 
   mobileMenu.setAttribute("aria-expanded", "false");
   mobileNav.setAttribute("aria-hidden", "true");
@@ -67,17 +77,17 @@ function openAccountDrawer() {
   accountDrawer.classList.add("show");
   accountDrawer.removeAttribute("inert");
   accountButton?.setAttribute("aria-expanded", "true");
-  backdrop.classList.add("active");
+  setBackdrop(true);
   accountFrame.focus();
 }
 
 function closeAccountDrawer(restoreFocus = true) {
-  if (!accountDrawer?.classList.contains("show")) return;
+  if (accountRequired || !accountDrawer?.classList.contains("show")) return;
   accountDrawer.classList.remove("show");
   accountDrawer.setAttribute("inert", "");
   accountButton?.setAttribute("aria-expanded", "false");
   accountFrame.src = "about:blank";
-  backdrop.classList.remove("active");
+  setBackdrop(false);
   if (restoreFocus) accountButton.focus();
 }
 
@@ -110,7 +120,7 @@ function closeMoreMenu() {
   if (!moreMenu?.classList.contains("active")) return;
   moreMenu.classList.remove("active");
   moreButton?.setAttribute("aria-expanded", "false");
-  backdrop?.classList.remove("active");
+  setBackdrop(false);
 }
 
 if (moreButton && moreMenu) {
@@ -121,9 +131,9 @@ if (moreButton && moreMenu) {
       document.dispatchEvent(
         new CustomEvent("header-dropdown-open", { detail: "more" }),
       );
-      backdrop?.classList.add("active");
+      setBackdrop(true);
     } else {
-      backdrop?.classList.remove("active");
+      setBackdrop(false);
     }
   });
 

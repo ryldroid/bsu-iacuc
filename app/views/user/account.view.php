@@ -53,7 +53,6 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
             <h1>My Account</h1>
-
             <?php if (!empty($certificate)): ?>
                 <!-- ===== Training certificate ===== -->
                 <section class="certificate-section">
@@ -125,6 +124,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
                 <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
             </div>
 
+            <p class="account-required-note" hidden>Required to continue: </p>
             <div class="input-group">
                 <select id="sex" name="sex" required>
                     <option value="" disabled <?= empty($old['sex']) ? 'selected' : '' ?>>Select</option>
@@ -261,6 +261,11 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 <!-- ===== File popup script ===== -->
 <script>
     parent.showToast(<?= json_encode($pageToastSuccess) ?>, 'success');
+
+    if (parent.accountRequired) {
+        document.querySelector('.account-close').remove();
+        document.querySelector('.account-required-note').hidden = false;
+    }
 
     const emailInput = document.getElementById('email');
     const verifyEmailButton = document.querySelector('.email-verify-resend');

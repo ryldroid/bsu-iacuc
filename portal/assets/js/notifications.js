@@ -4,7 +4,6 @@ const notifDropdown = document.querySelector("#notif-dropdown");
 const notifBadge = document.querySelector(".notif-badge");
 const notifList = document.querySelector(".notif-list");
 const notifMarkAll = document.querySelector(".notif-mark-all");
-const notifBackdrop = document.querySelector("#sidebar-backdrop");
 
 const NOTIF_INDEX_URL = NOTIF_ROOT + "/notifications";
 const NOTIF_MARKREAD_URL = NOTIF_ROOT + "/notifications/markread";
@@ -112,7 +111,7 @@ if (notifBell && notifDropdown) {
     if (!notifDropdown.classList.contains("active")) return;
     notifDropdown.classList.remove("active");
     notifBell.setAttribute("aria-expanded", "false");
-    notifBackdrop?.classList.remove("active");
+    setBackdrop(false);
   }
 
   notifBell.addEventListener("click", () => {
@@ -123,9 +122,9 @@ if (notifBell && notifDropdown) {
       document.dispatchEvent(
         new CustomEvent("header-dropdown-open", { detail: "notif" }),
       );
-      notifBackdrop?.classList.add("active");
+      setBackdrop(true);
     } else {
-      notifBackdrop?.classList.remove("active");
+      setBackdrop(false);
     }
   });
 

@@ -172,7 +172,7 @@ class Controller
     }
 
     $_SESSION['flash_error'] = $message;
-    $this->redirect('home?account=1');
+    $this->redirect('home?account=1&required=1');
   }
 
   // ===== CSRF TOKENS =====

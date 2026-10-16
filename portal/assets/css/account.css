@@ -813,3 +813,15 @@ html.in-drawer .switch-toggle {
         padding: 16px 16px;
     }
 }
+
+/* ===== Required profile note ===== */
+html.in-drawer .account-required-note {
+    width: 100%;
+    color: var(--required-color);
+    font-size: .8em;
+    margin-bottom: 1.5em;
+}
+
+.account-required-note[hidden] {
+    display: none;
+}

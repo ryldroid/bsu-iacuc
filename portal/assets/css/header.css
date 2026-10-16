@@ -778,3 +778,8 @@ header.header--hidden {
         transition: none;
     }
 }
+
+/* ===== Locked while the profile is incomplete ===== */
+html.account-required :is(.notif-bell, .mobile-menu, aside, #mobileNav) {
+    visibility: hidden;
+}

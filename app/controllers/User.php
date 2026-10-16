@@ -367,6 +367,11 @@ class User extends Controller
       $this->redirect(($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home?account=1' : 'personnel/home?account=1');
     }
 
+    if (isset($_GET['completed'])) {
+      echo '<script>top.location.replace(' . json_encode(ROOT . '/home') . ');</script>';
+      exit;
+    }
+
     $user = $this->userModel->getUser($_SESSION['user']['user_id']);
 
     $certificate = ($user['role'] ?? '') === 'researcher'
@@ -570,7 +575,7 @@ class User extends Controller
       $_SESSION['flash_error'] = 'Update failed. Please try again.';
     }
 
-    $this->redirect($ok && $profileWasIncomplete ? 'home' : 'user/account?panel=1');
+    $this->redirect($ok && $profileWasIncomplete ? 'user/account?panel=1&completed=1' : 'user/account?panel=1');
   }
 
   // ===== DELETE ACCOUNT =====
