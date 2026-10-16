@@ -118,6 +118,12 @@ header img {
     color: var(--brand-color-light);
 }
 
+@media (min-width: 769px) {
+    .header-logo {
+        padding-left: .5em;
+    }
+}
+
 /* ===== Header layout ===== */
 header ul {
     display: flex;
@@ -279,7 +285,7 @@ html.account-drawer-open {
 }
 
 /* ===== Auth area ===== */
-.mobile-menu {
+.header-logo-cont .mobile-menu {
     display: none;
     margin-left: 0;
 }
@@ -699,7 +705,7 @@ header [data-tooltip][aria-expanded="true"]::after {
         gap: 0;
     }
 
-    .mobile-menu {
+    .header-logo-cont .mobile-menu {
         display: flex;
         z-index: 999;
     }

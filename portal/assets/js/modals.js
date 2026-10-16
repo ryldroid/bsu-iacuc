@@ -390,10 +390,7 @@ function formatDateTime(value) {
     const btn = e.target.closest("[data-guide-start]");
     const open = btn && guideOpeners[btn.dataset.guideStart];
     if (!open) return;
-    document.getElementById("header-menu")?.classList.remove("active");
-    document
-      .querySelector(".header-more")
-      ?.setAttribute("aria-expanded", "false");
+    closeMoreMenu();
     open();
   });
 

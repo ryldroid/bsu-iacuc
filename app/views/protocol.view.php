@@ -32,10 +32,19 @@ $statusLabels = [
     'endorsed'       => 'Endorsed',
     'approved'       => 'Approved',
 ];
+$statusMeta = [
+    'under review'   => ['color' => '#0072B2', 'icon' => 'clock-icon'],
+    'needs revision' => ['color' => '#D55E00', 'icon' => 'alert-triangle-icon'],
+    'reviewed'       => ['color' => '#CC79A7', 'icon' => 'checkbox-icon'],
+    'endorsed'       => ['color' => '#E69F00', 'icon' => 'shield-check-icon'],
+    'approved'       => ['color' => '#009E73', 'icon' => 'check-circle-icon'],
+];
 $statusKey       = strtolower($protocol['status'] ?? '');
 $statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
 $isCompleted     = in_array($statusKey, ['approved'], true);
 $isLatestVersion = $isLatestVersion ?? true;
+$statusBadgeMeta  = $isLatestVersion ? ($statusMeta[$statusKey] ?? ['color' => '#64748b', 'icon' => 'info-icon']) : ['color' => '#64748b', 'icon' => 'history-icon'];
+$statusBadgeLabel = $isLatestVersion ? $statusLabel : 'Viewing history: read only';
 
 $canReview = $isPersonnel && !$isStaff && $statusKey === 'under review' && $isLatestVersion;
 
@@ -133,31 +142,16 @@ include 'includes/header.php';
                 Back
             </a>
 
-            <span class="viewer-title"><?= $title ?></span>
+            <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
 
-            <?php if (!empty($titleHistory)): ?>
-                <div class="title-history-switcher" id="titleHistorySwitcher">
-                    <button type="button" class="title-history-trigger<?= $showTitleChangeBanner ? ' has-update' : '' ?>" id="titleHistoryTrigger"
-                        aria-haspopup="true" aria-expanded="false" aria-label="Show rename history<?= $showTitleChangeBanner ? ' (title recently changed)' : '' ?>">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="m6 9 6 6 6-6" />
-                        </svg>
-                    </button>
-                    <div class="title-history-menu" id="titleHistoryMenu">
-                        <div class="title-history-menu-header">Title Name History</div>
-                        <div class="title-history-menu-label">Renamed from</div>
-                        <?php foreach ($titleHistory as $h): ?>
-                            <div class="title-history-item">
-                                <div class="title-history-item-title"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></div>
-                                <div class="title-history-item-meta">
-                                    <?= htmlspecialchars($h['changed_by_name'] ? ($roleLabels[$h['changed_by_role']] ?? ucfirst((string) $h['changed_by_role'])) . ' - ' . $h['changed_by_name'] : 'Initial title', ENT_QUOTES, 'UTF-8') ?>
-                                    &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <span class="status-badge">
+                <span class="status-badge-icon" style="background:<?= $statusBadgeMeta['color'] ?>">
+                    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#<?= $statusBadgeMeta['icon'] ?>" />
+                    </svg>
+                </span>
+                <?= htmlspecialchars($statusBadgeLabel, ENT_QUOTES, 'UTF-8') ?>
+            </span>
 
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
@@ -171,8 +165,8 @@ include 'includes/header.php';
                 <button type="button" class="ver-badge ver-badge--dropdown" id="versionSwitcherTrigger"
                     aria-haspopup="true" aria-expanded="false">
                     <?= submission_round_label($versionNum) ?>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="m6 9 6 6 6-6" />
+                    <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-down-icon" />
                     </svg>
                 </button>
 
@@ -208,16 +202,6 @@ include 'includes/header.php';
                     <?php endforeach; ?>
                 </div>
             </div>
-
-            <?php if ($isLatestVersion): ?>
-                <span class="status-badge status-badge--<?= htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?>
-                </span>
-            <?php else: ?>
-                <span class="status-badge historical">
-                    Viewing history: read only
-                </span>
-            <?php endif; ?>
         </div>
 
         <div class="viewer-topbar-right">
@@ -228,106 +212,127 @@ include 'includes/header.php';
                     </svg>
                     Deletion Requested: Review
                 </button>
-                <span class="toolbar-divider" aria-hidden="true"></span>
             <?php endif; ?>
 
-            <span class="page-indicator" id="pageIndicator">Loading…</span>
+            <span class="page-indicator" id="pageIndicator" hidden></span>
 
-            <div class="viewer-view-actions">
-                <button class="tool-btn tool-btn--ghost"
-                    data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
-                    onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
-                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#review-icon" />
+            <div class="action-dropdown">
+                <button type="button" class="tool-btn tool-btn--ghost action-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                    Files
+                    <svg class="action-dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-down-icon" />
                     </svg>
-                    Training Certificate
                 </button>
-
-                <?php if ($latestPaymentProofFileUrl):
-                    $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
-                ?>
+                <div class="version-dropdown-menu action-dropdown-menu">
                     <button class="tool-btn tool-btn--ghost"
-                        data-file-url="<?= htmlspecialchars($latestPaymentProofFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'Proof of Payment', <?= $offerPaymentResubmit ? 'true' : 'false' ?>)">
+                        data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
                         <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#review-icon" />
                         </svg>
-                        Payment Proof
+                        Training Certificate
                     </button>
-                <?php endif; ?>
 
-                <?php if ($latestSignedScanFileUrl): ?>
-                    <button class="tool-btn tool-btn--ghost"
-                        data-file-url="<?= htmlspecialchars($latestSignedScanFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'Signed Scan')">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
+                    <?php if ($latestPaymentProofFileUrl):
+                        $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
+                    ?>
+                        <button class="tool-btn tool-btn--ghost"
+                            data-file-url="<?= htmlspecialchars($latestPaymentProofFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            onclick="openFilePopup(this.dataset.fileUrl, 'Proof of Payment', <?= $offerPaymentResubmit ? 'true' : 'false' ?>)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon" />
+                            </svg>
+                            Payment Proof
+                        </button>
+                    <?php endif; ?>
+
+                    <?php if ($latestSignedScanFileUrl): ?>
+                        <button class="tool-btn tool-btn--ghost"
+                            data-file-url="<?= htmlspecialchars($latestSignedScanFileUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            onclick="openFilePopup(this.dataset.fileUrl, 'Signed Scan')">
+                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon" />
+                            </svg>
+                            Signed Scan
+                        </button>
+                    <?php endif; ?>
+
+                    <?php if ($amendments): ?>
+                        <button class="tool-btn tool-btn--ghost" type="button" onclick="openAmendmentsModal()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#review-icon" />
+                            </svg>
+                            Amendments (<?= count($amendments) ?>)
+                        </button>
+                    <?php endif; ?>
+
+                    <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#download-icon" />
                         </svg>
-                        Signed Scan
-                    </button>
-                <?php endif; ?>
-
-                <?php if ($amendments): ?>
-                    <button class="tool-btn tool-btn--ghost" type="button" onclick="openAmendmentsModal()">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Amendments (<?= count($amendments) ?>)
-                    </button>
-                <?php endif; ?>
-
-                <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#download-icon" />
-                    </svg>
-                    Download
-                </a>
+                        Download
+                    </a>
+                </div>
             </div>
 
-            <?php if ($canRename || $canDelete || $canRequestDeletion || $canAmend): ?>
-                <span class="toolbar-divider" aria-hidden="true"></span>
+            <?php if (!empty($titleHistory) || $canRename || $canDelete || $canRequestDeletion || $canAmend): ?>
+                <div class="action-dropdown">
+                    <button type="button" class="tool-btn tool-btn--ghost action-dropdown-trigger<?= $showTitleChangeBanner ? ' has-update' : '' ?>" id="moreActionsTrigger"
+                        aria-haspopup="true" aria-expanded="false" <?= $showTitleChangeBanner ? ' aria-label="Actions (title recently changed)"' : '' ?>>
+                        Actions
+                        <svg class="action-dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-down-icon" />
+                        </svg>
+                    </button>
+                    <div class="version-dropdown-menu action-dropdown-menu">
+                        <?php if (!empty($titleHistory)): ?>
+                            <button class="tool-btn tool-btn--ghost" type="button" onclick="openRenameHistoryModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#history-icon" />
+                                </svg>
+                                Rename history
+                            </button>
+                        <?php endif; ?>
 
-                <div class="viewer-doc-actions">
-                    <?php if ($canAmend): ?>
-                        <button class="tool-btn tool-btn--ghost" id="btnAmendment" type="button" onclick="openAmendmentModal()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            Submit Amendment
-                        </button>
-                    <?php endif; ?>
+                        <?php if ($canAmend): ?>
+                            <button class="tool-btn tool-btn--ghost" id="btnAmendment" type="button" onclick="openAmendmentModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#upload-icon" />
+                                </svg>
+                                Submit Amendment
+                            </button>
+                        <?php endif; ?>
 
-                    <?php if ($canRename): ?>
-                        <button class="tool-btn tool-btn--info" id="btnRename" type="button" onclick="openRenameModal()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#edit-icon" />
-                            </svg>
-                            Rename
-                        </button>
-                    <?php endif; ?>
+                        <?php if ($canRename): ?>
+                            <button class="tool-btn tool-btn--info" id="btnRename" type="button" onclick="openRenameModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#edit-icon" />
+                                </svg>
+                                Rename
+                            </button>
+                        <?php endif; ?>
 
-                    <?php if ($canDelete): ?>
-                        <button class="tool-btn tool-btn--danger" id="btnDelete" type="button" onclick="openDeleteModal()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#trash-icon" />
-                            </svg>
-                            Delete
-                        </button>
-                    <?php elseif ($canRequestDeletion): ?>
-                        <button class="tool-btn tool-btn--danger" id="btnRequestDeletion" type="button"
-                            onclick="openDeleteModal()" <?= $deletionRequested ? 'disabled' : '' ?>>
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#trash-icon" />
-                            </svg>
-                            <?= $deletionRequested ? 'Deletion Requested' : 'Request Deletion' ?>
-                        </button>
-                    <?php endif; ?>
+                        <?php if ($canDelete): ?>
+                            <button class="tool-btn tool-btn--danger" id="btnDelete" type="button" onclick="openDeleteModal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#trash-icon" />
+                                </svg>
+                                Delete
+                            </button>
+                        <?php elseif ($canRequestDeletion): ?>
+                            <button class="tool-btn tool-btn--danger" id="btnRequestDeletion" type="button"
+                                onclick="openDeleteModal()" <?= $deletionRequested ? 'disabled' : '' ?>>
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#trash-icon" />
+                                </svg>
+                                <?= $deletionRequested ? 'Deletion Requested' : 'Request Deletion' ?>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
 
             <?php if ($canReview || $canResubmit || $canConfirmPayment): ?>
-                <span class="toolbar-divider" aria-hidden="true"></span>
-
                 <div class="viewer-review-actions">
                     <?php if ($canReview): ?>
                         <button class="tool-btn tool-btn--success" id="btnFinishReview"
@@ -403,6 +408,11 @@ include 'includes/header.php';
 
     <!-- ===== Layout: PDF + sidebar ===== -->
     <div class="viewer-layout">
+
+        <div class="viewer-loading" id="viewerLoading" role="status" aria-live="polite">
+            <span class="viewer-loading-spinner" aria-hidden="true"></span>
+            Loading protocol...
+        </div>
 
         <div class="pdf-column" id="pdfColumn"></div>
 
@@ -974,6 +984,34 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if (!empty($titleHistory)): ?>
+    <!-- ===== Rename history modal ===== -->
+    <div class="modal-backdrop" id="renameHistoryModalBackdrop">
+        <div class="modal-card panel-modal-card" role="dialog" aria-modal="true" aria-labelledby="renameHistoryModalTitle">
+            <div class="modal-header">
+                <div>
+                    <p class="modal-title" id="renameHistoryModalTitle">Title Name History</p>
+                </div>
+            </div>
+            <div class="panel-modal-body">
+                <p class="panel-modal-intro">Renamed from</p>
+                <?php foreach ($titleHistory as $h): ?>
+                    <div class="title-history-item">
+                        <div class="title-history-item-title"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></div>
+                        <div class="title-history-item-meta">
+                            <?= htmlspecialchars($h['changed_by_name'] ? ($roleLabels[$h['changed_by_role']] ?? ucfirst((string) $h['changed_by_role'])) . ' - ' . $h['changed_by_name'] : 'Initial title', ENT_QUOTES, 'UTF-8') ?>
+                            &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <div class="panel-modal-actions">
+                    <button class="tool-btn" type="button" onclick="closeRenameHistoryModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- ===== File popup modal ===== -->
 <div class="modal-backdrop" id="filePopupBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;">
     <div class="modal-card file-popup-card">
@@ -1031,51 +1069,50 @@ include 'includes/header.php';
     const versionMenu = document.getElementById('versionDropdownMenu');
     const versionSwitcher = document.getElementById('versionSwitcher');
 
-    // ===== Title rename-history dropdown =====
-    const titleHistoryTrigger = document.getElementById('titleHistoryTrigger');
-    const titleHistoryMenu = document.getElementById('titleHistoryMenu');
-    const titleHistorySwitcher = document.getElementById('titleHistorySwitcher');
+    // ===== Title expand =====
+    const viewerTitle = document.getElementById('viewerTitle');
+    const toggleViewerTitle = () => viewerTitle.setAttribute('aria-expanded', viewerTitle.classList.toggle('is-expanded'));
 
-    titleHistoryTrigger?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = titleHistoryMenu.classList.toggle('open');
-        titleHistoryTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-
-        if (isOpen) {
-            positionEdgeAwareDropdown(titleHistorySwitcher, titleHistoryMenu);
-        }
-
-        if (isOpen && titleHistoryTrigger.classList.contains('has-update')) {
-            titleHistoryTrigger.classList.remove('has-update');
-            fetch(ROOT_URL + '/apply/mark_title_seen', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: PROTOCOL_ID
-                })
-            }).catch(() => {});
+    viewerTitle.addEventListener('click', toggleViewerTitle);
+    viewerTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleViewerTitle();
         }
     });
 
-    document.addEventListener('click', (e) => {
-        if (titleHistorySwitcher && !titleHistorySwitcher.contains(e.target)) {
-            titleHistoryMenu?.classList.remove('open');
-            titleHistoryTrigger?.setAttribute('aria-expanded', 'false');
-        }
+    // ===== Action dropdowns =====
+    const actionDropdowns = document.querySelectorAll('.action-dropdown');
+
+    const closeActionDropdowns = () => actionDropdowns.forEach(dropdown => {
+        dropdown.querySelector('.action-dropdown-menu').classList.remove('open');
+        dropdown.querySelector('.action-dropdown-trigger').setAttribute('aria-expanded', 'false');
     });
+
+    actionDropdowns.forEach(dropdown => {
+        const trigger = dropdown.querySelector('.action-dropdown-trigger');
+        const menu = dropdown.querySelector('.action-dropdown-menu');
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasOpen = menu.classList.contains('open');
+            closeActionDropdowns();
+            if (wasOpen) return;
+            menu.classList.add('open');
+            trigger.setAttribute('aria-expanded', 'true');
+            positionEdgeAwareDropdown(dropdown, menu);
+        });
+    });
+
+    document.addEventListener('click', closeActionDropdowns);
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            titleHistoryMenu?.classList.remove('open');
-            titleHistoryTrigger?.setAttribute('aria-expanded', 'false');
-        }
+        if (e.key === 'Escape') closeActionDropdowns();
     });
 
     versionTrigger?.addEventListener('click', (e) => {
         e.stopPropagation();
+        closeActionDropdowns();
         const isOpen = versionMenu.classList.toggle('open');
         versionTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 
@@ -1154,12 +1191,15 @@ include 'includes/header.php';
                     viewport: vp,
                     transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
                 }).promise;
+                document.getElementById('viewerLoading')?.remove();
             }
 
-            document.getElementById('pageIndicator').textContent =
-                pdfDoc.numPages + (pdfDoc.numPages === 1 ? ' page' : ' pages');
+            const pageIndicator = document.getElementById('pageIndicator');
+            pageIndicator.textContent = pdfDoc.numPages + (pdfDoc.numPages === 1 ? ' page' : ' pages');
+            pageIndicator.hidden = false;
 
         } catch (err) {
+            document.getElementById('viewerLoading')?.remove();
             const message = document.createElement('p');
             message.className = 'error-msg';
             message.textContent = err.name === 'MissingPDFException' ?
@@ -2071,6 +2111,37 @@ include 'includes/header.php';
 
         deletionRejectedBackdrop.addEventListener('click', e => {
             if (e.target === deletionRejectedBackdrop) closeDeletionRejectedModal();
+        });
+    <?php endif; ?>
+
+    <?php if (!empty($titleHistory)): ?>
+        const renameHistoryBackdrop = document.getElementById('renameHistoryModalBackdrop');
+        const moreActionsTrigger = document.getElementById('moreActionsTrigger');
+
+        function openRenameHistoryModal() {
+            renameHistoryBackdrop.classList.add('open');
+
+            if (moreActionsTrigger.classList.contains('has-update')) {
+                moreActionsTrigger.classList.remove('has-update');
+                fetch(ROOT_URL + '/apply/mark_title_seen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        protocol_id: PROTOCOL_ID
+                    })
+                }).catch(() => {});
+            }
+        }
+
+        function closeRenameHistoryModal() {
+            renameHistoryBackdrop.classList.remove('open');
+        }
+
+        renameHistoryBackdrop.addEventListener('click', e => {
+            if (e.target === renameHistoryBackdrop) closeRenameHistoryModal();
         });
     <?php endif; ?>
 

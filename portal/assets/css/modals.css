@@ -914,6 +914,10 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 @media (max-width: 480px) {
     .modal-actions button {
-        flex: 1 1 auto;
+        /* flex: 1 1 auto; */
     }
+}
+
+.welcome-actions button {
+    flex: 1 1 auto;
 }
