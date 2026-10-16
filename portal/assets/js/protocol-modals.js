@@ -187,37 +187,72 @@ async function submitDelete() {
 }
 
 // ===== Amendments list =====
+// Same timeline look as the payment history modal. Opening a file closes this
+// modal and brings it back when the file popup is dismissed.
 const amendmentsBackdrop = protocolModalBind("amendmentsModalBackdrop", () =>
   closeAmendmentsModal(),
 );
 
 async function openAmendmentsModal(protocolId, title) {
   const list = document.getElementById("amendmentsList");
+  const count = document.getElementById("amendmentsCount");
   document.getElementById("amendmentsModalTitle").textContent = title;
+  count.hidden = true;
   list.innerHTML = '<p class="helper">Loading&hellip;</p>';
   amendmentsBackdrop.classList.add("open");
 
   try {
     const data = await protocolModalData(protocolId);
     if (data.error) throw new Error(data.error);
-    list.innerHTML = data.amendments
-      .map(
-        (a, i) => `<div class="doc-row">
-            <div class="doc-row-info">
-                <div class="doc-row-title">Amendment ${Number(a.version_number)} &middot; ${escapeHtml(formatDateTime(a.uploaded_at))}</div>
-                <span class="doc-row-sub">${escapeHtml(a.note || "").replace(/\n/g, "<br>")}</span>
+
+    const amendments = data.amendments || [];
+    if (amendments.length === 0) {
+      list.innerHTML =
+        '<p class="helper">No amendments have been submitted.</p>';
+      return;
+    }
+
+    count.textContent =
+      amendments.length === 1
+        ? "1 amendment"
+        : `${amendments.length} amendments`;
+    count.hidden = false;
+
+    list.innerHTML = amendments
+      .map((a, i) => {
+        const badge =
+          i === 0 && amendments.length > 1
+            ? ' <span class="payment-event-badge">Latest</span>'
+            : "";
+        const note = (a.note || "").trim();
+        const detail = note
+          ? `<span class="payment-event-reason is-multiline"><strong>What changed</strong>${escapeHtml(note)}</span>`
+          : '<span class="payment-event-note">No note was provided.</span>';
+
+        return `<div class="payment-event payment-tone-info">
+            <span class="payment-event-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#edit-icon" /></svg>
+            </span>
+            <div class="payment-event-body">
+              <span class="payment-event-title">Amendment ${Number(a.version_number)}${badge}</span>
+              <span class="payment-event-time">${escapeHtml(formatDate(a.uploaded_at))} &middot; ${escapeHtml(formatTime(a.uploaded_at))}</span>
+              ${detail}
             </div>
-            <div class="doc-row-action">
-                <button class="button" type="button" data-index="${i}">View</button>
-            </div>
-        </div>`,
-      )
+            <button class="button button-compact" type="button" data-index="${i}" aria-label="Open Amendment ${Number(a.version_number)}">
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
+              Open
+            </button>
+          </div>`;
+      })
       .join("");
+
     list.querySelectorAll("button[data-index]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const a = data.amendments[btn.dataset.index];
+        const a = amendments[btn.dataset.index];
         closeAmendmentsModal();
-        openFilePopup(a.file_url, "Amendment " + a.version_number);
+        openFilePopup(a.file_url, "Amendment " + a.version_number, null, () =>
+          amendmentsBackdrop.classList.add("open"),
+        );
       });
     });
   } catch {

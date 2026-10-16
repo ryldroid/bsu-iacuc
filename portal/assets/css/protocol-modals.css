@@ -381,6 +381,42 @@
   margin-right: 4px;
 }
 
+/* Icon + label buttons in a timeline row (button-compact has no flex rules) */
+.payment-event .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: start;
+  white-space: nowrap;
+}
+
+.payment-event .button svg {
+  flex-shrink: 0;
+}
+
+/* Free-text notes (amendments): keep the author's line breaks, label on its own line */
+.payment-event-reason.is-multiline {
+  white-space: pre-line;
+}
+
+.payment-event-reason.is-multiline strong {
+  display: block;
+  margin: 0 0 2px;
+}
+
+/* "Latest" tag beside a timeline title */
+.payment-event-badge {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--status-success-text);
+  background: var(--status-success-bg);
+  vertical-align: middle;
+}
+
 /* ===== Re-submit protocol modal ===== */
 .resub-card {
   width: min(540px, calc(100vw - 32px));
