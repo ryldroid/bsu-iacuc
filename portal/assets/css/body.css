@@ -304,13 +304,13 @@ button,
 button:hover,
 /* Small inline button, e.g. View / Open rows inside modals */
 .button-compact {
-    display: inline-flex;
-    align-items: center;
+    /* display: inline-flex; */
+    /* align-items: center; */
     /* gap: 5px; */
     /* padding: 6px 12px; */
     /* font-size: .75rem; */
-    white-space: nowrap;
-    margin-top: 0;
+    /* white-space: nowrap; */
+    /* margin-top: 0; */
 }
 
 .button:hover {
