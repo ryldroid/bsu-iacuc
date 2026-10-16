@@ -10,6 +10,9 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 ?>
 <script>
     document.documentElement.classList.add('in-drawer');
+    // This iframe is narrower than 768px, so body.css would apply its phone font size even on desktop.
+    // Match the parent page instead (18px desktop, 16px phone), same as the other header dropdowns.
+    document.documentElement.style.fontSize = (window.parent.innerWidth > 768 ? 18 : 16) + 'px';
 </script>
 
 <?php include dirname(__DIR__) . '/includes/pdfjs.php'; ?>
@@ -29,13 +32,15 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         <!-- ===== Toasts ===== -->
         <?php
         $toastError = $errors ?? null;
+        $pageToastSuccess = $_SESSION['flash_success'] ?? '';
+        $toastSuccess = '';
         include dirname(__DIR__) . '/includes/flash.php';
         ?>
 
         <?php if (empty($email_verified)): ?>
             <!-- ===== Resend verification form ===== -->
             <form id="resend-verification-form" class="hidden-form" method="POST" action="<?= ROOT ?>/user/resend_verification"
-                data-confirm-message="Send a verification link to <?= htmlspecialchars($old['email'] ?? '') ?>?"
+                data-confirm-message="Send a verification link to <?= htmlspecialchars($_SESSION['user']['email'] ?? '') ?>?"
                 data-confirm-ok-text="Send">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
             </form>
@@ -104,7 +109,8 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             </div>
 
             <?php if (empty($email_verified)): ?>
-                <button type="submit" form="resend-verification-form" class="email-verify-resend">Verify email</button>
+                <button type="submit" form="resend-verification-form" class="email-verify-resend"
+                    data-saved-email="<?= htmlspecialchars($_SESSION['user']['email'] ?? '') ?>">Verify email</button>
             <?php endif; ?>
 
             <div class="input-group">
@@ -254,6 +260,26 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
 
 <!-- ===== File popup script ===== -->
 <script>
+    parent.showToast(<?= json_encode($pageToastSuccess) ?>, 'success');
+
+    const emailInput = document.getElementById('email');
+    const verifyEmailButton = document.querySelector('.email-verify-resend');
+
+    function syncVerifyEmailButton() {
+        const changed = emailInput.value.trim().toLowerCase() !== verifyEmailButton.dataset.savedEmail.toLowerCase();
+        verifyEmailButton.disabled = changed;
+        verifyEmailButton.title = changed ? 'Save your new email first' : '';
+    }
+
+    if (verifyEmailButton) {
+        emailInput.addEventListener('input', syncVerifyEmailButton);
+        syncVerifyEmailButton();
+        parent.document.querySelector('.verify-banner-link-form')?.setAttribute(
+            'data-confirm-message',
+            document.getElementById('resend-verification-form').dataset.confirmMessage
+        );
+    }
+
     const filePopupBackdrop = document.getElementById('filePopupBackdrop');
     const filePopupFrame = document.getElementById('filePopupFrame');
     const filePopupPdfPages = document.getElementById('filePopupPdfPages');

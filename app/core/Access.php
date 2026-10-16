@@ -131,9 +131,11 @@ class Access
       'payment_proof' => 'researcher',
       'amendment_upload' => 'researcher',
       'request_deletion' => 'researcher',
+      'hard_copy_claim' => 'researcher',
       // signed in; each also checks protocol ownership / personnel inside
       'versions' => 'auth',
       'allversions' => 'auth',
+      'modaldata' => 'auth',
       'viewer' => 'auth',
       'file' => 'auth',
       'cert' => 'auth',

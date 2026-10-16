@@ -8,6 +8,7 @@ include "includes/scroll-top.php";
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('protocol-modals.css') ?>">
 
 <div class="body">
     <main class="main-content" id="main-content" tabindex="-1">
@@ -16,7 +17,7 @@ include "includes/scroll-top.php";
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>
-            Home
+            Back to Dashboard
         </a>
 
         <div class="portal">
@@ -623,6 +624,7 @@ include 'includes/guide.php';
             key: 'title',
             label: 'Protocol title',
             attrs: 'maxlength="255" placeholder="e.g. Effects of X on Y in Z model"',
+            hint: 'Type the title as plain text. Do not surround with quotation marks ("").',
         },
         {
             id: 'inp-animal-type',
@@ -688,7 +690,9 @@ include 'includes/guide.php';
     })}
     </div>
 
-    ${state.protocolName && state.protocolConverted ? convertedNotice() : ''}
+    ${state.protocolName && state.protocolConverted && !uploadProgress.protocol ? convertedNotice() : ''}
+
+    <hr class="part-1-2-hr">
 
     <div class="section-label section-label--lg-top">Part 2: Protocol details</div>
     <p class="step-intro-text">Make sure to enter these exactly as written on your form.</p>
@@ -855,6 +859,7 @@ include 'includes/guide.php';
                     bar.update(pct);
                     if (pct >= 100 && isWord && progressContainer) {
                         progressContainer.closest('.doc-row-info').querySelector('.doc-row-sub').textContent = 'Converting to PDF, please wait…';
+                        bar.converting();
                     }
                 }
             });

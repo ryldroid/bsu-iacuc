@@ -1,0 +1,257 @@
+/* Styles for the shared protocol modals (includes/protocol-modals.php).
+   Loaded by that include, and by pages that reuse the notice and document-row blocks. */
+
+/* ===== Modal shell ===== */
+.panel-modal-card {
+  background: var(--card-background);
+  color: var(--primary-text);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px var(--shadow-color-modal);
+  width: min(480px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.panel-modal-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panel-modal-intro {
+  font-size: 0.88em;
+  color: var(--muted-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.panel-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.panel-modal-actions[hidden] {
+  display: none;
+}
+
+/* ===== Modal form fields ===== */
+.return-comment-label {
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--secondary-text);
+}
+
+.return-comment-optional {
+  font-weight: 400;
+  color: var(--muted-text);
+  margin-left: 4px;
+}
+
+.return-comment-textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.88em;
+  color: var(--primary-text);
+  background: var(--card-background);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.return-comment-textarea:focus {
+  outline: none;
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+.return-char-count {
+  font-size: 0.78em;
+  color: var(--muted-text);
+  margin: -0.25rem 0 0;
+  text-align: right;
+}
+
+.rename-title-input {
+  resize: none;
+  min-height: unset;
+}
+
+/* ===== Notice (generic, color variants) ===== */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.notice svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* Same quiet style as .notice-info; only the icon carries the warning color */
+.notice-warning {
+  background: none;
+  color: var(--muted-text);
+  padding: 0 2px;
+  margin-bottom: .6rem;
+}
+
+.notice-warning svg {
+  color: var(--warning-text);
+}
+
+.notice-info {
+  background: none;
+  color: var(--muted-text);
+  padding: 0 2px;
+  margin-bottom: .6rem;
+}
+
+.notice-info strong {
+  color: var(--secondary-text);
+  font-weight: 600;
+}
+
+/* Inside modal bodies the parent flex gap already provides spacing */
+.panel-modal-body .notice {
+  margin-bottom: 0;
+}
+
+/* ===== Document rows ===== */
+.doc-list {
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.2rem;
+}
+
+.doc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--divider-color-subtle);
+}
+
+.doc-row:last-child {
+  border-bottom: none;
+}
+
+.doc-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.doc-row-title {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.doc-row-sub {
+  font-size: .8rem;
+  color: var(--primary-text);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.doc-row-sub.done {
+  color: var(--status-success-text);
+  font-weight: 500;
+}
+
+.doc-row-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-row-done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--status-success-text);
+  font-size: .8rem;
+}
+
+.doc-row-done svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.doc-row-replace {
+  display: inline-block;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--brand-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.doc-row-replace:hover {
+  color: var(--brand-color-hover);
+}
+
+.doc-row-replace input[type="file"] {
+  display: none;
+}
+
+.btn-upload-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-background);
+  border: 1.5px solid var(--brand-text);
+  color: var(--brand-text);
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+
+.btn-upload-inline:hover {
+  background: var(--brand-color);
+  color: var(--text-on-brand);
+}
+
+.btn-upload-inline svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn-upload-inline input[type="file"] {
+  display: none;
+}
+
+/* ===== Modal buttons with an icon ===== */
+.panel-modal-actions .confirm-modal-btn,
+.file-popup-footer .confirm-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

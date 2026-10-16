@@ -60,6 +60,11 @@
     color: var(--status-success-text);
 }
 
+[data-theme="dark"] .clearance-reminder {
+    background: var(--success-background);
+    color: var(--success-text);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 767px) {
     h1 {

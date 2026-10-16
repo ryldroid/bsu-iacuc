@@ -369,14 +369,14 @@ class Controller
   }
 
   // ===== EMAIL VERIFICATION =====
-  protected function sendEmailVerification(array $user): void
+  protected function sendEmailVerification(array $user): bool
   {
     $token = bin2hex(random_bytes(32));
     $this->userModel->createEmailVerification((int) $user['id'], $token);
 
     $verify_url = ROOT . '/user/verify_email?token=' . $token;
 
-    Mailer::sendTemplate('verify_email', [
+    return Mailer::sendTemplate('verify_email', [
       'first_name' => $user['first_name'],
       'verify_url' => $verify_url,
     ], $user['email'], $user['first_name'], 'Verify Your Email');

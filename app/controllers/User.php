@@ -555,12 +555,14 @@ class User extends Controller
 
       if ($email !== $current_user['email']) {
         $this->userModel->markEmailUnverified($id);
-        $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
+        $verificationSent = $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
         $_SESSION['user']['email_verified'] = false;
 
         $this->userModel->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
 
-        $_SESSION['flash_success'] = 'Account updated successfully! Verify your new email to keep getting email notifications.';
+        $_SESSION['flash_success'] = $verificationSent
+          ? 'Account updated successfully! A verification link was sent to ' . $email . '.'
+          : 'Account updated successfully! Use "Verify email" to get a verification link for your new email.';
       } else {
         $_SESSION['flash_success'] = 'Account updated successfully!';
       }
@@ -718,8 +720,11 @@ class User extends Controller
       exit;
     }
 
-    $this->sendEmailVerification($user);
-    $_SESSION['flash_success'] = 'Verification link sent to your email. Please check your inbox.';
+    if ($this->sendEmailVerification($user)) {
+      $_SESSION['flash_success'] = 'Verification link sent to ' . $user['email'] . '. Please check your inbox.';
+    } else {
+      $_SESSION['flash_error'] = 'Could not send the verification link. Please try again later.';
+    }
     header('Location: ' . $back);
     exit;
   }

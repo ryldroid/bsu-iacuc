@@ -3,6 +3,7 @@
 /** @var array|null  $user */
 /** @var array       $protocols */
 /** @var array       $statuses */
+/** @var array       $actor */
 
 $title = 'Personnel Dashboard';
 
@@ -43,14 +44,14 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols and view their attached IACUC training certificates by clicking **View Protocol**.',
+        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols and view their attached IACUC training certificates by clicking "View Protocol."',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
         'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**.",
         'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
-        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols and view their attached IACUC training certificates by clicking **View Protocol**.',
+        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols and view their attached IACUC training certificates by clicking "View Protocol."',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
@@ -133,8 +134,10 @@ foreach ($protocols as $p) {
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 <?php if ($personnelRole === 'staff'): ?>
     <link rel="stylesheet" href="<?= asset_css('personnel/clearances.css') ?>">
@@ -407,7 +410,7 @@ foreach ($protocols as $p) {
                         'download' => '#download-icon',
                         'back'     => '#back-icon',
                         'reject'   => '#close-icon',
-                        'undo'     => '#back-icon',
+                        'undo'     => '#undo-icon',
                         'edit'     => '#edit-icon',
                     ];
                     ?>
@@ -451,13 +454,6 @@ foreach ($protocols as $p) {
                                     'icon' => 'review'
                                 ],
                             ];
-                            $actions = array_merge($actions, [
-                                [
-                                    'label' => 'Show History',
-                                    'action' => 'show-history',
-                                    'icon' => 'history'
-                                ]
-                            ]);
                         } elseif ($userRole === 'reviewer') {
 
                             switch ($statusLower) {
@@ -468,11 +464,6 @@ foreach ($protocols as $p) {
                                             'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
                                         ]
                                     ];
                                     break;
@@ -489,11 +480,6 @@ foreach ($protocols as $p) {
                                             'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
                                         ]
                                     ];
                                     break;
@@ -504,11 +490,6 @@ foreach ($protocols as $p) {
                                             'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
                                         ]
                                     ];
                             }
@@ -529,11 +510,6 @@ foreach ($protocols as $p) {
                                                 'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
-                                            ],
-                                            [
-                                                'label' => 'Show History',
-                                                'action' => 'show-history',
-                                                'icon' => 'history'
                                             ]
                                         ];
                                     } elseif ($paymentStatus !== 'paid') {
@@ -542,11 +518,6 @@ foreach ($protocols as $p) {
                                                 'label' => 'View Protocol',
                                                 'action' => 'view',
                                                 'icon' => 'review'
-                                            ],
-                                            [
-                                                'label' => 'Show History',
-                                                'action' => 'show-history',
-                                                'icon' => 'history'
                                             ]
                                         ];
                                     } elseif (!$hasIpn) {
@@ -565,12 +536,8 @@ foreach ($protocols as $p) {
                                             [
                                                 'label' => 'Undo "Mark as Paid"',
                                                 'action' => 'undo-payment',
-                                                'icon' => 'undo'
-                                            ],
-                                            [
-                                                'label' => 'Show History',
-                                                'action' => 'show-history',
-                                                'icon' => 'history'
+                                                'icon' => 'undo',
+                                                'menu' => true
                                             ]
                                         ];
                                     } elseif (!$hasSignedScan) {
@@ -589,17 +556,14 @@ foreach ($protocols as $p) {
                                             [
                                                 'label' => 'Edit IPN',
                                                 'action' => 'edit-ipn',
-                                                'icon' => 'edit'
+                                                'icon' => 'edit',
+                                                'menu' => true
                                             ],
                                             [
                                                 'label' => 'Undo "Mark as Paid"',
                                                 'action' => 'undo-payment',
-                                                'icon' => 'undo'
-                                            ],
-                                            [
-                                                'label' => 'Show History',
-                                                'action' => 'show-history',
-                                                'icon' => 'history'
+                                                'icon' => 'undo',
+                                                'menu' => true
                                             ]
                                         ];
                                     } else {
@@ -618,17 +582,14 @@ foreach ($protocols as $p) {
                                             [
                                                 'label' => 'Edit IPN',
                                                 'action' => 'edit-ipn',
-                                                'icon' => 'edit'
+                                                'icon' => 'edit',
+                                                'menu' => true
                                             ],
                                             [
                                                 'label' => 'Undo "Mark as Paid"',
                                                 'action' => 'undo-payment',
-                                                'icon' => 'undo'
-                                            ],
-                                            [
-                                                'label' => 'Show History',
-                                                'action' => 'show-history',
-                                                'icon' => 'history'
+                                                'icon' => 'undo',
+                                                'menu' => true
                                             ]
                                         ];
                                     }
@@ -652,14 +613,10 @@ foreach ($protocols as $p) {
                                             'icon' => 'review'
                                         ],
                                         [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
-                                        ],
-                                        [
                                             'label' => 'Revert to Reviewed',
                                             'action' => 'revert-endorsed',
-                                            'icon' => 'undo'
+                                            'icon' => 'undo',
+                                            'menu' => true
                                         ]
                                     ]);
                                     break;
@@ -681,19 +638,16 @@ foreach ($protocols as $p) {
                                             'label' => $hasHardCopyReleased ? 'Undo Pickup' : 'Confirm Pickup',
                                             'action' => $hasHardCopyReleased ? 'undo-hard-copy' : 'release-hard-copy',
                                             'icon' => $hasHardCopyReleased ? 'undo' : 'check',
-                                            'primary' => !$hasHardCopyReleased
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
+                                            'primary' => !$hasHardCopyReleased,
+                                            'menu' => $hasHardCopyReleased
                                         ]
                                     ];
                                     if (!$hasHardCopyReleased) {
                                         $actions[] = [
                                             'label' => 'Revert to Endorsed',
                                             'action' => 'revert-approved',
-                                            'icon' => 'undo'
+                                            'icon' => 'undo',
+                                            'menu' => true
                                         ];
                                     }
                                     break;
@@ -704,11 +658,6 @@ foreach ($protocols as $p) {
                                             'label' => 'View Protocol',
                                             'action' => 'view',
                                             'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => 'Show History',
-                                            'action' => 'show-history',
-                                            'icon' => 'history'
                                         ]
                                     ];
                             }
@@ -759,15 +708,6 @@ foreach ($protocols as $p) {
                                 </div>
 
                                 <div class="actions">
-                                    <?php if ($userRole === 'staff' && $statusLower === 'reviewed' && !empty($protocol['latest_protocol_version_id'])): ?>
-                                        <a class="quick-download-btn"
-                                            href="<?= ROOT ?>/apply/file/<?= (int) $protocol['latest_protocol_version_id'] ?>?download=1"
-                                            title="Download protocol PDF" aria-label="Download protocol PDF">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                <use href="#download-icon"></use>
-                                            </svg>
-                                        </a>
-                                    <?php endif; ?>
                                     <?php foreach ($actions as $action): ?>
                                         <?php if (!empty($action['primary'])): ?>
                                             <?php if (!empty($action['href'])): ?>
@@ -794,12 +734,14 @@ foreach ($protocols as $p) {
 
                                     <div class="actions-secondary">
                                         <?php foreach ($actions as $action): ?>
-                                            <?php if (empty($action['primary'])): ?>
+                                            <?php if (empty($action['primary']) && empty($action['menu'])): ?>
                                                 <button class="action-link" data-action="<?= $action['action'] ?>">
                                                     <?= htmlspecialchars($action['label']) ?>
                                                 </button>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
+                                        <?php $menu = ProtocolMenu::forRow($protocol, $actor, array_map(fn($a) => ['action' => $a['action'], 'label' => $a['label'], 'icon' => ltrim($iconMap[$a['icon']], '#')], array_values(array_filter($actions, fn($a) => !empty($a['menu'])))));
+                                        include dirname(__DIR__) . '/includes/protocol-menu.php'; ?>
                                     </div>
                                 </div>
                             </div>
@@ -1348,229 +1290,6 @@ foreach ($protocols as $p) {
         }
     }
 
-    // ===== Row action buttons =====
-    protocolsList?.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-
-        const row = btn.closest('.protocol');
-        const protocolId = parseInt(row?.dataset.protocolId, 10);
-        const protocol = protocolsData.find(p => p.protocol_id == protocolId);
-        const action = btn.dataset.action;
-
-        if (!protocolId || !action) return;
-
-        switch (action) {
-            case 'open':
-                window.location.href = ROOT_URL + '/apply/viewer/' + protocolId + '?from=' + encodeURIComponent(activeFilter);
-                break;
-
-            case 'view':
-                window.location.href = ROOT_URL + '/apply/viewer/' + protocolId + '?from=' + encodeURIComponent(activeFilter);
-                break;
-
-            case 'show-history':
-                openHistoryModal(protocolId, protocol?.research_title ?? '');
-                break;
-
-            case 'view-clearance':
-                window.open(CLEARANCE_VIEW_URL + protocolId, '_blank', 'noopener');
-                break;
-
-            case 'mark-endorsed':
-                confirmAction('Mark this protocol as endorsed? Double-check that payment is verified and the signed scan is correct before proceeding.', {
-                    okText: 'Mark as Endorsed',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitStatusChange(protocolId, 'Endorsed', btn));
-                break;
-
-            case 'revert-endorsed':
-                confirmAction('Revert this protocol back to Reviewed? Use this if "Mark as Endorsed" was clicked by mistake.', {
-                    okText: 'Revert',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitStatusChange(protocolId, 'Reviewed', btn));
-                break;
-
-            case 'mark-approved':
-                confirmAction('Mark this protocol as approved? Double-check that the attached clearance is correct before proceeding.', {
-                    okText: 'Mark as Approved',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitStatusChange(protocolId, 'Approved', btn));
-                break;
-
-            case 'revert-approved':
-                confirmAction('Revert this protocol back to Endorsed? Use this if "Mark as Approved" was clicked by mistake.', {
-                    okText: 'Revert',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitStatusChange(protocolId, 'Endorsed', btn));
-                break;
-
-            case 'upload-signed-scan':
-                openSignedScanModal(protocolId, protocol?.research_title ?? '');
-                break;
-
-            case 'assign-ipn':
-                openNumberModal('ipn', protocolId, '');
-                break;
-
-            case 'edit-ipn':
-                if (!protocol?.latest_signed_scan_version_id) {
-                    openNumberModal('ipn', protocolId, protocol?.reference_no ?? '');
-                    break;
-                }
-                confirmAction('This protocol already has a signed scan. Changing the IPN will make the signed scan not match the record.', {
-                    okText: 'Edit IPN',
-                    cancelText: 'Cancel',
-                    danger: true
-                }).then(ok => ok && openNumberModal('ipn', protocolId, protocol.reference_no ?? ''));
-                break;
-
-            case 'undo-payment':
-                confirmAction('Undo this "Mark as Paid"? The protocol will go back to "Proof Submitted".', {
-                    okText: 'Undo',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitPaymentUndo(protocolId, btn));
-                break;
-
-            case 'release-hard-copy':
-                confirmAction('Confirm that the researcher has picked up the embossed hard copy? This will be recorded under your name.', {
-                    okText: 'Confirm Pickup',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitHardCopy(protocolId, 'release', btn));
-                break;
-
-            case 'undo-hard-copy':
-                confirmAction('Undo the pickup? The protocol will show as awaiting pickup again.', {
-                    okText: 'Undo',
-                    cancelText: 'Cancel'
-                }).then(ok => ok && submitHardCopy(protocolId, 'undo', btn));
-                break;
-
-            case 'review-payment':
-                openReviewPaymentModal(
-                    protocolId,
-                    protocol?.research_title ?? '',
-                    protocol?.payment_method ?? 'online',
-                    `${protocol?.first_name ?? ''} ${protocol?.last_name ?? ''}`.trim(),
-                    protocol?.school ?? ''
-                );
-                break;
-        }
-    });
-
-    // ===== Payment API calls =====
-    async function submitPaymentVerify(protocolId) {
-        try {
-            const res = await fetch(VERIFY_PAYMENT_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: protocolId
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                window.location.reload();
-            } else {
-                alert('Error: ' + (data.error ?? 'Could not mark as paid.'));
-                setButtonBusy(document.getElementById('reviewPaymentApproveBtn'), false);
-            }
-        } catch (err) {
-            alert('Network error. Please try again.');
-            setButtonBusy(document.getElementById('reviewPaymentApproveBtn'), false);
-        }
-    }
-
-    async function submitPaymentUndo(protocolId, btn) {
-        setButtonBusy(btn, true, 'Undoing...');
-        try {
-            const res = await fetch(UNDO_PAYMENT_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: protocolId
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                window.location.reload();
-            } else {
-                setButtonBusy(btn, false);
-                alert('Error: ' + (data.error ?? 'Could not undo payment mark.'));
-            }
-        } catch (err) {
-            setButtonBusy(btn, false);
-            alert('Network error. Please try again.');
-        }
-    }
-
-    async function submitHardCopy(protocolId, action, btn) {
-        setButtonBusy(btn, true);
-        try {
-            const res = await fetch(HARD_COPY_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: protocolId,
-                    action
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                window.location.reload();
-            } else {
-                setButtonBusy(btn, false);
-                alert('Error: ' + (data.error ?? 'Could not update the hard copy pickup.'));
-            }
-        } catch (err) {
-            setButtonBusy(btn, false);
-            alert('Network error. Please try again.');
-        }
-    }
-
-    // ===== Status change API call =====
-    async function submitStatusChange(protocolId, newStatus, btn) {
-        setButtonBusy(btn, true);
-        try {
-            const res = await fetch(STATUS_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: protocolId,
-                    status: newStatus
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                window.location.reload();
-            } else if (data.queued) {
-                setButtonBusy(btn, false);
-            } else {
-                setButtonBusy(btn, false);
-                alert('Error: ' + (data.error ?? 'Could not update status.'));
-            }
-        } catch (err) {
-            setButtonBusy(btn, false);
-            if (!navigator.onLine) {
-                alert('You are offline. The action could not be queued. Please try again when reconnected.');
-            } else {
-                alert('Network error. Please try again.');
-            }
-        }
-    }
-
     // ===== Status legend info panel (single click to open/close) =====
     (function() {
         const wrapper = document.getElementById('legendInfoWrapper');
@@ -1629,6 +1348,7 @@ foreach ($protocols as $p) {
     // ===== Initial render =====
     renderTable();
 </script>
+<script src="<?= asset_js('personnel-protocol-actions.js') ?>"></script>
 
 <?php
 $guideId    = 'inbox';
@@ -1649,7 +1369,7 @@ $guideSteps = array_merge($guideSteps, [
     ['Actions', $personnelRole === 'staff'
         ? 'Protocols **To Review** are handled by the reviewers, so their cards only offer **View Protocol**. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. **View Protocol** is always available as a secondary link, and **View Clearance** appears once approved.'
         : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
-    ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows the payment history, the scan signed by the IACUC chairperson, and the temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button[data-action="show-history"]:first-visible'],
+    ['More actions', '**Actions** is the three dots beside View Protocol. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Delete**. You also get **Training Certificate** at the top. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
 ]);
 include dirname(__DIR__) . '/includes/guide.php';
@@ -1774,8 +1494,8 @@ include dirname(__DIR__) . '/includes/guide.php';
     });
 </script>
 
-<?php include dirname(__DIR__) . '/includes/file-popup.php'; ?>
-<script src="<?= asset_js('file-popup.js') ?>"></script>
+<?php include dirname(__DIR__) . '/includes/protocol-modals.php'; ?>
+<script src="<?= asset_js('protocol-menu.js') ?>"></script>
 
 <!-- ===== Upload Signed Scan modal (administrative staff only) ===== -->
 <div class="modal-backdrop" id="signedScanModalBackdrop" data-static>
@@ -1787,8 +1507,8 @@ include dirname(__DIR__) . '/includes/guide.php';
 
         <div class="modal-file-row">
             <div class="modal-file-info">
-                <div class="modal-file-title">Signed protocol (scan or photo) <span class="required-asterisk">*</span></div>
-                <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF or image &middot; max 10 MB</div>
+                <div class="modal-file-title">Signed protocol (scanned PDF) <span class="required-asterisk">*</span></div>
+                <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF only &middot; max 10 MB</div>
             </div>
             <label class="modal-file-picker">
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1796,7 +1516,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 </svg>
                 <span id="signedScanFilePickerLabel">Upload</span>
                 <input type="file" id="signed_scan_file" name="signed_scan_file"
-                    accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" required
+                    accept=".pdf,application/pdf" required
                     onchange="handleSignedScanFileChange(this)">
             </label>
         </div>
@@ -1843,7 +1563,7 @@ include dirname(__DIR__) . '/includes/guide.php';
     function resetSignedScanFilePicker() {
         document.getElementById('signedScanFilePickerLabel').textContent = 'Upload';
         const subtitle = document.getElementById('signedScanFileSubtitle');
-        subtitle.textContent = 'PDF or image · max 10 MB';
+        subtitle.textContent = 'PDF only · max 10 MB';
         subtitle.classList.remove('done');
     }
 

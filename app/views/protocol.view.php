@@ -3,18 +3,23 @@
 /** @var array  $protocol */
 /** @var array  $version  */
 /** @var bool   $isLatestVersion */
+/** @var bool   $isSignedScan */
+/** @var bool   $isAmendment */
+/** @var array  $versions */
 /** @var string $csrf     */
 /** @var bool   $isPersonnel    */
 /** @var bool   $isStaff    */
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
-/** @var array|null $latestPaymentProofVersion */
 /** @var bool   $hasCertOnFile */
+/** @var array  $permissions */
 /** @var bool   $canRename */
 /** @var bool   $canRequestDeletion */
 /** @var bool   $canDelete */
 /** @var bool   $canAmend */
 /** @var array  $amendments */
+/** @var bool   $hasRenames */
+/** @var bool   $hasPaymentHistory */
 /** @var bool   $deletionRequested */
 /** @var bool   $deletionRequestedByYou */
 /** @var bool   $showTitleChangeBanner */
@@ -43,8 +48,18 @@ $statusKey       = strtolower($protocol['status'] ?? '');
 $statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
 $isCompleted     = in_array($statusKey, ['approved'], true);
 $isLatestVersion = $isLatestVersion ?? true;
-$statusBadgeMeta  = $isLatestVersion ? ($statusMeta[$statusKey] ?? ['color' => '#64748b', 'icon' => 'info-icon']) : ['color' => '#64748b', 'icon' => 'history-icon'];
-$statusBadgeLabel = $isLatestVersion ? $statusLabel : 'Viewing history: read only';
+$isSignedScan    = $isSignedScan ?? false;
+$isAmendment     = $isAmendment ?? false;
+$isReadOnlyFile  = $isSignedScan || $isAmendment;
+$statusBadgeMeta  = $isReadOnlyFile
+    ? ['color' => '#64748b', 'icon' => 'review-icon']
+    : ($isLatestVersion ? ($statusMeta[$statusKey] ?? ['color' => '#64748b', 'icon' => 'info-icon']) : ['color' => '#64748b', 'icon' => 'history-icon']);
+$statusBadgeLabel = match (true) {
+    $isSignedScan    => 'Signed scan: read only',
+    $isAmendment     => 'Amendment: read only',
+    $isLatestVersion => $statusLabel,
+    default          => 'Viewing history: read only',
+};
 
 $canReview = $isPersonnel && !$isStaff && $statusKey === 'under review' && $isLatestVersion;
 
@@ -54,6 +69,7 @@ $paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
 $paymentMethod     = $protocol['payment_method'] ?? null;
 $canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
+$offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
 $isBsuResearcher   = stripos(trim($protocol['submitter_school'] ?? ''), 'Benguet State University') !== false;
 
 $rrWrongCert          = !empty($returnReason['wrong_cert']);
@@ -67,7 +83,9 @@ $versionNum = (int) $version['version_number'];
 
 $backUrl = $backUrl ?? ($isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions');
 
-$versions   = $versions ?? [$version];
+$scanIsImage = $isSignedScan
+    && in_array(strtolower(pathinfo($version['original_name'] ?? '', PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png'], true);
+
 $fromFilter = $fromFilter ?? '';
 
 // ===== Version viewer URL helper =====
@@ -77,14 +95,16 @@ function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): 
     return $fromFilter !== '' ? $url . '?from=' . urlencode($fromFilter) : $url;
 }
 
-$prevVersion = null;
-$nextVersion = null;
-foreach ($versions as $v) {
-    if ((int) $v['version_number'] === $versionNum - 1) {
-        $prevVersion = $v;
-    }
-    if ((int) $v['version_number'] === $versionNum + 1) {
-        $nextVersion = $v;
+// $versions is newest first: the entry before the current one is newer, the one after is older.
+$prevVersion  = null;
+$nextVersion  = null;
+$versionLabel = submission_round_label($versionNum);
+foreach ($versions as $i => $v) {
+    if ((int) $v['id'] === $versionId) {
+        $nextVersion  = $versions[$i - 1] ?? null;
+        $prevVersion  = $versions[$i + 1] ?? null;
+        $versionLabel = $v['label'];
+        break;
     }
 }
 
@@ -92,8 +112,23 @@ $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($pr
 $certRequired      = $hasCertOnFile && $rrWrongCert;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
-$latestPaymentProofFileUrl = ! empty($latestPaymentProofVersion['id']) ? ROOT . '/apply/file/' . (int) $latestPaymentProofVersion['id'] : null;
-$latestSignedScanFileUrl   = ! empty($latestSignedScanVersion['id']) ? ROOT . '/apply/file/' . (int) $latestSignedScanVersion['id'] : null;
+$latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($protocolId, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
+$amendRedirect = ROOT . '/apply/viewer/' . $protocolId . ($fromFilter !== '' ? '?from=' . urlencode($fromFilter) : '');
+
+// ===== Notes shown above the document =====
+$viewerNotes = [];
+if (!$isStaff && $deletionRequested) {
+    $requestedBy   = $deletionRequestedByYou
+        ? 'you'
+        : trim(($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role'])) . ' ' . ($protocol['deletion_requested_by_name'] ?? ''));
+    $viewerNotes[] = ['danger', 'trash-icon', 'Deletion requested', 'A deletion request is pending for this protocol, requested by ' . $requestedBy . '.'];
+}
+if ($isAmendment && !empty($version['note'])) {
+    $viewerNotes[] = ['info', 'info-icon', 'Amendment note', $version['note']];
+}
+if (!$isPersonnel && !empty($reviewerNote['comment'])) {
+    $viewerNotes[] = ['warning', 'info-icon', 'Note from CCARD', $reviewerNote['comment']];
+}
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
@@ -110,9 +145,11 @@ $resubmitIntro = $certRequired
 include 'includes/header.php';
 ?>
 
-<?php include 'includes/pdfjs.php'; ?>
+<?php include_once 'includes/pdfjs.php'; ?>
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
-<?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments): ?>
+<link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
+<?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments || $hasPaymentHistory): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <?php endif; ?>
 
@@ -164,7 +201,7 @@ include 'includes/header.php';
 
                 <button type="button" class="ver-badge ver-badge--dropdown" id="versionSwitcherTrigger"
                     aria-haspopup="true" aria-expanded="false">
-                    <?= submission_round_label($versionNum) ?>
+                    <?= htmlspecialchars($versionLabel, ENT_QUOTES, 'UTF-8') ?>
                     <svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#chev-down-icon" />
                     </svg>
@@ -181,7 +218,6 @@ include 'includes/header.php';
                 <div class="version-dropdown-menu" id="versionDropdownMenu">
                     <?php foreach ($versions as $v): ?>
                         <?php
-                        $vNum   = (int) $v['version_number'];
                         $vId    = (int) $v['id'];
                         $vName  = trim(($v['first_name'] ?? '') . ' ' . ($v['last_name'] ?? ''));
                         $vDate  = !empty($v['uploaded_at']) ? date(DATETIME_FORMAT, strtotime($v['uploaded_at'])) : '';
@@ -189,7 +225,7 @@ include 'includes/header.php';
                         ?>
                         <a class="version-dropdown-item<?= $vIsCur ? ' is-current' : '' ?>"
                             href="<?= versionViewerUrl($protocolId, $vId, $fromFilter) ?>">
-                            <span class="version-dropdown-item-num"><?= submission_round_label($vNum) ?></span>
+                            <span class="version-dropdown-item-num"><?= htmlspecialchars($v['label'], ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="version-dropdown-item-meta">
                                 <span class="version-dropdown-item-date"><?= htmlspecialchars($vDate, ENT_QUOTES, 'UTF-8') ?></span>
                             </span>
@@ -205,6 +241,19 @@ include 'includes/header.php';
         </div>
 
         <div class="viewer-topbar-right">
+            <span class="page-indicator" id="pageIndicator" hidden></span>
+
+            <?php
+            $menu = ProtocolMenu::forViewer($protocol, $permissions, [
+                'certUrl'        => $latestCertFileUrl ?? $certUrl,
+                'download'       => ['url' => $fileUrl, 'name' => $version['original_name'] ?? 'protocol'],
+                'hasUpdate'      => $showTitleChangeBanner,
+                'deleteRedirect' => $canDelete ? $backUrl : null,
+                'amendRedirect'  => $amendRedirect,
+            ]);
+            include 'includes/protocol-menu.php';
+            ?>
+
             <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
                 <button class="tool-btn tool-btn--urgent" type="button" onclick="openDeletionReviewModal()">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -214,123 +263,6 @@ include 'includes/header.php';
                 </button>
             <?php endif; ?>
 
-            <span class="page-indicator" id="pageIndicator" hidden></span>
-
-            <div class="action-dropdown">
-                <button type="button" class="tool-btn tool-btn--ghost action-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                    Files
-                    <svg class="action-dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#chev-down-icon" />
-                    </svg>
-                </button>
-                <div class="version-dropdown-menu action-dropdown-menu">
-                    <button class="tool-btn tool-btn--ghost"
-                        data-file-url="<?= htmlspecialchars($latestCertFileUrl ?? $certUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        onclick="openFilePopup(this.dataset.fileUrl, 'IACUC Training Certificate')">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Training Certificate
-                    </button>
-
-                    <?php if ($latestPaymentProofFileUrl):
-                        $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
-                    ?>
-                        <button class="tool-btn tool-btn--ghost"
-                            data-file-url="<?= htmlspecialchars($latestPaymentProofFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                            onclick="openFilePopup(this.dataset.fileUrl, 'Proof of Payment', <?= $offerPaymentResubmit ? 'true' : 'false' ?>)">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon" />
-                            </svg>
-                            Payment Proof
-                        </button>
-                    <?php endif; ?>
-
-                    <?php if ($latestSignedScanFileUrl): ?>
-                        <button class="tool-btn tool-btn--ghost"
-                            data-file-url="<?= htmlspecialchars($latestSignedScanFileUrl, ENT_QUOTES, 'UTF-8') ?>"
-                            onclick="openFilePopup(this.dataset.fileUrl, 'Signed Scan')">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon" />
-                            </svg>
-                            Signed Scan
-                        </button>
-                    <?php endif; ?>
-
-                    <?php if ($amendments): ?>
-                        <button class="tool-btn tool-btn--ghost" type="button" onclick="openAmendmentsModal()">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#review-icon" />
-                            </svg>
-                            Amendments (<?= count($amendments) ?>)
-                        </button>
-                    <?php endif; ?>
-
-                    <a class="tool-btn tool-btn--ghost" href="<?= $fileUrl ?>" download="<?= htmlspecialchars($version['original_name'] ?? 'protocol', ENT_QUOTES, 'UTF-8') ?>">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#download-icon" />
-                        </svg>
-                        Download
-                    </a>
-                </div>
-            </div>
-
-            <?php if (!empty($titleHistory) || $canRename || $canDelete || $canRequestDeletion || $canAmend): ?>
-                <div class="action-dropdown">
-                    <button type="button" class="tool-btn tool-btn--ghost action-dropdown-trigger<?= $showTitleChangeBanner ? ' has-update' : '' ?>" id="moreActionsTrigger"
-                        aria-haspopup="true" aria-expanded="false" <?= $showTitleChangeBanner ? ' aria-label="Actions (title recently changed)"' : '' ?>>
-                        Actions
-                        <svg class="action-dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-down-icon" />
-                        </svg>
-                    </button>
-                    <div class="version-dropdown-menu action-dropdown-menu">
-                        <?php if (!empty($titleHistory)): ?>
-                            <button class="tool-btn tool-btn--ghost" type="button" onclick="openRenameHistoryModal()">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#history-icon" />
-                                </svg>
-                                Rename history
-                            </button>
-                        <?php endif; ?>
-
-                        <?php if ($canAmend): ?>
-                            <button class="tool-btn tool-btn--ghost" id="btnAmendment" type="button" onclick="openAmendmentModal()">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#upload-icon" />
-                                </svg>
-                                Submit Amendment
-                            </button>
-                        <?php endif; ?>
-
-                        <?php if ($canRename): ?>
-                            <button class="tool-btn tool-btn--info" id="btnRename" type="button" onclick="openRenameModal()">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#edit-icon" />
-                                </svg>
-                                Rename
-                            </button>
-                        <?php endif; ?>
-
-                        <?php if ($canDelete): ?>
-                            <button class="tool-btn tool-btn--danger" id="btnDelete" type="button" onclick="openDeleteModal()">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#trash-icon" />
-                                </svg>
-                                Delete
-                            </button>
-                        <?php elseif ($canRequestDeletion): ?>
-                            <button class="tool-btn tool-btn--danger" id="btnRequestDeletion" type="button"
-                                onclick="openDeleteModal()" <?= $deletionRequested ? 'disabled' : '' ?>>
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#trash-icon" />
-                                </svg>
-                                <?= $deletionRequested ? 'Deletion Requested' : 'Request Deletion' ?>
-                            </button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <?php if ($canReview || $canResubmit || $canConfirmPayment): ?>
                 <div class="viewer-review-actions">
@@ -384,18 +316,6 @@ include 'includes/header.php';
     include __DIR__ . '/includes/flash.php';
     ?>
 
-    <?php if (!$isStaff && !empty($protocol['deletion_requested_at'])): ?>
-        <div class="return-reason-bar deletion-request-bar">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#trash-icon" />
-            </svg>
-            A deletion request is pending for this protocol (requested by
-            <?php if ($deletionRequestedByYou): ?>you<?php else: ?>
-            <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-            <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?><?php endif; ?>). The administrative staff has been notified.
-        </div>
-    <?php endif; ?>
-
     <?php if ($canReview): ?>
         <!-- ===== Annotation hint (personnel only, while under review, latest version only) ===== -->
         <div class="annot-toolbar">
@@ -414,39 +334,39 @@ include 'includes/header.php';
             Loading protocol...
         </div>
 
-        <div class="pdf-column" id="pdfColumn"></div>
+        <div class="viewer-main">
+            <?php if ($viewerNotes): ?>
+                <div class="viewer-notes">
+                    <?php foreach ($viewerNotes as [$noteVariant, $noteIcon, $noteLabel, $noteText]): ?>
+                        <?php include 'includes/viewer-note.php'; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+            <div class="pdf-column" id="pdfColumn"></div>
+        </div>
 
-        <div class="annot-sidebar" id="annotSidebar">
-            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-expanded="true">
-                <span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:middle;margin-right:4px">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        <?php if (!$isReadOnlyFile): ?>
+            <div class="annot-sidebar" id="annotSidebar">
+                <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-expanded="true">
+                    <span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:middle;margin-right:4px">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Comments
+                    </span>
+                    <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
-                    Comments
-                </span>
-                <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            <div class="annot-sidebar-inner">
-                <?php if (!$isPersonnel && !empty($reviewerNote) && !empty($reviewerNote['comment'])): ?>
-                    <div class="sidebar-reviewer-note">
-                        <div class="sidebar-reviewer-note-header">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#info-icon" />
-                            </svg>
-                            Note from CCARD:
-                        </div>
-                        <p class="sidebar-reviewer-note-comment"><?= htmlspecialchars($reviewerNote['comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                </button>
+                <div class="annot-sidebar-inner">
+                    <h3>Comments</h3>
+                    <p class="helper" id="annotOfflineNote" hidden></p>
+                    <div id="annotList">
+                        <p class="annot-empty">Loading…</p>
                     </div>
-                <?php endif; ?>
-                <h3>Comments</h3>
-                <p class="helper" id="annotOfflineNote" hidden></p>
-                <div id="annotList">
-                    <p class="annot-empty">Loading…</p>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 
     <!-- ===== Comment popup (small screens: shown at tap position instead of the sidebar) ===== -->
@@ -578,122 +498,6 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($amendments): ?>
-    <!-- ===== Amendments list modal ===== -->
-    <div class="modal-backdrop" id="amendmentsModalBackdrop">
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-label">Amendments</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeAmendmentsModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <div class="doc-list">
-                    <?php foreach ($amendments as $amendment): ?>
-                        <div class="doc-row">
-                            <div class="doc-row-info">
-                                <div class="doc-row-title">
-                                    Amendment <?= (int) $amendment['version_number'] ?>
-                                    &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($amendment['uploaded_at'])), ENT_QUOTES, 'UTF-8') ?>
-                                </div>
-                                <span class="doc-row-sub"><?= nl2br(htmlspecialchars($amendment['note'] ?? '', ENT_QUOTES, 'UTF-8')) ?></span>
-                            </div>
-                            <div class="doc-row-action">
-                                <button class="tool-btn tool-btn--ghost" type="button"
-                                    data-file-url="<?= htmlspecialchars($amendment['file_url'], ENT_QUOTES, 'UTF-8') ?>"
-                                    data-title="Amendment <?= (int) $amendment['version_number'] ?>"
-                                    onclick="closeAmendmentsModal(); openFilePopup(this.dataset.fileUrl, this.dataset.title)">
-                                    View
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
-<?php if ($canAmend): ?>
-    <!-- ===== Submit amendment modal (researcher only, approved protocols) ===== -->
-    <div class="modal-backdrop" id="amendmentModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-label">Submit Amendment</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeAmendmentModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro">If you have an amendment to this approved protocol, submit the updated file here and explain the changes to inform CCARD. This protocol will not undergo the review process again unless deemed necessary by CCARD or the IACUC. You will be notified if any action is required on your end.</p>
-
-                <div class="doc-list">
-                    <div class="doc-row">
-                        <div class="doc-row-info">
-                            <div class="doc-row-title">Updated protocol <span class="req">*</span></div>
-                            <span class="doc-row-sub" id="amendmentFileName">PDF, DOC, or DOCX, max 10 MB</span>
-                        </div>
-                        <div class="doc-row-action">
-                            <label class="btn-upload-inline">
-                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#upload-icon" />
-                                </svg>
-                                Upload
-                                <input type="file" id="amendmentFile" accept=".pdf,.doc,.docx" onchange="handleAmendmentFile(event)">
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="notice notice-info is-hidden" id="amendmentConvertedNotice">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
-                </div>
-
-                <div class="notice notice-info">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    <span><strong>Signatures required:</strong> Print, sign, and scan the updated protocol, then upload the signed copy.</span>
-                </div>
-
-                <label class="return-comment-label" for="amendmentNote">What changed and why <span class="return-comment-optional">(required)</span></label>
-                <textarea id="amendmentNote" class="return-comment-textarea"
-                    placeholder="Briefly describe the change to your methods..."
-                    rows="4" maxlength="1000"></textarea>
-                <p class="return-char-count"><span id="amendmentCharCount">0</span> / 1000</p>
-
-                <div id="amendmentError" class="error-messages" hidden></div>
-
-                <div class="upload-progress-container" id="amendmentProgress"></div>
-
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeAmendmentModal()">Cancel</button>
-                    <button class="tool-btn tool-btn--success" type="button" id="amendmentSubmitBtn" onclick="submitAmendment()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#upload-icon" />
-                        </svg>
-                        Submit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
 <?php if ($canResubmit): ?>
     <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
     <div class="modal-backdrop" id="reuploadModalBackdrop" data-static>
@@ -740,86 +544,6 @@ include 'includes/header.php';
                             <use href="#upload-icon" />
                         </svg>
                         Submit
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
-<?php if ($canRename): ?>
-    <!-- ===== Rename protocol modal ===== -->
-    <div class="modal-backdrop" id="renameModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-label">Rename Protocol</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeRenameModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <label class="return-comment-label" for="renameTitleInput">New research title</label>
-                <input type="text" id="renameTitleInput" class="return-comment-textarea rename-title-input" maxlength="255"
-                    value="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>">
-
-                <div id="renameError" class="error-messages" hidden></div>
-
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeRenameModal()">Cancel</button>
-                    <button class="tool-btn tool-btn--success" type="button" id="renameSubmitBtn" onclick="submitRename()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#edit-icon" />
-                        </svg>
-                        Save
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
-<?php if ($canDelete || $canRequestDeletion): ?>
-    <!-- ===== Delete / request deletion modal ===== -->
-    <div class="modal-backdrop" id="deleteModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-label"><?= $canDelete ? 'Delete Protocol' : 'Request Deletion' ?></p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeDeleteModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro">
-                    <?= $canDelete
-                        ? 'This will delete the protocol and notify the researcher. Please explain why.'
-                        : 'Administrative staff will be notified of your request along with the reason below.' ?>
-                </p>
-
-                <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional">(required)</span></label>
-                <textarea id="deleteReasonText" class="return-comment-textarea"
-                    placeholder="Explain why this protocol should be deleted..."
-                    rows="4" maxlength="1000"></textarea>
-                <p class="return-char-count"><span id="deleteCharCount">0</span> / 1000</p>
-
-                <div id="deleteError" class="error-messages" hidden></div>
-
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeDeleteModal()">Cancel</button>
-                    <button class="tool-btn tool-btn--danger" type="button" id="deleteSubmitBtn" onclick="submitDelete()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#trash-icon" />
-                        </svg>
-                        <?= $canDelete ? 'Delete' : 'Send Request' ?>
                     </button>
                 </div>
             </div>
@@ -984,69 +708,12 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if (!empty($titleHistory)): ?>
-    <!-- ===== Rename history modal ===== -->
-    <div class="modal-backdrop" id="renameHistoryModalBackdrop">
-        <div class="modal-card panel-modal-card" role="dialog" aria-modal="true" aria-labelledby="renameHistoryModalTitle">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-title" id="renameHistoryModalTitle">Title Name History</p>
-                </div>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro">Renamed from</p>
-                <?php foreach ($titleHistory as $h): ?>
-                    <div class="title-history-item">
-                        <div class="title-history-item-title"><?= htmlspecialchars($h['title'], ENT_QUOTES, 'UTF-8') ?></div>
-                        <div class="title-history-item-meta">
-                            <?= htmlspecialchars($h['changed_by_name'] ? ($roleLabels[$h['changed_by_role']] ?? ucfirst((string) $h['changed_by_role'])) . ' - ' . $h['changed_by_name'] : 'Initial title', ENT_QUOTES, 'UTF-8') ?>
-                            &middot; <?= htmlspecialchars(date(DATETIME_FORMAT, strtotime($h['changed_at'])), ENT_QUOTES, 'UTF-8') ?>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeRenameHistoryModal()">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
 
-<!-- ===== File popup modal ===== -->
-<div class="modal-backdrop" id="filePopupBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;">
-    <div class="modal-card file-popup-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div class="file-popup-frame" id="filePopupFrame">
-            <div id="filePopupPdfPages" class="file-popup-pdf-pages" hidden></div>
-            <img id="filePopupImg" alt="">
-            <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
-        </div>
-        <?php if ($canConfirmPayment): ?>
-            <div class="file-popup-footer" id="filePopupResubmitFooter" hidden>
-                <p class="helper file-popup-footer-note">This payment was rejected <?php if (!empty($paymentRejection['comment'])): ?> for the reason: <?= htmlspecialchars($paymentRejection['comment'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?></p>
-                <button class="tool-btn tool-btn--success" type="button" onclick="closeFilePopup(); openPaymentModal();">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    Resubmit Payment
-                </button>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
-<style>
-    #filePopupBackdrop.open {
-        display: flex !important;
-    }
-</style>
+<?php include __DIR__ . '/includes/protocol-modals.php'; ?>
+<?php include __DIR__ . '/includes/history-modal.php'; ?>
 
+<script src="<?= asset_js('history-modal.js') ?>"></script>
+<script src="<?= asset_js('protocol-menu.js') ?>"></script>
 <script>
     const PDF_URL = <?= json_encode($fileUrl) ?>;
     const VERSION_ID = <?= $versionId              ?>;
@@ -1056,6 +723,9 @@ include 'includes/header.php';
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;
     const STATUS_KEY = <?= json_encode($statusKey) ?>;
     const IS_LATEST_VERSION = <?= $isLatestVersion ? 'true' : 'false' ?>;
+    const IS_SIGNED_SCAN = <?= $isSignedScan ? 'true' : 'false' ?>;
+    const IS_READ_ONLY_FILE = <?= $isReadOnlyFile ? 'true' : 'false' ?>;
+    const SCAN_IS_IMAGE = <?= $scanIsImage ? 'true' : 'false' ?>;
     const CAN_REVIEW = <?= $canReview ? 'true' : 'false' ?>;
     const CSRF_TOKEN = <?= json_encode($csrf)      ?>;
     const ANNOT_API = <?= json_encode($annotApi)  ?>;
@@ -1063,1718 +733,30 @@ include 'includes/header.php';
     const ROOT_URL = <?= json_encode(ROOT) ?>;
     const CAN_RESUBMIT = <?= $canResubmit ? 'true' : 'false' ?>;
     const RESUBMIT_DOCS = <?= json_encode($resubmitDocs) ?>;
-
-    // ===== Version switcher dropdown =====
-    const versionTrigger = document.getElementById('versionSwitcherTrigger');
-    const versionMenu = document.getElementById('versionDropdownMenu');
-    const versionSwitcher = document.getElementById('versionSwitcher');
-
-    // ===== Title expand =====
-    const viewerTitle = document.getElementById('viewerTitle');
-    const toggleViewerTitle = () => viewerTitle.setAttribute('aria-expanded', viewerTitle.classList.toggle('is-expanded'));
-
-    viewerTitle.addEventListener('click', toggleViewerTitle);
-    viewerTitle.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleViewerTitle();
-        }
-    });
-
-    // ===== Action dropdowns =====
-    const actionDropdowns = document.querySelectorAll('.action-dropdown');
-
-    const closeActionDropdowns = () => actionDropdowns.forEach(dropdown => {
-        dropdown.querySelector('.action-dropdown-menu').classList.remove('open');
-        dropdown.querySelector('.action-dropdown-trigger').setAttribute('aria-expanded', 'false');
-    });
-
-    actionDropdowns.forEach(dropdown => {
-        const trigger = dropdown.querySelector('.action-dropdown-trigger');
-        const menu = dropdown.querySelector('.action-dropdown-menu');
-
-        trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const wasOpen = menu.classList.contains('open');
-            closeActionDropdowns();
-            if (wasOpen) return;
-            menu.classList.add('open');
-            trigger.setAttribute('aria-expanded', 'true');
-            positionEdgeAwareDropdown(dropdown, menu);
-        });
-    });
-
-    document.addEventListener('click', closeActionDropdowns);
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeActionDropdowns();
-    });
-
-    versionTrigger?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeActionDropdowns();
-        const isOpen = versionMenu.classList.toggle('open');
-        versionTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-
-        if (isOpen) {
-            positionEdgeAwareDropdown(versionSwitcher, versionMenu);
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (versionSwitcher && !versionSwitcher.contains(e.target)) {
-            versionMenu?.classList.remove('open');
-            versionTrigger?.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            versionMenu?.classList.remove('open');
-            versionTrigger?.setAttribute('aria-expanded', 'false');
-        }
-    });
-
-    // ===== State =====
-    let pdfDoc = null;
-    let annotations = [];
-    let annotationsFailed = false;
-    let pendingBox = null;
-    let dragState = null;
-    let editingAnnotId = null;
-
-    // ===== Load PDF =====
-    async function loadPdf() {
-        try {
-            pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-            const col = document.getElementById('pdfColumn');
-            col.innerHTML = '';
-
-            for (let p = 1; p <= pdfDoc.numPages; p++) {
-                const page = await pdfDoc.getPage(p);
-                const scale = Math.min(1.5, (col.clientWidth - 48) / page.getViewport({
-                    scale: 1
-                }).width);
-                const vp = page.getViewport({
-                    scale
-                });
-                const outputScale = window.devicePixelRatio || 1;
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'page-wrapper';
-                wrapper.dataset.page = p;
-                wrapper.style.width = vp.width + 'px';
-
-                const canvas = document.createElement('canvas');
-                canvas.className = 'pdf-canvas';
-                canvas.width = Math.floor(vp.width * outputScale);
-                canvas.height = Math.floor(vp.height * outputScale);
-                canvas.style.width = vp.width + 'px';
-                canvas.style.height = vp.height + 'px';
-                wrapper.appendChild(canvas);
-
-                const overlay = document.createElement('div');
-                overlay.className = 'annot-overlay';
-                overlay.dataset.origW = vp.width;
-                overlay.dataset.origH = vp.height;
-                overlay.dataset.page = p;
-
-                if (CAN_REVIEW) {
-                    overlay.style.cursor = 'crosshair';
-                    attachDrawListeners(overlay, p, canvas);
-                }
-                wrapper.appendChild(overlay);
-                col.appendChild(wrapper);
-
-                await page.render({
-                    canvasContext: canvas.getContext('2d'),
-                    viewport: vp,
-                    transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
-                }).promise;
-                document.getElementById('viewerLoading')?.remove();
-            }
-
-            const pageIndicator = document.getElementById('pageIndicator');
-            pageIndicator.textContent = pdfDoc.numPages + (pdfDoc.numPages === 1 ? ' page' : ' pages');
-            pageIndicator.hidden = false;
-
-        } catch (err) {
-            document.getElementById('viewerLoading')?.remove();
-            const message = document.createElement('p');
-            message.className = 'error-msg';
-            message.textContent = err.name === 'MissingPDFException' ?
-                'File not found.' :
-                'Could not load the file (' + (err.message || err.name || 'unknown error') + ').';
-            document.getElementById('pdfColumn').replaceChildren(message);
-        }
-        await loadAnnotations();
-    }
-
-    // ===== Draw listeners =====
-    function attachDrawListeners(overlay, pageNum, canvas) {
-        overlay.addEventListener('pointerdown', e => {
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
-            e.preventDefault();
-            overlay.setPointerCapture(e.pointerId);
-            const rect = overlay.getBoundingClientRect();
-            const ghost = document.createElement('div');
-            ghost.className = 'annot-ghost';
-            overlay.appendChild(ghost);
-            dragState = {
-                pointerId: e.pointerId,
-                pageNum,
-                startX: e.clientX - rect.left,
-                startY: e.clientY - rect.top,
-                canvas,
-                ghost
-            };
-        });
-
-        overlay.addEventListener('pointermove', e => {
-            if (!dragState || dragState.pageNum !== pageNum || dragState.pointerId !== e.pointerId) return;
-            e.preventDefault();
-            const rect = overlay.getBoundingClientRect();
-            const curX = e.clientX - rect.left;
-            const curY = e.clientY - rect.top;
-            const g = dragState.ghost;
-            g.style.left = Math.min(dragState.startX, curX) + 'px';
-            g.style.top = Math.min(dragState.startY, curY) + 'px';
-            g.style.width = Math.abs(curX - dragState.startX) + 'px';
-            g.style.height = Math.abs(curY - dragState.startY) + 'px';
-        });
-
-        overlay.addEventListener('pointerup', e => {
-            if (!dragState || dragState.pageNum !== pageNum || dragState.pointerId !== e.pointerId) return;
-            const rect = overlay.getBoundingClientRect();
-            const curX = e.clientX - rect.left;
-            const curY = e.clientY - rect.top;
-            const rawW = Math.abs(curX - dragState.startX);
-            const rawH = Math.abs(curY - dragState.startY);
-            dragState.ghost?.remove();
-
-            if (rawW < 10 || rawH < 10) {
-                dragState = null;
-                return;
-            }
-
-            const cRect = dragState.canvas.getBoundingClientRect();
-            pendingBox = {
-                pageNum: dragState.pageNum,
-                x: Math.min(dragState.startX, curX) / cRect.width,
-                y: Math.min(dragState.startY, curY) / cRect.height,
-                w: rawW / cRect.width,
-                h: rawH / cRect.height,
-            };
-            dragState = null;
-            openCommentDialog();
-        });
-
-        overlay.addEventListener('pointercancel', e => {
-            if (!dragState || dragState.pointerId !== e.pointerId) return;
-            dragState.ghost?.remove();
-            dragState = null;
-        });
-    }
-
-    // ===== Comment dialog =====
-    function openCommentDialog() {
-        editingAnnotId = null;
-        document.getElementById('commentDialogTitle').textContent = 'Add Comment';
-        document.getElementById('commentDialogSave').textContent = 'Save';
-        document.getElementById('commentText').value = '';
-        document.getElementById('commentDialog').classList.add('open');
-        document.getElementById('commentText').focus();
-    }
-
-    function editAnnotation(annotId) {
-        const ann = annotations.find(a => a.id === annotId);
-        if (!ann) return;
-        pendingBox = null;
-        editingAnnotId = annotId;
-        document.getElementById('commentDialogTitle').textContent = 'Edit Comment';
-        document.getElementById('commentDialogSave').textContent = 'Save Changes';
-        document.getElementById('commentText').value = ann.comment;
-        document.getElementById('commentDialog').classList.add('open');
-        document.getElementById('commentText').focus();
-    }
-
-    function cancelComment() {
-        pendingBox = null;
-        editingAnnotId = null;
-        document.getElementById('commentDialog').classList.remove('open');
-    }
-    async function saveComment() {
-        const text = document.getElementById('commentText').value.trim();
-        if (!text || (!pendingBox && !editingAnnotId)) return;
-        document.getElementById('commentDialog').classList.remove('open');
-
-        if (editingAnnotId) {
-            const annotId = editingAnnotId;
-            editingAnnotId = null;
-            const res = await fetch(ANNOT_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    action: 'edit',
-                    id: annotId,
-                    comment: text,
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                const ann = annotations.find(a => a.id === annotId);
-                if (ann) ann.comment = text;
-                renderAnnotations();
-            } else {
-                alert('Could not save comment: ' + (data.error ?? 'unknown error'));
-            }
-            return;
-        }
-
-        const res = await fetch(ANNOT_API, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN
-            },
-            body: JSON.stringify({
-                action: 'save',
-                version_id: VERSION_ID,
-                page_number: pendingBox.pageNum,
-                x: pendingBox.x,
-                y: pendingBox.y,
-                width: pendingBox.w,
-                height: pendingBox.h,
-                comment: text,
-            }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-            annotations.push({
-                id: data.id,
-                page_number: pendingBox.pageNum,
-                x: pendingBox.x,
-                y: pendingBox.y,
-                width: pendingBox.w,
-                height: pendingBox.h,
-                comment: text,
-                author: data.author,
-                created_at: new Date().toISOString(),
-            });
-            pendingBox = null;
-            renderAnnotations();
-        } else if (data.queued) {
-            annotations.push({
-                id: 'queued-' + Date.now(),
-                page_number: pendingBox.pageNum,
-                x: pendingBox.x,
-                y: pendingBox.y,
-                width: pendingBox.w,
-                height: pendingBox.h,
-                comment: text,
-                created_at: new Date().toISOString(),
-                _queued: true,
-            });
-            pendingBox = null;
-            renderAnnotations();
-        } else {
-            alert('Could not save comment: ' + (data.error ?? 'unknown error'));
-        }
-    }
-
-    // ===== Load + render annotations =====
-    function queuedAnnotationEntries() {
-        return (window._actionQueue?.load() ?? []).flatMap(entry => {
-            if (!entry.url.includes('/apply/annotate')) return [];
-            try {
-                return [{
-                    entry,
-                    body: JSON.parse(entry.body || '{}')
-                }];
-            } catch {
-                return [];
-            }
-        });
-    }
-
-    async function loadAnnotations() {
-        try {
-            const res = await fetch(ANNOT_API + '?version_id=' + VERSION_ID);
-            const data = await res.json();
-            annotations = Array.isArray(data) ? data : [];
-            annotationsFailed = false;
-        } catch (err) {
-            annotations = [];
-            annotationsFailed = true;
-        }
-        queuedAnnotationEntries().forEach(({
-            entry,
-            body
-        }) => {
-            if (body.action !== 'save' || body.version_id !== VERSION_ID) return;
-            annotations.push({
-                id: 'queued-' + entry.id,
-                page_number: body.page_number,
-                x: body.x,
-                y: body.y,
-                width: body.width,
-                height: body.height,
-                comment: body.comment,
-                created_at: entry.queuedAt,
-                _queued: true,
-            });
-        });
-        renderAnnotations();
-    }
-
-    async function commentsStillSyncing() {
-        if (!queuedAnnotationEntries().length) return false;
-        await confirmAction(
-            'Some comments are still waiting to sync. Wait until they finish syncing, then try again.', {
-                okText: 'Back',
-                hideCancel: true
-            }
-        );
-        return true;
-    }
-
-    window.addEventListener('online', loadAnnotations);
-    window.addEventListener('offline', renderSidebar);
-
-    // ===== Render annotations & sidebar =====
-    function renderAnnotations() {
-        document.querySelectorAll('.annot-box').forEach(el => el.remove());
-
-        annotations.forEach((ann, idx) => {
-            const overlay = document.querySelector('.annot-overlay[data-page="' + ann.page_number + '"]');
-            if (!overlay) return;
-
-            const canvas = overlay.closest('.page-wrapper')?.querySelector('canvas');
-            const pw = canvas ? canvas.getBoundingClientRect().width : parseFloat(overlay.dataset.origW);
-            const ph = canvas ? canvas.getBoundingClientRect().height : parseFloat(overlay.dataset.origH);
-            const box = document.createElement('div');
-            box.className = 'annot-box' + (ann._queued ? ' annot-box--queued' : '');
-            box.dataset.annotId = ann.id;
-            box.style.left = (ann.x * pw) + 'px';
-            box.style.top = (ann.y * ph) + 'px';
-            box.style.width = (ann.width * pw) + 'px';
-            box.style.height = (ann.height * ph) + 'px';
-            box.title = ann._queued ? '[Queued - pending sync] ' + ann.comment : ann.comment;
-
-            const label = document.createElement('span');
-            label.className = 'annot-label';
-            label.textContent = idx + 1;
-            box.appendChild(label);
-            box.addEventListener('click', (e) => handleAnnotBoxClick(e, ann.id));
-            overlay.appendChild(box);
-        });
-
-        renderSidebar();
-    }
-
-    function renderSidebar() {
-        const list = document.getElementById('annotList');
-        const offlineNote = document.getElementById('annotOfflineNote');
-        offlineNote.hidden = navigator.onLine || !annotations.length;
-        offlineNote.textContent = annotationsFailed ? 'Saved comments unavailable offline. Showing only your queued comments.' : 'Showing saved comments (offline)';
-        if (!annotations.length) {
-            list.innerHTML = '<p class="annot-empty">' + (annotationsFailed || !navigator.onLine ? 'Comments unavailable offline.' : 'No comments yet.') + '</p>';
-            return;
-        }
-        list.innerHTML = annotations.map((ann, idx) => `
-        <div class="annot-item${ann._queued ? ' annot-item--queued' : ''}" id="sidebar-${ann.id}" onclick="scrollToAnnotation('${ann.id}')">
-            <div class="annot-item-header">
-                <span class="annot-num">${idx + 1}</span>
-                <span class="annot-page">Page ${ann.page_number}</span>
-                ${ann._queued ? '<span class="annot-queued-badge">Pending sync</span>' : ''}
-                ${CAN_REVIEW && !ann._queued ? `
-                <button class="annot-edit" title="Edit comment" onclick="event.stopPropagation(); editAnnotation(${ann.id})">
-                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#edit-icon">
-                    </svg>
-                </button>
-                <button class="annot-delete" title="Delete comment"
-                    onclick="event.stopPropagation(); confirmAction('Delete this comment? This cannot be undone.', { okText: 'Delete', danger: true }).then(ok => ok && deleteAnnotation(${ann.id}))">
-                     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#trash-icon">
-                    </svg>
-                </button>` : ''}
-            </div>
-            <p class="annot-comment">${escapeHtml(ann.comment)}</p>
-            <p class="annot-date">${ann.author ? escapeHtml(ann.author) + ' &middot; ' : ''}${formatAnnotDate(ann.created_at)}</p>
-        </div>
-    `).join('');
-    }
-
-    // ===== Sidebar highlight & scroll =====
-    function formatAnnotDate(value) {
-        if (!value) return '';
-        return isNaN(new Date(value).getTime()) ? '' : formatDateTime(value);
-    }
-
-    function highlightSidebarItem(annotId) {
-        document.querySelectorAll('.annot-item').forEach(el => el.classList.remove('highlight'));
-        const el = document.getElementById('sidebar-' + annotId);
-        if (el) {
-            el.classList.add('highlight');
-            el.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
-            });
-        }
-    }
-
-    function scrollToAnnotation(annotId) {
-        const box = document.querySelector('.annot-box[data-annot-id="' + annotId + '"]');
-        if (box) box.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-        });
-        highlightSidebarItem(annotId);
-    }
-
-    // ===== Comment popup (small screens) =====
-    const MOBILE_MQ = window.matchMedia('(max-width: 767px)');
-    const annotPopup = document.getElementById('annotPopup');
-
-    // ===== Toolbar hint =====
-    function updateToolbarHint() {
-        const hint = document.getElementById('toolbarHint');
-        if (!hint) return;
-        hint.textContent = MOBILE_MQ.matches ?
-            'Tap and drag on the document to add a comment.' :
-            'Click and drag on the document to add a comment.';
-    }
-    updateToolbarHint();
-    MOBILE_MQ.addEventListener('change', updateToolbarHint);
-
-    function handleAnnotBoxClick(e, annotId) {
-        highlightSidebarItem(annotId);
-        if (MOBILE_MQ.matches) {
-            e.stopPropagation();
-            showAnnotPopup(annotId, e.clientX, e.clientY);
-        }
-    }
-
-    // ===== Comment popup (small screens) =====
-    function showAnnotPopup(annotId, x, y) {
-        const idx = annotations.findIndex(a => a.id === annotId);
-        if (idx === -1) return;
-        const ann = annotations[idx];
-
-        document.getElementById('annotPopupNum').textContent = idx + 1;
-        document.getElementById('annotPopupPage').textContent = 'Page ' + ann.page_number;
-        document.getElementById('annotPopupComment').textContent = ann.comment;
-        document.getElementById('annotPopupDate').textContent = [ann.author, formatAnnotDate(ann.created_at)].filter(Boolean).join(' \u00b7 ');
-
-        const actions = document.getElementById('annotPopupActions');
-        const editBtn = document.getElementById('annotPopupEdit');
-        const deleteBtn = document.getElementById('annotPopupDelete');
-        if (CAN_REVIEW && !ann._queued) {
-            actions.style.display = '';
-
-            editBtn.onclick = () => {
-                closeAnnotPopup();
-                editAnnotation(annotId);
-            };
-
-            deleteBtn.onclick = () => {
-                confirmAction('Delete this comment? This cannot be undone.', {
-                        okText: 'Delete',
-                        danger: true
-                    })
-                    .then(ok => ok && deleteAnnotation(annotId));
-                closeAnnotPopup();
-            };
-        } else {
-            actions.style.display = 'none';
-            editBtn.onclick = null;
-            deleteBtn.onclick = null;
-        }
-
-        annotPopup.style.left = '0px';
-        annotPopup.style.top = '0px';
-        annotPopup.classList.add('open');
-
-        const margin = 10;
-        const rect = annotPopup.getBoundingClientRect();
-        let left = x + margin;
-        let top = y + margin;
-        if (left + rect.width > window.innerWidth - margin) left = x - rect.width - margin;
-        if (left < margin) left = margin;
-        if (top + rect.height > window.innerHeight - margin) top = y - rect.height - margin;
-        if (top < margin) top = margin;
-
-        annotPopup.style.left = left + 'px';
-        annotPopup.style.top = top + 'px';
-    }
-
-    function closeAnnotPopup() {
-        annotPopup.classList.remove('open');
-    }
-
-    document.getElementById('annotPopupClose').addEventListener('click', closeAnnotPopup);
-
-    document.addEventListener('click', (e) => {
-        if (annotPopup.classList.contains('open') &&
-            !annotPopup.contains(e.target) &&
-            !e.target.closest('.annot-box')) {
-            closeAnnotPopup();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeAnnotPopup();
-    });
-
-    window.addEventListener('scroll', closeAnnotPopup, true);
-    MOBILE_MQ.addEventListener('change', closeAnnotPopup);
-
-    // ===== Delete annotation =====
-    async function deleteAnnotation(annotId) {
-        const res = await fetch(ANNOT_API, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN
-            },
-            body: JSON.stringify({
-                action: 'delete',
-                id: annotId
-            }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-            annotations = annotations.filter(a => a.id !== annotId);
-            renderAnnotations();
-        }
-    }
-
-    // ===== Status update =====
-    async function updateStatus(btn, newStatus) {
-        if (await commentsStillSyncing()) return;
-        setButtonBusy(btn, true);
-        try {
-            const res = await fetch(STATUS_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    protocol_id: PROTOCOL_ID,
-                    status: newStatus
-                }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-                window.location.href = <?= json_encode($backUrl) ?>;
-            } else if (data.queued) {
-                setButtonBusy(btn, false);
-            } else {
-                setButtonBusy(btn, false);
-                alert('Error: ' + (data.error ?? 'unknown error'));
-            }
-        } catch (err) {
-            setButtonBusy(btn, false);
-            alert('Could not reach the server and the action could not be queued. Please check your connection.');
-        }
-    }
-
-    <?php if ($canRename): ?>
-        // ===== Rename modal =====
-        const RENAME_API = <?= json_encode(ROOT . '/apply/rename') ?>;
-        const renameBackdrop = document.getElementById('renameModalBackdrop');
-        const renameTitleInput = document.getElementById('renameTitleInput');
-
-        function openRenameModal() {
-            document.getElementById('renameError').hidden = true;
-            renameBackdrop.classList.add('open');
-            renameTitleInput.focus();
-            renameTitleInput.select();
-        }
-
-        function closeRenameModal() {
-            renameBackdrop.classList.remove('open');
-        }
-
-        renameBackdrop.addEventListener('click', e => {
-            if (e.target === renameBackdrop) closeRenameModal();
-        });
-
-        async function submitRename() {
-            const newTitle = renameTitleInput.value.trim();
-            const errBox = document.getElementById('renameError');
-            const submitBtn = document.getElementById('renameSubmitBtn');
-
-            errBox.hidden = true;
-
-            if (!newTitle) {
-                errBox.textContent = 'Please enter a research title.';
-                errBox.hidden = false;
-                return;
-            }
-
-            const ok = await confirmAction(
-                `Rename this protocol to "${newTitle}"?`, {
-                    okText: 'Rename',
-                    cancelText: 'Cancel'
-                }
-            );
-            if (!ok) return;
-
-            setButtonBusy(submitBtn, true, 'Renaming...');
-
-            try {
-                const res = await fetch(RENAME_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: PROTOCOL_ID,
-                        title: newTitle
-                    })
-                });
-                const data = await res.json();
-
-                if (data.ok) {
-                    window.location.reload();
-                } else {
-                    errBox.textContent = data.error ?? 'Could not rename this protocol.';
-                    errBox.hidden = false;
-                    setButtonBusy(submitBtn, false);
-                }
-            } catch {
-                errBox.textContent = 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(submitBtn, false);
-            }
-        }
-    <?php endif; ?>
-
-    <?php if ($canDelete || $canRequestDeletion): ?>
-        // ===== Delete / request deletion modal =====
-        const DELETE_API = <?= json_encode(ROOT . ($canDelete ? '/apply/delete' : '/apply/request_deletion')) ?>;
-        const deleteBackdrop = document.getElementById('deleteModalBackdrop');
-        const deleteReasonText = document.getElementById('deleteReasonText');
-        const deleteCharCount = document.getElementById('deleteCharCount');
-
-        function openDeleteModal() {
-            deleteReasonText.value = '';
-            deleteCharCount.textContent = '0';
-            document.getElementById('deleteError').hidden = true;
-            deleteBackdrop.classList.add('open');
-        }
-
-        function closeDeleteModal() {
-            deleteBackdrop.classList.remove('open');
-        }
-
-        deleteBackdrop.addEventListener('click', e => {
-            if (e.target === deleteBackdrop) closeDeleteModal();
-        });
-
-        deleteReasonText.addEventListener('input', () => {
-            deleteCharCount.textContent = deleteReasonText.value.length;
-        });
-
-        async function submitDelete() {
-            const reason = deleteReasonText.value.trim();
-            const errBox = document.getElementById('deleteError');
-            const submitBtn = document.getElementById('deleteSubmitBtn');
-
-            errBox.hidden = true;
-
-            if (!reason) {
-                errBox.textContent = 'A reason is required.';
-                errBox.hidden = false;
-                return;
-            }
-
-            const confirmMessage = <?= $canDelete
-                                        ? json_encode('Delete this protocol? The researcher will be notified with your reason. This cannot be undone.')
-                                        : json_encode('Send a deletion request to the reviewer with this reason?') ?>;
-
-            const ok = await confirmAction(confirmMessage, {
-                okText: <?= $canDelete ? json_encode('Delete') : json_encode('Send Request') ?>,
-                cancelText: 'Cancel',
-                danger: <?= $canDelete ? 'true' : 'false' ?>
-            });
-            if (!ok) return;
-
-            setButtonBusy(submitBtn, true, <?= $canDelete ? json_encode('Deleting...') : json_encode('Sending...') ?>);
-
-            try {
-                const res = await fetch(DELETE_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: PROTOCOL_ID,
-                        reason: reason
-                    })
-                });
-                const data = await res.json();
-
-                if (data.ok) {
-                    <?php if ($canDelete): ?>
-                        window.location.href = <?= json_encode($backUrl) ?>;
-                    <?php else: ?>
-                        window.location.reload();
-                    <?php endif; ?>
-                } else {
-                    errBox.textContent = data.error ?? 'Could not complete this action.';
-                    errBox.hidden = false;
-                    setButtonBusy(submitBtn, false);
-                }
-            } catch {
-                errBox.textContent = 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(submitBtn, false);
-            }
-        }
-    <?php endif; ?>
-
-    <?php if ($canConfirmPayment): ?>
-        // ===== Verify Payment modal =====
-        const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
-        const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
-        const paymentModal = document.getElementById('paymentModalBackdrop');
-
-        // ===== Payment modal =====
-        function getSelectedPaymentMethod() {
-            if (IS_BSU_RESEARCHER) return 'in_person';
-            const checked = document.querySelector('input[name="payment_method"]:checked');
-            return checked ? checked.value : 'in_person';
-        }
-
-        function handlePaymentMethodChange() {
-            const method = getSelectedPaymentMethod();
-            document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
-            document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
-            document.getElementById('paymentModalSubmitLabel').textContent =
-                method === 'in_person' ? 'Verify Payment' : 'Submit Proof of Payment';
-            document.getElementById('paymentModalError').hidden = true;
-        }
-
-        function openPaymentModal() {
-            const fileInput = document.getElementById('payment_proof_file');
-            fileInput.value = '';
-            resetPaymentFilePicker();
-            document.getElementById('confirm_in_person_paid').checked = false;
-            if (!IS_BSU_RESEARCHER) {
-                document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
-            }
-            document.getElementById('paymentProofProgress').innerHTML = '';
-            handlePaymentMethodChange();
-            paymentModal.classList.add('open');
-        }
-
-        function closePaymentModal() {
-            paymentModal.classList.remove('open');
-        }
-
-        paymentModal.addEventListener('click', e => {
-            if (e.target === paymentModal) closePaymentModal();
-        });
-
-        function resetPaymentFilePicker() {
-            document.getElementById('paymentFilePickerLabel').textContent = 'Upload';
-            const subtitle = document.getElementById('paymentFileSubtitle');
-            subtitle.textContent = 'PDF or image · max 10 MB';
-            subtitle.classList.remove('done');
-        }
-
-        function handlePaymentFileChange(input) {
-            const subtitle = document.getElementById('paymentFileSubtitle');
-            if (input.files.length) {
-                document.getElementById('paymentFilePickerLabel').textContent = 'Replace';
-                subtitle.textContent = input.files[0].name;
-                subtitle.classList.add('done');
-            } else {
-                resetPaymentFilePicker();
-            }
-        }
-
-        async function submitPaymentProof() {
-            const errBox = document.getElementById('paymentModalError');
-            const btn = document.getElementById('paymentModalSubmitBtn');
-            const method = getSelectedPaymentMethod();
-
-            const formData = new FormData();
-            formData.append('protocol_id', PROTOCOL_ID);
-            formData.append('payment_method', method);
-            formData.append('csrf_token', CSRF_TOKEN);
-
-            let confirmMessage;
-
-            if (method === 'in_person') {
-                if (!document.getElementById('confirm_in_person_paid').checked) {
-                    errBox.textContent = 'Please confirm that you have paid in person.';
-                    errBox.hidden = false;
-                    return;
-                }
-                formData.append('confirm_in_person', '1');
-                confirmMessage = 'Confirm that you have paid the Php 100.00 fee in person? Administrative staff will verify this.';
-            } else {
-                const fileInput = document.getElementById('payment_proof_file');
-                if (!fileInput.files.length) {
-                    errBox.textContent = 'Please select a file.';
-                    errBox.hidden = false;
-                    return;
-                }
-                formData.append('payment_proof_file', fileInput.files[0]);
-                confirmMessage = 'Submit this as your proof of payment? Make sure the file clearly shows the receipt or payment before continuing.';
-            }
-
-            errBox.hidden = true;
-
-            const ok = await confirmAction(confirmMessage, {
-                okText: method === 'in_person' ? 'Verify Payment' : 'Submit Proof',
-                cancelText: 'Cancel'
-            });
-            if (!ok) return;
-
-            setButtonBusy(btn, true, method === 'in_person' ? 'Submitting...' : 'Uploading...');
-
-            const progressContainer = document.getElementById('paymentProofProgress');
-            progressContainer.innerHTML = '';
-            const bar = method === 'online' ? createUploadProgressBar(progressContainer) : null;
-
-            try {
-                const data = await uploadWithProgress(PAYMENT_PROOF_API, formData, {
-                    headers: {
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    onProgress: bar ? (pct => bar.update(pct)) : undefined
-                });
-
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
-                    errBox.hidden = false;
-                    setButtonBusy(btn, false);
-                    if (bar) bar.remove();
-                }
-            } catch (err) {
-                errBox.textContent = err.message || 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(btn, false);
-                if (bar) bar.remove();
-            }
-        }
-    <?php endif; ?>
-
-    <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
-        // ===== Approve / reject deletion request modal =====
-        const deletionReviewBackdrop = document.getElementById('deletionReviewModalBackdrop');
-        const deletionReviewLabel = document.getElementById('deletionReviewLabel');
-        const deletionReviewChoiceActions = document.getElementById('deletionReviewChoiceActions');
-        const deletionReviewActionPanel = document.getElementById('deletionReviewActionPanel');
-        const deletionReviewIntro = document.getElementById('deletionReviewIntro');
-        const deletionReviewReasonWrap = document.getElementById('deletionReviewReasonWrap');
-        const deletionReviewReasonText = document.getElementById('deletionReviewReasonText');
-        const deletionReviewCharCount = document.getElementById('deletionReviewCharCount');
-        const deletionReviewSubmitBtn = document.getElementById('deletionReviewSubmitBtn');
-        let deletionReviewAction = null;
-
-        // ===== Deletion review modal =====
-        function openDeletionReviewModal() {
-            deletionReviewAction = null;
-            deletionReviewLabel.textContent = 'Deletion Requested';
-            deletionReviewChoiceActions.hidden = false;
-            deletionReviewActionPanel.hidden = true;
-            deletionReviewReasonText.value = '';
-            deletionReviewCharCount.textContent = '0';
-            document.getElementById('deletionReviewError').hidden = true;
-            deletionReviewBackdrop.classList.add('open');
-        }
-
-        function selectDeletionAction(action) {
-            deletionReviewAction = action;
-            deletionReviewChoiceActions.hidden = true;
-            deletionReviewActionPanel.hidden = false;
-
-            if (action === 'approve') {
-                deletionReviewLabel.textContent = 'Approve Deletion Request';
-                deletionReviewIntro.textContent = 'This will permanently delete the protocol and notify the researcher. This cannot be undone.';
-                deletionReviewReasonWrap.style.display = 'none';
-                deletionReviewSubmitBtn.textContent = 'Approve & Delete';
-                deletionReviewSubmitBtn.className = 'tool-btn tool-btn--success';
-            } else {
-                deletionReviewLabel.textContent = 'Reject Deletion Request';
-                deletionReviewIntro.textContent = 'The researcher will be notified that their deletion request was rejected, along with your explanation below.';
-                deletionReviewReasonWrap.style.display = '';
-                deletionReviewSubmitBtn.textContent = 'Reject Request';
-                deletionReviewSubmitBtn.className = 'tool-btn tool-btn--danger';
-            }
-        }
-
-        function backToDeletionChoice() {
-            deletionReviewAction = null;
-            deletionReviewLabel.textContent = 'Deletion Requested';
-            deletionReviewChoiceActions.hidden = false;
-            deletionReviewActionPanel.hidden = true;
-            document.getElementById('deletionReviewError').hidden = true;
-        }
-
-        function closeDeletionReviewModal() {
-            deletionReviewBackdrop.classList.remove('open');
-        }
-
-        deletionReviewBackdrop.addEventListener('click', e => {
-            if (e.target === deletionReviewBackdrop) closeDeletionReviewModal();
-        });
-
-        deletionReviewReasonText.addEventListener('input', () => {
-            deletionReviewCharCount.textContent = deletionReviewReasonText.value.length;
-        });
-
-        async function submitDeletionReview() {
-            const isApprove = deletionReviewAction === 'approve';
-            const reason = deletionReviewReasonText.value.trim();
-            const errBox = document.getElementById('deletionReviewError');
-
-            errBox.hidden = true;
-
-            if (!isApprove && !reason) {
-                errBox.textContent = 'A reason is required.';
-                errBox.hidden = false;
-                return;
-            }
-
-            const confirmMessage = isApprove ?
-                'Approve this deletion request? The protocol will be permanently deleted.' :
-                'Reject this deletion request with the explanation you provided?';
-
-            const ok = await confirmAction(confirmMessage, {
-                okText: isApprove ? 'Approve & Delete' : 'Reject Request',
-                cancelText: 'Cancel',
-                danger: isApprove
-            });
-            if (!ok) return;
-
-            setButtonBusy(deletionReviewSubmitBtn, true, isApprove ? 'Deleting...' : 'Rejecting...');
-
-            try {
-                const res = await fetch(<?= json_encode(ROOT) ?> + (isApprove ? '/apply/approve_deletion' : '/apply/reject_deletion'), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: PROTOCOL_ID,
-                        reason: reason
-                    })
-                });
-                const data = await res.json();
-
-                if (data.ok) {
-                    if (isApprove) {
-                        window.location.href = <?= json_encode($backUrl) ?>;
-                    } else {
-                        window.location.reload();
-                    }
-                } else {
-                    errBox.textContent = data.error ?? 'Could not complete this action.';
-                    errBox.hidden = false;
-                    deletionReviewSubmitBtn.disabled = false;
-                }
-            } catch {
-                errBox.textContent = 'Network error. Please try again.';
-                errBox.hidden = false;
-                deletionReviewSubmitBtn.disabled = false;
-            }
-        }
-    <?php endif; ?>
-
-    <?php if (!empty($protocol['deletion_rejection_reason'])): ?>
-        // ===== Deletion request rejected modal =====
-        const deletionRejectedBackdrop = document.getElementById('deletionRejectedModalBackdrop');
-
-        function openDeletionRejectedModal() {
-            deletionRejectedBackdrop.classList.add('open');
-        }
-
-        function closeDeletionRejectedModal() {
-            deletionRejectedBackdrop.classList.remove('open');
-        }
-
-        deletionRejectedBackdrop.addEventListener('click', e => {
-            if (e.target === deletionRejectedBackdrop) closeDeletionRejectedModal();
-        });
-    <?php endif; ?>
-
-    <?php if (!empty($titleHistory)): ?>
-        const renameHistoryBackdrop = document.getElementById('renameHistoryModalBackdrop');
-        const moreActionsTrigger = document.getElementById('moreActionsTrigger');
-
-        function openRenameHistoryModal() {
-            renameHistoryBackdrop.classList.add('open');
-
-            if (moreActionsTrigger.classList.contains('has-update')) {
-                moreActionsTrigger.classList.remove('has-update');
-                fetch(ROOT_URL + '/apply/mark_title_seen', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: PROTOCOL_ID
-                    })
-                }).catch(() => {});
-            }
-        }
-
-        function closeRenameHistoryModal() {
-            renameHistoryBackdrop.classList.remove('open');
-        }
-
-        renameHistoryBackdrop.addEventListener('click', e => {
-            if (e.target === renameHistoryBackdrop) closeRenameHistoryModal();
-        });
-    <?php endif; ?>
-
-        // ===== Auto-open from notification/email links =====
-        (function handleAutoOpenFromLink() {
-            const openTarget = new URLSearchParams(window.location.search).get('open');
-            if (openTarget === 'deletion_request' && typeof openDeletionReviewModal === 'function') {
-                openDeletionReviewModal();
-            } else if (openTarget === 'deletion_rejected' && typeof openDeletionRejectedModal === 'function') {
-                openDeletionRejectedModal();
-            } else if (openTarget === 'signed_scan') {
-                <?= $latestSignedScanFileUrl ? 'openFilePopup(' . json_encode($latestSignedScanFileUrl) . ', ' . json_encode('Signed Scan') . ');' : '' ?>
-            }
-        })();
-
-    // ===== Mobile sidebar toggle =====
-    function toggleSidebar() {
-        const sidebar = document.getElementById('annotSidebar');
-        const btn = document.getElementById('sidebarToggle');
-        const isCollapsed = sidebar.classList.toggle('collapsed');
-        btn.classList.toggle('collapsed', isCollapsed);
-        btn.setAttribute('aria-expanded', String(!isCollapsed));
-    }
-
-    loadPdf();
-
-    // ===== File popup (cert / payment proof / clearance) =====
-    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
-    const filePopupFrame = document.getElementById('filePopupFrame');
-    const filePopupPdfPages = document.getElementById('filePopupPdfPages');
-    const filePopupImg = document.getElementById('filePopupImg');
-    const filePopupMessage = document.getElementById('filePopupMessage');
-    let filePopupObjectUrl = null;
-
-    // ===== File popup (certificate / letter) =====
-    function showFilePopupState(state) {
-        filePopupPdfPages.hidden = state !== 'pdf';
-        filePopupImg.hidden = state !== 'img';
-        filePopupMessage.hidden = state !== 'message';
-    }
-
-    async function renderPopupPdf(fileUrl) {
-        filePopupPdfPages.innerHTML = '';
-        const frameWidth = filePopupFrame.clientWidth;
-        const doc = await pdfjsLib.getDocument(fileUrl).promise;
-
-        for (let p = 1; p <= doc.numPages; p++) {
-            const page = await doc.getPage(p);
-            const scale = Math.min(1.5, (frameWidth - 48) / page.getViewport({
-                scale: 1
-            }).width);
-            const vp = page.getViewport({
-                scale
-            });
-
-            const canvas = document.createElement('canvas');
-            const outputScale = window.devicePixelRatio || 1;
-            canvas.width = Math.floor(vp.width * outputScale);
-            canvas.height = Math.floor(vp.height * outputScale);
-            canvas.style.width = vp.width + 'px';
-            canvas.style.height = vp.height + 'px';
-            filePopupPdfPages.appendChild(canvas);
-
-            await page.render({
-                canvasContext: canvas.getContext('2d'),
-                viewport: vp,
-                transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined
-            }).promise;
-        }
-    }
-
-    async function openFilePopup(fileUrl, title, showResubmit) {
-        document.getElementById('filePopupTitle').textContent = title;
-        filePopupBackdrop.classList.add('open');
-        filePopupFrame.scrollTop = 0;
-
-        const resubmitFooter = document.getElementById('filePopupResubmitFooter');
-        if (resubmitFooter) resubmitFooter.hidden = !showResubmit;
-
-        filePopupMessage.textContent = 'Loading…';
-        showFilePopupState('message');
-
-        try {
-            const res = await fetch(fileUrl);
-            if (!res.ok) throw new Error('Failed to load file');
-
-            const contentType = res.headers.get('content-type') || '';
-
-            if (contentType.includes('pdf')) {
-                await renderPopupPdf(fileUrl);
-                showFilePopupState('pdf');
-                filePopupFrame.scrollTop = 0;
-                return;
-            }
-
-            const blob = await res.blob();
-
-            if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
-            filePopupObjectUrl = URL.createObjectURL(blob);
-
-            filePopupImg.src = filePopupObjectUrl;
-            filePopupImg.alt = title;
-            showFilePopupState('img');
-        } catch (err) {
-            filePopupMessage.textContent = 'Could not load this file.';
-            showFilePopupState('message');
-        }
-    }
-
-    function closeFilePopup() {
-        filePopupBackdrop.classList.remove('open');
-        filePopupPdfPages.innerHTML = '';
-        filePopupImg.removeAttribute('src');
-        if (filePopupObjectUrl) {
-            URL.revokeObjectURL(filePopupObjectUrl);
-            filePopupObjectUrl = null;
-        }
-        const resubmitFooter = document.getElementById('filePopupResubmitFooter');
-        if (resubmitFooter) resubmitFooter.hidden = true;
-    }
-
-    filePopupBackdrop.addEventListener('click', e => {
-        if (e.target === filePopupBackdrop) closeFilePopup();
-    });
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeFilePopup();
-    });
-
-    let _resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(_resizeTimer);
-        _resizeTimer = setTimeout(renderAnnotations, 100);
-    });
-
-    <?php if ($canReview): ?>
-        // ===== Finish Review decision modal =====
-        const reviewDecisionBackdrop = document.getElementById('reviewDecisionBackdrop');
-
-        function openReviewDecisionModal() {
-            reviewDecisionBackdrop.classList.add('open');
-        }
-
-        function closeReviewDecisionModal() {
-            reviewDecisionBackdrop.classList.remove('open');
-        }
-
-        reviewDecisionBackdrop.addEventListener('click', e => {
-            if (e.target === reviewDecisionBackdrop) closeReviewDecisionModal();
-        });
-
-        async function completeReview(btn) {
-            if (await commentsStillSyncing()) return;
-            if (annotations.length) {
-                await confirmAction(
-                    'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.', {
-                        okText: 'Back',
-                        hideCancel: true
-                    }
-                );
-                return;
-            }
-            const ok = await confirmAction(
-                'Finish your review? The protocol will be marked as reviewed.', {
-                    okText: 'Proceed',
-                    cancelText: 'Back'
-                }
-            );
-            if (!ok) return;
-            closeReviewDecisionModal();
-            updateStatus(btn, 'Reviewed');
-        }
-
-        // ===== Return for Revision modal =====
-        const RETURN_REVISION_API = <?= json_encode(ROOT . '/apply/return_revision') ?>;
-        const returnBackdrop = document.getElementById('returnRevisionBackdrop');
-        const returnComment = document.getElementById('returnComment');
-        const returnCharCount = document.getElementById('returnCharCount');
-
-        function openReturnModal() {
-            document.querySelectorAll('input[name="return_reason"]').forEach(cb => cb.checked = false);
-            returnComment.value = '';
-            returnCharCount.textContent = '0';
-            document.getElementById('returnRevisionError').hidden = true;
-            returnBackdrop.classList.add('open');
-        }
-
-        function closeReturnModal() {
-            returnBackdrop.classList.remove('open');
-        }
-
-        returnBackdrop.addEventListener('click', e => {
-            if (e.target === returnBackdrop) closeReturnModal();
-        });
-
-        returnComment.addEventListener('input', () => {
-            returnCharCount.textContent = returnComment.value.length;
-        });
-
-        async function submitReturnRevision() {
-            if (await commentsStillSyncing()) return;
-            const ok = await confirmAction(
-                'Return this protocol for revision? The researcher will be notified and asked to resubmit.', {
-                    okText: 'Return for Revision',
-                    cancelText: 'Cancel',
-                    danger: true
-                }
-            );
-            if (!ok) return;
-
-            const selectedReasons = [...document.querySelectorAll('input[name="return_reason"]:checked')].map(cb => cb.value);
-            const commentText = returnComment.value.trim();
-            const errBox = document.getElementById('returnRevisionError');
-            const submitBtn = document.getElementById('returnRevisionSubmitBtn');
-
-            errBox.hidden = true;
-            setButtonBusy(submitBtn, true, 'Returning...');
-
-            try {
-                const res = await fetch(RETURN_REVISION_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: PROTOCOL_ID,
-                        reasons: selectedReasons,
-                        comment: commentText
-                    })
-                });
-                const data = await res.json();
-
-                if (data.ok) {
-                    window.location.href = <?= json_encode($backUrl) ?>;
-                } else {
-                    errBox.textContent = data.error ?? 'Could not return protocol. Please try again.';
-                    errBox.hidden = false;
-                    setButtonBusy(submitBtn, false);
-                }
-            } catch {
-                errBox.textContent = 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(submitBtn, false);
-            }
-        }
-    <?php endif; ?>
-
-    <?php if ($amendments): ?>
-        // ===== Amendments list modal =====
-        const amendmentsBackdrop = document.getElementById('amendmentsModalBackdrop');
-
-        function openAmendmentsModal() {
-            amendmentsBackdrop.classList.add('open');
-        }
-
-        function closeAmendmentsModal() {
-            amendmentsBackdrop.classList.remove('open');
-        }
-
-        amendmentsBackdrop.addEventListener('click', e => {
-            if (e.target === amendmentsBackdrop) closeAmendmentsModal();
-        });
-    <?php endif; ?>
-
-    // ===== Convert Word file for review =====
-    function isWordFile(file) {
-        return /\.(doc|docx)$/i.test(file.name);
-    }
-
-    async function stageWordFile(file) {
-        const formData = new FormData();
-        formData.append('staged_file', file);
-
-        const result = await uploadWithProgress(ROOT_URL + '/apply/stageprotocol', formData, {
-            headers: {
-                'X-CSRF-Token': CSRF_TOKEN
-            }
-        });
-        if (result.error) throw new Error(result.error);
-
-        return {
-            staged: true,
-            name: result.name,
-            size: result.size
-        };
-    }
-
-    function previewStagedFile(event) {
-        event.preventDefault();
-        openFilePopup(ROOT_URL + '/apply/stagedfile', 'Converted protocol form');
-    }
-
-    <?php if ($canAmend): ?>
-        // ===== Submit amendment modal =====
-        const AMENDMENT_API = <?= json_encode(ROOT . '/apply/amendment_upload') ?>;
-        const AMENDMENT_FILE_HINT = 'PDF, DOC, or DOCX, max 10 MB';
-        const amendmentBackdrop = document.getElementById('amendmentModalBackdrop');
-        const amendmentFile = document.getElementById('amendmentFile');
-        const amendmentFileName = document.getElementById('amendmentFileName');
-        const amendmentNote = document.getElementById('amendmentNote');
-        const amendmentCharCount = document.getElementById('amendmentCharCount');
-        const amendmentError = document.getElementById('amendmentError');
-        const amendmentConvertedNotice = document.getElementById('amendmentConvertedNotice');
-        let amendmentStaged = null;
-
-        // ===== Amendment modal =====
-        function openAmendmentModal() {
-            amendmentFile.value = '';
-            amendmentFileName.textContent = AMENDMENT_FILE_HINT;
-            amendmentFileName.classList.remove('done');
-            amendmentNote.value = '';
-            amendmentCharCount.textContent = '0';
-            amendmentError.hidden = true;
-            amendmentStaged = null;
-            amendmentConvertedNotice.classList.add('is-hidden');
-            document.getElementById('amendmentProgress').innerHTML = '';
-            amendmentBackdrop.classList.add('open');
-        }
-
-        function closeAmendmentModal() {
-            amendmentBackdrop.classList.remove('open');
-        }
-
-        amendmentBackdrop.addEventListener('click', e => {
-            if (e.target === amendmentBackdrop) closeAmendmentModal();
-        });
-
-        amendmentNote.addEventListener('input', () => {
-            amendmentCharCount.textContent = amendmentNote.value.length;
-        });
-
-        async function handleAmendmentFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            amendmentStaged = null;
-            amendmentConvertedNotice.classList.add('is-hidden');
-
-            const isPdf = file.type === 'application/pdf' && file.name.toLowerCase().endsWith('.pdf');
-            const error = !isPdf && !isWordFile(file) ? 'Only PDF, DOC, or DOCX files are accepted.' :
-                file.size > 10 * 1024 * 1024 ? 'File is too large. Maximum size is 10 MB.' : null;
-
-            amendmentError.textContent = error ?? '';
-            amendmentError.hidden = !error;
-            amendmentFileName.textContent = error ? AMENDMENT_FILE_HINT : file.name;
-            amendmentFileName.classList.toggle('done', !error);
-            if (error) {
-                event.target.value = '';
-                return;
-            }
-            if (isPdf) return;
-
-            const submitBtn = document.getElementById('amendmentSubmitBtn');
-            amendmentFileName.textContent = 'Converting to PDF…';
-            setButtonBusy(submitBtn, true, 'Converting...');
-
-            try {
-                amendmentStaged = await stageWordFile(file);
-                amendmentFileName.textContent = amendmentStaged.name;
-                amendmentConvertedNotice.classList.remove('is-hidden');
-            } catch (err) {
-                amendmentError.textContent = err.message || 'Network error. Please try again.';
-                amendmentError.hidden = false;
-                amendmentFileName.textContent = AMENDMENT_FILE_HINT;
-                amendmentFileName.classList.remove('done');
-                event.target.value = '';
-            }
-
-            setButtonBusy(submitBtn, false);
-        }
-
-        async function submitAmendment() {
-            const submitBtn = document.getElementById('amendmentSubmitBtn');
-            const note = amendmentNote.value.trim();
-
-            amendmentError.hidden = true;
-
-            if (!amendmentFile.files[0]) {
-                amendmentError.textContent = 'Please upload the updated protocol.';
-                amendmentError.hidden = false;
-                return;
-            }
-            if (!note) {
-                amendmentError.textContent = 'Please explain what changed.';
-                amendmentError.hidden = false;
-                return;
-            }
-
-            const ok = await confirmAction(
-                'Submit this amendment? CCARD will be notified. It will not be reviewed again.', {
-                    okText: 'Submit',
-                    cancelText: 'Cancel'
-                }
-            );
-            if (!ok) return;
-
-            setButtonBusy(submitBtn, true, 'Submitting...');
-
-            const progressContainer = document.getElementById('amendmentProgress');
-            progressContainer.innerHTML = '';
-            const bar = createUploadProgressBar(progressContainer);
-
-            const formData = new FormData();
-            formData.append('protocol_id', PROTOCOL_ID);
-            if (amendmentStaged) {
-                formData.append('use_staged', '1');
-            } else {
-                formData.append('amendment_file', amendmentFile.files[0]);
-            }
-            formData.append('note', note);
-
-            try {
-                const result = await uploadWithProgress(AMENDMENT_API, formData, {
-                    headers: {
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    onProgress: pct => bar.update(pct)
-                });
-                if (!result.success) throw new Error(result.error ?? 'Could not submit the amendment. Please try again.');
-                window.location.reload();
-            } catch (err) {
-                amendmentError.textContent = err.message || 'Network error. Please try again.';
-                amendmentError.hidden = false;
-                setButtonBusy(submitBtn, false);
-                bar.remove();
-            }
-        }
-    <?php endif; ?>
-
-    <?php if ($canResubmit): ?>
-        // ===== Re-submit protocol (protocol file + any docs the reviewer flagged) =====
-        const resubmitModal = document.getElementById('reuploadModalBackdrop');
-        const RESUBMIT_ENDPOINTS = {
-            protocol: {
-                path: '/apply/reupload',
-                field: 'protocol_file'
-            },
-            cert: {
-                path: '/apply/reuploadcert',
-                field: 'cert_file'
-            }
-        };
-        let resubmitFiles = {};
-        let resubmitConverting = null;
-
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
-
-        function validateResubmitFile(key, file) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            if (key === 'protocol') {
-                if (!['pdf', 'doc', 'docx'].includes(ext) || (ext === 'pdf' && file.type !== 'application/pdf')) {
-                    return 'Please upload your IACUC protocol form as a PDF, DOC, or DOCX file.';
-                }
-            } else if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                return 'Only PDF, JPG, or PNG files are accepted.';
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                return 'File is too large. Maximum size is 10 MB.';
-            }
-            return null;
-        }
-
-        function resubmitDocRow(doc) {
-            const file = resubmitFiles[doc.key];
-            const action = file ?
-                `<div class="doc-row-done">
-                    <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg>
-                    <label class="doc-row-replace">
-                        Replace
-                        <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
-                    </label>
-                </div>` :
-                `<label class="btn-upload-inline">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#upload-icon" /></svg>
-                    Upload
-                    <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
-                </label>`;
-            const subLine = resubmitConverting === doc.key ?
-                `<span class="doc-row-sub">Converting to PDF&hellip;</span>` : file ?
-                `<span class="doc-row-sub done">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>` :
-                `<span class="doc-row-sub">${doc.subtitle}</span>`;
-
-            return `<div class="doc-row">
-                <div class="doc-row-info">
-                    <div class="doc-row-title">${doc.title}${doc.required ? ' <span class="req">*</span>' : ''}</div>
-                    ${subLine}
-                </div>
-                <div class="doc-row-action">${action}</div>
-            </div>`;
-        }
-
-        function renderResubmitDocs() {
-            document.getElementById('reuploadDocList').innerHTML = RESUBMIT_DOCS.map(resubmitDocRow).join('');
-            document.getElementById('reuploadConvertedNotice').classList.toggle('is-hidden', !(resubmitFiles.protocol && resubmitFiles.protocol.staged));
-        }
-
-        async function handleResubmitUpload(event, key) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const err = validateResubmitFile(key, file);
-            if (err) {
-                alert(err);
-                event.target.value = '';
-                return;
-            }
-
-            if (key === 'protocol' && isWordFile(file)) {
-                const submitBtn = document.getElementById('reuploadSubmitBtn');
-                resubmitConverting = key;
-                renderResubmitDocs();
-                setButtonBusy(submitBtn, true, 'Converting...');
-
-                delete resubmitFiles[key];
-
-                try {
-                    resubmitFiles[key] = await stageWordFile(file);
-                } catch (error) {
-                    alert(error.message || 'Network error. Please try again.');
-                }
-
-                resubmitConverting = null;
-                setButtonBusy(submitBtn, false);
-            } else {
-                resubmitFiles[key] = file;
-            }
-
-            renderResubmitDocs();
-        }
-
-        function openReuploadModal() {
-            resubmitFiles = {};
-            resubmitConverting = null;
-            renderResubmitDocs();
-            document.getElementById('reuploadError').hidden = true;
-            document.getElementById('reuploadProgress').innerHTML = '';
-            resubmitModal.classList.add('open');
-        }
-
-        function closeReuploadModal() {
-            resubmitModal.classList.remove('open');
-        }
-        resubmitModal.addEventListener('click', e => {
-            if (e.target === resubmitModal) closeReuploadModal();
-        });
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeReuploadModal();
-        });
-
-        async function uploadProtocolFile(endpoint, fieldName, file, onProgress) {
-            const formData = new FormData();
-            formData.append('protocol_id', PROTOCOL_ID);
-            if (file && file.staged) {
-                formData.append('use_staged', '1');
-            } else if (file) {
-                formData.append(fieldName, file);
-            }
-
-            return uploadWithProgress(ROOT_URL + endpoint, formData, {
-                onProgress
-            });
-        }
-
-        async function submitReupload() {
-            const errBox = document.getElementById('reuploadError');
-            const submitBtn = document.getElementById('reuploadSubmitBtn');
-
-            for (const doc of RESUBMIT_DOCS) {
-                if (doc.required && !resubmitFiles[doc.key]) {
-                    errBox.textContent = `Please select your ${doc.title.toLowerCase()}.`;
-                    errBox.hidden = false;
-                    return;
-                }
-            }
-
-            const ok = await confirmAction(
-                'Resubmit this protocol for review? It will be sent back to the reviewer.', {
-                    okText: 'Resubmit',
-                    cancelText: 'Cancel'
-                }
-            );
-            if (!ok) return;
-
-            setButtonBusy(submitBtn, true, 'Resubmitting...');
-            errBox.hidden = true;
-
-            const progressContainer = document.getElementById('reuploadProgress');
-            progressContainer.innerHTML = '';
-            const bar = createUploadProgressBar(progressContainer);
-
-            const queue = RESUBMIT_DOCS.filter(doc => doc.key !== 'protocol' && resubmitFiles[doc.key]);
-            queue.push(RESUBMIT_DOCS.find(doc => doc.key === 'protocol'));
-            const total = queue.length;
-
-            // ===== Upload progress =====
-            function overallProgress(index, filePct) {
-                return ((index + filePct / 100) / total) * 100;
-            }
-
-            try {
-                for (let i = 0; i < queue.length; i++) {
-                    const doc = queue[i];
-                    const file = resubmitFiles[doc.key];
-                    const {
-                        path,
-                        field
-                    } = RESUBMIT_ENDPOINTS[doc.key];
-                    const result = await uploadProtocolFile(path, field, file, pct => bar.update(overallProgress(i, pct)));
-                    if (!result.success) throw new Error(result.error ?? `${doc.title} upload failed. Please try again.`);
-                }
-
-                window.location.href = ROOT_URL + '/submissions?status=under-review';
-            } catch (err) {
-                errBox.textContent = err.message || 'Network error. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(submitBtn, false);
-                bar.remove();
-            }
-        }
-    <?php endif; ?>
-
-    // ===== Download Clearance: also open images in a new tab =====
-    document.querySelectorAll('.download-clearance-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {
-                window.open(btn.dataset.viewHref, '_blank', 'noopener');
-            }
-        });
-    });
+    const PAYMENT_RESUBMIT = <?= $offerPaymentResubmit ? json_encode([
+                                    'note'  => 'This payment was rejected' . (!empty($paymentRejection['comment']) ? ' for the reason: ' . $paymentRejection['comment'] : ''),
+                                    'label' => 'Resubmit Payment',
+                                ]) : 'null' ?>;
+    const BACK_URL = <?= json_encode($backUrl) ?>;
+    const SIGNED_SCAN_VIEWER_URL = <?= json_encode($latestSignedScanViewerUrl ?: null) ?>;
+    const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
 </script>
+<script src="<?= asset_js('viewer.js') ?>"></script>
+<?php if ($canConfirmPayment): ?>
+    <script src="<?= asset_js('viewer-payment.js') ?>"></script>
+<?php endif; ?>
+<?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
+    <script src="<?= asset_js('viewer-deletion-review.js') ?>"></script>
+<?php endif; ?>
+<?php if (!empty($protocol['deletion_rejection_reason'])): ?>
+    <script src="<?= asset_js('viewer-deletion-rejected.js') ?>"></script>
+<?php endif; ?>
+<?php if ($canReview): ?>
+    <script src="<?= asset_js('viewer-review.js') ?>"></script>
+<?php endif; ?>
+<?php if ($canResubmit): ?>
+    <script src="<?= asset_js('viewer-resubmit.js') ?>"></script>
+<?php endif; ?>
+<script src="<?= asset_js('viewer-boot.js') ?>"></script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

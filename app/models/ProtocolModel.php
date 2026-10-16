@@ -491,6 +491,14 @@ class ProtocolModel extends Model
                        AND pv7.file_type = 'clearance'
                      ORDER BY pv7.version_number DESC
                      LIMIT 1) AS latest_clearance_version_id,
+                    (u.cert_path IS NOT NULL) AS has_account_cert,
+                    (SELECT COUNT(*) FROM `protocol_title_history` h
+                     WHERE h.protocol_id = p.id) AS title_history_count,
+                    (SELECT COUNT(*) FROM `protocol_versions` pva
+                     WHERE pva.protocol_id = p.id
+                       AND pva.file_type = 'amendment') AS amendment_count,
+                    EXISTS(SELECT 1 FROM `payment_proof_rejections` pr
+                           WHERE pr.protocol_id = p.id) AS has_payment_rejections,
                     GREATEST(
                         p.updated_at,
                         COALESCE(
@@ -514,6 +522,7 @@ class ProtocolModel extends Model
         $stmt = $this->connection->prepare(
             "SELECT
                 p.id            AS protocol_id,
+                p.user_id,
                 p.reference_no,
                 p.title         AS research_title,
                 p.status,
@@ -554,6 +563,19 @@ class ProtocolModel extends Model
                    AND pv7.file_type = 'clearance'
                  ORDER BY pv7.version_number DESC
                  LIMIT 1) AS latest_clearance_original_name,
+                (SELECT pv8.id
+                 FROM `protocol_versions` pv8
+                 WHERE pv8.protocol_id = p.id
+                   AND pv8.file_type = 'protocol'
+                 ORDER BY pv8.version_number DESC
+                 LIMIT 1) AS latest_protocol_version_id,
+                (SELECT COUNT(*) FROM `protocol_title_history` h
+                 WHERE h.protocol_id = p.id) AS title_history_count,
+                (SELECT COUNT(*) FROM `protocol_versions` pva
+                 WHERE pva.protocol_id = p.id
+                   AND pva.file_type = 'amendment') AS amendment_count,
+                EXISTS(SELECT 1 FROM `payment_proof_rejections` pr
+                       WHERE pr.protocol_id = p.id) AS has_payment_rejections,
                 GREATEST(
                     p.updated_at,
                     COALESCE(
@@ -637,6 +659,29 @@ class ProtocolModel extends Model
         $stmt->bind_param('i', $userId);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc() ?: [];
+    }
+
+    // ===== OWN PAST NAMES (autocomplete for the submission form) =====
+    // Only this user's own protocols, so one researcher never sees names another entered.
+    public function distinctDetailsByUser(int $userId, string $column): array
+    {
+        if (! in_array($column, ['research_adviser', 'veterinarian'], true)) {
+            return [];
+        }
+
+        $stmt = $this->connection->prepare(
+            "SELECT DISTINCT `$column` FROM `protocols`
+             WHERE user_id = ? AND deleted_at IS NULL
+               AND `$column` IS NOT NULL AND `$column` != ''
+             ORDER BY `$column`"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), $column);
     }
 
     // ===== SINGLE PROTOCOL =====
@@ -816,6 +861,48 @@ class ProtocolModel extends Model
         $stmt->bind_param('is', $protocolId, $fileType);
         $stmt->execute();
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    // Protocol versions, signed scans and amendments as one list, newest first, each
+    // with a display label ("Original submission", "Revision 2", "Signed scan", "Amendment 1").
+    public function getVersionTimeline(int $protocolId): array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT
+                pv.id,
+                pv.version_number,
+                pv.file_path,
+                pv.original_name,
+                pv.file_type,
+                pv.note,
+                pv.uploaded_at,
+                u.first_name,
+                u.last_name
+             FROM `protocol_versions` pv
+             JOIN `users` u ON u.id = pv.uploaded_by
+             WHERE pv.protocol_id = ? AND pv.file_type IN ('protocol', 'signed_scan', 'amendment')
+             ORDER BY pv.uploaded_at DESC, pv.id DESC"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $scanCount = count(array_filter($rows, fn($r) => $r['file_type'] === 'signed_scan'));
+
+        foreach ($rows as &$row) {
+            $row['label'] = match ($row['file_type']) {
+                'signed_scan' => $scanCount > 1 ? 'Signed scan ' . (int) $row['version_number'] : 'Signed scan',
+                'amendment'   => 'Amendment ' . (int) $row['version_number'],
+                default       => submission_round_label((int) $row['version_number']),
+            };
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function getLatestVersion(int $protocolId, string $fileType = 'protocol'): ?array

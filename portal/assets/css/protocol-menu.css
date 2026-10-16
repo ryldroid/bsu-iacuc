@@ -1,0 +1,123 @@
+/* ===== Protocol menu ===== */
+.protocol-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.protocol-menu-trigger {
+  position: relative;
+  justify-content: center;
+}
+
+.protocol-menu--icon .protocol-menu-trigger {
+  padding: 6px;
+  border-radius: var(--btn-radius);
+  color: var(--primary-text);
+}
+
+.protocol-menu--icon .protocol-menu-trigger svg {
+  width: 20px;
+  height: 20px;
+}
+
+.protocol-menu--icon .protocol-menu-trigger:hover,
+.protocol-menu--icon .protocol-menu-trigger[aria-expanded="true"] {
+  background: var(--table-row-hover);
+  color: var(--primary-text);
+  text-decoration: none;
+}
+
+.protocol-menu-chevron {
+  transition: transform .2s ease;
+}
+
+.protocol-menu.is-open .protocol-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.protocol-menu-panel {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  min-width: 200px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.protocol-menu.is-open .protocol-menu-panel {
+  display: block;
+}
+
+.protocol-menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--primary-text);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.protocol-menu-item svg {
+  flex-shrink: 0;
+}
+
+.protocol-menu-item:hover,
+.protocol-menu-item:focus-visible {
+  background: var(--table-row-hover);
+  color: var(--primary-text);
+}
+
+.protocol-menu-item:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.protocol-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.protocol-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.protocol-menu-item--danger,
+.protocol-menu-item--danger:hover {
+  color: var(--danger-color);
+}
+
+.protocol-menu-item--danger:hover:not(:disabled) {
+  background: var(--danger-background-soft);
+}
+
+.protocol-menu-trigger.has-update::after,
+.protocol-menu-item.has-update::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger-color);
+  border: 1.5px solid var(--card-background);
+}

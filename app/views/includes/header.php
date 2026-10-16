@@ -186,7 +186,7 @@ if ($role === 'researcher') {
               aria-expanded="false"
               aria-haspopup="true"
               aria-label="Notifications"
-              data-tooltip="Show notifications"
+              data-tooltip="Notifications"
               aria-controls="notif-dropdown">
 
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -206,10 +206,13 @@ if ($role === 'researcher') {
               </div>
             </div>
 
-            <!-- MY ACCOUNT (OPENS THE SLIDE-IN) -->
+            <!-- MY ACCOUNT (OPENS A DROPDOWN PANEL) -->
             <button class="header-account"
+              aria-expanded="false"
+              aria-haspopup="dialog"
               aria-label="My account"
-              data-tooltip="Show account settings">
+              data-tooltip="Account settings"
+              aria-controls="account-drawer">
 
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#account-icon" />
@@ -271,6 +274,11 @@ if ($role === 'researcher') {
                   Log Out
                 </button>
               </form>
+            </div>
+
+            <!-- MY ACCOUNT PANEL (anchored like the notification and more dropdowns) -->
+            <div id="account-drawer" role="dialog" aria-label="My Account" inert>
+              <iframe title="My Account" data-src="<?= ROOT ?>/user/account?panel=1"></iframe>
             </div>
 
             <!-- PREVIEW (PERSONNEL VIEWING THE PUBLIC SITE) -->
@@ -385,10 +393,3 @@ if ($role === 'researcher') {
   <?php unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>
-
-  <?php if ($user && !$hideHeader && !$hideHeaderAuth): ?>
-    <!-- ===== Account drawer ===== -->
-    <div id="account-drawer" role="dialog" aria-modal="true" aria-label="My Account" inert>
-      <iframe title="My Account" data-src="<?= ROOT ?>/user/account?panel=1"></iframe>
-    </div>
-  <?php endif; ?>

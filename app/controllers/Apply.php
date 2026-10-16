@@ -515,7 +515,7 @@ class Apply extends Controller
                 $reason = 'That file isn\'t a valid Word document. Please make sure it opens correctly in Word, or export it to PDF and upload that instead.';
                 return false;
             }
-        } elseif (in_array($inputName, ['protocol_file', 'clearance_file', 'amendment_file', 'staged_file'], true)) {
+        } elseif (in_array($inputName, ['protocol_file', 'clearance_file', 'amendment_file', 'staged_file', 'signed_scan_file'], true)) {
             if ($ext !== 'pdf' || !in_array($mime, $mimeMap['pdf'], true)) {
                 $reason = 'That file isn\'t actually a PDF (it looks like it\'s ' . $this->describeMime($mime) . '), even though it\'s named .pdf.';
                 return false;
@@ -713,8 +713,9 @@ class Apply extends Controller
         $this->requireResearcher(true);
         $this->view('apply', [
             'previousDetails' => $this->protocolModel->lastDetailsByUser($this->actor()['id']),
-            'advisers'        => $this->recordModel->distinctValues('research_adviser'),
-            'veterinarians'   => $this->recordModel->distinctValues('veterinarian'),
+            // Suggestions come from this researcher's own protocols only, never from other researchers' records
+            'advisers'        => $this->protocolModel->distinctDetailsByUser($this->actor()['id'], 'research_adviser'),
+            'veterinarians'   => $this->protocolModel->distinctDetailsByUser($this->actor()['id'], 'veterinarian'),
         ]);
     }
 
@@ -1210,6 +1211,9 @@ class Apply extends Controller
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
 
         // ===== PICK VERSION TO SHOW =====
+        // The switcher lists protocol versions, signed scans and amendments together.
+        // Everyone opens whatever is newest.
+        $timeline      = $this->protocolModel->getVersionTimeline($protocolId);
         $latestVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
 
         if ($versionId > 0) {
@@ -1218,12 +1222,14 @@ class Apply extends Controller
             if (
                 !$version
                 || (int) $version['protocol_id'] !== $protocolId
-                || $version['file_type'] !== 'protocol'
+                || !in_array($version['file_type'], ['protocol', 'signed_scan', 'amendment'], true)
             ) {
                 $this->renderError(404, 'Version Not Found', [
                     'That protocol version could not be found.',
                 ]);
             }
+        } elseif ($timeline) {
+            $version = $this->protocolModel->getVersionById((int) $timeline[0]['id']);
         } else {
             $version = $latestVersion;
         }
@@ -1235,40 +1241,41 @@ class Apply extends Controller
             ]);
         }
 
-        // ===== PERMISSIONS & BACK LINK =====
-        $isLatestVersion = $latestVersion && (int) $version['id'] === (int) $latestVersion['id'];
+        // A signed scan or amendment is read-only, and every permission check still runs
+        // against the latest protocol version, so it counts as "latest".
+        $isSignedScan    = $version['file_type'] === 'signed_scan';
+        $isAmendment     = $version['file_type'] === 'amendment';
+        $isLatestVersion = $isSignedScan
+            || $isAmendment
+            || ($latestVersion && (int) $version['id'] === (int) $latestVersion['id']);
 
-        $isPersonnel    = $this->isPersonnel();
+        // ===== PERMISSIONS & BACK LINK =====
+        $perm        = ProtocolPermissions::flags($protocol, $actor, $this->protocolModel);
+        $isPersonnel = $perm['isPersonnel'];
         $backBase   = $isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
         $hasCertOnFile = $isPersonnel ? false : $this->userModel->hasCert($actor['id']);
 
-        $isOwner            = $this->isActor($protocol['user_id']);
-        $statusKeyForAccess = strtolower($protocol['status']);
-        $canRename          = ($isOwner || $isPersonnel)
-            && in_array($statusKeyForAccess, ['under review', 'needs revision'], true);
-        $canRequestDeletion = $isOwner && !$isPersonnel;
-        $canDelete          = $isPersonnel;
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $deletionRequestedByYou = $this->isActor($protocol['deletion_requested_by'] ?? 0);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
             && !$this->isActor($protocol['title_changed_by'] ?? 0)
             && !$this->isActor($protocol['title_change_seen_by'] ?? 0);
 
-        $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
-        $canAmend     = $isOwner && !$isPersonnel && $statusKeyForAccess === 'approved';
-
         $this->view('protocol', [
             'protocol'          => $protocol,
             'version'           => $version,
-            'versions'          => $this->protocolModel->getVersions($protocolId, 'protocol'),
+            'versions'          => $timeline,
             'fromFilter'        => $fromFilter,
             'isLatestVersion'   => $isLatestVersion,
+            'isSignedScan'      => $isSignedScan,
+            'isAmendment'       => $isAmendment,
             'csrf'              => $this->generateCsrfToken(),
+            'permissions'       => $perm,
             'isPersonnel'           => $isPersonnel,
-            'isStaff'           => $actor['role'] === 'staff',
+            'isStaff'           => $perm['isStaff'],
             'backUrl'           => $backUrl,
             'latestCertVersion' => $this->protocolModel->getLatestVersionAsOf($protocolId, 'cert', $version['uploaded_at']),
             'latestPaymentProofVersion' => $this->protocolModel->getLatestVersion($protocolId, 'payment_proof'),
@@ -1278,14 +1285,15 @@ class Apply extends Controller
             'returnReason'      => $this->protocolModel->getLatestReturnReason($protocolId),
             'reviewerNote'      => $this->protocolModel->getReturnReasonForVersion((int) $version['id']),
             'hasCertOnFile'     => $hasCertOnFile,
-            'canRename'         => $canRename,
-            'canRequestDeletion' => $canRequestDeletion,
-            'canDelete'         => $canDelete,
+            'canRename'         => $perm['canRename'],
+            'canRequestDeletion' => $perm['canRequestDeletion'],
+            'canDelete'         => $perm['canDelete'],
             'deletionRequested' => $deletionRequested,
             'deletionRequestedByYou' => $deletionRequestedByYou,
             'showTitleChangeBanner' => $showTitleChangeBanner,
-            'titleHistory'      => $titleHistory,
-            'canAmend'          => $canAmend,
+            'hasRenames'        => $perm['hasRenames'],
+            'hasPaymentHistory' => $perm['hasPaymentHistory'],
+            'canAmend'          => $perm['canAmend'],
             'amendments'        => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
             'flashSuccess'      => $_SESSION['flash_success'] ?? '',
             'flashError'        => $_SESSION['flash_error'] ?? '',
@@ -1848,6 +1856,53 @@ class Apply extends Controller
         exit;
     }
 
+    // ===== HARD COPY CLAIMED BY RESEARCHER  (POST /apply/hard_copy_claim) =====
+
+    public function hard_copy_claim(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'This action is for researchers only.');
+        }
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol_id.');
+        }
+
+        $protocol = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (!$this->isActor($protocol['user_id'])) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (strtolower($protocol['status']) !== 'approved') {
+            $this->jsonError(422, 'The hard copy can only be claimed for approved protocols.');
+        }
+        if (!empty($protocol['hard_copy_released_at'])) {
+            $this->jsonError(422, 'The hard copy pickup was already recorded.');
+        }
+
+        $ok = $this->protocolModel->setHardCopyReleased($protocolId, $actor['id']);
+        if ($ok) {
+            $this->protocolModel->logAudit('hard_copy_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Researcher marked the embossed hard copy as claimed');
+            $_SESSION['flash_success'] = 'Hard copy marked as claimed.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
     // ===== REJECT PAYMENT PROOF  (POST /apply/reject_payment) =====
 
     public function reject_payment(): void
@@ -1927,9 +1982,9 @@ class Apply extends Controller
         }
 
         $reason = null;
-        $upload = $this->saveUpload('signed_scan_file', $this->protocolDir($protocolId), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
+        $upload = $this->saveUpload('signed_scan_file', $this->protocolDir($protocolId), ['pdf'], required: true, reason: $reason);
         if ($upload === false) {
-            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the scanned, signed protocol (PDF or image, max 10 MB).');
+            $this->jsonError(422, $reason ?? 'Upload failed. Please attach the scanned, signed protocol (PDF, max 10 MB).');
         }
         [$path, $originalName] = $upload;
 
@@ -2046,13 +2101,12 @@ class Apply extends Controller
 
         $actor         = $this->actor();
         $actor['name'] = $this->actorDisplayName($actor);
-        $isOwner       = $this->isActor($protocol['user_id']);
-        $isPersonnel       = $this->isPersonnel();
+        $perm          = ProtocolPermissions::flags($protocol, $actor);
 
-        if (!$isOwner && !$isPersonnel) {
+        if (!$perm['isOwner'] && !$perm['isPersonnel']) {
             $this->jsonError(403, 'Access denied.');
         }
-        if (!in_array(strtolower($protocol['status']), ['under review', 'needs revision'], true)) {
+        if (!$perm['canRename']) {
             $this->jsonError(422, 'This protocol can only be renamed while it is under review or needs revision.');
         }
         $this->rejectDuplicateTitle($newTitle, $protocolId);
@@ -2065,9 +2119,9 @@ class Apply extends Controller
 
         $this->protocolModel->logAudit('protocol_renamed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Renamed from \"$oldTitle\" to \"$newTitle\"");
 
-        if ($isPersonnel && !$isOwner) {
+        if ($perm['isPersonnel'] && !$perm['isOwner']) {
             $this->notifyProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
-        } elseif ($isOwner) {
+        } elseif ($perm['isOwner']) {
             $this->notifyPersonnelProtocolRenamed($protocol, $oldTitle, $newTitle, $actor);
         }
 
@@ -2988,6 +3042,56 @@ class Apply extends Controller
         exit;
     }
 
+    // ===== PAYMENT EVENTS (proofs, rejections, verification), newest first =====
+
+    private function paymentEvents(array $protocol, array $proofFiles): array
+    {
+        $events = [];
+        foreach ($proofFiles as $file) {
+            $events[] = ['type' => 'proof', 'at' => $file['uploaded_at'], 'original_name' => $file['original_name'], 'file_url' => $file['file_url']];
+        }
+        foreach ($this->protocolModel->getPaymentRejections((int) $protocol['protocol_id']) as $rejection) {
+            $events[] = ['type' => 'rejected', 'at' => $rejection['created_at'], 'comment' => $rejection['comment']];
+        }
+        if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at'])) {
+            $events[] = ['type' => 'paid', 'at' => $protocol['paid_at'], 'method' => $protocol['payment_method'] ?? ''];
+        }
+        usort($events, fn($a, $b) => strcmp($b['at'], $a['at']));
+        return $events;
+    }
+
+    // ===== SHARED MODAL DATA  (GET /apply/modaldata/{protocolId}) =====
+    // Feeds the shared Payment History and Amendments modals.
+
+    public function modaldata(int $protocolId = 0): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+
+        $protocol = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+
+        $actor = $this->actor();
+        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
+
+        $proofFiles = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof'));
+
+        echo json_encode([
+            'protocol_id'     => $protocolId,
+            'title'           => $protocol['research_title'],
+            'payment_history' => $this->paymentEvents($protocol, $proofFiles),
+            'amendments'      => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
+        ]);
+        exit;
+    }
+
     // ===== ALL VERSIONS  (GET /apply/allversions/{protocolId}) =====
 
     public function allversions(int $protocolId = 0): void
@@ -3008,41 +3112,29 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $files = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'protocol'));
-        $files = array_map(function ($v) use ($protocolId, $protocol) {
-            $v['title_at_version'] = $this->protocolModel->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
-            $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id'], $this->isPersonnel());
-            $v['round_label']      = submission_round_label((int) $v['version_number']);
+        // Protocol versions and signed scans, newest first. Amendments have their own modal.
+        $versions = array_values(array_filter(
+            $this->protocolModel->getVersionTimeline($protocolId),
+            fn($v) => $v['file_type'] !== 'amendment'
+        ));
+        $versions = array_map(function ($v) use ($protocolId, $protocol) {
+            if ($v['file_type'] === 'protocol') {
+                $v['title_at_version'] = $this->protocolModel->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
+                $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id'], $this->isPersonnel());
+            }
             return $v;
-        }, $files);
+        }, $versions);
 
         $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
 
-        $proofFiles   = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof'));
-        $paymentEvents = [];
-        foreach ($proofFiles as $file) {
-            $paymentEvents[] = ['type' => 'proof', 'at' => $file['uploaded_at'], 'original_name' => $file['original_name'], 'file_url' => $file['file_url']];
-        }
-        foreach ($this->protocolModel->getPaymentRejections($protocolId) as $rejection) {
-            $paymentEvents[] = ['type' => 'rejected', 'at' => $rejection['created_at'], 'comment' => $rejection['comment']];
-        }
-        if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at'])) {
-            $paymentEvents[] = ['type' => 'paid', 'at' => $protocol['paid_at'], 'method' => $protocol['payment_method'] ?? ''];
-        }
-        usort($paymentEvents, fn($a, $b) => strcmp($b['at'], $a['at']));
-
         echo json_encode([
-            'protocol_id'    => $protocolId,
-            'title'          => $protocol['research_title'],
-            'status'         => $protocol['status'],
-            'reference_no'   => $protocol['reference_no'] ?? '',
-            'protocol_files' => $files,
-            'payment_proof_files' => $proofFiles,
-            'payment_history'     => $paymentEvents,
-            'signed_scan_files'   => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'signed_scan')),
-            'clearance_files'     => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'clearance')),
-            'return_reason'  => $this->protocolModel->getLatestReturnReason($protocolId, $this->isPersonnel()),
-            'title_history'  => count($titleHistory) > 1 ? $titleHistory : [],
+            'protocol_id'         => $protocolId,
+            'title'               => $protocol['research_title'],
+            'status'              => $protocol['status'],
+            'reference_no'        => $protocol['reference_no'] ?? '',
+            'versions'            => $versions,
+            'payment_proof_files' => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof')),
+            'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
         ]);
         exit;
     }

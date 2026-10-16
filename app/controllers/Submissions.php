@@ -49,6 +49,7 @@ class Submissions extends Controller
 
         $this->view('submissions', [
             'protocols'       => $protocols,
+            'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'hasCertOnFile'   => $hasCertOnFile,
             'isBsu'           => $isBsu,

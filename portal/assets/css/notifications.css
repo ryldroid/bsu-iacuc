@@ -35,13 +35,15 @@
   top: calc(100% + 8px);
   right: 0;
 
-  width: 540px;
-  max-width: min(540px, 90vw);
+  width: var(--panel-width);
+  max-width: 92vw;
+  font-size: 1rem;
 
   background-color: var(--card-background);
   color: var(--primary-text);
 
-  border-radius: var(--radius);
+  /* border-radius: var(--radius); */
+  border-radius: var(--btn-radius);
 
   display: none;
   flex-direction: column;
@@ -59,11 +61,11 @@
   align-items: center;
   justify-content: space-between;
 
-  padding: 1.25em 1em;
+  padding: var(--panel-header-pad-y) var(--panel-pad-x);
   border-bottom: 1px solid var(--divider-color);
 
   font-weight: 600;
-  font-size: .95em;
+  font-size: var(--panel-header-size);
 }
 
 .notif-dropdown-header .notif-mark-all {
@@ -96,7 +98,7 @@
   gap: 1.25em;
   font-family: var(--font-body);
 
-  padding: .8em 1em;
+  padding: .8em var(--panel-pad-x);
   text-decoration: none;
   color: inherit;
   border-bottom: 1px solid var(--divider-color-subtle);
@@ -238,13 +240,8 @@
 /* ===== Mobile ===== */
 @media (max-width: 768px) {
 
-  #notif-dropdown,
   .notif-page-list {
     font-size: .88em;
-  }
-
-  #notif-dropdown {
-    width: min(320px, 92vw);
   }
 
   .notif-list {
@@ -376,17 +373,23 @@
   .notif-item,
   .notif-page-list .notif-item {
     gap: .9em;
+  }
+
+  .notif-page-list .notif-item {
     padding: 1.25em;
+  }
+
+  #notif-dropdown .notif-item {
+    padding: 1.1em var(--panel-pad-x);
   }
 
   .notif-item-body {
     padding-right: 0;
   }
 
-  .notif-dropdown-header,
   .notif-dropdown-footer {
-    padding-left: 1.25em;
-    padding-right: 1.25em;
+    padding-left: var(--panel-pad-x);
+    padding-right: var(--panel-pad-x);
   }
 
   .notif-group-heading {

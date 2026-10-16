@@ -165,6 +165,10 @@ function formatDateTime(value) {
         fill.style.width = clamped + "%";
         pct.textContent = clamped + "%";
       },
+      converting() {
+        bar.classList.add("is-converting");
+        pct.innerHTML = '<span class="btn-busy-spinner"></span>';
+      },
       remove() {
         bar.remove();
       },

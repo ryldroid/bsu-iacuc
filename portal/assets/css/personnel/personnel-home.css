@@ -189,25 +189,6 @@ main {
     color: var(--muted-text);
 }
 
-/* ===== Per-protocol quick download button ===== */
-.quick-download-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    color: var(--muted-text);
-    background: var(--hover-surface-soft);
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.quick-download-btn:hover {
-    background: var(--brand-surface-faint);
-    color: var(--brand-text);
-}
-
 /* ===== Metric cards ===== */
 .metrics-row {
     display: grid;

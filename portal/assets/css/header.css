@@ -1,3 +1,11 @@
+/* ===== Shared look for the three header panels (notifications, more menu, account) ===== */
+:root {
+    --panel-width: 500px;
+    --panel-pad-x: 1.1rem;
+    --panel-header-pad-y: 1.2rem;
+    --panel-header-size: .95rem;
+}
+
 /* ===== Header bar ===== */
 header {
     font-family: var(--font-default);
@@ -208,26 +216,28 @@ header nav a:hover::after {
     left: 0;
 }
 
+/* Account panel: a dropdown like #notif-dropdown and #header-menu */
 #account-drawer {
-    position: fixed;
-    top: 52px;
-    right: -100%;
-    z-index: 1000;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
 
-    width: 500px;
-    height: calc(100dvh - 52px);
-    max-width: calc(100% - 40px);
+    display: none;
+    overflow: hidden;
+
+    width: var(--panel-width);
+    max-width: 92vw;
+    height: min(760px, calc(100dvh - 76px));
 
     background-color: var(--card-background);
-    box-shadow: -4px 0 20px var(--shadow-color-soft);
+    color: var(--primary-text);
+
+    border-radius: var(--btn-radius);
+    box-shadow: 0 4px 12px var(--shadow-color-soft);
 }
 
 #account-drawer.show {
-    right: 0;
-}
-
-html.account-drawer-open {
-    overflow: hidden;
+    display: block;
 }
 
 #account-drawer iframe {
@@ -575,12 +585,14 @@ header [data-tooltip][aria-expanded="true"]::after {
     background-color: var(--card-background);
     color: var(--primary-text);
 
-    border-radius: var(--radius);
     min-width: 160px;
 
     display: none;
     overflow: hidden;
 
+    font-size: 1rem;
+
+    border-radius: var(--btn-radius);
     box-shadow: 0 4px 12px var(--shadow-color-soft);
 }
 
@@ -592,7 +604,7 @@ header [data-tooltip][aria-expanded="true"]::after {
 
 #header-menu a,
 #header-menu button {
-    padding: .75em 1em;
+    padding: .75em var(--panel-pad-x);
     text-decoration: none;
     width: 100%;
     white-space: nowrap;
@@ -636,7 +648,7 @@ header [data-tooltip][aria-expanded="true"]::after {
     gap: 1em;
 
     width: 100%;
-    padding: .5em 1em;
+    padding: .5em var(--panel-pad-x);
     border-block: 1px solid var(--divider-color-subtle);
 }
 

@@ -31,7 +31,7 @@ body {
 }
 
 .portal-header h1 {
-    font-size: 16px;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--brand-text);
     margin-bottom: 0;
@@ -41,6 +41,13 @@ body {
     width: 16px;
     height: 16px;
     color: inherit;
+}
+
+#page-content .part-1-2-hr {
+    border: none;
+    height: 2px;
+    background-color: var(--brand-color);
+    margin-top: 2em;
 }
 
 /* ===== Progress stepper ===== */
@@ -121,7 +128,7 @@ body {
 
 /* ===== Typography ===== */
 .page-tag {
-    font-size: 13px;
+    font-size: .85rem;
     font-weight: 500;
     color: var(--muted-text);
     margin-bottom: 0.4rem;
@@ -140,7 +147,7 @@ body {
 }
 
 .section-label {
-    font-size: 15px;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--primary-text);
     margin-bottom: 0.6rem;
@@ -175,55 +182,14 @@ body {
 }
 
 .process-text {
-    font-size: .85rem;
+    font-size: 1rem;
     color: var(--secondary-text);
     line-height: 1.6;
 }
 
 .process-note {
-    font-size: .78rem;
+    font-size: .88rem;
     color: var(--muted-text);
-}
-
-/* ===== Notice (generic, color variants) ===== */
-.notice {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 9px 13px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    line-height: 1.5;
-    margin-bottom: 1rem;
-}
-
-.notice svg {
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-
-.notice-warning {
-    background: var(--status-warning-bg);
-    color: var(--status-warning-text);
-}
-
-.notice-info {
-    background: none;
-    color: var(--muted-text);
-    padding: 0 2px;
-    margin-bottom: .6rem;
-}
-
-.notice-info strong {
-    color: var(--secondary-text);
-    font-weight: 600;
-}
-
-/* Inside modal bodies the parent flex gap already provides spacing */
-.panel-modal-body .notice {
-    margin-bottom: 0;
 }
 
 /* ===== Info bar ===== */
@@ -234,7 +200,7 @@ body {
     padding: 10px 12px;
     background: var(--success-background-soft);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: .88rem;
     color: var(--brand-text);
     margin: .5em 0 .9rem;
 }
@@ -265,7 +231,7 @@ body {
 main button {
     cursor: pointer;
     font-family: inherit;
-    font-size: 14px;
+    font-size: .95rem;
     font-weight: 500;
     border-radius: 8px;
     padding: 10px 22px;
@@ -320,7 +286,7 @@ main button svg {
     display: inline-block;
     padding: 10px 22px;
     border-radius: 8px;
-    font-size: .82rem;
+    font-size: .92rem;
     font-weight: 600;
     text-decoration: none;
     background: var(--brand-color-hover);
@@ -347,7 +313,7 @@ main button svg {
     gap: 12px;
     padding: 14px 16px;
     border-bottom: 1px solid var(--divider-color-subtle);
-    font-size: .85rem;
+    font-size: .95rem;
     line-height: 1.5;
     color: var(--secondary-text);
     cursor: pointer;
@@ -428,14 +394,14 @@ main button svg {
     background: var(--divider-color-subtle);
     border-radius: 8px;
     border: 1px solid var(--input-border);
-    font-size: .85em;
+    font-size: .95em;
     color: var(--secondary-text);
     line-height: 1.7;
 }
 
 .tc-scroll h3 {
     margin: 14px 0 8px;
-    font-size: 1rem;
+    font-size: 1.05rem;
 }
 
 .tc-scroll h3:first-child {
@@ -450,7 +416,7 @@ main button svg {
     padding: 3px 10px;
     border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
     border-radius: 4px;
-    font-size: .72rem;
+    font-size: .8rem;
     font-weight: 600;
     white-space: nowrap;
     flex-shrink: 0;
@@ -474,123 +440,6 @@ main button svg {
     color: var(--muted-text);
 }
 
-/* ===== Document rows ===== */
-.doc-list {
-    border: 1px solid var(--input-border);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 1.2rem;
-}
-
-.doc-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--divider-color-subtle);
-}
-
-.doc-row:last-child {
-    border-bottom: none;
-}
-
-.doc-row-info {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-
-.doc-row-title {
-    font-size: .85rem;
-    font-weight: 700;
-    color: var(--primary-text);
-}
-
-.doc-row-sub {
-    font-size: .8rem;
-    color: var(--primary-text);
-    overflow-wrap: break-word;
-    word-break: break-word;
-}
-
-.doc-row-sub.done {
-    color: var(--status-success-text);
-    font-weight: 500;
-}
-
-.doc-row-action {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.doc-row-done {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--status-success-text);
-    font-size: .8rem;
-}
-
-.doc-row-done svg {
-    width: 17px;
-    height: 17px;
-    flex-shrink: 0;
-}
-
-.doc-row-replace {
-    display: inline-block;
-    font-size: .8rem;
-    font-weight: 600;
-    color: var(--brand-text);
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.doc-row-replace:hover {
-    color: var(--brand-color-hover);
-}
-
-.doc-row-replace input[type="file"] {
-    display: none;
-}
-
-.btn-upload-inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--card-background);
-    border: 1.5px solid var(--brand-text);
-    color: var(--brand-text);
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-size: .8rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin: 0;
-    transition: background 0.15s, color 0.15s;
-    text-decoration: none;
-}
-
-.btn-upload-inline:hover {
-    background: var(--brand-color);
-    color: var(--text-on-brand);
-}
-
-.btn-upload-inline svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.btn-upload-inline input[type="file"] {
-    display: none;
-}
-
 /* ===== Segmented Yes/No toggle ===== */
 .toggle-group {
     display: inline-flex;
@@ -605,7 +454,7 @@ main button svg {
     background: var(--card-background);
     color: var(--secondary-text);
     padding: 8px 22px;
-    font-size: .82rem;
+    font-size: .92rem;
     font-weight: 600;
     border-radius: 0;
     box-shadow: none;
@@ -651,13 +500,13 @@ main button svg {
 }
 
 .upload-label {
-    font-size: .9em;
+    font-size: 1em;
     color: var(--secondary-text);
     font-weight: 500;
 }
 
 .upload-sub {
-    font-size: .75em;
+    font-size: .85em;
     color: var(--muted-text);
     margin-top: 4px;
 }
@@ -676,7 +525,7 @@ main button svg {
 }
 
 .file-badge-size {
-    font-size: .85em;
+    font-size: .9em;
     color: var(--muted-text);
     font-weight: 400;
 }
@@ -700,7 +549,7 @@ main button svg {
 
 .field label {
     display: block;
-    font-size: .82rem;
+    font-size: .92rem;
     font-weight: 600;
     color: var(--secondary-text);
     margin-bottom: 5px;
@@ -713,7 +562,7 @@ main button svg {
     padding: 9px 12px;
     border: 1px solid var(--input-border);
     border-radius: 8px;
-    font-size: .82rem;
+    font-size: .95rem;
     font-family: inherit;
     color: var(--primary-text);
     background: var(--card-background);
@@ -739,7 +588,7 @@ main button svg {
 }
 
 .helper {
-    font-size: 0.8em;
+    font-size: .9em;
 }
 
 /* ===== Submit button label ===== */
@@ -772,11 +621,11 @@ main button svg {
 }
 
 .upload-label .req {
-    font-size: .75rem;
+    font-size: .85rem;
 }
 
 .step-intro-text {
-    font-size: .85rem;
+    font-size: .95rem;
     color: var(--muted-text);
     line-height: 1.6;
     margin-bottom: 1.25rem;
@@ -787,7 +636,7 @@ main button svg {
 }
 
 .error-messages {
-    font-size: .85em;
+    font-size: .92em;
     margin: .75rem 0;
     justify-content: center;
 }
@@ -796,4 +645,13 @@ main button svg {
 .modal-card .tc-scroll {
     margin-top: .75rem;
     height: 320px;
+}
+
+/* ===== Larger text for components shared with the modals (protocol-modals.css loads after this file) ===== */
+main .doc-row-title {
+    font-size: .95rem;
+}
+
+main :is(.doc-row-sub, .doc-row-done, .doc-row-replace, .btn-upload-inline, .notice) {
+    font-size: .88rem;
 }

@@ -64,9 +64,9 @@ function openAccountDrawer() {
   setHeaderHidden(false);
 
   accountFrame.src = accountFrame.dataset.src;
-  document.documentElement.classList.add("account-drawer-open");
   accountDrawer.classList.add("show");
   accountDrawer.removeAttribute("inert");
+  accountButton?.setAttribute("aria-expanded", "true");
   backdrop.classList.add("active");
   accountFrame.focus();
 }
@@ -74,8 +74,8 @@ function openAccountDrawer() {
 function closeAccountDrawer(restoreFocus = true) {
   if (!accountDrawer?.classList.contains("show")) return;
   accountDrawer.classList.remove("show");
-  document.documentElement.classList.remove("account-drawer-open");
   accountDrawer.setAttribute("inert", "");
+  accountButton?.setAttribute("aria-expanded", "false");
   accountFrame.src = "about:blank";
   backdrop.classList.remove("active");
   if (restoreFocus) accountButton.focus();
@@ -88,6 +88,16 @@ accountButton?.addEventListener("click", () =>
     ? closeAccountDrawer()
     : openAccountDrawer(),
 );
+
+// Clicking anywhere outside the panel closes it, like the other dropdowns
+document.addEventListener("click", (event) => {
+  if (
+    accountButton?.contains(event.target) ||
+    accountDrawer?.contains(event.target)
+  )
+    return;
+  closeAccountDrawer(false);
+});
 
 // ===== More menu =====
 document.addEventListener("header-dropdown-open", (event) => {
@@ -230,6 +240,16 @@ function handleHeaderScroll() {
   if (!mainHeader) return;
 
   if (sidebar?.classList.contains("show")) return;
+
+  // Keep the header (and the dropdowns anchored to it) in place while one is open
+  if (
+    accountDrawer?.classList.contains("show") ||
+    moreMenu?.classList.contains("active") ||
+    document.querySelector("#notif-dropdown.active")
+  ) {
+    lastScrollY = window.scrollY;
+    return;
+  }
 
   const currentScrollY = window.scrollY;
   const diff = currentScrollY - lastScrollY;

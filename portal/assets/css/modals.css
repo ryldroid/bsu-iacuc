@@ -391,7 +391,8 @@ html:has(.modal-backdrop.open.guide-targeting) {
     width: 100%;
     min-height: 65vh;
     border: none;
-    background: var(--card-background);
+    background: #2a2c30;
+    color-scheme: dark;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -413,7 +414,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 .file-popup-pdf-pages canvas {
     max-width: 100%;
-    box-shadow: 0 2px 12px var(--shadow-color-soft);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, .55);
 }
 
 .file-popup-frame img {
@@ -437,6 +438,15 @@ html:has(.modal-backdrop.open.guide-targeting) {
     flex-wrap: wrap;
 }
 
+.file-popup-footer[hidden] {
+    display: none;
+}
+
+.file-popup-message {
+    padding: 2rem;
+    color: rgba(255, 255, 255, .75);
+}
+
 .file-popup-footer-note {
     margin: 0;
     color: var(--danger-color);
@@ -447,10 +457,17 @@ html:has(.modal-backdrop.open.guide-targeting) {
     .file-popup-card {
         width: 98vw;
         max-height: 95vh;
+        max-height: 95dvh;
     }
 
     .file-popup-frame {
         min-height: 50vh;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .file-popup-pdf-pages {
+        padding: .5rem;
+        gap: .5rem;
     }
 
     .file-popup-frame img {
@@ -910,6 +927,27 @@ html:has(.modal-backdrop.open.guide-targeting) {
     font-size: .8rem;
     font-weight: 600;
     color: var(--secondary-text);
+}
+
+/* ===== Upload progress bar (converting, no real %) ===== */
+.upload-progress.is-converting .upload-progress-fill {
+    width: 40%;
+    transition: none;
+    animation: upload-progress-slide 1.2s ease-in-out infinite;
+}
+
+.upload-progress.is-converting .btn-busy-spinner {
+    margin-right: 0;
+}
+
+@keyframes upload-progress-slide {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(250%);
+    }
 }
 
 @media (max-width: 480px) {

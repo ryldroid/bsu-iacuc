@@ -80,6 +80,7 @@ class Personnel extends Controller
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'protocols'       => $protocols,
+            'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'updatesEndpoint' => 'personnel/checkupdates',
             'updatesBaseline' => $updatesBaseline,

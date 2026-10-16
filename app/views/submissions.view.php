@@ -5,6 +5,7 @@
 /** @var bool  $hasCertOnFile */
 /** @var bool  $isBsu */
 /** @var string $csrf */
+/** @var array $actor */
 
 $title = 'My Protocols';
 
@@ -63,8 +64,10 @@ function statusIconSvg(string $iconId, int $size = 14): string
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
 
@@ -337,6 +340,16 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     </button>
                                 <?php endif; ?>
 
+                                <?php if ($isApproved && empty($protocol['hard_copy_released_at'])): ?>
+                                    <button class="button" type="button"
+                                        onclick="claimHardCopy(<?= $protocolIdInt ?>, this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                                            <use href="#check-icon" />
+                                        </svg>
+                                        Mark Hard Copy as Claimed
+                                    </button>
+                                <?php endif; ?>
+
                                 <div class="actions-secondary">
                                     <?php if (!$needsRevision): ?>
                                         <a class="action-link" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
@@ -344,12 +357,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                             View Protocol
                                         </a>
                                     <?php endif; ?>
-                                    <button class="action-link"
-                                        data-protocol-id="<?= $protocolIdInt ?>"
-                                        data-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
-                                        onclick="openHistoryModal(+this.dataset.protocolId, this.dataset.title)">
-                                        Show History
-                                    </button>
+                                    <?php $menu = ProtocolMenu::forRow($protocol, $actor);
+                                    include 'includes/protocol-menu.php'; ?>
                                 </div>
                             </div>
                         </div>
@@ -397,7 +406,7 @@ foreach (array_values($statusMeta) as $index => $meta) {
 $guideSteps = array_merge($guideSteps, [
     ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
     ['Actions', '**View Protocol** opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
-    ['Show History', '**Show History** lists every submission, reviewer note, and protocol rename. It also shows your payment history, the scan signed by the IACUC chairperson, and your temporary clearance. Press **Open** to view any file listed. If a protocol is ever renamed, press the arrow beside the title to view the title history.', '.protocols-list .protocol .actions-secondary button:first-visible'],
+    ['More actions', '**Actions** is the three dots beside View Protocol. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],
 ]);
 include 'includes/guide.php';
@@ -406,8 +415,8 @@ include 'includes/guide.php';
 <?php include 'includes/history-modal.php'; ?>
 <script src="<?= asset_js('history-modal.js') ?>"></script>
 
-<?php include 'includes/file-popup.php'; ?>
-<script src="<?= asset_js('file-popup.js') ?>"></script>
+<?php include 'includes/protocol-modals.php'; ?>
+<script src="<?= asset_js('protocol-menu.js') ?>"></script>
 
 <!-- Verify Payment modal -->
 
@@ -526,6 +535,40 @@ include 'includes/guide.php';
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
     const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
     const IS_BSU = <?= $isBsu ? 'true' : 'false' ?>;
+    const HARD_COPY_CLAIM_API = <?= json_encode(ROOT . '/apply/hard_copy_claim') ?>;
+
+    // ===== Hard copy claim =====
+    function claimHardCopy(protocolId, btn) {
+        confirmAction('Mark your embossed hard copy as claimed? Only do this once you have received it from the BSU-CCARD Office.', {
+            okText: 'Mark as Claimed',
+            cancelText: 'Cancel'
+        }).then(async ok => {
+            if (!ok) return;
+            setButtonBusy(btn, true, 'Saving...');
+            try {
+                const res = await fetch(HARD_COPY_CLAIM_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        protocol_id: protocolId
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    window.location.reload();
+                    return;
+                }
+                setButtonBusy(btn, false);
+                alert(data.error ?? 'Could not record the hard copy pickup.');
+            } catch (err) {
+                setButtonBusy(btn, false);
+                alert(navigator.onLine ? 'Network error. Please try again.' : 'You are offline. Please try again when reconnected.');
+            }
+        });
+    }
 
     const paymentModal = document.getElementById('paymentModalBackdrop');
     let currentPaymentProtocolId = null;

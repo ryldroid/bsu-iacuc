@@ -62,6 +62,13 @@ html.in-drawer :is(footer, .verify-banner) {
     margin: 0;
 }
 
+html.in-drawer .account-close {
+    position: fixed;
+    top: calc(var(--panel-header-pad-y) - 2px);
+    right: calc(var(--panel-pad-x) - 4px);
+    z-index: 3;
+}
+
 main form {
     width: 100%;
     margin: 0 auto;
@@ -447,6 +454,12 @@ main button:hover {
     text-decoration: none;
 }
 
+.email-verify-resend:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
 /* ===== Logout form ===== */
 .logout-form {
     display: flex;
@@ -662,15 +675,19 @@ main button:hover {
     text-align: center;
 }
 
-/* ===== Account drawer ===== */
-@media (min-width: 480px) {
-    html.in-drawer {
-        font-size: 18px;
-    }
+/* ===== Account panel (dropdown) ===== */
+/* Don't pass leftover scrolling on to the page behind the panel */
+html.in-drawer {
+    overscroll-behavior: contain;
 }
 
 html.in-drawer main {
-    padding: 32px 28px 40px;
+    padding: 0 var(--panel-pad-x) 1.5rem;
+}
+
+/* Buttons in the panel use the site button radius (body.css gives every button 4px) */
+html.in-drawer :is(button, .button) {
+    border-radius: var(--btn-radius);
 }
 
 html.in-drawer main form {
@@ -678,8 +695,21 @@ html.in-drawer main form {
 }
 
 html.in-drawer h1 {
-    margin: 0 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+
+    margin: 0 calc(var(--panel-pad-x) * -1) 1.25rem;
+    padding: var(--panel-header-pad-y) 3.5rem var(--panel-header-pad-y) var(--panel-pad-x);
+
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--divider-color);
+
+    font-family: var(--font-default);
+    font-size: var(--panel-header-size);
+    font-weight: 600;
     text-align: left;
+    color: var(--primary-text);
 }
 
 html.in-drawer :is(.input-group, .label-group, .password-requirements, .email-verify-resend, .settings-section, .certificate-section, .switch-toggle) {
@@ -772,20 +802,8 @@ html.in-drawer .switch-toggle {
     /* font-size: 1em; */
 }
 
-/* ===== Account drawer: smaller on phones ===== */
+/* ===== Account panel: phones ===== */
 @media (max-width: 479px) {
-    html.in-drawer {
-        font-size: 14px;
-    }
-
-    html.in-drawer main {
-        padding: 24px 18px 32px;
-    }
-
-    html.in-drawer h1 {
-        margin-bottom: 16px;
-    }
-
     html.in-drawer :is(.input-group input, .input-group select, .phone-prefix) {
         padding: 11px 10px;
     }

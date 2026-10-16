@@ -76,33 +76,41 @@ class Mailer
             return false;
         }
 
-        $ch = curl_init('https://api.brevo.com/v3/smtp/blockedContacts/' . rawurlencode($email));
+        $encoded = rawurlencode($email);
+        $statuses = [
+            self::brevoRequest('DELETE', '/smtp/blockedContacts/' . $encoded),
+            self::brevoRequest('PUT', '/contacts/' . $encoded, ['emailBlacklisted' => false]),
+        ];
+
+        return !array_diff($statuses, [204, 404]);
+    }
+
+    // ===== BREVO API REQUEST =====
+    private static function brevoRequest(string $method, string $path, ?array $body = null): int
+    {
+        $ch = curl_init('https://api.brevo.com/v3' . $path);
         curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST  => 'DELETE',
+            CURLOPT_CUSTOMREQUEST  => $method,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 10,
             CURLOPT_HTTPHEADER     => [
                 'api-key: ' . BREVO_API_KEY,
                 'Accept: application/json',
+                'Content-Type: application/json',
             ],
+            CURLOPT_POSTFIELDS     => $body ? json_encode($body) : null,
         ]);
 
         curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error  = curl_error($ch);
         curl_close($ch);
 
-        if ($error) {
-            error_log('Brevo resubscribe error for ' . $email . ': ' . $error);
-            return false;
+        if ($error || !in_array($status, [204, 404], true)) {
+            error_log("Brevo $method $path failed: " . ($error ?: "status $status"));
         }
 
-        if (!in_array($status, [204, 404], true)) {
-            error_log('Brevo resubscribe unexpected status ' . $status . ' for ' . $email);
-            return false;
-        }
-
-        return true;
+        return $status;
     }
 
     // ===== NOTIFICATION FOOTER =====
