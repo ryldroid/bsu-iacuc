@@ -38,6 +38,10 @@
   display: none;
 }
 
+.panel-modal-body .modal-actions {
+  margin-top: .5rem;
+}
+
 /* ===== Modal form fields ===== */
 .return-comment-label {
   font-size: 0.82em;
@@ -137,6 +141,10 @@
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1.2rem;
+}
+
+#reuploadDocList {
+  margin-bottom: 0;
 }
 
 .doc-row {
@@ -254,4 +262,376 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ===== Payment history timeline ===== */
+.payment-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-event {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 12px;
+  padding-bottom: 1.1rem;
+}
+
+.payment-event:last-child {
+  padding-bottom: 0;
+}
+
+/* Connector between the icons */
+.payment-event:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--divider-color);
+}
+
+.payment-tone-info {
+  --event-bg: var(--status-info-bg);
+  --event-text: var(--status-info-text);
+}
+
+.payment-tone-danger {
+  --event-bg: var(--status-danger-bg);
+  --event-text: var(--status-danger-text);
+}
+
+.payment-tone-success {
+  --event-bg: var(--status-success-bg);
+  --event-text: var(--status-success-text);
+}
+
+.payment-tone-warning {
+  --event-bg: var(--status-warning-bg);
+  --event-text: var(--status-warning-text);
+}
+
+/* Current payment state under the modal title */
+.payment-state {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  background: var(--event-bg);
+  color: var(--event-text);
+}
+
+.payment-event-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--event-bg);
+  color: var(--event-text);
+}
+
+.payment-event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.payment-event-title {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.payment-event-time {
+  font-size: .75rem;
+  color: var(--muted-text);
+}
+
+.payment-event-detail,
+.payment-event-reason {
+  margin-top: 6px;
+  font-size: .75rem;
+  color: var(--primary-text);
+  overflow-wrap: anywhere;
+}
+
+.payment-event-reason {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--event-bg);
+  color: var(--event-text);
+  line-height: 1.4;
+}
+
+.payment-event-note {
+  margin-top: 6px;
+  font-size: .75rem;
+  color: var(--muted-text);
+}
+
+.payment-event-reason strong {
+  margin-right: 4px;
+}
+
+/* ===== Re-submit protocol modal ===== */
+.resub-card {
+  width: min(540px, calc(100vw - 32px));
+}
+
+.resub-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resub-header-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.resub-header-text .modal-title {
+  overflow-wrap: anywhere;
+}
+
+.resub-header-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.resub-header-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.resub-body {
+  gap: 1rem;
+}
+
+/* progress summary */
+.resub-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--secondary-text);
+}
+
+.resub-summary-track {
+  flex: 1 1 auto;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--divider-color);
+  overflow: hidden;
+}
+
+.resub-summary-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand-color);
+  transition: width .25s ease;
+}
+
+.resub-summary.is-complete {
+  color: var(--status-success-text);
+}
+
+/* document cards */
+.resub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.resub-doc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--input-border);
+  border-radius: 12px;
+  background: var(--card-background);
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+
+.resub-doc:hover {
+  border-color: var(--brand-text);
+}
+
+.resub-doc.is-dragover {
+  border-style: solid;
+  border-color: var(--brand-color);
+  background: var(--brand-surface-faint);
+  box-shadow: 0 0 0 3px var(--focus-ring-tint);
+}
+
+.resub-doc.is-done {
+  border-style: solid;
+  border-color: var(--success-border-soft);
+  background: var(--success-background-soft);
+}
+
+[data-theme="dark"] .resub-doc.is-done {
+  background: color-mix(in srgb, var(--status-success-text) 12%, var(--card-background));
+  border-color: color-mix(in srgb, var(--status-success-text) 40%, transparent);
+}
+
+.resub-doc.is-error {
+  border-style: solid;
+  border-color: var(--danger-border-soft);
+}
+
+.resub-doc-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--divider-color-subtle);
+  color: var(--secondary-text);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.resub-doc.is-done .resub-doc-badge {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.resub-doc-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
+.resub-doc-badge .btn-busy-spinner {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  color: var(--brand-text);
+}
+
+.resub-doc-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resub-doc-title {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.resub-doc-title .req {
+  color: var(--required-color);
+}
+
+.resub-doc-sub {
+  font-size: .78rem;
+  line-height: 1.4;
+  color: var(--secondary-text);
+  overflow-wrap: anywhere;
+}
+
+.resub-doc-sub.is-file {
+  color: var(--status-success-text);
+  font-weight: 600;
+}
+
+.resub-doc-sub .resub-doc-hint {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  color: var(--muted-text);
+}
+
+.resub-doc-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resub-doc-actions input[type="file"] {
+  display: none;
+}
+
+.resub-btn-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--brand-text);
+  cursor: pointer;
+  margin: 0;
+  transition: background .15s;
+}
+
+.resub-btn-link:hover,
+.resub-btn-link:focus-within {
+  background: var(--brand-surface-faint);
+  text-decoration: underline;
+}
+
+.resub-btn-link.is-danger {
+  color: var(--danger-color);
+  box-shadow: none;
+}
+
+.resub-doc.is-converting {
+  pointer-events: none;
+  opacity: .85;
+}
+
+.resub-notes {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.resub-actions {
+  margin-top: .25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--divider-color-subtle);
+}
+
+.resub-actions .tool-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .resub-doc {
+    flex-wrap: wrap;
+  }
+
+  .resub-doc-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }

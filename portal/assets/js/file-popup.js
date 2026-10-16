@@ -1,7 +1,9 @@
 // ===== Shared file popup =====
-// openFilePopup(fileUrl, title, footer?)
+// openFilePopup(fileUrl, title, footer?, onClose?)
 //   footer (optional): { note, label, onAction } shows a note and one action
 //   button under the file (e.g. "Resubmit Payment" for a rejected proof).
+//   onClose (optional): runs when the popup is dismissed, e.g. to reopen the
+//   modal it was opened from. It is skipped when the footer action is used.
 const filePopupBackdrop = document.getElementById("filePopupBackdrop");
 const filePopupFrame = document.getElementById("filePopupFrame");
 const filePopupPdfPages = document.getElementById("filePopupPdfPages");
@@ -10,6 +12,7 @@ const filePopupMessage = document.getElementById("filePopupMessage");
 const filePopupFooter = document.getElementById("filePopupFooter");
 let filePopupObjectUrl = null;
 let filePopupFooterAction = null;
+let filePopupOnClose = null;
 
 function showFilePopupState(state) {
   filePopupPdfPages.hidden = state !== "pdf";
@@ -58,7 +61,8 @@ function setFilePopupFooter(footer) {
     footer.label || "";
 }
 
-async function openFilePopup(fileUrl, title, footer) {
+async function openFilePopup(fileUrl, title, footer, onClose) {
+  filePopupOnClose = onClose ?? null;
   document.getElementById("filePopupTitle").textContent = title;
   filePopupBackdrop.classList.add("open");
   filePopupFrame.scrollTop = 0;
@@ -104,10 +108,15 @@ function closeFilePopup() {
     filePopupObjectUrl = null;
   }
   setFilePopupFooter(null);
+
+  const onClose = filePopupOnClose;
+  filePopupOnClose = null;
+  if (onClose) onClose();
 }
 
 document.getElementById("filePopupFooterBtn").addEventListener("click", () => {
   const action = filePopupFooterAction;
+  filePopupOnClose = null;
   closeFilePopup();
   if (action) action();
 });

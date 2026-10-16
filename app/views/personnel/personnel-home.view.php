@@ -46,7 +46,7 @@ $statusDescByRole = [
     'staff' => [
         'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols and view their attached IACUC training certificates by clicking "View Protocol."',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
-        'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**.",
+        'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**. Each card shows which of the five steps it is on and whether you or the researcher must act.",
         'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
@@ -662,6 +662,12 @@ foreach ($protocols as $p) {
                                     ];
                             }
                         }
+
+                        $nextStep = null;
+                        $stepCount = count(ProtocolModel::ENDORSEMENT_STEPS);
+                        if ($userRole === 'staff' && $statusLower === 'reviewed') {
+                            $nextStep = ProtocolModel::nextStep($paymentStatus, $hasIpn, $hasSignedScan);
+                        }
                     ?>
                         <div class="protocol"
                             data-protocol-id="<?= $protocolId ?>"
@@ -689,7 +695,7 @@ foreach ($protocols as $p) {
                                     <p class="research-title">
                                         <?= $title ?>
                                         <?php if ($statusLower === 'reviewed'): ?>
-                                            <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
+                                            <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>" <?= $nextStep ? ' title="Step ' . $nextStep[0] . ' of ' . $stepCount . ': ' . htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
                                                 <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         <?php elseif ($statusLower === 'approved'): ?>
@@ -701,6 +707,17 @@ foreach ($protocols as $p) {
                                     <p class="protocol-meta-line">
                                         <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
                                     </p>
+                                    <?php if ($nextStep): ?>
+                                        <div class="protocol-next-step<?= $nextStep[2] ? ' protocol-next-step--waiting' : '' ?>">
+                                            <span class="step-pips">
+                                                <?php for ($step = 1; $step <= $stepCount; $step++): ?>
+                                                    <span class="step-pip<?= $step < $nextStep[0] ? ' step-pip--done' : ($step === $nextStep[0] ? ' step-pip--current' : '') ?>" title="Step <?= $step ?> of <?= $stepCount ?>: <?= htmlspecialchars(ProtocolModel::ENDORSEMENT_STEPS[$step], ENT_QUOTES, 'UTF-8') ?> (<?= $step < $nextStep[0] ? 'done' : ($step === $nextStep[0] ? 'current' : 'upcoming') ?>)"></span>
+                                                <?php endfor; ?>
+                                            </span>
+                                            <span class="step-count">Step <?= $nextStep[0] ?> of <?= $stepCount ?></span>
+                                            <span class="step-label"><?= htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') ?></span>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php if ($userRole === 'staff' && $statusLower === 'endorsed' && empty($protocol['latest_clearance_version_id'])): ?>
                                         <!-- Filled by the clearance board script: drop target for an unsorted screenshot -->
                                         <div class="clearance-slot" data-protocol-id="<?= $protocolId ?>"></div>
@@ -1640,7 +1657,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 
         <div class="review-payment-summary" id="reviewPaymentSummary">
             <p class="review-payment-summary-meta" id="reviewPaymentSummaryMeta"></p>
-            <p class="review-payment-summary-title">For the research: "<span id="reviewPaymentSummaryTitle"></span>"</p>
+            <p class="review-payment-summary-title"><span id="reviewPaymentSummaryTitle"></span></p>
         </div>
 
         <div class="review-payment-image-frame" id="reviewPaymentImageFrame">

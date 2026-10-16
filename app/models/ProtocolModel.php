@@ -21,6 +21,28 @@ class ProtocolModel extends Model
         'paid'            => 'Paid',
     ];
 
+    // ===== ENDORSEMENT STEPS (Reviewed status, staff view) =====
+    public const ENDORSEMENT_STEPS = [
+        1 => 'Researcher uploads the payment proof',
+        2 => 'Staff verifies the payment proof',
+        3 => 'Staff assigns an IPN',
+        4 => 'Print for the chairperson\'s signature, then upload the signed scan',
+        5 => 'Staff marks the protocol as endorsed',
+    ];
+
+    // Returns [step number, label, waiting on researcher]
+    public static function nextStep(string $paymentStatus, bool $hasIpn, bool $hasSignedScan): array
+    {
+        return match (true) {
+            $paymentStatus === 'proof_submitted' => [2, 'Verify the payment proof', false],
+            $paymentStatus === 'rejected'        => [1, 'Waiting for the researcher to resubmit payment proof', true],
+            $paymentStatus !== 'paid'            => [1, 'Waiting for the researcher to upload payment proof', true],
+            !$hasIpn                             => [3, 'Assign an IPN', false],
+            !$hasSignedScan                      => [4, 'Print for the chairperson\'s signature, then upload the signed scan', false],
+            default                              => [5, 'Ready to endorse', false],
+        };
+    }
+
     public function insertProtocol(int $userId, string $title, array $details): int | false
     {
         $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';

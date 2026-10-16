@@ -53,6 +53,7 @@
     margin: 0;
     padding: 9px 12px;
     font-family: var(--font-body);
+    font-size: .95rem;
     justify-content: center;
 }
 
@@ -771,6 +772,11 @@ html:has(.modal-backdrop.open.guide-targeting) {
     flex-shrink: 0;
 }
 
+.review-payment-summary .form-alert--error {
+    margin: 1em 0 0 0;
+    width: 100%;
+}
+
 .review-payment-summary-title {
     font-size: 0.9rem;
     color: var(--secondary-text);
@@ -787,7 +793,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 }
 
 .review-payment-note {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-style: normal;
     color: var(--secondary-text);
 }
@@ -795,7 +801,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 .review-payment-image-frame {
     flex: 1;
     min-height: 0;
-    max-height: 60vh;
+    max-height: 50vh;
     overflow: auto;
     display: flex;
     align-items: center;
@@ -806,7 +812,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 .review-payment-image-frame img {
     max-width: 100%;
-    max-height: 58vh;
+    max-height: 48vh;
     min-height: 0;
     min-width: 0;
     width: auto;
@@ -847,6 +853,8 @@ html:has(.modal-backdrop.open.guide-targeting) {
 .review-payment-summary .return-reason-inline {
     display: block;
     max-width: none;
+    margin-top: .75rem;
+    font-size: .9rem;
 }
 
 @media (max-width: 768px) {
@@ -958,4 +966,105 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 .welcome-actions button {
     flex: 1 1 auto;
+}
+
+/* ===== Full-screen busy overlay (conversion etc.) ===== */
+.busy-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: color-mix(in srgb, var(--page-background) 72%, transparent);
+    cursor: progress;
+}
+
+.busy-overlay.open {
+    display: flex;
+    animation: busy-overlay-in .18s ease-out;
+}
+
+body.busy-overlay-lock {
+    overflow: hidden;
+}
+
+.busy-overlay-card {
+    width: min(380px, 100%);
+    text-align: center;
+    background: var(--card-background);
+    color: var(--primary-text);
+    border-radius: 16px;
+    padding: 2rem 1.75rem 1.75rem;
+    box-shadow: 0 12px 48px var(--shadow-color-modal);
+}
+
+.busy-overlay-spinner {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 1.1rem;
+    border-radius: 50%;
+    border: 4px solid var(--divider-color);
+    border-top-color: var(--brand-color);
+    animation: btn-busy-spin .8s linear infinite;
+}
+
+.busy-overlay-title {
+    margin: 0 0 .35rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.busy-overlay-text {
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.5;
+    color: var(--secondary-text);
+}
+
+.busy-overlay-track {
+    height: 6px;
+    margin-top: 1.25rem;
+    border-radius: 999px;
+    background: var(--divider-color);
+    overflow: hidden;
+}
+
+.busy-overlay-fill {
+    height: 100%;
+    width: 40%;
+    border-radius: 999px;
+    background: var(--brand-color);
+    animation: upload-progress-slide 1.2s ease-in-out infinite;
+}
+
+.busy-overlay-track.is-determinate .busy-overlay-fill {
+    animation: none;
+    transition: width .15s ease-out;
+}
+
+.busy-overlay-elapsed {
+    min-height: 1.1em;
+    margin: .7rem 0 0;
+    font-size: .75rem;
+    color: var(--muted-text);
+}
+
+@keyframes busy-overlay-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .busy-overlay-spinner,
+    .busy-overlay-fill {
+        animation-duration: 2.4s;
+    }
 }

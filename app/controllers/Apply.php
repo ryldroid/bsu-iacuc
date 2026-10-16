@@ -1256,8 +1256,6 @@ class Apply extends Controller
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
 
-        $hasCertOnFile = $isPersonnel ? false : $this->userModel->hasCert($actor['id']);
-
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $deletionRequestedByYou = $this->isActor($protocol['deletion_requested_by'] ?? 0);
         $showTitleChangeBanner = !empty($protocol['previous_title'])
@@ -1284,7 +1282,6 @@ class Apply extends Controller
             'paymentRejection'  => $this->protocolModel->getLatestPaymentRejection($protocolId),
             'returnReason'      => $this->protocolModel->getLatestReturnReason($protocolId),
             'reviewerNote'      => $this->protocolModel->getReturnReasonForVersion((int) $version['id']),
-            'hasCertOnFile'     => $hasCertOnFile,
             'canRename'         => $perm['canRename'],
             'canRequestDeletion' => $perm['canRequestDeletion'],
             'canDelete'         => $perm['canDelete'],
@@ -3117,13 +3114,30 @@ class Apply extends Controller
             $this->protocolModel->getVersionTimeline($protocolId),
             fn($v) => $v['file_type'] !== 'amendment'
         ));
-        $versions = array_map(function ($v) use ($protocolId, $protocol) {
+        $wrongCertAt = [];
+        $versions = array_map(function ($v) use ($protocolId, $protocol, &$wrongCertAt) {
             if ($v['file_type'] === 'protocol') {
                 $v['title_at_version'] = $this->protocolModel->getTitleAsOf($protocolId, $v['uploaded_at']) ?? $protocol['research_title'];
-                $v['return_reason']    = $this->protocolModel->getReturnReasonForVersion((int) $v['id'], $this->isPersonnel());
+                $reason = $this->protocolModel->getReturnReasonForVersion((int) $v['id']);
+                if ($reason && !empty($reason['wrong_cert'])) {
+                    $wrongCertAt[] = $reason['created_at'];
+                }
             }
             return $v;
         }, $versions);
+
+        // Training certificates, newest first. A certificate counts as flagged when the reviewer
+        // returned the protocol for a wrong certificate while it was the one on file.
+        $certVersions = $this->protocolModel->getVersions($protocolId, 'cert');
+        usort($certVersions, fn($a, $b) => strcmp($b['uploaded_at'], $a['uploaded_at']) ?: $b['id'] <=> $a['id']);
+        foreach ($certVersions as $i => &$cert) {
+            $newerUpload = $i > 0 ? $certVersions[$i - 1]['uploaded_at'] : null;
+            $cert['flagged'] = (bool) array_filter(
+                $wrongCertAt,
+                fn($at) => $at >= $cert['uploaded_at'] && ($newerUpload === null || $at < $newerUpload)
+            );
+        }
+        unset($cert);
 
         $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
 
@@ -3133,6 +3147,7 @@ class Apply extends Controller
             'status'              => $protocol['status'],
             'reference_no'        => $protocol['reference_no'] ?? '',
             'versions'            => $versions,
+            'cert_versions'       => $this->addFileUrls($certVersions),
             'payment_proof_files' => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof')),
             'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
         ]);

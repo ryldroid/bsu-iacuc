@@ -631,10 +631,6 @@ main button svg {
     margin-bottom: 1.25rem;
 }
 
-.is-hidden {
-    display: none;
-}
-
 .error-messages {
     font-size: .92em;
     margin: .75rem 0;

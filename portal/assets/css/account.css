@@ -36,6 +36,7 @@ main {
     background-color: var(--card-background);
     padding: 40px 24px;
     border-radius: 8px;
+    box-shadow: 0 8px 24px var(--shadow-color-modal);
 }
 
 main.wide {

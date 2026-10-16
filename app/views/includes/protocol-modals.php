@@ -179,6 +179,7 @@ include_once __DIR__ . '/file-popup.php';
       <div>
         <p class="modal-label">Payment History</p>
         <p class="modal-title" id="paymentHistoryModalTitle"></p>
+        <span class="payment-state" id="paymentHistoryState" hidden></span>
       </div>
       <button class="modal-close" onclick="closePaymentHistoryModal()" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -187,7 +188,7 @@ include_once __DIR__ . '/file-popup.php';
       </button>
     </div>
     <div class="panel-modal-body">
-      <div class="doc-list" id="paymentHistoryList"></div>
+      <div class="payment-timeline" id="paymentHistoryList"></div>
     </div>
   </div>
 </div>

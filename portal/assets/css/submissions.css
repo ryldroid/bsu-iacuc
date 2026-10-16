@@ -129,3 +129,7 @@
 #paymentOnlinePanel .modal-file-row {
     margin-top: 0;
 }
+
+#paymentRejectedModalBackdrop .modal-actions {
+    margin-top: 0;
+}

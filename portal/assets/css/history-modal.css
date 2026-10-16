@@ -32,164 +32,41 @@
   text-align: center;
 }
 
-/* ===== History entries ===== */
-.history-entry {
-  margin: .35rem .75rem;
-  border-radius: 10px;
-  border-bottom: 1px solid var(--divider-color-subtle);
+.history-empty {
+  text-align: center;
 }
 
-.history-entry:last-child {
-  border-bottom: none;
+/* ===== History timeline (reuses the payment timeline classes) ===== */
+.history-timeline-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  gap: 1.5rem;
 }
 
-.history-entry:has(.history-row--latest) {
-  background-color: var(--divider-color);
-  border-radius: 10px;
-}
-
-.history-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: .7rem 1.5rem;
-  border-radius: 10px;
-  transition: background-color .12s ease;
-}
-
-.history-row:hover {
-  background-color: var(--hover-surface-soft);
-}
-
-.history-row--latest {
-  background-color: transparent;
-}
-
-/* Rows without a meta column (rounds, payment events) are detail + action only */
-.history-row--round,
-.history-row:not(:has(.history-row-meta)) {
-  grid-template-columns: 1fr auto;
-}
-
-.history-tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.history-tags:empty {
-  display: none;
-}
-
-.history-tag {
+.history-section-label {
+  margin: 0 0 .75rem;
   font-size: .68rem;
   font-weight: 700;
-  border-radius: 4px;
-  padding: 2px 6px;
-}
-
-.history-tag--returned {
-  padding: 0;
-  font-size: .72rem;
-  color: var(--status-warning-text);
-}
-
-.history-return-line {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  margin-top: 4px;
-  padding-left: 8px;
-  border-left: 2px solid var(--status-warning-text);
-  line-height: 1.35;
-}
-
-.history-return-note-text {
-  max-width: 100%;
-  font-size: .72rem;
-  color: var(--secondary-text);
-  overflow-wrap: anywhere;
-}
-
-.history-return-note-label {
-  font-weight: 600;
-}
-
-.history-return-note-body {
-  /* font-style: italic; */
-}
-
-.history-title-note {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.history-row-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.history-ver {
-  font-size: .72rem;
-  font-weight: 700;
-  color: var(--muted-text);
-  background: var(--divider-color-subtle);
-  border-radius: 4px;
-  padding: 2px 7px;
   letter-spacing: .02em;
-  cursor: help;
+  color: var(--muted-text);
+}
+
+.history-section+.history-section {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--divider-color);
 }
 
 .history-latest-badge {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
   font-size: .68rem;
   font-weight: 700;
   color: var(--status-success-text);
   background: var(--status-success-bg);
-  border-radius: 4px;
-  padding: 2px 6px;
+  vertical-align: middle;
 }
 
-.history-row-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.history-row-detail .helper {
-  font-size: .7em;
-}
-
-.history-filename {
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--primary-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: default;
-}
-
-.history-open-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  font-size: .75rem;
-  white-space: nowrap;
-  margin-top: 0;
-}
-
-.history-section-label {
-  padding: .5rem 1.5rem .25rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: .02em;
-  color: var(--muted-text);
+.history-open {
+  gap: 6px;
 }

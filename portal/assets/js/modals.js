@@ -143,6 +143,75 @@ function formatDateTime(value) {
     }
   };
 
+  // ===== Full-screen busy overlay (blocks the page during long tasks, e.g. PDF conversion) =====
+  let busyOverlayEl = null;
+  let busyOverlayTimer = null;
+
+  window.showBusyOverlay = function (opts) {
+    opts = opts || {};
+    if (!busyOverlayEl) {
+      busyOverlayEl = document.createElement("div");
+      busyOverlayEl.className = "busy-overlay";
+      busyOverlayEl.setAttribute("role", "alertdialog");
+      busyOverlayEl.setAttribute("aria-live", "assertive");
+      busyOverlayEl.setAttribute("aria-busy", "true");
+      busyOverlayEl.innerHTML =
+        '<div class="busy-overlay-card">' +
+        '<div class="busy-overlay-spinner" aria-hidden="true"></div>' +
+        '<p class="busy-overlay-title"></p>' +
+        '<p class="busy-overlay-text"></p>' +
+        '<div class="busy-overlay-track" aria-hidden="true"><div class="busy-overlay-fill"></div></div>' +
+        '<p class="busy-overlay-elapsed"></p>' +
+        "</div>";
+      document.body.appendChild(busyOverlayEl);
+    }
+
+    window.updateBusyOverlay(opts);
+    busyOverlayEl.classList.add("open");
+    document.body.classList.add("busy-overlay-lock");
+
+    const started = Date.now();
+    const elapsedEl = busyOverlayEl.querySelector(".busy-overlay-elapsed");
+    elapsedEl.textContent = "";
+    clearInterval(busyOverlayTimer);
+    busyOverlayTimer = setInterval(() => {
+      const secs = Math.floor((Date.now() - started) / 1000);
+      elapsedEl.textContent =
+        secs >= 5 ? "Still working\u2026 " + secs + "s" : "";
+    }, 1000);
+  };
+
+  window.updateBusyOverlay = function (opts) {
+    if (!busyOverlayEl) return;
+    opts = opts || {};
+    if (opts.title !== undefined) {
+      busyOverlayEl.querySelector(".busy-overlay-title").textContent =
+        opts.title;
+    }
+    if (opts.text !== undefined) {
+      busyOverlayEl.querySelector(".busy-overlay-text").textContent = opts.text;
+    }
+    const track = busyOverlayEl.querySelector(".busy-overlay-track");
+    const fill = busyOverlayEl.querySelector(".busy-overlay-fill");
+    if (typeof opts.percent === "number") {
+      track.classList.add("is-determinate");
+      fill.style.width = Math.max(0, Math.min(100, opts.percent)) + "%";
+    } else if (opts.percent === null) {
+      track.classList.remove("is-determinate");
+      fill.style.width = "";
+    }
+  };
+
+  window.hideBusyOverlay = function () {
+    clearInterval(busyOverlayTimer);
+    if (busyOverlayEl) busyOverlayEl.classList.remove("open");
+    document.body.classList.remove("busy-overlay-lock");
+  };
+
+  window.isBusyOverlayOpen = function () {
+    return !!(busyOverlayEl && busyOverlayEl.classList.contains("open"));
+  };
+
   // ===== Upload progress (real % for file uploads, via XHR since fetch
   // can't report upload progress) =====
 

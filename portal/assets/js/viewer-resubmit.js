@@ -15,6 +15,7 @@ const RESUBMIT_ENDPOINTS = {
 };
 let resubmitFiles = {};
 let resubmitConverting = null;
+let resubmitSubmitting = false;
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -40,35 +41,92 @@ function validateResubmitFile(key, file) {
   return null;
 }
 
-function resubmitDocRow(doc) {
+function showResubmitError(message) {
+  const errBox = document.getElementById("reuploadError");
+  errBox.textContent = message;
+  errBox.hidden = false;
+}
+
+function clearResubmitError() {
+  document.getElementById("reuploadError").hidden = true;
+}
+
+function resubmitDocRow(doc, index) {
   const file = resubmitFiles[doc.key];
-  const action = file
-    ? `<div class="doc-row-done">
-            <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg>
-            <label class="doc-row-replace">
-                Replace
-                <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
-            </label>
-        </div>`
-    : `<label class="btn-upload-inline">
+  const converting = resubmitConverting === doc.key;
+  const done = !!file && !converting;
+
+  let badge;
+  if (converting) {
+    badge = '<span class="btn-busy-spinner" aria-hidden="true"></span>';
+  } else if (done) {
+    badge =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg>';
+  } else {
+    badge = index + 1;
+  }
+
+  let sub;
+  if (converting) {
+    sub = `<span class="resub-doc-sub">Converting to PDF&hellip;</span>`;
+  } else if (done) {
+    const converted = file.staged
+      ? '<span class="resub-doc-hint">Converted to PDF</span>'
+      : "";
+    sub = `<span class="resub-doc-sub is-file">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}${converted}</span>`;
+  } else {
+    sub = `<span class="resub-doc-sub">${doc.subtitle}</span>`;
+  }
+
+  const picker = (label, cls) => `<label class="resub-btn-link ${cls || ""}">
+            ${label}
+            <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
+        </label>`;
+
+  let actions;
+  if (converting) {
+    actions = "";
+  } else if (done) {
+    actions =
+      picker("Replace") +
+      `<button type="button" class="resub-btn-link is-danger" onclick="removeResubmitFile('${doc.key}')">Remove</button>`;
+  } else {
+    actions = `<label class="btn-upload-inline">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#upload-icon" /></svg>
             Upload
             <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
         </label>`;
-  const subLine =
-    resubmitConverting === doc.key
-      ? `<span class="doc-row-sub">Converting to PDF&hellip;</span>`
-      : file
-        ? `<span class="doc-row-sub done">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}</span>`
-        : `<span class="doc-row-sub">${doc.subtitle}</span>`;
+  }
 
-  return `<div class="doc-row">
-        <div class="doc-row-info">
-            <div class="doc-row-title">${doc.title}${doc.required ? ' <span class="req">*</span>' : ""}</div>
-            ${subLine}
+  const state = converting ? " is-converting" : done ? " is-done" : "";
+
+  return `<div class="resub-doc${state}" data-doc-key="${doc.key}">
+        <span class="resub-doc-badge">${badge}</span>
+        <div class="resub-doc-info">
+            <div class="resub-doc-title">${doc.title}${doc.required ? ' <span class="req">*</span>' : ""}</div>
+            ${sub}
         </div>
-        <div class="doc-row-action">${action}</div>
+        <div class="resub-doc-actions">${actions}</div>
     </div>`;
+}
+
+function resubmitReadyCount() {
+  const required = RESUBMIT_DOCS.filter((doc) => doc.required);
+  const ready = required.filter((doc) => resubmitFiles[doc.key]).length;
+  return { ready, total: required.length };
+}
+
+function updateResubmitState() {
+  const { ready, total } = resubmitReadyCount();
+  const summary = document.getElementById("reuploadSummary");
+  const pct = total ? (ready / total) * 100 : 100;
+
+  summary.classList.toggle("is-complete", ready === total);
+  summary.innerHTML = `<span>${ready} of ${total} file${total === 1 ? "" : "s"} ready</span>
+        <div class="resub-summary-track"><div class="resub-summary-fill" style="width:${pct}%"></div></div>`;
+
+  document.getElementById("reuploadSubmitBtn").disabled =
+    ready < total || resubmitConverting !== null || resubmitSubmitting;
 }
 
 function renderResubmitDocs() {
@@ -80,34 +138,53 @@ function renderResubmitDocs() {
       "is-hidden",
       !(resubmitFiles.protocol && resubmitFiles.protocol.staged),
     );
+  updateResubmitState();
 }
 
-async function handleResubmitUpload(event, key) {
-  const file = event.target.files[0];
-  if (!file) return;
+function removeResubmitFile(key) {
+  delete resubmitFiles[key];
+  clearResubmitError();
+  renderResubmitDocs();
+}
+
+async function processResubmitFile(key, file) {
+  clearResubmitError();
+
   const err = validateResubmitFile(key, file);
   if (err) {
-    alert(err);
-    event.target.value = "";
+    showResubmitError(err);
     return;
   }
 
   if (key === "protocol" && isWordFile(file)) {
-    const submitBtn = document.getElementById("reuploadSubmitBtn");
     resubmitConverting = key;
-    renderResubmitDocs();
-    setButtonBusy(submitBtn, true, "Converting...");
-
     delete resubmitFiles[key];
+    renderResubmitDocs();
+
+    showBusyOverlay({
+      title: "Uploading your file\u2026",
+      text: "Please keep this page open.",
+      percent: 0,
+    });
 
     try {
-      resubmitFiles[key] = await stageWordFile(file);
+      resubmitFiles[key] = await stageWordFile(file, (pct) => {
+        if (pct >= 100) {
+          updateBusyOverlay({
+            title: "Converting to PDF\u2026",
+            text: "This usually takes a few seconds, but can take up to a minute for larger documents. Please don\u2019t close or refresh this page.",
+            percent: null,
+          });
+        } else {
+          updateBusyOverlay({ percent: pct });
+        }
+      });
     } catch (error) {
-      alert(error.message || "Network error. Please try again.");
+      showResubmitError(error.message || "Network error. Please try again.");
     }
 
+    hideBusyOverlay();
     resubmitConverting = null;
-    setButtonBusy(submitBtn, false);
   } else {
     resubmitFiles[key] = file;
   }
@@ -115,16 +192,76 @@ async function handleResubmitUpload(event, key) {
   renderResubmitDocs();
 }
 
+function handleResubmitUpload(event, key) {
+  const input = event.target;
+  const file = input.files[0];
+  if (!file) return;
+  input.value = "";
+  return processResubmitFile(key, file);
+}
+
+// ===== Drag & drop onto a document card =====
+function initResubmitDropzones() {
+  const list = document.getElementById("reuploadDocList");
+  const cardFor = (e) => e.target.closest && e.target.closest(".resub-doc");
+
+  ["dragenter", "dragover"].forEach((type) =>
+    list.addEventListener(type, (e) => {
+      const card = cardFor(e);
+      if (!card || resubmitConverting) return;
+      e.preventDefault();
+      list
+        .querySelectorAll(".is-dragover")
+        .forEach((el) => el !== card && el.classList.remove("is-dragover"));
+      card.classList.add("is-dragover");
+    }),
+  );
+
+  list.addEventListener("dragleave", (e) => {
+    const card = cardFor(e);
+    if (card && !card.contains(e.relatedTarget)) {
+      card.classList.remove("is-dragover");
+    }
+  });
+
+  list.addEventListener("drop", (e) => {
+    const card = cardFor(e);
+    if (!card) return;
+    e.preventDefault();
+    card.classList.remove("is-dragover");
+    if (resubmitConverting) return;
+    const file = e.dataTransfer && e.dataTransfer.files[0];
+    if (file) processResubmitFile(card.dataset.docKey, file);
+  });
+}
+
+// Stop the browser from navigating to a file dropped outside a card while the modal is open
+["dragover", "drop"].forEach((type) =>
+  resubmitModal.addEventListener(type, (e) => {
+    if (!e.target.closest(".resub-doc")) e.preventDefault();
+  }),
+);
+
 function openReuploadModal() {
   resubmitFiles = {};
   resubmitConverting = null;
+  resubmitSubmitting = false;
   renderResubmitDocs();
-  document.getElementById("reuploadError").hidden = true;
+  clearResubmitError();
   document.getElementById("reuploadProgress").innerHTML = "";
   resubmitModal.classList.add("open");
 }
 
+function resubmitIsBusy() {
+  return (
+    resubmitConverting !== null ||
+    resubmitSubmitting ||
+    (typeof isBusyOverlayOpen === "function" && isBusyOverlayOpen())
+  );
+}
+
 function closeReuploadModal() {
+  if (resubmitIsBusy()) return;
   resubmitModal.classList.remove("open");
 }
 resubmitModal.addEventListener("click", (e) => {
@@ -133,6 +270,7 @@ resubmitModal.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeReuploadModal();
 });
+initResubmitDropzones();
 
 async function uploadProtocolFile(endpoint, fieldName, file, onProgress) {
   const formData = new FormData();
@@ -154,8 +292,7 @@ async function submitReupload() {
 
   for (const doc of RESUBMIT_DOCS) {
     if (doc.required && !resubmitFiles[doc.key]) {
-      errBox.textContent = `Please select your ${doc.title.toLowerCase()}.`;
-      errBox.hidden = false;
+      showResubmitError(`Please select your ${doc.title.toLowerCase()}.`);
       return;
     }
   }
@@ -169,6 +306,8 @@ async function submitReupload() {
   );
   if (!ok) return;
 
+  resubmitSubmitting = true;
+  document.getElementById("reuploadCancelBtn").disabled = true;
   setButtonBusy(submitBtn, true, "Resubmitting...");
   errBox.hidden = true;
 
@@ -205,7 +344,10 @@ async function submitReupload() {
   } catch (err) {
     errBox.textContent = err.message || "Network error. Please try again.";
     errBox.hidden = false;
+    resubmitSubmitting = false;
+    document.getElementById("reuploadCancelBtn").disabled = false;
     setButtonBusy(submitBtn, false);
+    updateResubmitState();
     bar.remove();
   }
 }

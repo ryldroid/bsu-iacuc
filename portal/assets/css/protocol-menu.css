@@ -27,12 +27,27 @@
   text-decoration: none;
 }
 
-.protocol-menu-chevron {
-  transition: transform .2s ease;
+.protocol-menu--labeled {
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.protocol-menu.is-open .protocol-menu-chevron {
-  transform: rotate(180deg);
+.protocol-menu-action {
+  position: relative;
+}
+
+.protocol-menu-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.protocol-menu-action--danger,
+.protocol-menu-action--danger:hover {
+  color: var(--danger-color);
+}
+
+.protocol-menu-action--danger {
+  margin-left: 0.5rem;
 }
 
 .protocol-menu-panel {
@@ -110,7 +125,8 @@
 }
 
 .protocol-menu-trigger.has-update::after,
-.protocol-menu-item.has-update::after {
+.protocol-menu-item.has-update::after,
+.protocol-menu-action.has-update::after {
   content: "";
   position: absolute;
   top: 1px;

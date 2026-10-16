@@ -302,6 +302,17 @@ button,
 }
 
 button:hover,
+/* Small inline button, e.g. View / Open rows inside modals */
+.button-compact {
+    display: inline-flex;
+    align-items: center;
+    /* gap: 5px; */
+    /* padding: 6px 12px; */
+    /* font-size: .75rem; */
+    white-space: nowrap;
+    margin-top: 0;
+}
+
 .button:hover {
     background: var(--brand-color-hover);
     color: var(--text-on-brand);
@@ -931,4 +942,9 @@ main a.underlined:hover {
     :is(.home-announcement-cont, .office-announcement-card):is(:hover, :focus-visible) img {
         transform: none;
     }
+}
+
+/* Utility: must beat component display rules such as .notice { display: flex } */
+.is-hidden {
+    display: none !important;
 }

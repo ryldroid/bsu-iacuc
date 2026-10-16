@@ -11,7 +11,6 @@
 /** @var bool   $isStaff    */
 /** @var array|null $returnReason */
 /** @var array|null $latestCertVersion */
-/** @var bool   $hasCertOnFile */
 /** @var array  $permissions */
 /** @var bool   $canRename */
 /** @var bool   $canRequestDeletion */
@@ -109,7 +108,7 @@ foreach ($versions as $i => $v) {
 }
 
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-$certRequired      = $hasCertOnFile && $rrWrongCert;
+$certRequired      = $rrWrongCert;
 $certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
 $latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
 $latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($protocolId, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
@@ -128,6 +127,9 @@ if ($isAmendment && !empty($version['note'])) {
 }
 if (!$isPersonnel && !empty($reviewerNote['comment'])) {
     $viewerNotes[] = ['warning', 'info-icon', 'Note from CCARD', $reviewerNote['comment']];
+}
+if ($canResubmit && $certRequired) {
+    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate flagged', 'Upload a corrected one when you re-submit.'];
 }
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
@@ -501,11 +503,16 @@ include 'includes/header.php';
 <?php if ($canResubmit): ?>
     <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
     <div class="modal-backdrop" id="reuploadModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
+        <div class="modal-card panel-modal-card resub-card" role="dialog" aria-modal="true" aria-labelledby="reuploadModalTitle">
+            <div class="modal-header resub-header">
+                <span class="resub-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                </span>
+                <div class="resub-header-text">
                     <p class="modal-label">Re-submit Protocol</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="modal-title" id="reuploadModalTitle"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
                 <button class="modal-close" onclick="closeReuploadModal()" aria-label="Close">
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -513,37 +520,41 @@ include 'includes/header.php';
                     </svg>
                 </button>
             </div>
-            <div class="panel-modal-body">
+            <div class="panel-modal-body resub-body">
                 <p class="panel-modal-intro"><?= htmlspecialchars($resubmitIntro, ENT_QUOTES, 'UTF-8') ?></p>
 
-                <div class="doc-list" id="reuploadDocList"></div>
+                <div class="resub-summary" id="reuploadSummary" aria-live="polite"></div>
 
-                <div class="notice notice-info is-hidden" id="reuploadConvertedNotice">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
+                <div class="resub-list" id="reuploadDocList"></div>
+
+                <div class="resub-notes">
+                    <div class="notice notice-info is-hidden" id="reuploadConvertedNotice">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#info-icon" />
+                        </svg>
+                        <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
+                    </div>
+
+                    <div class="notice notice-info">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#info-icon" />
+                        </svg>
+                        <span><strong>Signatures required:</strong> Print, sign, and scan the revised protocol, then upload the signed copy.</span>
+                    </div>
                 </div>
 
-                <div class="notice notice-info">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    <span><strong>Signatures required:</strong> Print, sign, and scan the revised protocol, then upload the signed copy.</span>
-                </div>
-
-                <div id="reuploadError" class="error-messages" hidden></div>
+                <div id="reuploadError" class="error-messages" role="alert" hidden></div>
 
                 <div class="upload-progress-container" id="reuploadProgress"></div>
 
-                <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeReuploadModal()">Cancel</button>
+                <div class="panel-modal-actions resub-actions">
+                    <button class="tool-btn" type="button" id="reuploadCancelBtn" onclick="closeReuploadModal()">Cancel</button>
                     <button class="tool-btn tool-btn--success" type="button" id="reuploadSubmitBtn"
-                        onclick="submitReupload()">
+                        onclick="submitReupload()" disabled>
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
                         </svg>
-                        Submit
+                        Re-submit
                     </button>
                 </div>
             </div>
@@ -554,72 +565,83 @@ include 'includes/header.php';
 <?php if ($canConfirmPayment): ?>
     <!-- ===== Verify Payment modal ===== -->
     <div class="modal-backdrop" id="paymentModalBackdrop" data-static>
-        <div class="modal-card">
-            <h2>Verify Payment</h2>
-
-            <p class="modal-notice">The BAI animal research clearance requires a Php 100.00 fee.</p>
-
-            <div id="paymentModalError" class="alert error-messages" hidden></div>
-
-            <?php if (!$isBsuResearcher): ?>
-                <div class="consent-list">
-                    <label class="consent-item">
-                        <input type="radio" class="consent-checkbox" name="payment_method" value="in_person"
-                            checked onchange="handlePaymentMethodChange()">
-                        <span>Pay in person at CCARD</span>
-                    </label>
-                    <label class="consent-item">
-                        <input type="radio" class="consent-checkbox" name="payment_method" value="online"
-                            onchange="handlePaymentMethodChange()">
-                        <span>Pay online</span>
-                    </label>
+        <div class="modal-card panel-modal-card">
+            <div class="modal-header">
+                <div>
+                    <p class="modal-label">Verify Payment</p>
+                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-            <?php endif; ?>
-
-            <div id="paymentInPersonPanel">
-                <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
-                <div class="consent-list">
-                    <label class="consent-item">
-                        <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
-                        <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
-                    </label>
-                </div>
+                <button class="modal-close" type="button" onclick="closePaymentModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
             </div>
+            <div class="panel-modal-body">
+                <p class="modal-notice">The BAI animal research clearance requires a Php 100.00 fee.</p>
 
-            <div id="paymentOnlinePanel" hidden>
-                <p class="modal-notice">
-                    <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank" rel="noopener noreferrer">Contact the CCARD Director</a>
-                    to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
-                </p>
+                <div id="paymentModalError" class="alert error-messages" hidden></div>
 
-                <div class="modal-file-row">
-                    <div class="modal-file-info">
-                        <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
-                        <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+                <?php if (!$isBsuResearcher): ?>
+                    <div class="consent-list">
+                        <label class="consent-item">
+                            <input type="radio" class="consent-checkbox" name="payment_method" value="in_person"
+                                checked onchange="handlePaymentMethodChange()">
+                            <span>Pay in person at CCARD</span>
+                        </label>
+                        <label class="consent-item">
+                            <input type="radio" class="consent-checkbox" name="payment_method" value="online"
+                                onchange="handlePaymentMethodChange()">
+                            <span>Pay online</span>
+                        </label>
                     </div>
-                    <label class="modal-file-picker">
+                <?php endif; ?>
+
+                <div id="paymentInPersonPanel">
+                    <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
+                    <div class="consent-list">
+                        <label class="consent-item">
+                            <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
+                            <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="paymentOnlinePanel" hidden>
+                    <p class="modal-notice">
+                        <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank" rel="noopener noreferrer">Contact the CCARD Director</a>
+                        to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
+                    </p>
+
+                    <div class="modal-file-row">
+                        <div class="modal-file-info">
+                            <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
+                            <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
+                        </div>
+                        <label class="modal-file-picker">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            <span id="paymentFilePickerLabel">Upload</span>
+                            <input type="file" id="payment_proof_file" name="payment_proof_file"
+                                accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                                onchange="handlePaymentFileChange(this)">
+                        </label>
+                    </div>
+
+                    <div class="upload-progress-container" id="paymentProofProgress"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="button" type="button" onclick="closePaymentModal()">Back</button>
+                    <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
+                        onclick="submitPaymentProof()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
                         </svg>
-                        <span id="paymentFilePickerLabel">Upload</span>
-                        <input type="file" id="payment_proof_file" name="payment_proof_file"
-                            accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                            onchange="handlePaymentFileChange(this)">
-                    </label>
+                        <span id="paymentModalSubmitLabel">Verify Payment</span>
+                    </button>
                 </div>
-
-                <div class="upload-progress-container" id="paymentProofProgress"></div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="button" type="button" onclick="closePaymentModal()">Cancel</button>
-                <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
-                    onclick="submitPaymentProof()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    <span id="paymentModalSubmitLabel">Verify Payment</span>
-                </button>
             </div>
         </div>
     </div>

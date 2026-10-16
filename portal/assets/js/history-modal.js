@@ -1,6 +1,7 @@
 // ===== History modal =====
 const historyBackdrop = document.getElementById("historyModalBackdrop");
 const historyOfflineMessage = (window.historyModalConfig || {}).offlineMessage;
+let historyLastFocus = null;
 
 // ===== Open modal =====
 function openHistoryModal(protocolId, title) {
@@ -8,7 +9,9 @@ function openHistoryModal(protocolId, title) {
 
   document.getElementById("historyModalTitle").textContent = title;
   body.innerHTML = '<p class="helper history-loading">Loading&hellip;</p>';
+  historyLastFocus = document.activeElement;
   historyBackdrop.classList.add("open");
+  document.getElementById("historyModalClose").focus();
 
   fetch(ROOT_URL + "/apply/allversions/" + protocolId)
     .then((r) => r.json())
@@ -32,6 +35,7 @@ function openHistoryModal(protocolId, title) {
 // ===== Close modal =====
 function closeHistoryModal() {
   historyBackdrop.classList.remove("open");
+  if (historyLastFocus) historyLastFocus.focus();
 }
 
 historyBackdrop.addEventListener("click", (e) => {
@@ -39,27 +43,25 @@ historyBackdrop.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeHistoryModal();
+  if (e.key === "Escape" && historyBackdrop.classList.contains("open"))
+    closeHistoryModal();
 });
 
 // ===== Row builders =====
-function buildReturnLine(reason) {
-  const bits = [];
-  if (reason) {
-    if (reason.wrong_cert) bits.push("Wrong / invalid training certificate");
-    if (reason.other_reason && !reason.comment) bits.push("Other");
-    if (reason.comment) bits.push(reason.comment);
-  }
-  const when = reason && reason.created_at ? formatDate(reason.created_at) : "";
-  const note = bits.join(" \u00b7 ");
-  const by =
-    reason && reason.returned_by
-      ? " &middot; " + escapeHtml(reason.returned_by)
-      : "";
-  return `<div class="history-return-line">
-                <span class="history-tag history-tag--returned">Returned for revision${when ? " &middot; " + when : ""}${by}</span>
-                ${note ? `<span class="history-return-note-text"><span class="history-return-note-label">With note:</span> <span class="history-return-note-body">${escapeHtml(note)}</span></span>` : ""}
-            </div>`;
+const HISTORY_ICON_SIZE = 16;
+
+function historyEvent(tone, icon, title, time, detail, action) {
+  return `<div class="payment-event payment-tone-${tone}">
+            <span class="payment-event-icon">
+                <svg width="${HISTORY_ICON_SIZE}" height="${HISTORY_ICON_SIZE}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${icon}" /></svg>
+            </span>
+            <div class="payment-event-body">
+                <span class="payment-event-title">${title}</span>
+                <span class="payment-event-time">${time}</span>
+                ${detail}
+            </div>
+            ${action || ""}
+        </div>`;
 }
 
 function signedScanLabel(referenceNo) {
@@ -86,40 +88,77 @@ function buildVersionRows(data) {
 
   const rows = versions
     .map((v, index) => {
-      const isCurrent = index === 0;
       const isScan = v.file_type === "signed_scan";
       const roundIndex = rounds.indexOf(v);
-
-      const titleNote = isScan
-        ? signedScanLabel(data.reference_no)
-        : roundTitleNote(titles, roundIndex);
       const wasReturned =
         !isScan &&
         (roundIndex > 0 ||
           String(data.status || "").toLowerCase() === "needs revision");
 
-      return `
-            <div class="history-entry">
-                <div class="history-row history-row--round${isCurrent ? " history-row--latest" : ""}">
-                    <div class="history-row-detail">
-                        <span class="history-filename">${formatDate(v.uploaded_at)}</span>
-                        <span class="helper">${escapeHtml(v.label)} &middot; ${formatTime(v.uploaded_at)}</span>
-                        ${titleNote ? `<span class="helper history-title-note" title="${escapeHtml(titleNote)}">${escapeHtml(titleNote)}</span>` : ""}
-                        ${isCurrent ? '<div class="history-tags"><span class="history-latest-badge">Current</span></div>' : ""}
-                        ${wasReturned ? buildReturnLine(v.return_reason) : ""}
-                    </div>
-                    <a class="button history-open-btn" href="${ROOT_URL}/apply/viewer/${data.protocol_id}/${v.id}">
-                        <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#review-icon" />
-                        </svg>
-                        Open
-                    </a>
-                </div>
-            </div>`;
+      const titleNote = isScan
+        ? signedScanLabel(data.reference_no)
+        : roundTitleNote(titles, roundIndex);
+
+      const tone = isScan ? "success" : wasReturned ? "warning" : "info";
+      const icon = isScan
+        ? "shield-check-icon"
+        : wasReturned
+          ? "alert-triangle-icon"
+          : "upload-icon";
+      const badge =
+        index === 0 ? ' <span class="history-latest-badge">Current</span>' : "";
+
+      const detail = titleNote
+        ? `<span class="payment-event-detail">${escapeHtml(titleNote)}</span>`
+        : "";
+
+      const action = `<a class="button button-compact history-open" href="${ROOT_URL}/apply/viewer/${data.protocol_id}/${v.id}" aria-label="Open ${escapeHtml(v.label)}, ${formatDate(v.uploaded_at)}">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
+                Open
+            </a>`;
+
+      return historyEvent(
+        tone,
+        icon,
+        escapeHtml(v.label) + badge,
+        `${escapeHtml(formatDate(v.uploaded_at))} &middot; ${escapeHtml(formatTime(v.uploaded_at))}`,
+        detail,
+        action,
+      );
     })
     .join("");
 
-  return `<div class="history-section-label">Protocol Submissions</div>${rows}`;
+  return historySection("Protocol Submissions", rows);
+}
+
+function buildCertRows(data) {
+  const certs = data.cert_versions;
+  if (!certs || certs.length === 0) return "";
+
+  const rows = certs
+    .map((c, index) => {
+      const badge =
+        index === 0 ? ' <span class="history-latest-badge">Current</span>' : "";
+      const detail = c.flagged
+        ? '<span class="payment-event-detail">Flagged as wrong by the reviewer</span>'
+        : "";
+      const action = `<a class="button button-compact history-open" href="${escapeHtml(c.file_url)}" target="_blank" rel="noopener" aria-label="Open training certificate, ${formatDate(c.uploaded_at)}">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
+                Open
+            </a>`;
+
+      return historyEvent(
+        c.flagged ? "warning" : "info",
+        c.flagged ? "alert-triangle-icon" : "upload-icon",
+        "Training certificate" + badge,
+        `${escapeHtml(formatDate(c.uploaded_at))} &middot; ${escapeHtml(formatTime(c.uploaded_at))}`,
+        detail,
+        action,
+      );
+    })
+    .join("");
+
+  return historySection("Training Certificate", rows);
 }
 
 function buildTitleHistorySection(titleHistory) {
@@ -134,29 +173,35 @@ function buildTitleHistorySection(titleHistory) {
         ? `${escapeHtml(role)} - ${escapeHtml(h.changed_by_name)}`
         : "Initial title";
 
-      return `
-            <div class="history-entry">
-                <div class="history-row">
-                    <div class="history-row-detail">
-                        <span class="history-filename" title="${escapeHtml(h.title)}">${escapeHtml(h.title)}</span>
-                        <span class="helper">${who} &middot; ${formatDateTime(h.changed_at)}</span>
-                    </div>
-                </div>
-            </div>`;
+      return historyEvent(
+        "info",
+        "edit-icon",
+        h.changed_by_name ? "Title changed" : "Initial title",
+        `${who} &middot; ${escapeHtml(formatDateTime(h.changed_at))}`,
+        `<span class="payment-event-detail">${escapeHtml(h.title)}</span>`,
+      );
     })
     .join("");
 
-  return `<div class="history-section-label">Title Name History</div>${rows}`;
+  return historySection("Title Name History", rows);
+}
+
+function historySection(label, rows) {
+  return `<section class="history-section">
+            <p class="history-section-label">${label}</p>
+            <div class="payment-timeline">${rows}</div>
+        </section>`;
 }
 
 // ===== Render history =====
 function renderHistory(data) {
   const sections = [
     buildVersionRows(data),
+    buildCertRows(data),
     buildTitleHistorySection(data.title_history),
   ].filter(Boolean);
 
   document.getElementById("historyModalBody").innerHTML = sections.length
     ? sections.join("")
-    : '<p class="helper" style="padding:1.5rem">No submission history found.</p>';
+    : '<p class="helper history-empty">No submission history found.</p>';
 }

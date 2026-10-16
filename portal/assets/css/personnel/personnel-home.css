@@ -6,11 +6,13 @@ main {
 
 /* ===== Dashboard card (formerly the tab panel; the tab strip is gone, so it stands alone) ===== */
 .dashboard-panel {
-    background: var(--card-background);
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px var(--shadow-color-soft);
+    /* background: var(--card-background); */
+    /* border: 1px solid var(--divider-color); */
+    /* border-radius: var(--btn-radius); */
+    /* padding: 1.5rem; */
+    /* box-shadow: 0 1px 3px var(--shadow-color-soft); */
+
+    /* padding: 0 1rem; */
 }
 
 /* ===== Search row (inside the dashboard card, right aligned) ===== */
@@ -293,6 +295,10 @@ main {
 @media (max-width: 768px) {
     .inbox-search-wrap {
         max-width: 100%;
+    }
+
+    .dashboard-panel {
+        padding: 0 1rem;
     }
 }
 

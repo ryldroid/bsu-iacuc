@@ -321,8 +321,7 @@
 }
 
 .viewer-note strong {
-  display: block;
-  margin-bottom: 0.1rem;
+  margin-right: 0.35rem;
 }
 
 .viewer-note--info {

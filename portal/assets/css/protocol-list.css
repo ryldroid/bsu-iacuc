@@ -287,6 +287,54 @@
   cursor: default;
 }
 
+.protocol-next-step {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+  font-size: 0.78em;
+}
+
+.step-pips {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.step-pip {
+  width: 20px;
+  height: 5px;
+  border-radius: var(--radius);
+  cursor: help;
+  background: color-mix(in srgb, var(--muted-text) 35%, transparent);
+}
+
+.step-pip--done {
+  background: var(--brand-color);
+}
+
+.step-pip--current {
+  background: var(--brand-color-hover);
+}
+
+.step-count {
+  font-weight: 700;
+  color: var(--brand-text);
+}
+
+.step-label {
+  color: var(--primary-text);
+}
+
+.protocol-next-step--waiting .step-pip--current {
+  background: var(--warning-text, #b45309);
+}
+
+.protocol-next-step--waiting .step-count,
+.protocol-next-step--waiting .step-label {
+  color: var(--muted-text);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -646,7 +694,8 @@
     gap: 8px;
   }
 
-  .protocol-meta-line {
+  .protocol-meta-line,
+  .protocol-next-step {
     font-size: 0.75em;
     line-height: 1.3em;
   }
