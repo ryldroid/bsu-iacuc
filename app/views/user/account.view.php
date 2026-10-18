@@ -29,12 +29,13 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             </svg>
         </button>
 
-        <!-- ===== Toasts ===== -->
+        <!-- ===== Toasts: shown in the main window (see the script below), not inside this panel ===== -->
         <?php
-        $toastError = $errors ?? null;
         $pageToastSuccess = $_SESSION['flash_success'] ?? '';
-        $toastSuccess = '';
-        include dirname(__DIR__) . '/includes/flash.php';
+        $pageToastErrors = array_values(array_filter((array) ($errors ?? ($_SESSION['flash_error'] ?? [])), 'strlen'));
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+        // Stops the footer from rendering a toast stack inside this panel
+        if (!defined('FORM_ALERT_JS_LOADED')) define('FORM_ALERT_JS_LOADED', true);
         ?>
 
         <?php if (empty($email_verified)): ?>
@@ -237,30 +238,42 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     </main>
 </div>
 
-<!-- File popup modal -->
-
-<!-- ===== File popup ===== -->
-<div class="modal-backdrop" id="filePopupBackdrop">
-    <div class="modal-card file-popup-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title" id="filePopupTitle"></span>
-            <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div class="file-popup-frame" id="filePopupFrame">
-            <div id="filePopupPdfPages" class="file-popup-pdf-pages" hidden></div>
-            <img id="filePopupImg" alt="">
-            <p id="filePopupMessage" class="helper" style="padding:2rem">Loading…</p>
+<!-- ===== File popup template (cloned into the main window when opened, so it covers the whole page) ===== -->
+<template id="filePopupTemplate">
+    <div class="modal-backdrop" id="accountFilePopup">
+        <div class="modal-card file-popup-card">
+            <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#eye-icon" />
+                    </svg>
+                </span>
+                <p class="modal-title" data-role="title"></p>
+                <button type="button" class="modal-close" data-role="close" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="file-popup-frame" data-role="frame">
+                <div class="file-popup-pdf-pages" data-role="pdf" hidden></div>
+                <img data-role="img" alt="">
+                <p class="helper file-popup-message" data-role="message">Loading…</p>
+            </div>
         </div>
     </div>
-</div>
+</template>
 
 <!-- ===== File popup script ===== -->
 <script>
+    // ===== Messages and dialogs belong to the main window, not this panel =====
     parent.showToast(<?= json_encode($pageToastSuccess) ?>, 'success');
+    <?= json_encode($pageToastErrors) ?>.forEach(message => parent.showToast(message, 'error'));
+
+    // Confirm dialogs (Save changes, Delete account, Log out, ...) open over the whole page
+    document.addEventListener('DOMContentLoaded', () => {
+        window.confirmAction = (message, options) => parent.confirmAction(message, options);
+    });
 
     if (parent.accountRequired) {
         document.querySelector('.account-close').remove();
@@ -285,40 +298,80 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
         );
     }
 
-    const filePopupBackdrop = document.getElementById('filePopupBackdrop');
-    const filePopupFrame = document.getElementById('filePopupFrame');
-    const filePopupPdfPages = document.getElementById('filePopupPdfPages');
-    const filePopupImg = document.getElementById('filePopupImg');
-    const filePopupMessage = document.getElementById('filePopupMessage');
+    // ===== File popup: lives in the main window, not inside this panel =====
+    const parentDoc = parent.document;
+    let filePopup = null; // { backdrop, frame, pdf, img, message, title }
     let filePopupObjectUrl = null;
 
+    function getFilePopup() {
+        if (filePopup) return filePopup;
+
+        parentDoc.body.appendChild(parentDoc.importNode(document.getElementById('filePopupTemplate').content, true));
+        const backdrop = parentDoc.getElementById('accountFilePopup');
+        const part = role => backdrop.querySelector('[data-role="' + role + '"]');
+
+        filePopup = {
+            backdrop,
+            frame: part('frame'),
+            pdf: part('pdf'),
+            img: part('img'),
+            message: part('message'),
+            title: part('title')
+        };
+
+        part('close').addEventListener('click', closeFilePopup);
+        backdrop.addEventListener('click', e => {
+            if (e.target === backdrop) closeFilePopup();
+        });
+        return filePopup;
+    }
+
+    function isFilePopupOpen() {
+        return !!filePopup && filePopup.backdrop.classList.contains('open');
+    }
+
+    // Escape also works when focus is in the main window (e.g. after clicking inside the popup)
+    function onParentKeydown(e) {
+        if (e.key === 'Escape' && isFilePopupOpen()) closeFilePopup();
+    }
+    parentDoc.addEventListener('keydown', onParentKeydown);
+
+    // The panel is unloaded when it closes or reloads: take the popup down with it
+    window.addEventListener('pagehide', () => {
+        parentDoc.removeEventListener('keydown', onParentKeydown);
+        if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
+        filePopup?.backdrop.remove();
+        filePopup = null;
+    });
+
     function showFilePopupState(state) {
-        filePopupPdfPages.hidden = state !== 'pdf';
-        filePopupImg.hidden = state !== 'img';
-        filePopupMessage.hidden = state !== 'message';
+        filePopup.pdf.hidden = state !== 'pdf';
+        filePopup.img.hidden = state !== 'img';
+        filePopup.message.hidden = state !== 'message';
     }
 
     async function renderPopupPdf(fileUrl) {
-        filePopupPdfPages.innerHTML = '';
-        const frameWidth = filePopupFrame.clientWidth;
+        filePopup.pdf.innerHTML = '';
+        const frameWidth = filePopup.frame.clientWidth;
+        const sidePadding = parent.matchMedia('(max-width: 768px)').matches ? 16 : 48;
         const doc = await pdfjsLib.getDocument(fileUrl).promise;
 
         for (let p = 1; p <= doc.numPages; p++) {
             const page = await doc.getPage(p);
-            const scale = Math.min(1.5, (frameWidth - 48) / page.getViewport({
+            const scale = Math.min(1.5, (frameWidth - sidePadding) / page.getViewport({
                 scale: 1
             }).width);
             const vp = page.getViewport({
                 scale
             });
 
-            const canvas = document.createElement('canvas');
-            const outputScale = window.devicePixelRatio || 1;
+            const canvas = parentDoc.createElement('canvas');
+            const outputScale = parent.devicePixelRatio || 1;
             canvas.width = Math.floor(vp.width * outputScale);
             canvas.height = Math.floor(vp.height * outputScale);
             canvas.style.width = vp.width + 'px';
             canvas.style.height = vp.height + 'px';
-            filePopupPdfPages.appendChild(canvas);
+            filePopup.pdf.appendChild(canvas);
 
             await page.render({
                 canvasContext: canvas.getContext('2d'),
@@ -329,11 +382,12 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
     }
 
     async function openFilePopup(fileUrl, title) {
-        document.getElementById('filePopupTitle').textContent = title;
-        filePopupBackdrop.classList.add('open');
-        filePopupFrame.scrollTop = 0;
+        const popup = getFilePopup();
+        popup.title.textContent = title;
+        popup.backdrop.classList.add('open');
+        popup.frame.scrollTop = 0;
 
-        filePopupMessage.textContent = 'Loading…';
+        popup.message.textContent = 'Loading…';
         showFilePopupState('message');
 
         try {
@@ -345,7 +399,7 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             if (contentType.includes('pdf')) {
                 await renderPopupPdf(fileUrl);
                 showFilePopupState('pdf');
-                filePopupFrame.scrollTop = 0;
+                popup.frame.scrollTop = 0;
                 return;
             }
 
@@ -354,32 +408,29 @@ $is_personnel = in_array($old['role'] ?? '', ['staff', 'reviewer']);
             if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
             filePopupObjectUrl = URL.createObjectURL(blob);
 
-            filePopupImg.src = filePopupObjectUrl;
-            filePopupImg.alt = title;
+            popup.img.src = filePopupObjectUrl;
+            popup.img.alt = title;
             showFilePopupState('img');
         } catch (err) {
-            filePopupMessage.textContent = 'Could not load this file.';
+            popup.message.textContent = 'Could not load this file.';
             showFilePopupState('message');
         }
     }
 
     function closeFilePopup() {
-        filePopupBackdrop.classList.remove('open');
-        filePopupPdfPages.innerHTML = '';
-        filePopupImg.removeAttribute('src');
+        if (!isFilePopupOpen()) return;
+        filePopup.backdrop.classList.remove('open');
+        filePopup.pdf.innerHTML = '';
+        filePopup.img.removeAttribute('src');
         if (filePopupObjectUrl) {
             URL.revokeObjectURL(filePopupObjectUrl);
             filePopupObjectUrl = null;
         }
     }
 
-    filePopupBackdrop.addEventListener('click', e => {
-        if (e.target === filePopupBackdrop) closeFilePopup();
-    });
-
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
-        if (filePopupBackdrop.classList.contains('open')) return closeFilePopup();
+        if (isFilePopupOpen()) return closeFilePopup();
         if (!e.defaultPrevented) parent.closeAccountDrawer?.();
     });
 </script>

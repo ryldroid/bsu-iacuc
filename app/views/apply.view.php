@@ -481,7 +481,12 @@ include 'includes/guide.php';
                 The IACUC may update these terms from time to time. Continued use of this system after an update means you accept the revised terms. These terms are governed by the laws of the Republic of the Philippines.
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn-primary" onclick="closeDocModal('terms-modal')">Close</button>
+                <button type="button" class="confirm-modal-btn confirm-modal-ok" onclick="closeDocModal('terms-modal')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#check-icon" />
+                  </svg>
+                Close
+            </button>
             </div>
         </div>
     </div>
@@ -521,7 +526,12 @@ include 'includes/guide.php';
                 We may update this policy and will post the revised version here.
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn-primary" onclick="closeDocModal('privacy-modal')">Close</button>
+                <button type="button" class="confirm-modal-btn confirm-modal-ok" onclick="closeDocModal('privacy-modal')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#check-icon" />
+                  </svg>
+                Close
+            </button>
             </div>
         </div>
     </div>`;

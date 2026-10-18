@@ -13,6 +13,11 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="renameModalBackdrop" data-static>
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#edit-icon" />
+        </svg>
+      </span>
       <div>
         <p class="modal-label">Rename Protocol</p>
         <p class="modal-title" id="renameModalTitle"></p>
@@ -46,6 +51,11 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="deleteModalBackdrop" data-static>
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
+      <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#trash-icon" />
+        </svg>
+      </span>
       <div>
         <p class="modal-label" id="deleteModalLabel"></p>
         <p class="modal-title" id="deleteModalTitle"></p>
@@ -84,6 +94,11 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="amendmentsModalBackdrop">
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#history-icon" />
+        </svg>
+      </span>
       <div>
         <p class="modal-label">Amendments</p>
         <p class="modal-title" id="amendmentsModalTitle"></p>
@@ -105,6 +120,11 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="amendmentModalBackdrop" data-static>
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#upload-icon" />
+        </svg>
+      </span>
       <div>
         <p class="modal-label">Submit Amendment</p>
         <p class="modal-title" id="amendmentModalTitle"></p>
@@ -177,6 +197,11 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="paymentHistoryModalBackdrop">
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#clock-icon" />
+        </svg>
+      </span>
       <div>
         <p class="modal-label">Payment History</p>
         <p class="modal-title" id="paymentHistoryModalTitle"></p>

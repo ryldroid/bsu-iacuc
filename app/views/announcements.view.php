@@ -7,6 +7,7 @@ include "includes/scroll-top.php";
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 
 <div id="fb-root"></div>
 <script async defer crossorigin="anonymous"
@@ -105,6 +106,21 @@ include "includes/scroll-top.php";
                         <?php endforeach; ?>
                     </div>
 
+                    <!-- ===== Pagination ===== -->
+                    <div class="pagination-bar" id="paginationBar">
+                        <span class="pagination-info" id="paginationInfo"></span>
+                        <div class="pagination-buttons" id="paginationButtons"></div>
+                        <div class="rows-per-page-wrap">
+                            Rows per page:
+                            <select id="rowsPerPageSelect">
+                                <option value="6">6</option>
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                                <option value="48">48</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- ===== Announcement modal ===== -->
                     <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
                         <div class="modal-card announcement-modal-card">
@@ -175,6 +191,7 @@ include "includes/scroll-top.php";
 
 <?php include "includes/footer.php"; ?>
 
+<script src="<?= asset_js('pagination.js') ?>"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         initAnnouncementModal({
@@ -182,5 +199,36 @@ include "includes/scroll-top.php";
             bodyId: 'officeAnnouncementModalBody',
             closeId: 'officeAnnouncementModalClose'
         });
+
+        // ===== Pagination for the office announcement cards =====
+        const list = document.querySelector('.office-announcements-list');
+        if (!list) return;
+
+        const cards = [...list.querySelectorAll('.office-announcement-card')];
+        let firstRender = true;
+
+        const pager = createPagination({
+            info: document.getElementById('paginationInfo'),
+            buttons: document.getElementById('paginationButtons'),
+            rowsSelect: document.getElementById('rowsPerPageSelect'),
+            defaultRows: 12,
+            noun: 'announcements',
+            storageKey: 'announcements',
+            onChange: render
+        });
+
+        function render() {
+            const pageCards = pager.paginate(cards);
+            cards.forEach(card => card.classList.toggle('is-paged-out', !pageCards.includes(card)));
+
+            // Bring the list back into view when moving between pages (not on first load)
+            if (!firstRender) list.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+            firstRender = false;
+        }
+
+        render();
     });
 </script>

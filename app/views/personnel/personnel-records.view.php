@@ -751,8 +751,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== ADD RECORD MODAL ===== -->
 <div class="modal-backdrop" id="addModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
     <div class="modal-card records-modal-card">
-        <div class="modal-header records-modal-header">
-            <h2 id="addModalTitle">Add Record</h2>
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#add-icon" />
+                </svg>
+            </span>
+            <p class="modal-title" id="addModalTitle">Add Record</p>
             <button type="button" class="modal-close" data-close="addModal" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -763,35 +768,35 @@ include dirname(__DIR__) . '/includes/guide.php';
             <div class="alert error-messages" id="addError" hidden></div>
             <div class="records-form-grid">
                 <div class="records-form-group records-form-full">
-                    <label for="add_reference_no">IPN <span class="records-required">*</span></label>
+                    <label class="field-label" for="add_reference_no">IPN <span class="records-required">*</span></label>
                     <input type="text" id="add_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="add_ar_number">AR Number</label>
+                    <label class="field-label" for="add_ar_number">AR Number</label>
                     <input type="text" id="add_ar_number" name="ar_number" placeholder="From the BAI clearance">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="add_title">Title of Research <span class="records-required">*</span></label>
+                    <label class="field-label" for="add_title">Title of Research <span class="records-required">*</span></label>
                     <textarea id="add_title" name="title_of_research" rows="3" placeholder="Full research title"></textarea>
                 </div>
                 <div class="records-form-group">
-                    <label for="add_pi">Principal Investigator</label>
+                    <label class="field-label" for="add_pi">Principal Investigator</label>
                     <input type="text" id="add_pi" name="principal_investigator" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_school">School / Department</label>
+                    <label class="field-label" for="add_school">School / Department</label>
                     <input type="text" id="add_school" name="school" placeholder="e.g. College of Agriculture">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_animal_type">Animal Type</label>
+                    <label class="field-label" for="add_animal_type">Animal Type</label>
                     <input type="text" id="add_animal_type" name="animal_type" list="animal-type-options" placeholder="e.g. Mice, Rats">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_animal_count">Animal Count</label>
+                    <label class="field-label" for="add_animal_count">Animal Count</label>
                     <input type="number" id="add_animal_count" name="animal_count" min="0" placeholder="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_sex">Researcher Sex</label>
+                    <label class="field-label" for="add_sex">Researcher Sex</label>
                     <select id="add_sex" name="sex">
                         <option value="">Select</option>
                         <option>Male</option>
@@ -799,22 +804,22 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </select>
                 </div>
                 <div class="records-form-group">
-                    <label for="add_researcher_type">Researcher Type</label>
+                    <label class="field-label" for="add_researcher_type">Researcher Type</label>
                     <select id="add_researcher_type" name="researcher_type">
                         <option value="">Select</option>
                         <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
                     </select>
                 </div>
                 <div class="records-form-group">
-                    <label for="add_research_adviser">Research Adviser</label>
+                    <label class="field-label" for="add_research_adviser">Research Adviser</label>
                     <input type="text" id="add_research_adviser" name="research_adviser" list="adviser-options" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_veterinarian">Veterinarian</label>
+                    <label class="field-label" for="add_veterinarian">Veterinarian</label>
                     <input type="text" id="add_veterinarian" name="veterinarian" list="veterinarian-options" placeholder="Full name">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="add_research_duration_start">Research Duration</label>
+                    <label class="field-label" for="add_research_duration_start">Research Duration</label>
                     <div class="records-date-range">
                         <input type="date" id="add_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
                         <span class="records-date-range-sep">to</span>
@@ -823,11 +828,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
                 </div>
                 <div class="records-form-group">
-                    <label for="add_date_released">Date Released</label>
+                    <label class="field-label" for="add_date_released">Date Released</label>
                     <input type="date" id="add_date_released" name="date_released">
                 </div>
                 <div class="records-form-group">
-                    <label for="add_status">Status</label>
+                    <label class="field-label" for="add_status">Status</label>
                     <select id="add_status" name="status">
                         <?php foreach (RecordModel::STATUSES as $st): ?>
                             <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
@@ -835,14 +840,19 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </select>
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="add_received_by">Received By</label>
+                    <label class="field-label" for="add_received_by">Received By</label>
                     <input type="text" id="add_received_by" name="received_by" placeholder="Name of receiving officer">
                 </div>
             </div>
         </div>
         <div class="records-modal-footer">
-            <button type="button" class="row-btn" data-close="addModal">Cancel</button>
-            <button type="button" class="row-btn row-btn-primary" id="addRecordSave">Save Record</button>
+            <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="addModal">Cancel</button>
+            <button type="button" class="confirm-modal-btn confirm-modal-ok" id="addRecordSave">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#check-icon" />
+                </svg>
+                Save Record
+            </button>
         </div>
     </div>
 </div>
@@ -850,8 +860,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== EDIT RECORD MODAL ===== -->
 <div class="modal-backdrop" id="editModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
     <div class="modal-card records-modal-card">
-        <div class="modal-header records-modal-header">
-            <h2 id="editModalTitle">Edit Record</h2>
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#edit-icon" />
+                </svg>
+            </span>
+            <p class="modal-title" id="editModalTitle">Edit Record</p>
             <button type="button" class="modal-close" data-close="editModal" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -863,35 +878,35 @@ include dirname(__DIR__) . '/includes/guide.php';
             <div class="records-form-grid">
                 <input type="hidden" id="edit_id">
                 <div class="records-form-group records-form-full">
-                    <label for="edit_reference_no">IPN</label>
+                    <label class="field-label" for="edit_reference_no">IPN</label>
                     <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="edit_ar_number">AR Number</label>
+                    <label class="field-label" for="edit_ar_number">AR Number</label>
                     <input type="text" id="edit_ar_number" name="ar_number" placeholder="From the BAI clearance">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="edit_title">Title of Research</label>
+                    <label class="field-label" for="edit_title">Title of Research</label>
                     <textarea id="edit_title" name="title_of_research" rows="3"></textarea>
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_pi">Principal Investigator</label>
+                    <label class="field-label" for="edit_pi">Principal Investigator</label>
                     <input type="text" id="edit_pi" name="principal_investigator">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_school">School / Department</label>
+                    <label class="field-label" for="edit_school">School / Department</label>
                     <input type="text" id="edit_school" name="school">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_animal_type">Animal Type</label>
+                    <label class="field-label" for="edit_animal_type">Animal Type</label>
                     <input type="text" id="edit_animal_type" name="animal_type" list="animal-type-options">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_animal_count">Animal Count</label>
+                    <label class="field-label" for="edit_animal_count">Animal Count</label>
                     <input type="number" id="edit_animal_count" name="animal_count" min="0">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_sex">Researcher Sex</label>
+                    <label class="field-label" for="edit_sex">Researcher Sex</label>
                     <select id="edit_sex" name="sex">
                         <option value="">Select</option>
                         <option>Male</option>
@@ -899,22 +914,22 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </select>
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_researcher_type">Researcher Type</label>
+                    <label class="field-label" for="edit_researcher_type">Researcher Type</label>
                     <select id="edit_researcher_type" name="researcher_type">
                         <option value="">Select</option>
                         <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
                     </select>
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_research_adviser">Research Adviser</label>
+                    <label class="field-label" for="edit_research_adviser">Research Adviser</label>
                     <input type="text" id="edit_research_adviser" name="research_adviser" list="adviser-options">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_veterinarian">Veterinarian</label>
+                    <label class="field-label" for="edit_veterinarian">Veterinarian</label>
                     <input type="text" id="edit_veterinarian" name="veterinarian" list="veterinarian-options">
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="edit_research_duration_start">Research Duration</label>
+                    <label class="field-label" for="edit_research_duration_start">Research Duration</label>
                     <div class="records-date-range">
                         <input type="date" id="edit_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
                         <span class="records-date-range-sep">to</span>
@@ -923,11 +938,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_date_released">Date Released</label>
+                    <label class="field-label" for="edit_date_released">Date Released</label>
                     <input type="date" id="edit_date_released" name="date_released">
                 </div>
                 <div class="records-form-group">
-                    <label for="edit_status">Status</label>
+                    <label class="field-label" for="edit_status">Status</label>
                     <select id="edit_status" name="status">
                         <?php foreach (RecordModel::STATUSES as $st): ?>
                             <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
@@ -935,14 +950,19 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </select>
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label for="edit_received_by">Received By</label>
+                    <label class="field-label" for="edit_received_by">Received By</label>
                     <input type="text" id="edit_received_by" name="received_by">
                 </div>
             </div>
         </div>
         <div class="records-modal-footer">
-            <button type="button" class="row-btn" data-close="editModal">Cancel</button>
-            <button type="button" class="row-btn row-btn-primary" id="editRecordSave">Save Changes</button>
+            <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="editModal">Cancel</button>
+            <button type="button" class="confirm-modal-btn confirm-modal-ok" id="editRecordSave">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#check-icon" />
+                </svg>
+                Save Changes
+            </button>
         </div>
     </div>
 </div>

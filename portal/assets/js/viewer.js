@@ -1,7 +1,7 @@
 // ===== Protocol viewer =====
 // PDF, annotations and sidebar. The config script in protocol.view.php defines
 // PDF_URL, VERSION_ID, BACK_URL and the other flags used here. The optional modal
-// scripts (viewer-payment.js and friends) load after this one, viewer-boot.js last.
+// scripts (payment-modal.js and friends) load after this one, viewer-boot.js last.
 
 // Footer for the proof of payment popup: offers "Resubmit Payment" when the payment was rejected.
 function paymentResubmitFooter() {
@@ -251,7 +251,7 @@ function attachDrawListeners(overlay, pageNum, canvas) {
 function openCommentDialog() {
   editingAnnotId = null;
   document.getElementById("commentDialogTitle").textContent = "Add Comment";
-  document.getElementById("commentDialogSave").textContent = "Save";
+  document.getElementById("commentDialogSaveLabel").textContent = "Save";
   document.getElementById("commentText").value = "";
   document.getElementById("commentDialog").classList.add("open");
   document.getElementById("commentText").focus();
@@ -263,7 +263,8 @@ function editAnnotation(annotId) {
   pendingBox = null;
   editingAnnotId = annotId;
   document.getElementById("commentDialogTitle").textContent = "Edit Comment";
-  document.getElementById("commentDialogSave").textContent = "Save Changes";
+  document.getElementById("commentDialogSaveLabel").textContent =
+    "Save Changes";
   document.getElementById("commentText").value = ann.comment;
   document.getElementById("commentDialog").classList.add("open");
   document.getElementById("commentText").focus();
@@ -623,7 +624,7 @@ function showAnnotPopup(annotId, x, y, anchorRect = null) {
   const editBtn = document.getElementById("annotPopupEdit");
   const deleteBtn = document.getElementById("annotPopupDelete");
   if (CAN_REVIEW && !ann._queued) {
-    actions.style.display = "";
+    actions.hidden = false;
 
     editBtn.onclick = () => {
       closeAnnotPopup();
@@ -638,7 +639,7 @@ function showAnnotPopup(annotId, x, y, anchorRect = null) {
       closeAnnotPopup();
     };
   } else {
-    actions.style.display = "none";
+    actions.hidden = true;
     editBtn.onclick = null;
     deleteBtn.onclick = null;
   }
@@ -766,13 +767,4 @@ async function updateStatus(btn, newStatus) {
       "Could not reach the server and the action could not be queued. Please check your connection.",
     );
   }
-}
-
-// ===== Mobile sidebar toggle =====
-function toggleSidebar() {
-  const sidebar = document.getElementById("annotSidebar");
-  const btn = document.getElementById("sidebarToggle");
-  const isCollapsed = sidebar.classList.toggle("collapsed");
-  btn.classList.toggle("collapsed", isCollapsed);
-  btn.setAttribute("aria-expanded", String(!isCollapsed));
 }

@@ -1,11 +1,10 @@
-// ===== Viewer: verify payment modal =====
-// Loaded only when the researcher can confirm payment.
-
-// ===== Verify Payment modal =====
-const PAYMENT_PROOF_API = ROOT_URL + "/apply/payment_proof";
-const paymentModal = document.getElementById("paymentModalBackdrop");
-
 // ===== Payment modal =====
+// Shared by the submissions list and the protocol viewer. The page defines
+// CSRF_TOKEN, ROOT_URL and IS_BSU_RESEARCHER; the viewer also defines PROTOCOL_ID.
+
+const paymentModal = document.getElementById("paymentModalBackdrop");
+let currentPaymentProtocolId = null;
+
 function getSelectedPaymentMethod() {
   if (IS_BSU_RESEARCHER) return "in_person";
   const checked = document.querySelector(
@@ -24,9 +23,13 @@ function handlePaymentMethodChange() {
   document.getElementById("paymentModalError").hidden = true;
 }
 
-function openPaymentModal() {
-  const fileInput = document.getElementById("payment_proof_file");
-  fileInput.value = "";
+function openPaymentModal(protocolId = PROTOCOL_ID) {
+  currentPaymentProtocolId = protocolId;
+  const title = document.querySelector(
+    `#protocol-${protocolId} [data-research-title]`,
+  )?.dataset.researchTitle;
+  if (title) document.getElementById("paymentModalTitle").textContent = title;
+  document.getElementById("payment_proof_file").value = "";
   resetPaymentFilePicker();
   document.getElementById("confirm_in_person_paid").checked = false;
   if (!IS_BSU_RESEARCHER) {
@@ -41,10 +44,20 @@ function openPaymentModal() {
 
 function closePaymentModal() {
   paymentModal.classList.remove("open");
+  currentPaymentProtocolId = null;
 }
 
 paymentModal.addEventListener("click", (e) => {
   if (e.target === paymentModal) closePaymentModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (
+    e.key === "Escape" &&
+    !e.defaultPrevented &&
+    paymentModal.classList.contains("open")
+  )
+    closePaymentModal();
 });
 
 function resetPaymentFilePicker() {
@@ -71,7 +84,7 @@ async function submitPaymentProof() {
   const method = getSelectedPaymentMethod();
 
   const formData = new FormData();
-  formData.append("protocol_id", PROTOCOL_ID);
+  formData.append("protocol_id", currentPaymentProtocolId);
   formData.append("payment_method", method);
   formData.append("csrf_token", CSRF_TOKEN);
 
@@ -118,12 +131,16 @@ async function submitPaymentProof() {
     method === "online" ? createUploadProgressBar(progressContainer) : null;
 
   try {
-    const data = await uploadWithProgress(PAYMENT_PROOF_API, formData, {
-      headers: {
-        "X-CSRF-Token": CSRF_TOKEN,
+    const data = await uploadWithProgress(
+      ROOT_URL + "/apply/payment_proof",
+      formData,
+      {
+        headers: {
+          "X-CSRF-Token": CSRF_TOKEN,
+        },
+        onProgress: bar ? (pct) => bar.update(pct) : undefined,
       },
-      onProgress: bar ? (pct) => bar.update(pct) : undefined,
-    });
+    );
 
     if (data.success) {
       window.location.reload();

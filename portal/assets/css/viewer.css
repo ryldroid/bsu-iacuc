@@ -1,55 +1,16 @@
-/* ===== Viewer palette (light) ===== */
+/* ===== Viewer canvas ===== */
 .viewer-body {
-  --viewer-canvas: #2b2b2b;
-  --viewer-canvas-text: #94a3b8;
-  --viewer-text: #1a1a1a;
-  --viewer-bar: #d8ddd8;
-  --viewer-bar-border: #bcc4bc;
-  --viewer-subbar: #cfd5cf;
-  --viewer-surface: #e4e8e4;
-  --viewer-surface-deep: #ebeeeb;
-  --viewer-surface-hover: #c8cfc8;
-  --viewer-border: #b4bcb4;
-  --viewer-border-strong: #8e988e;
-  --viewer-title: #1f2a22;
-  --viewer-text-soft: #333f36;
-  --viewer-muted: #4f5b52;
-  --viewer-faint: #4f5b52;
-  --viewer-highlight: #f3ead0;
-  --viewer-queued: rgba(180, 83, 9, 0.1);
-  --viewer-green: #15803d;
-  --viewer-green-bg: #cfe5d3;
-  --viewer-green-border: #8fc19b;
-  --viewer-green-soft: #166534;
+  --viewer-canvas: var(--hover-surface);
 }
 
-/* ===== Viewer palette (dark) ===== */
 [data-theme="dark"] .viewer-body {
-  --viewer-text: #f0f0f0;
-  --viewer-bar: #1a1a2e;
-  --viewer-bar-border: #333;
-  --viewer-subbar: #16213e;
-  --viewer-surface: #1e293b;
-  --viewer-surface-deep: #0f172a;
-  --viewer-surface-hover: #263449;
-  --viewer-border: #334155;
-  --viewer-border-strong: #475569;
-  --viewer-title: #e2e8f0;
-  --viewer-text-soft: #cbd5e1;
-  --viewer-muted: #94a3b8;
-  --viewer-faint: #64748b;
-  --viewer-highlight: #1c1917;
-  --viewer-queued: rgba(180, 83, 9, 0.15);
-  --viewer-green: #4ade80;
-  --viewer-green-bg: #052e16;
-  --viewer-green-border: #166534;
-  --viewer-green-soft: #86efac;
+  --viewer-canvas: var(--page-background);
 }
 
 /* ===== Viewer layout ===== */
 .viewer-body {
   background: var(--page-background);
-  color: var(--viewer-text);
+  color: var(--primary-text);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -62,16 +23,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 1.2rem;
-  background: var(--viewer-bar);
-  border-bottom: 1px solid var(--viewer-bar-border);
+  background: var(--card-background);
+  border-bottom: 1px solid var(--divider-color);
   flex-shrink: 0;
   gap: 0.5rem;
   flex-wrap: wrap;
   min-height: 48px;
-}
-
-.notice-btns {
-  margin-left: auto;
 }
 
 .viewer-topbar-left,
@@ -85,7 +42,7 @@
 .viewer-title {
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--viewer-title);
+  color: var(--primary-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,19 +57,20 @@
 
 .ver-badge {
   font-size: 0.78rem;
-  color: var(--viewer-muted);
-  background: var(--viewer-surface);
-  border: 1px solid var(--viewer-border);
-  border-radius: 4px;
+  color: var(--secondary-text);
+  background: var(--page-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  box-shadow: none;
   padding: 1px 6px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .ver-badge--green {
-  color: var(--viewer-green);
-  border-color: var(--viewer-green-border);
-  background: var(--viewer-green-bg);
+  color: var(--status-success-text);
+  border-color: var(--success-border-soft);
+  background: var(--status-success-bg);
 }
 
 /* ===== Version switcher ===== */
@@ -130,17 +88,18 @@
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  color: var(--viewer-muted);
+  color: var(--secondary-text);
   flex-shrink: 0;
 }
 
 .version-nav-btn:hover {
-  background: var(--viewer-surface);
-  color: var(--viewer-title);
+  background: var(--card-background);
+  color: var(--primary-text);
 }
 
 .version-nav-btn.is-disabled {
-  color: var(--viewer-border-strong);
+  color: var(--muted-text);
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -153,8 +112,8 @@
 }
 
 .ver-badge--dropdown:hover {
-  background: var(--viewer-surface-hover);
-  color: var(--viewer-title);
+  background: var(--table-row-hover);
+  color: var(--primary-text);
 }
 
 .version-dropdown-menu {
@@ -168,10 +127,10 @@
   max-width: calc(100vw - 24px);
   max-height: 280px;
   overflow-y: auto;
-  background: var(--viewer-surface);
-  border: 1px solid var(--viewer-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 8px 24px var(--shadow-color);
   padding: 4px;
 }
 
@@ -183,19 +142,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
-  border-radius: 6px;
-  color: var(--viewer-text-soft);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  color: var(--primary-text);
   text-decoration: none;
 }
 
 .version-dropdown-item:hover {
-  background: var(--viewer-surface-hover);
+  background: var(--table-row-hover);
 }
 
 .version-dropdown-item.is-current {
-  background: var(--viewer-green-bg);
-  color: var(--viewer-green);
+  background: var(--brand-surface-tint);
+  color: var(--brand-text);
 }
 
 .version-dropdown-item-num {
@@ -214,17 +173,17 @@
 
 .version-dropdown-item-date {
   font-size: 0.7rem;
-  color: var(--viewer-muted);
+  color: var(--secondary-text);
   white-space: nowrap;
 }
 
 .version-dropdown-item.is-current .version-dropdown-item-date {
-  color: var(--viewer-green-soft);
+  color: var(--brand-text);
 }
 
 .page-indicator {
   font-size: 0.82rem;
-  color: var(--viewer-muted);
+  color: var(--secondary-text);
   white-space: nowrap;
 }
 
@@ -239,9 +198,33 @@
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
-  color: var(--viewer-title);
-  background: var(--viewer-surface);
-  border: 1px solid var(--viewer-border);
+  color: var(--primary-text);
+  background: var(--page-background);
+  border: 1px solid var(--divider-color);
+}
+
+.status-badge-icon--under-review {
+  background: var(--status-color-under-review);
+}
+
+.status-badge-icon--needs-revision {
+  background: var(--status-color-needs-revision);
+}
+
+.status-badge-icon--reviewed {
+  background: var(--status-color-reviewed);
+}
+
+.status-badge-icon--endorsed {
+  background: var(--status-color-endorsed);
+}
+
+.status-badge-icon--approved {
+  background: var(--status-color-approved);
+}
+
+.status-badge-icon--neutral {
+  background: var(--status-color-neutral);
 }
 
 .status-badge-icon {
@@ -261,19 +244,19 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 1.2rem;
-  background: var(--viewer-subbar);
-  border-bottom: 1px solid var(--viewer-bar-border);
+  background: var(--page-background);
+  border-bottom: 1px solid var(--divider-color);
   flex-shrink: 0;
 }
 
 .annot-toolbar svg {
   flex-shrink: 0;
-  color: var(--viewer-faint);
+  color: var(--secondary-text);
 }
 
 .toolbar-hint {
   font-size: 0.8rem;
-  color: var(--viewer-faint);
+  color: var(--secondary-text);
 }
 
 /* ===== Viewer notes (amendment, CCARD and deletion notes above the document) ===== */
@@ -335,7 +318,7 @@
 }
 
 .return-reason-bar-comment {
-  color: #fc4d4d;
+  color: var(--danger-color);
 }
 
 .viewer-review-actions {
@@ -346,58 +329,57 @@
 
 /* ===== Tool buttons ===== */
 .tool-btn {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--viewer-border-strong);
-  background: var(--viewer-surface);
-  color: var(--viewer-text-soft);
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--divider-color);
+  color: var(--primary-text);
+  box-shadow: 0 2px 4px var(--shadow-color-soft);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .tool-btn:hover {
-  background: var(--viewer-surface-hover);
-  color: var(--viewer-title);
+  background: var(--brand-color-hover);
+  color: var(--text-on-brand);
+}
+
+.tool-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
 .tool-btn--ghost {
   background: transparent;
-  border-color: var(--viewer-border-strong);
-  color: var(--viewer-text-soft);
+  box-shadow: none;
 }
 
 .tool-btn--ghost:hover {
-  background: var(--viewer-surface);
-  border-color: var(--viewer-faint);
-  color: var(--viewer-title);
+  background: var(--table-row-hover);
+  color: var(--primary-text);
 }
 
-.tool-btn--info {
-  background: #2563eb;
-  border-color: #60a5fa;
-  color: #fff;
+.tool-btn--success {
+  background: var(--brand-color);
+  color: var(--text-on-brand);
 }
 
-.tool-btn--info:hover {
-  background: #1d4ed8;
-  color: #fff;
+.tool-btn--danger,
+.tool-btn--urgent {
+  background: var(--danger-solid);
+  color: var(--text-on-brand);
 }
 
-.tool-btn--danger {
-  background: #b91c1c;
-  border-color: #f87171;
-  color: #fff;
-}
-
-.tool-btn--danger:hover {
-  background: #7f1d1d;
-  color: #fff;
+.tool-btn--danger:hover,
+.tool-btn--urgent:hover {
+  background: var(--danger-solid-hover);
 }
 
 .tool-btn--danger:disabled {
@@ -407,37 +389,19 @@
 }
 
 .tool-btn--warn {
-  background: #b45309;
-  border-color: #fbbf24;
-  color: #fff;
+  background: var(--warning-background);
+  color: var(--text-on-brand);
 }
 
 .tool-btn--warn:hover {
-  background: #92400e;
-  color: #fff;
-}
-
-.tool-btn--success {
-  background: #16a34a;
-  border-color: var(--viewer-green);
-  color: #fff;
-}
-
-.tool-btn--success:hover {
-  background: #14532d;
-  color: #fff;
+  background: color-mix(in srgb, var(--warning-background) 80%, #000);
 }
 
 .tool-btn--urgent {
-  background: #b91c1c;
-  border-color: #f87171;
-  color: #fff;
   animation: urgentPulse 1.8s ease-in-out infinite;
 }
 
 .tool-btn--urgent:hover {
-  background: #7f1d1d;
-  color: #fff;
   animation: none;
 }
 
@@ -445,11 +409,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger-solid) 55%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgba(248, 113, 113, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger-solid) 0%, transparent);
   }
 }
 
@@ -471,15 +435,15 @@
   justify-content: center;
   gap: 0.75rem;
   background: var(--viewer-canvas);
-  color: var(--viewer-canvas-text);
+  color: var(--primary-text);
   font-size: 0.82rem;
 }
 
 .viewer-loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--viewer-border);
-  border-top-color: var(--viewer-green);
+  border: 3px solid var(--divider-color);
+  border-top-color: var(--brand-text);
   border-radius: 50%;
   animation: btn-busy-spin .8s linear infinite;
 }
@@ -498,7 +462,7 @@
 /* ===== Per-page wrapper ===== */
 .page-wrapper {
   position: relative;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 16px var(--shadow-color);
   display: block;
   line-height: 0;
 }
@@ -510,12 +474,11 @@
   filter: brightness(0.94);
 }
 
-/* Older signed scans uploaded as JPG/PNG */
 .scan-image {
   display: block;
   max-width: 100%;
   height: auto;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 16px var(--shadow-color);
 }
 
 /* ===== Annotation overlay ===== */
@@ -529,34 +492,33 @@
 
 .annot-ghost {
   position: absolute;
-  border: 2px dashed #f59e0b;
-  background: rgba(245, 158, 11, 0.08);
+  border: 2px dashed var(--brand-color);
+  background: var(--brand-tint-active);
   pointer-events: none;
 }
 
 .annot-box {
   position: absolute;
-  border: 2px solid #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  border: 2px solid var(--danger-solid);
+  background: color-mix(in srgb, var(--danger-solid) 10%, transparent);
   cursor: pointer;
-  transition: background 0.15s;
 }
 
-.annot-box:hover,
-.annot-box.highlight {
-  background: rgba(239, 68, 68, 0.25);
+.annot-box:hover {
+  background: color-mix(in srgb, var(--danger-solid) 25%, transparent);
 }
 
 .annot-box.highlight {
-  border-color: #f59e0b;
+  border-color: var(--brand-color);
+  background: var(--brand-tint-active);
 }
 
 .annot-label {
   position: absolute;
   top: -10px;
   left: -1px;
-  background: #ef4444;
-  color: #fff;
+  background: var(--danger-solid);
+  color: var(--text-on-brand);
   font-size: 0.7rem;
   font-weight: 700;
   padding: 1px 5px;
@@ -568,42 +530,41 @@
 /* ===== Annotation sidebar ===== */
 .annot-sidebar {
   width: 260px;
-  background: var(--viewer-surface);
-  border-left: 1px solid var(--viewer-border);
+  background: var(--sidebar-background);
+  box-shadow: -2px 0 4px var(--shadow-color-soft);
   overflow-y: auto;
   padding: 1rem;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .annot-sidebar h3 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.78rem;
-  color: var(--viewer-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--brand-text);
+  border-bottom: 2px solid var(--brand-text);
   flex-shrink: 0;
 }
 
 .annot-item {
-  background: var(--viewer-surface-deep);
-  border: 1px solid var(--viewer-border);
-  border-radius: 6px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
   padding: 0.75rem;
   margin-bottom: 0.6rem;
   cursor: pointer;
-  transition: border-color 0.15s;
 }
 
 .annot-item:hover {
-  border-color: #ef4444;
+  border-color: var(--brand-color-hover);
+  background: var(--hover-surface-soft);
 }
 
 .annot-item.highlight {
-  border-color: #f59e0b;
-  background: var(--viewer-highlight);
+  border-color: var(--brand-color);
+  background: var(--brand-surface-tint);
 }
 
 .annot-item-header {
@@ -614,57 +575,47 @@
 }
 
 .annot-num {
-  background: #ef4444;
-  color: #fff;
+  background: var(--danger-solid);
+  color: var(--text-on-brand);
   font-size: 0.7rem;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
 .annot-page {
   font-size: 0.75rem;
-  color: var(--viewer-faint);
+  color: var(--secondary-text);
   flex: 1;
+  white-space: nowrap;
 }
 
+.annot-edit,
 .annot-delete {
   background: none;
-  border: none;
-  color: var(--viewer-faint);
-  cursor: pointer;
+  box-shadow: none;
+  color: var(--secondary-text);
   font-size: 0.82rem;
   padding: 2px 4px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.annot-delete:hover {
-  background: rgba(239, 68, 68, .25);
-  color: #ef4444;
-}
-
-.annot-edit {
-  background: none;
-  border: none;
-  color: var(--viewer-faint);
-  cursor: pointer;
-  font-size: 0.82rem;
-  padding: 2px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
 .annot-edit:hover {
-  background: rgba(96, 165, 250, .25);
-  color: #60a5fa;
+  background: var(--brand-surface-tint);
+  color: var(--brand-text);
+}
+
+.annot-delete:hover {
+  background: var(--danger-background-soft);
+  color: var(--danger-color);
 }
 
 .annot-comment {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--viewer-text-soft);
+  color: var(--primary-text);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -672,11 +623,11 @@
 .annot-date {
   margin: 0.4rem 0 0;
   font-size: 0.7rem;
-  color: var(--viewer-faint);
+  color: var(--secondary-text);
 }
 
 .annot-empty {
-  color: var(--viewer-faint);
+  color: var(--secondary-text);
   font-size: 0.82rem;
   text-align: center;
   padding: 1.5rem 0;
@@ -687,11 +638,11 @@
   position: fixed;
   z-index: 300;
   width: min(280px, calc(100vw - 20px));
-  background: var(--viewer-surface);
-  border: 1px solid var(--viewer-border);
-  border-radius: 8px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
   padding: 0.75rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  box-shadow: 0 8px 24px var(--shadow-color);
   display: none;
 }
 
@@ -701,8 +652,8 @@
 
 .annot-popup-close {
   background: none;
-  border: none;
-  color: var(--viewer-faint);
+  box-shadow: none;
+  color: var(--secondary-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -711,7 +662,11 @@
 }
 
 .annot-popup-close:hover {
-  color: var(--viewer-title);
+  color: var(--primary-text);
+}
+
+.annot-popup-actions[hidden] {
+  display: none;
 }
 
 .annot-popup-actions {
@@ -719,7 +674,7 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.6rem;
-  border-top: 1px solid var(--viewer-border);
+  border-top: 1px solid var(--divider-color);
 }
 
 .annot-popup-actions .annot-edit,
@@ -732,15 +687,14 @@
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--viewer-border);
+  border: 1px solid var(--divider-color);
 }
 
 /* ===== Modal overrides for viewer context ===== */
 .viewer-body .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .6);
+  background: var(--backdrop-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -755,21 +709,6 @@
   pointer-events: all;
 }
 
-.viewer-body .modal-card:not(.panel-modal-card) {
-  background: var(--viewer-surface);
-  color: var(--viewer-title);
-  border: 1px solid var(--viewer-border);
-  border-radius: 10px;
-  padding: 1.5rem;
-  width: min(420px, 90vw);
-}
-
-.viewer-body .modal-card:not(.panel-modal-card) h2 {
-  color: var(--viewer-title);
-  font-size: 1rem;
-  margin: 0 0 1rem 0;
-}
-
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -777,78 +716,12 @@
   margin-top: 1rem;
 }
 
-#commentText {
-  width: 100%;
-  padding: 0.6rem;
-  background: var(--viewer-surface-deep);
-  color: var(--viewer-title);
-  border: 1px solid var(--viewer-border);
-  border-radius: 6px;
-  font-size: 0.92rem;
-  resize: vertical;
-  margin-top: 0.5rem;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-#commentText:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, .25);
-}
-
 .error-msg {
-  color: #ef4444;
+  color: var(--danger-color);
   padding: 1rem;
-  background: var(--viewer-surface);
-  border-radius: 8px;
+  background: var(--card-background);
+  border-radius: var(--btn-radius);
   text-align: center;
-}
-
-/* ===== Notice bar (staff submitter info) ===== */
-.notice-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 14px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  font-size: .8rem;
-  color: #0c4a6e;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.notice-bar .tool-btn {
-  margin-left: auto;
-  background: #0c4a6e;
-  border-color: #0369a1;
-  color: #e0f2fe;
-}
-
-.notice-bar .tool-btn:hover {
-  background: #0369a1;
-  color: #fff;
-}
-
-[data-theme="dark"] .notice-bar {
-  background: #0c2a3d;
-  border-color: #0c4a6e;
-  color: #bae6fd;
-}
-
-[data-theme="dark"] .notice-bar .tool-btn {
-  background: #0369a1;
-  border-color: #0ea5e9;
-}
-
-[data-theme="dark"] .notice-bar .tool-btn:hover {
-  background: #0284c7;
-}
-
-/* ===== Mobile sidebar toggle ===== */
-.sidebar-toggle {
-  display: none;
 }
 
 /* ===== Responsive ===== */
@@ -907,16 +780,6 @@
     display: none;
   }
 
-  .notice-bar {
-    font-size: 0.75rem;
-  }
-
-  .notice-bar .tool-btn {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-
   .viewer-body {
     height: auto;
     min-height: 100vh;
@@ -949,29 +812,28 @@
 
 /* ===== Queued (offline) annotation indicators ===== */
 .annot-box--queued {
-  border-color: #b45309;
-  background: rgba(180, 83, 9, 0.08);
+  border-color: var(--warning-text);
+  background: color-mix(in srgb, var(--warning-text) 8%, transparent);
 }
 
 .annot-box--queued .annot-label {
-  background: #b45309;
+  background: var(--warning-text);
+  color: var(--card-background);
 }
 
 .annot-item--queued {
-  background: var(--viewer-queued);
-  border-color: #b45309;
+  border-color: var(--warning-text);
 }
 
 .annot-queued-badge {
   font-size: 0.62em;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #92400e;
-  background: #fde68a;
-  border-radius: 4px;
+  color: var(--status-warning-text);
+  background: var(--status-warning-bg);
+  border-radius: var(--radius);
   padding: 2px 6px;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 /* ===== Return for Revision modal ===== */
@@ -1042,4 +904,29 @@
 #annotOfflineNote.helper {
   margin-bottom: 1em;
   font-style: italic;
+}
+
+/* ===== Deletion request rejected modal ===== */
+.deletion-rejected-reason {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--danger-background-soft);
+}
+
+.deletion-rejected-reason-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--danger-color);
+}
+
+.deletion-rejected-reason p {
+  margin: 0;
+  font-size: 0.92em;
+  line-height: 1.5;
+  color: var(--primary-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

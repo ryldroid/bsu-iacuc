@@ -336,20 +336,39 @@ include dirname(__DIR__) . '/includes/guide.php';
 
 <!-- ===== Role change confirmation modal ===== -->
 <div class="modal-backdrop" id="roleConfirmBackdrop" data-static>
-    <div class="modal-card">
-        <h2>Confirm Role Change</h2>
-        <p class="helper" id="roleConfirmText"></p>
-
-        <div id="roleConfirmError" class="alert error-messages" hidden></div>
-
-        <div class="role-confirm-field">
-            <label for="roleConfirmPassword">Enter your password to confirm</label>
-            <input type="password" id="roleConfirmPassword" class="role-confirm-password" autocomplete="current-password">
+    <div class="modal-card panel-modal-card">
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#shield-check-icon" />
+                </svg>
+            </span>
+            <p class="modal-title">Confirm Role Change</p>
+            <button class="modal-close" type="button" onclick="closeRoleConfirm()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
         </div>
+        <div class="panel-modal-body">
+            <p class="helper" id="roleConfirmText"></p>
 
-        <div class="modal-actions">
-            <button class="button" type="button" onclick="closeRoleConfirm()">Cancel</button>
-            <button class="button btn-apply" type="button" id="roleConfirmSubmitBtn" onclick="submitRoleConfirm()">Confirm</button>
+            <div id="roleConfirmError" class="alert error-messages" hidden></div>
+
+            <div class="role-confirm-field">
+                <label for="roleConfirmPassword">Enter your password to confirm</label>
+                <input type="password" id="roleConfirmPassword" class="role-confirm-password" autocomplete="current-password">
+            </div>
+
+            <div class="modal-actions">
+                <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeRoleConfirm()">Cancel</button>
+                <button class="confirm-modal-btn confirm-modal-ok" type="button" id="roleConfirmSubmitBtn" onclick="submitRoleConfirm()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#check-icon" />
+                    </svg>
+                    Confirm
+                </button>
+            </div>
         </div>
     </div>
 </div>

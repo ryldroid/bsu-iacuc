@@ -6,6 +6,12 @@ class UserModel extends Model
 
   public const RESEARCHER_TYPES = ['Student', 'Faculty', 'Staff', 'Researcher'];
 
+  // True for any Benguet State University campus
+  public static function isBsuSchool(?string $school): bool
+  {
+    return stripos(trim($school ?? ''), 'Benguet State University') !== false;
+  }
+
   // ===== GETTING USERS =====
 
   public function getUserByEmail($email)

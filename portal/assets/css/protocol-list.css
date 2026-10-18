@@ -680,6 +680,7 @@
   }
 
   .protocol {
+    position: relative;
     padding: 14px 16px;
     gap: 12px;
   }
@@ -720,6 +721,16 @@
 
   .actions-secondary .action-link {
     padding: 8px 4px;
+  }
+
+  .actions-secondary .protocol-menu {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+  }
+
+  .research-title {
+    padding-right: 32px;
   }
 
   .empty-state {

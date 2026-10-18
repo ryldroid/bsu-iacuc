@@ -1,47 +1,6 @@
 /* Styles for the shared protocol modals (includes/protocol-modals.php).
    Loaded by that include, and by pages that reuse the notice and document-row blocks. */
 
-/* ===== Modal shell ===== */
-.panel-modal-card {
-  background: var(--card-background);
-  color: var(--primary-text);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px var(--shadow-color-modal);
-  width: min(480px, calc(100vw - 32px));
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 0;
-}
-
-.panel-modal-body {
-  padding: 1.25rem 1.5rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.panel-modal-intro {
-  font-size: 0.88em;
-  color: var(--muted-text);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.panel-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-}
-
-.panel-modal-actions[hidden] {
-  display: none;
-}
-
-.panel-modal-body .modal-actions {
-  margin-top: .5rem;
-}
-
 /* ===== Modal form fields ===== */
 .return-comment-label {
   font-size: 0.82em;
@@ -256,14 +215,6 @@
   display: none;
 }
 
-/* ===== Modal buttons with an icon ===== */
-.panel-modal-actions .confirm-modal-btn,
-.file-popup-footer .confirm-modal-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 /* ===== Payment history timeline ===== */
 .payment-timeline {
   display: flex;
@@ -420,38 +371,6 @@
 /* ===== Re-submit protocol modal ===== */
 .resub-card {
   width: min(540px, calc(100vw - 32px));
-}
-
-.resub-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.resub-header-text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.resub-header-text .modal-title {
-  overflow-wrap: anywhere;
-}
-
-.resub-header-icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--status-success-bg);
-  color: var(--status-success-text);
-}
-
-.resub-header-icon svg {
-  width: 20px;
-  height: 20px;
 }
 
 .resub-body {
@@ -654,11 +573,6 @@
   margin-top: .25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--divider-color-subtle);
-}
-
-.resub-actions .tool-btn:disabled {
-  opacity: .5;
-  cursor: not-allowed;
 }
 
 @media (max-width: 480px) {

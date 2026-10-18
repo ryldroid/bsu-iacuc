@@ -84,24 +84,6 @@
     font-size: 0.68em;
 }
 
-.iq-panel-discard-btn {
-    flex-shrink: 0;
-    font-size: 0.72em;
-    padding: 5px 12px;
-    color: var(--danger-color);
-    box-shadow: none;
-    border: 1px solid var(--danger-border-soft);
-    border-radius: var(--btn-radius);
-    background: var(--danger-background-soft);
-    margin: 0;
-}
-
-.iq-panel-discard-btn:hover {
-    background: var(--danger-color);
-    color: var(--text-on-brand);
-    border-color: var(--danger-color);
-}
-
 /* ===== Queue entry rows ===== */
 
 .iq-entry {
@@ -153,7 +135,7 @@
 }
 
 .iq-entry-discard:hover {
-    background: var(--danger-color);
+    background: var(--danger-solid);
     color: var(--text-on-brand);
-    border-color: var(--danger-color);
+    border-color: var(--danger-solid);
 }

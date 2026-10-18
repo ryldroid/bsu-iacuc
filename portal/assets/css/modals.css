@@ -45,16 +45,45 @@
     margin-top: 1.5rem;
 }
 
-.modal-actions button,
-.modal-actions .button {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+/* ===== Modal shell ===== */
+.panel-modal-card {
+    background: var(--card-background);
+    color: var(--primary-text);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow-color-modal);
+    width: min(480px, calc(100vw - 32px));
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.panel-modal-body {
+    padding: 1.25rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.panel-modal-intro {
+    font-size: 0.88em;
+    color: var(--muted-text);
     margin: 0;
-    padding: 9px 12px;
-    font-family: var(--font-body);
-    font-size: .95rem;
-    justify-content: center;
+    line-height: 1.5;
+}
+
+.panel-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.panel-modal-actions[hidden] {
+    display: none;
+}
+
+.panel-modal-body .modal-actions {
+    margin-top: .5rem;
 }
 
 /* ===== Announcement & welcome modals ===== */
@@ -130,15 +159,6 @@
     margin-top: 1em;
 }
 
-.welcome-actions .welcome-next {
-    background: var(--brand-color);
-    color: var(--text-on-brand);
-}
-
-.welcome-actions .welcome-next:hover {
-    background: var(--brand-color-hover);
-}
-
 /* ===== Spotlight guide (steps that point at a page element) ===== */
 .modal-backdrop.guide-targeting {
     background: transparent;
@@ -175,9 +195,9 @@ html:has(.modal-backdrop.open.guide-targeting) {
 
 .modal-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     padding: 1.25rem 1.5rem 1rem;
     border-bottom: 1px solid var(--divider-color);
 }
@@ -196,6 +216,45 @@ html:has(.modal-backdrop.open.guide-targeting) {
     color: var(--primary-text);
     line-height: 1.4;
     min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Icon tile at the start of every modal header. Put it first inside
+   .modal-header; whatever follows it takes the remaining width. */
+.modal-header-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--status-success-bg);
+    color: var(--status-success-text);
+}
+
+.modal-header-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.modal-header-icon--warn {
+    background: var(--status-warning-bg);
+    color: var(--status-warning-text);
+}
+
+.modal-header-icon--danger {
+    background: var(--status-danger-bg);
+    color: var(--status-danger-text);
+}
+
+.modal-header-icon+* {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.file-popup-card .modal-header {
+    flex-shrink: 0;
 }
 
 .modal-close {
@@ -348,14 +407,6 @@ html:has(.modal-backdrop.open.guide-targeting) {
     margin-top: 0;
 }
 
-#commentDialogActions #commentDialogSave {
-    order: 2;
-}
-
-#commentDialogActions #commentDialogSave~button {
-    order: 1;
-}
-
 /* ===== File preview popup (extends .modal-card) ===== */
 .file-popup-card {
     max-width: 1200px;
@@ -365,26 +416,6 @@ html:has(.modal-backdrop.open.guide-targeting) {
     display: flex;
     flex-direction: column;
     max-height: 96vh;
-}
-
-.file-popup-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: var(--divider-color-subtle);
-    border-bottom: 1px solid var(--divider-color);
-    flex-shrink: 0;
-}
-
-.file-popup-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--primary-text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .file-popup-frame {
@@ -492,12 +523,6 @@ html:has(.modal-backdrop.open.guide-targeting) {
     color: var(--secondary-text);
     margin-top: 8px;
     margin-bottom: 8px;
-}
-
-.modal-subtitle {
-    font-size: 0.85rem;
-    color: var(--secondary-text);
-    margin-top: 2px;
 }
 
 /* ===== Modal file-upload row: a labeled file picker inside a modal,
@@ -621,7 +646,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
     margin: 0;
     border: none;
     border-radius: 50%;
-    background: var(--danger-color);
+    background: var(--danger-solid);
     color: #fff;
     font-size: .85rem;
     line-height: 1;
@@ -630,7 +655,7 @@ html:has(.modal-backdrop.open.guide-targeting) {
 }
 
 .modal-file-preview-remove:hover {
-    background: var(--danger-color-hover);
+    background: var(--danger-solid-hover);
 }
 
 .modal-file-preview-add {
@@ -712,8 +737,12 @@ html:has(.modal-backdrop.open.guide-targeting) {
 }
 
 .confirm-modal-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     cursor: pointer;
 
     border: none;
@@ -750,13 +779,33 @@ html:has(.modal-backdrop.open.guide-targeting) {
     outline-offset: 2px;
 }
 
+.confirm-modal-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.confirm-modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .confirm-modal-ok-danger {
-    background: var(--danger-color);
+    background: var(--danger-solid);
+}
+
+.confirm-modal-ok-warn {
+    background: var(--warning-background);
+}
+
+.confirm-modal-ok-warn:hover,
+.confirm-modal-ok-warn:focus-visible {
+    background: color-mix(in srgb, var(--warning-background) 80%, #000);
 }
 
 .confirm-modal-ok-danger:hover,
 .confirm-modal-ok-danger:focus-visible {
-    background: var(--danger-color-hover);
+    background: var(--danger-solid-hover);
 }
 
 /* ===== Review Payment modal (extends .file-popup-card) ===== */

@@ -143,16 +143,16 @@ $activeTab     = $activeTab     ?? 'announcements';
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <div class="records-form-grid" style="margin-bottom: 1.25rem;">
                 <div class="records-form-group records-form-full">
-                  <label for="banner_title">Banner Title</label>
+                  <label class="field-label" for="banner_title">Banner Title</label>
                   <input type="text" id="banner_title" name="banner_title"
                     value="<?= htmlspecialchars($settings['banner_title'] ?? '', ENT_QUOTES) ?>">
                 </div>
                 <div class="records-form-group records-form-full">
-                  <label for="about_paragraph_1">About IACUC &ndash; Paragraph 1</label>
+                  <label class="field-label" for="about_paragraph_1">About IACUC &ndash; Paragraph 1</label>
                   <textarea id="about_paragraph_1" name="about_paragraph_1" rows="5"><?= htmlspecialchars($settings['about_paragraph_1'] ?? '', ENT_QUOTES) ?></textarea>
                 </div>
                 <div class="records-form-group records-form-full">
-                  <label for="about_paragraph_2">About IACUC &ndash; Paragraph 2</label>
+                  <label class="field-label" for="about_paragraph_2">About IACUC &ndash; Paragraph 2</label>
                   <textarea id="about_paragraph_2" name="about_paragraph_2" rows="3"><?= htmlspecialchars($settings['about_paragraph_2'] ?? '', ENT_QUOTES) ?></textarea>
                 </div>
               </div>
@@ -295,8 +295,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="addAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="modal-header records-modal-header">
-      <h2 id="addAnnouncementModalTitle">Add Announcement</h2>
+    <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#add-icon" />
+        </svg>
+      </span>
+      <p class="modal-title" id="addAnnouncementModalTitle">Add Announcement</p>
       <button type="button" class="modal-close" data-close="addAnnouncementModal" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
@@ -307,16 +312,22 @@ include dirname(__DIR__) . '/includes/guide.php';
       <div class="alert error-messages" id="addAnnouncementError" hidden></div>
       <div class="records-form-grid">
         <div class="records-form-group records-form-full">
-          <label for="add_ann_title">Title (optional)</label>
+          <label class="field-label" for="add_ann_title">Title (optional)</label>
           <input type="text" id="add_ann_title" name="title" placeholder="e.g. IACUC Protocol Orientation">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="add_ann_body">Content (optional)</label>
+          <label class="field-label" for="add_ann_body">Content (optional)</label>
           <textarea id="add_ann_body" name="body" rows="5"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label for="add_ann_image">Image (optional)</label>
-          <input type="file" id="add_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
+          <label class="field-label" for="add_ann_image">Image (optional)</label>
+          <label class="modal-file-picker">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#upload-icon" />
+            </svg>
+            Choose image
+            <input type="file" id="add_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
+          </label>
           <div class="ann-image-preview-wrap" id="add_ann_image_preview_wrap" hidden>
             <img id="add_ann_image_preview" src="" alt="Selected image preview">
             <button type="button" class="image-zoom-btn" id="add_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
@@ -330,8 +341,13 @@ include dirname(__DIR__) . '/includes/guide.php';
       </div>
     </div>
     <div class="records-modal-footer">
-      <button type="button" class="row-btn" data-close="addAnnouncementModal">Cancel</button>
-      <button type="button" class="row-btn row-btn-primary" id="addAnnouncementSave">Post Announcement</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="addAnnouncementModal">Cancel</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="addAnnouncementSave">
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#announcement-icon" />
+        </svg>
+        Post Announcement
+      </button>
     </div>
   </div>
 </div>
@@ -339,8 +355,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
 <div class="modal-backdrop" id="editAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="modal-header records-modal-header">
-      <h2 id="editAnnouncementModalTitle">Edit Announcement</h2>
+    <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#edit-icon" />
+        </svg>
+      </span>
+      <p class="modal-title" id="editAnnouncementModalTitle">Edit Announcement</p>
       <button type="button" class="modal-close" data-close="editAnnouncementModal" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
@@ -352,16 +373,22 @@ include dirname(__DIR__) . '/includes/guide.php';
       <div class="records-form-grid">
         <input type="hidden" id="edit_ann_id">
         <div class="records-form-group records-form-full">
-          <label for="edit_ann_title">Title (optional)</label>
+          <label class="field-label" for="edit_ann_title">Title (optional)</label>
           <input type="text" id="edit_ann_title" name="title">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="edit_ann_body">Content (optional)</label>
+          <label class="field-label" for="edit_ann_body">Content (optional)</label>
           <textarea id="edit_ann_body" name="body" rows="5"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label for="edit_ann_image">Replace image (optional)</label>
-          <input type="file" id="edit_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
+          <label class="field-label" for="edit_ann_image">Replace image (optional)</label>
+          <label class="modal-file-picker">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#upload-icon" />
+            </svg>
+            Choose image
+            <input type="file" id="edit_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
+          </label>
           <div class="ann-image-preview-wrap" id="edit_ann_image_preview_wrap" hidden>
             <img id="edit_ann_image_preview" src="" alt="Announcement image preview">
             <button type="button" class="image-zoom-btn" id="edit_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
@@ -380,8 +407,13 @@ include dirname(__DIR__) . '/includes/guide.php';
       </div>
     </div>
     <div class="records-modal-footer">
-      <button type="button" class="row-btn" data-close="editAnnouncementModal">Cancel</button>
-      <button type="button" class="row-btn row-btn-primary" id="editAnnouncementSave">Save Changes</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="editAnnouncementModal">Cancel</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="editAnnouncementSave">
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#check-icon" />
+        </svg>
+        Save Changes
+      </button>
     </div>
   </div>
 </div>
@@ -389,8 +421,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
 <div class="modal-backdrop" id="officeModal" data-static role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="modal-header records-modal-header">
-      <h2 id="officeModalTitle">Add Office</h2>
+    <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#contact-icon" />
+        </svg>
+      </span>
+      <p class="modal-title" id="officeModalTitle">Add Office</p>
       <button type="button" class="modal-close" data-close="officeModal" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
@@ -402,54 +439,59 @@ include dirname(__DIR__) . '/includes/guide.php';
       <input type="hidden" id="office_id" value="">
       <div class="records-form-grid">
         <div class="records-form-group records-form-full">
-          <label for="office_name">Office Name *</label>
+          <label class="field-label" for="office_name">Office Name *</label>
           <input type="text" id="office_name" maxlength="255" placeholder="e.g. Bureau of Animal Industry">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_address">Address</label>
+          <label class="field-label" for="office_address">Address</label>
           <textarea id="office_address" rows="2" maxlength="500"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_phone">Phone(s) &ndash; one per line if more than one</label>
+          <label class="field-label" for="office_phone">Phone(s) &ndash; one per line if more than one</label>
           <textarea id="office_phone" rows="2" maxlength="255"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_email">Email(s) &ndash; one per line if more than one</label>
+          <label class="field-label" for="office_email">Email(s) &ndash; one per line if more than one</label>
           <textarea id="office_email" rows="2" maxlength="500"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_facebook_url">Facebook URL</label>
+          <label class="field-label" for="office_facebook_url">Facebook URL</label>
           <input type="url" id="office_facebook_url" maxlength="500" placeholder="https://www.facebook.com/...">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_facebook_label">Facebook Link Text</label>
+          <label class="field-label" for="office_facebook_label">Facebook Link Text</label>
           <input type="text" id="office_facebook_label" maxlength="255" placeholder="e.g. BSU - CCARD">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_website_url">Website URL</label>
+          <label class="field-label" for="office_website_url">Website URL</label>
           <input type="url" id="office_website_url" maxlength="500" placeholder="https://www.bsu.edu.ph">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_website_label">Website Link Text</label>
+          <label class="field-label" for="office_website_label">Website Link Text</label>
           <input type="text" id="office_website_label" maxlength="255" placeholder="e.g. bsu.edu.ph">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_director_name">Contact Person Name (optional)</label>
+          <label class="field-label" for="office_director_name">Contact Person Name (optional)</label>
           <input type="text" id="office_director_name" maxlength="255">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_director_role">Contact Person Role (optional)</label>
+          <label class="field-label" for="office_director_role">Contact Person Role (optional)</label>
           <input type="text" id="office_director_role" maxlength="255" placeholder="e.g. Director, BSU-CCARD">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="office_director_email">Contact Person Email (optional)</label>
+          <label class="field-label" for="office_director_email">Contact Person Email (optional)</label>
           <input type="email" id="office_director_email" maxlength="255">
         </div>
       </div>
     </div>
     <div class="records-modal-footer">
-      <button type="button" class="row-btn" data-close="officeModal">Cancel</button>
-      <button type="button" class="row-btn row-btn-primary" id="officeModalSave">Save Office</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="officeModal">Cancel</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="officeModalSave">
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#check-icon" />
+        </svg>
+        Save Office
+      </button>
     </div>
   </div>
 </div>
@@ -457,8 +499,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== ADD / EDIT FAQ MODAL (shared) ===== -->
 <div class="modal-backdrop" id="faqModal" data-static role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
   <div class="modal-card records-modal-card">
-    <div class="modal-header records-modal-header">
-      <h2 id="faqModalTitle">Add FAQ</h2>
+    <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#question-info-icon" />
+        </svg>
+      </span>
+      <p class="modal-title" id="faqModalTitle">Add FAQ</p>
       <button type="button" class="modal-close" data-close="faqModal" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
@@ -470,18 +517,23 @@ include dirname(__DIR__) . '/includes/guide.php';
       <input type="hidden" id="faq_id" value="">
       <div class="records-form-grid">
         <div class="records-form-group records-form-full">
-          <label for="faq_question">Question *</label>
+          <label class="field-label" for="faq_question">Question *</label>
           <input type="text" id="faq_question" placeholder="e.g. Who may avail?">
         </div>
         <div class="records-form-group records-form-full">
-          <label for="faq_answer">Answer *</label>
+          <label class="field-label" for="faq_answer">Answer *</label>
           <textarea id="faq_answer" rows="4"></textarea>
         </div>
       </div>
     </div>
     <div class="records-modal-footer">
-      <button type="button" class="row-btn" data-close="faqModal">Cancel</button>
-      <button type="button" class="row-btn row-btn-primary" id="faqModalSave">Save FAQ</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="faqModal">Cancel</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="faqModalSave">
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#check-icon" />
+        </svg>
+        Save FAQ
+      </button>
     </div>
   </div>
 </div>
@@ -770,7 +822,7 @@ include dirname(__DIR__) . '/includes/guide.php';
     const ROOT = '<?= ROOT ?>';
     const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
 
-    // ===== Modal helpers (same pattern as personnel/personnel-announcements.view.php) =====
+    // ===== Modal helpers =====
     function openModal(id) {
       const modal = document.getElementById(id);
       modal.classList.add('open');

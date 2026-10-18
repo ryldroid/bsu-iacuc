@@ -1,5 +1,5 @@
 // ===== ALERTS & TOASTS (includes/alert.php, includes/flash.php) =====
-// Success fades after its data-autodismiss delay; errors stay until fixed or dismissed.
+// Every toast fades after its data-autodismiss delay (5s for errors, 4s for success) or when dismissed.
 
 (function () {
   function dismiss(el) {
@@ -28,7 +28,8 @@
     const el = document.createElement("div");
     el.className = "form-alert form-alert--" + (isError ? "error" : "success");
     el.setAttribute("role", isError ? "alert" : "status");
-    if (!isError) el.dataset.autodismiss = 4000;
+    // Same delays as includes/alert.php: 5s for errors, 4s for success
+    el.dataset.autodismiss = isError ? 5000 : 4000;
     el.innerHTML =
       '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' +
       (isError ? "alert-triangle-icon" : "check-circle-icon") +

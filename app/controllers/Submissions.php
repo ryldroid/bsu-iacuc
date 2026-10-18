@@ -34,7 +34,7 @@ class Submissions extends Controller
 
         $hasCertOnFile = $this->userModel->hasCert($userId);
         $currentUser   = $this->userModel->getUser($userId);
-        $isBsu         = stripos(trim($currentUser['school'] ?? ''), 'Benguet State University') !== false;
+        $isBsuResearcher = UserModel::isBsuSchool($currentUser['school'] ?? '');
 
         $statuses = [
             'Under Review',
@@ -52,7 +52,7 @@ class Submissions extends Controller
             'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'hasCertOnFile'   => $hasCertOnFile,
-            'isBsu'           => $isBsu,
+            'isBsuResearcher' => $isBsuResearcher,
             'csrf'            => $this->generateCsrfToken(),
             'updatesEndpoint' => 'submissions/checkupdates',
             'updatesBaseline' => $updatesBaseline,

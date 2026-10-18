@@ -1655,11 +1655,6 @@ class Apply extends Controller
 
     // ===== PAYMENT PROOF  (POST /apply/payment_proof) =====
 
-    private function isBsuSchool(string $school): bool
-    {
-        return stripos(trim($school), 'Benguet State University') !== false;
-    }
-
     public function payment_proof(): void
     {
         $this->requireLogin();
@@ -1690,7 +1685,7 @@ class Apply extends Controller
             $this->jsonError(422, 'Payment can only be confirmed once a protocol has been reviewed.');
         }
 
-        $isBsu  = $this->isBsuSchool($protocol['submitter_school'] ?? '');
+        $isBsu  = UserModel::isBsuSchool($protocol['submitter_school'] ?? '');
         $method = $isBsu ? 'in_person' : ($_POST['payment_method'] ?? '');
         if (!in_array($method, ['in_person', 'online'], true)) {
             $this->jsonError(400, 'Please choose a payment method.');

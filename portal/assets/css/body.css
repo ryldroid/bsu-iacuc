@@ -105,6 +105,8 @@
     --required-color: red;
     --danger-color: #b91c1c;
     --danger-color-hover: #8f1d17;
+    --danger-solid: var(--danger-color);
+    --danger-solid-hover: var(--danger-color-hover);
     --danger-background-soft: #fff5f5;
     --danger-border-soft: #f0bfbf;
     --warning-background: #783b00;
@@ -113,6 +115,13 @@
     --success-text: #062b04;
     --error-background: #e8bcbc;
     --error-text: #3d0707;
+
+    --status-color-under-review: #0072B2;
+    --status-color-needs-revision: #D55E00;
+    --status-color-reviewed: #CC79A7;
+    --status-color-endorsed: #E69F00;
+    --status-color-approved: #009E73;
+    --status-color-neutral: #6b6b6b;
 
     --status-warning-bg: #fef3e2;
     --status-warning-text: #92600a;
@@ -180,6 +189,8 @@
     --required-color: #ff6b6b;
     --danger-color: #f15757;
     --danger-color-hover: #de3131;
+    --danger-solid: #c62828;
+    --danger-solid-hover: #a31f1f;
     --danger-background-soft: #3a1f1f;
     --danger-border-soft: #5c2b2b;
     --warning-background: #5c2e00;
@@ -947,4 +958,12 @@ main a.underlined:hover {
 /* Utility: must beat component display rules such as .notice { display: flex } */
 .is-hidden {
     display: none !important;
+}
+
+/* ===== Field label ===== */
+.field-label {
+    font-size: 0.78em;
+    font-weight: 700;
+    color: var(--muted-text);
+    letter-spacing: 0.02em;
 }

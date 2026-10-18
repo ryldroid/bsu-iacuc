@@ -22,8 +22,18 @@ $guideShowOnce = $guideShowOnce ?? false;
       </section>
     <?php endforeach; ?>
     <div class="modal-actions welcome-actions">
-      <button type="button" class="button" data-guide-back hidden>Back</button>
-      <button type="button" class="button welcome-next" data-guide-next>Next</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-guide-back hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#back-icon" />
+        </svg>
+        Back
+      </button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" data-guide-next>
+        <span data-guide-next-label>Next</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#arrow-right-icon" />
+        </svg>
+      </button>
     </div>
   </div>
 </div>

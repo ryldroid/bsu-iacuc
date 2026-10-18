@@ -103,7 +103,9 @@ accountButton?.addEventListener("click", () =>
 document.addEventListener("click", (event) => {
   if (
     accountButton?.contains(event.target) ||
-    accountDrawer?.contains(event.target)
+    accountDrawer?.contains(event.target) ||
+    // The panel's file popup and confirm dialogs are shown over the whole page, but belong to the panel
+    event.target.closest("#accountFilePopup, .confirm-modal-overlay")
   )
     return;
   closeAccountDrawer(false);
@@ -149,6 +151,9 @@ if (moreButton && moreMenu) {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    // A file popup or confirm dialog opened from the panel handles this Escape itself
+    if (document.querySelector("#accountFilePopup.open") || e.defaultPrevented)
+      return;
     closeSidebar();
     closeAccountDrawer();
     closeMoreMenu();

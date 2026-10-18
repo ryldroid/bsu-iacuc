@@ -871,8 +871,8 @@
 
 /* ===== Delete record button ===== */
 .delete-record-btn:hover {
-  background: var(--danger-color) !important;
-  border-color: var(--danger-color) !important;
+  background: var(--danger-solid) !important;
+  border-color: var(--danger-solid) !important;
   color: var(--text-on-brand) !important;
 }
 
@@ -894,20 +894,6 @@
   max-height: 92vh;
 }
 
-.records-modal-header {
-  align-items: center;
-  padding: 1.1rem 1.4rem;
-  background: var(--divider-color-subtle);
-  flex-shrink: 0;
-}
-
-.records-modal-header h2 {
-  font-size: 1em;
-  font-weight: 700;
-  color: var(--brand-text);
-  margin: 0;
-}
-
 .records-modal-body {
   padding: 1.2rem 1.4rem;
   overflow-y: auto;
@@ -922,12 +908,6 @@
   border-top: 1px solid var(--divider-color);
   background: var(--divider-color-subtle);
   flex-shrink: 0;
-}
-
-.records-modal-footer .row-btn {
-  margin: 0;
-  padding: 8px 16px;
-  border-radius: var(--btn-radius);
 }
 
 /* ===== Record form ===== */
@@ -947,11 +927,8 @@
   grid-column: 1 / -1;
 }
 
-.records-form-group label {
-  font-size: 0.78em;
-  font-weight: 700;
-  color: var(--muted-text);
-  letter-spacing: 0.02em;
+.records-form-group .modal-file-picker {
+  align-self: flex-start;
 }
 
 .records-required {

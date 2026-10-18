@@ -98,7 +98,7 @@
 }
 
 /* ===== Re-upload modal (backdrop/card shared via modals.css) ===== */
-.modal-card label {
+.modal-card :is(.consent-item, .return-comment-label) {
     display: block;
     font-size: .8rem;
     font-weight: 600;
@@ -112,13 +112,6 @@
 .modal-card .consent-list .consent-item {
     display: flex;
     align-items: center;
-    margin-bottom: 0;
-}
-
-.modal-card input[type="file"] {
-    display: block;
-    width: 100%;
-    font-size: .85rem;
     margin-bottom: 0;
 }
 

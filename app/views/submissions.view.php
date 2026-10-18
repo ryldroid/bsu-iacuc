@@ -3,7 +3,7 @@
 /** @var array $protocols */
 /** @var array $statuses  */
 /** @var bool  $hasCertOnFile */
-/** @var bool  $isBsu */
+/** @var bool  $isBsuResearcher */
 /** @var string $csrf */
 /** @var array $actor */
 
@@ -423,8 +423,13 @@ include 'includes/guide.php';
 <!-- ===== Payment rejected modal: rejection reason + the proof the researcher submitted (read-only) ===== -->
 <div class="modal-backdrop" id="paymentRejectedModalBackdrop">
     <div class="modal-card file-popup-card review-payment-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title">Payment Proof Rejected</span>
+        <div class="modal-header">
+            <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#alert-triangle-icon" />
+                </svg>
+            </span>
+            <p class="modal-title">Payment Proof Rejected</p>
             <button class="modal-close" type="button" onclick="closePaymentRejectedModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -450,8 +455,8 @@ include 'includes/guide.php';
 
         <div class="review-payment-footer">
             <div class="modal-actions">
-                <button class="button" type="button" onclick="closePaymentRejectedModal()">Close</button>
-                <button class="button btn-apply" type="button" onclick="resubmitFromRejectedModal()">
+                <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closePaymentRejectedModal()">Close</button>
+                <button class="confirm-modal-btn confirm-modal-ok" type="button" onclick="resubmitFromRejectedModal()">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#upload-icon" />
                     </svg>
@@ -462,94 +467,13 @@ include 'includes/guide.php';
     </div>
 </div>
 
-<!-- ===== Payment modal ===== -->
-<div class="modal-backdrop" id="paymentModalBackdrop" data-static>
-    <div class="modal-card panel-modal-card">
-        <div class="modal-header">
-            <div>
-                <p class="modal-label">Pay Clearance Fee</p>
-                <p class="modal-title" id="paymentModalTitle"></p>
-            </div>
-            <button class="modal-close" type="button" onclick="closePaymentModal()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div class="panel-modal-body">
-            <p class="modal-notice">Your protocol passed review. To get your animal research clearance from the Bureau of Animal Industry, pay the Php 100.00 fee below.</p>
+<?php include 'includes/payment-modal.php'; ?>
+<script src="<?= asset_js('payment-modal.js') ?>"></script>
 
-            <div id="paymentModalError" class="alert error-messages" hidden></div>
-
-            <?php if (!$isBsu): ?>
-                <div class="consent-list">
-                    <label class="consent-item">
-                        <input type="radio" class="consent-radio" name="payment_method" value="in_person"
-                            checked onchange="handlePaymentMethodChange()">
-                        <span>Pay in person at CCARD</span>
-                    </label>
-                    <label class="consent-item">
-                        <input type="radio" class="consent-radio" name="payment_method" value="online"
-                            onchange="handlePaymentMethodChange()">
-                        <span>Pay online</span>
-                    </label>
-                </div>
-            <?php endif; ?>
-
-            <div id="paymentInPersonPanel">
-                <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
-                <div class="consent-list">
-                    <label class="consent-item">
-                        <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
-                        <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
-                    </label>
-                </div>
-            </div>
-
-            <div id="paymentOnlinePanel" hidden>
-                <p class="modal-notice">
-                    <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank" rel="noopener noreferrer">Contact the CCARD Director</a>
-                    to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
-                </p>
-
-                <div class="modal-file-row">
-                    <div class="modal-file-info">
-                        <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
-                        <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
-                    </div>
-                    <label class="modal-file-picker">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#upload-icon" />
-                        </svg>
-                        <span id="paymentFilePickerLabel">Upload</span>
-                        <input type="file" id="payment_proof_file" name="payment_proof_file"
-                            accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                            onchange="handlePaymentFileChange(this)">
-                    </label>
-                </div>
-
-                <div class="upload-progress-container" id="paymentProofProgress"></div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="button" type="button" onclick="closePaymentModal()">Back</button>
-                <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
-                    onclick="submitPaymentProof()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    <span id="paymentModalSubmitLabel">Verify Payment</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ===== Payment modal script ===== -->
+<!-- ===== Page config and hard copy claim ===== -->
 <script>
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
-    const PAYMENT_PROOF_API = <?= json_encode(ROOT . '/apply/payment_proof') ?>;
-    const IS_BSU = <?= $isBsu ? 'true' : 'false' ?>;
+    const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
     const HARD_COPY_CLAIM_API = <?= json_encode(ROOT . '/apply/hard_copy_claim') ?>;
 
     // ===== Hard copy claim =====
@@ -583,24 +507,6 @@ include 'includes/guide.php';
                 alert(navigator.onLine ? 'Network error. Please try again.' : 'You are offline. Please try again when reconnected.');
             }
         });
-    }
-
-    const paymentModal = document.getElementById('paymentModalBackdrop');
-    let currentPaymentProtocolId = null;
-
-    function getSelectedPaymentMethod() {
-        if (IS_BSU) return 'in_person';
-        const checked = document.querySelector('input[name="payment_method"]:checked');
-        return checked ? checked.value : 'in_person';
-    }
-
-    function handlePaymentMethodChange() {
-        const method = getSelectedPaymentMethod();
-        document.getElementById('paymentInPersonPanel').hidden = method !== 'in_person';
-        document.getElementById('paymentOnlinePanel').hidden = method !== 'online';
-        document.getElementById('paymentModalSubmitLabel').textContent =
-            method === 'in_person' ? 'Verify Payment' : 'Submit Proof of Payment';
-        document.getElementById('paymentModalError').hidden = true;
     }
 
     // ===== Payment rejected modal =====
@@ -674,113 +580,9 @@ include 'includes/guide.php';
         }
     }
 
-    function openPaymentModal(protocolId) {
-        currentPaymentProtocolId = protocolId;
-        document.getElementById('paymentModalTitle').textContent =
-            document.querySelector(`#protocol-${protocolId} [data-research-title]`)?.dataset.researchTitle ?? '';
-        document.getElementById('payment_proof_file').value = '';
-        resetPaymentFilePicker();
-        document.getElementById('confirm_in_person_paid').checked = false;
-        if (!IS_BSU) {
-            document.querySelector('input[name="payment_method"][value="in_person"]').checked = true;
-        }
-        document.getElementById('paymentModalError').hidden = true;
-        document.getElementById('paymentProofProgress').innerHTML = '';
-
-        handlePaymentMethodChange();
-        paymentModal.classList.add('open');
-    }
-
-    function closePaymentModal() {
-        paymentModal.classList.remove('open');
-        currentPaymentProtocolId = null;
-    }
-
-    paymentModal.addEventListener('click', e => {
-        if (e.target === paymentModal) closePaymentModal();
-    });
-
     document.addEventListener('keydown', e => {
-        if (e.key !== 'Escape') return;
-        if (paymentModal.classList.contains('open')) closePaymentModal();
-        else if (paymentRejectedModal.classList.contains('open')) closePaymentRejectedModal();
+        if (e.key === 'Escape' && paymentRejectedModal.classList.contains('open')) closePaymentRejectedModal();
     });
-
-    function resetPaymentFilePicker() {
-        document.getElementById('paymentFilePickerLabel').textContent = 'Upload';
-        const subtitle = document.getElementById('paymentFileSubtitle');
-        subtitle.textContent = 'PDF or image · max 10 MB';
-        subtitle.classList.remove('done');
-    }
-
-    function handlePaymentFileChange(input) {
-        const subtitle = document.getElementById('paymentFileSubtitle');
-        if (input.files.length) {
-            document.getElementById('paymentFilePickerLabel').textContent = 'Replace';
-            subtitle.textContent = input.files[0].name;
-            subtitle.classList.add('done');
-        } else {
-            resetPaymentFilePicker();
-        }
-    }
-
-    async function submitPaymentProof() {
-        const errBox = document.getElementById('paymentModalError');
-        const btn = document.getElementById('paymentModalSubmitBtn');
-        const method = getSelectedPaymentMethod();
-
-        const formData = new FormData();
-        formData.append('protocol_id', currentPaymentProtocolId);
-        formData.append('payment_method', method);
-        formData.append('csrf_token', CSRF_TOKEN);
-
-        if (method === 'in_person') {
-            if (!document.getElementById('confirm_in_person_paid').checked) {
-                errBox.textContent = 'Please confirm that you have paid in person.';
-                errBox.hidden = false;
-                return;
-            }
-            formData.append('confirm_in_person', '1');
-        } else {
-            const fileInput = document.getElementById('payment_proof_file');
-            if (!fileInput.files.length) {
-                errBox.textContent = 'Please select a file.';
-                errBox.hidden = false;
-                return;
-            }
-            formData.append('payment_proof_file', fileInput.files[0]);
-        }
-
-        setButtonBusy(btn, true, method === 'in_person' ? 'Verifying...' : 'Uploading...');
-        errBox.hidden = true;
-
-        const progressContainer = document.getElementById('paymentProofProgress');
-        progressContainer.innerHTML = '';
-        const bar = method === 'online' ? createUploadProgressBar(progressContainer) : null;
-
-        try {
-            const data = await uploadWithProgress(PAYMENT_PROOF_API, formData, {
-                headers: {
-                    'X-CSRF-Token': CSRF_TOKEN
-                },
-                onProgress: bar ? (pct => bar.update(pct)) : undefined
-            });
-
-            if (data.success) {
-                window.location.reload();
-            } else {
-                errBox.textContent = data.error ?? 'Something went wrong. Please try again.';
-                errBox.hidden = false;
-                setButtonBusy(btn, false);
-                if (bar) bar.remove();
-            }
-        } catch (err) {
-            errBox.textContent = err.message || 'Network error. Please try again.';
-            errBox.hidden = false;
-            setButtonBusy(btn, false);
-            if (bar) bar.remove();
-        }
-    }
 </script>
 
 <script src="<?= asset_js('pagination.js') ?>"></script>

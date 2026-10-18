@@ -5,8 +5,13 @@ include_once __DIR__ . '/pdfjs.php';
 ?>
 <div class="modal-backdrop" id="filePopupBackdrop">
   <div class="modal-card file-popup-card">
-    <div class="file-popup-header">
-      <span class="file-popup-title" id="filePopupTitle"></span>
+    <div class="modal-header">
+      <span class="modal-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+          <use href="#eye-icon" />
+        </svg>
+      </span>
+      <p class="modal-title" id="filePopupTitle"></p>
       <button class="modal-close" onclick="closeFilePopup()" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />

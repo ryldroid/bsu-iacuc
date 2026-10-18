@@ -25,6 +25,12 @@ const deletionReviewCharCount = document.getElementById(
 const deletionReviewSubmitBtn = document.getElementById(
   "deletionReviewSubmitBtn",
 );
+const deletionReviewSubmitLabel = document.getElementById(
+  "deletionReviewSubmitLabel",
+);
+const deletionReviewSubmitIcon = document.getElementById(
+  "deletionReviewSubmitIcon",
+);
 let deletionReviewAction = null;
 
 // ===== Deletion review modal =====
@@ -49,15 +55,17 @@ function selectDeletionAction(action) {
     deletionReviewIntro.textContent =
       "This will permanently delete the protocol and notify the researcher. This cannot be undone.";
     deletionReviewReasonWrap.style.display = "none";
-    deletionReviewSubmitBtn.textContent = "Approve & Delete";
-    deletionReviewSubmitBtn.className = "tool-btn tool-btn--success";
+    deletionReviewSubmitLabel.textContent = "Approve & Delete";
+    deletionReviewSubmitIcon.setAttribute("href", "#trash-icon");
+    deletionReviewSubmitBtn.classList.remove("confirm-modal-ok-danger");
   } else {
     deletionReviewLabel.textContent = "Reject Deletion Request";
     deletionReviewIntro.textContent =
       "The researcher will be notified that their deletion request was rejected, along with your explanation below.";
     deletionReviewReasonWrap.style.display = "";
-    deletionReviewSubmitBtn.textContent = "Reject Request";
-    deletionReviewSubmitBtn.className = "tool-btn tool-btn--danger";
+    deletionReviewSubmitLabel.textContent = "Reject Request";
+    deletionReviewSubmitIcon.setAttribute("href", "#close-icon");
+    deletionReviewSubmitBtn.classList.add("confirm-modal-ok-danger");
   }
 }
 

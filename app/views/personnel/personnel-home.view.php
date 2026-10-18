@@ -797,40 +797,73 @@ foreach ($protocols as $p) {
 <?php if ($personnelRole === 'staff'): ?>
     <!-- Confirm review modal -->
     <div class="modal-backdrop" id="confirmReviewBackdrop">
-        <div class="modal-card clearance-modal-card">
-            <h2>Confirm Clearances</h2>
-            <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check all entries below before proceeding.</strong> Once you proceed, each protocol is marked <strong>Approved</strong>.</p>
-
-            <div id="confirmReviewError" class="alert error-messages clearance-modal-error" hidden></div>
-
-            <div class="modal-actions">
-                <button class="button" type="button" onclick="closeConfirmReview()">Cancel</button>
-                <button class="button btn-apply" type="button" id="confirmProceedBtn" onclick="proceedConfirm()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#check-icon" />
+        <div class="modal-card panel-modal-card clearance-modal-card">
+            <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#check-circle-icon" />
                     </svg>
-                    Proceed
+                </span>
+                <p class="modal-title">Confirm Clearances</p>
+                <button class="modal-close" type="button" onclick="closeConfirmReview()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
                 </button>
+            </div>
+            <div class="panel-modal-body">
+                <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check all entries below before proceeding.</strong> Once you proceed, each protocol is marked <strong>Approved</strong>.</p>
+
+                <div id="confirmReviewError" class="alert error-messages clearance-modal-error" hidden></div>
+
+                <div class="modal-actions">
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeConfirmReview()">Cancel</button>
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="confirmProceedBtn" onclick="proceedConfirm()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-icon" />
+                        </svg>
+                        Proceed
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add/Edit IPN and AR number modal -->
     <div class="modal-backdrop" id="numberModalBackdrop" data-static>
-        <div class="modal-card">
-            <h2 id="numberModalTitle"></h2>
-            <p class="helper" id="numberModalHelper"></p>
-
-            <div id="numberModalError" class="alert error-messages" hidden></div>
-
-            <div class="clearance-number-field">
-                <label for="numberModalInput" id="numberModalLabel"></label>
-                <input type="text" id="numberModalInput">
+        <div class="modal-card panel-modal-card">
+            <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#edit-icon" />
+                    </svg>
+                </span>
+                <p class="modal-title" id="numberModalTitle"></p>
+                <button class="modal-close" type="button" onclick="closeNumberModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
             </div>
+            <div class="panel-modal-body">
+                <p class="helper" id="numberModalHelper"></p>
 
-            <div class="modal-actions">
-                <button class="button" type="button" onclick="closeNumberModal()">Cancel</button>
-                <button class="button btn-apply" type="button" id="numberModalSaveBtn" onclick="saveNumber()">Save</button>
+                <div id="numberModalError" class="alert error-messages" hidden></div>
+
+                <div class="clearance-number-field">
+                    <label for="numberModalInput" id="numberModalLabel"></label>
+                    <input type="text" id="numberModalInput">
+                </div>
+
+                <div class="modal-actions">
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeNumberModal()">Cancel</button>
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="numberModalSaveBtn" onclick="saveNumber()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-icon" />
+                        </svg>
+                        Save
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1403,6 +1436,11 @@ include dirname(__DIR__) . '/includes/guide.php';
 <div class="modal-backdrop" id="researcherModalBackdrop">
     <div class="modal-card history-modal-card researcher-modal-card">
         <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#account-icon" />
+                </svg>
+            </span>
             <div>
                 <p class="modal-label">Researcher</p>
                 <p class="modal-title" id="researcherModalName"></p>
@@ -1516,39 +1554,55 @@ include dirname(__DIR__) . '/includes/guide.php';
 
 <!-- ===== Upload Signed Scan modal (administrative staff only) ===== -->
 <div class="modal-backdrop" id="signedScanModalBackdrop" data-static>
-    <div class="modal-card">
-        <h2>Upload Signed Scan</h2>
-        <p id="signedScanSubtitle" class="modal-subtitle"></p>
-
-        <div id="signedScanError" class="alert error-messages" hidden></div>
-
-        <div class="modal-file-row">
-            <div class="modal-file-info">
-                <div class="modal-file-title">Signed protocol (scanned PDF) <span class="required-asterisk">*</span></div>
-                <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF only &middot; max 10 MB</div>
+    <div class="modal-card panel-modal-card">
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#upload-icon" />
+                </svg>
+            </span>
+            <div>
+                <p class="modal-label">Upload Signed Scan</p>
+                <p class="modal-title" id="signedScanSubtitle"></p>
             </div>
-            <label class="modal-file-picker">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#upload-icon" />
+            <button class="modal-close" type="button" onclick="closeSignedScanModal()" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
                 </svg>
-                <span id="signedScanFilePickerLabel">Upload</span>
-                <input type="file" id="signed_scan_file" name="signed_scan_file"
-                    accept=".pdf,application/pdf" required
-                    onchange="handleSignedScanFileChange(this)">
-            </label>
-        </div>
-
-        <div class="upload-progress-container" id="signedScanProgress"></div>
-
-        <div class="modal-actions">
-            <button class="button" type="button" onclick="closeSignedScanModal()">Cancel</button>
-            <button class="button btn-apply" type="button" id="signedScanSubmitBtn"
-                onclick="submitSignedScanUpload()">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#upload-icon" />
-                </svg>
-                Upload Signed Scan
             </button>
+        </div>
+        <div class="panel-modal-body">
+
+            <div id="signedScanError" class="alert error-messages" hidden></div>
+
+            <div class="modal-file-row">
+                <div class="modal-file-info">
+                    <div class="modal-file-title">Signed protocol (scanned PDF) <span class="required-asterisk">*</span></div>
+                    <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF only &middot; max 10 MB</div>
+                </div>
+                <label class="modal-file-picker">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    <span id="signedScanFilePickerLabel">Upload</span>
+                    <input type="file" id="signed_scan_file" name="signed_scan_file"
+                        accept=".pdf,application/pdf" required
+                        onchange="handleSignedScanFileChange(this)">
+                </label>
+            </div>
+
+            <div class="upload-progress-container" id="signedScanProgress"></div>
+
+            <div class="modal-actions">
+                <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeSignedScanModal()">Cancel</button>
+                <button class="confirm-modal-btn confirm-modal-ok" type="button" id="signedScanSubmitBtn"
+                    onclick="submitSignedScanUpload()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                    Upload Signed Scan
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1646,8 +1700,13 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== Verify Payment modal (administrative staff only): shows the proof image (if any), then Approve / Reject ===== -->
 <div class="modal-backdrop" id="reviewPaymentModalBackdrop" data-static>
     <div class="modal-card file-popup-card review-payment-card">
-        <div class="file-popup-header">
-            <span class="file-popup-title">Payment Proof for Validation</span>
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#shield-check-icon" />
+                </svg>
+            </span>
+            <p class="modal-title">Payment Proof for Validation</p>
             <button class="modal-close" type="button" onclick="closeReviewPaymentModal()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -1667,11 +1726,17 @@ include dirname(__DIR__) . '/includes/guide.php';
         <div class="review-payment-footer">
             <!-- Step 1: approve or start a rejection -->
             <div class="modal-actions review-payment-primary-actions" id="reviewPaymentActions">
-                <button class="button confirm-modal-ok-danger" type="button" onclick="showRejectPaymentReason()">
+                <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" onclick="showRejectPaymentReason()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
                     Reject
                 </button>
-                <button class="button btn-apply" type="button" id="reviewPaymentApproveBtn"
+                <button class="confirm-modal-btn confirm-modal-ok" type="button" id="reviewPaymentApproveBtn"
                     onclick="approveReviewedPayment()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#check-icon" />
+                    </svg>
                     Approve Payment
                 </button>
             </div>
@@ -1684,9 +1749,12 @@ include dirname(__DIR__) . '/includes/guide.php';
                 </div>
                 <div id="rejectPaymentError" class="alert error-messages clearance-modal-error" hidden></div>
                 <div class="modal-actions">
-                    <button class="button" type="button" onclick="hideRejectPaymentReason()">Back</button>
-                    <button class="button confirm-modal-ok-danger" type="button" id="rejectPaymentSubmitBtn"
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="hideRejectPaymentReason()">Back</button>
+                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="rejectPaymentSubmitBtn"
                         onclick="submitRejectPayment()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#close-icon" />
+                        </svg>
                         Confirm Rejection
                     </button>
                 </div>

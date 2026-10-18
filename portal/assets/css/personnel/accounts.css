@@ -287,7 +287,7 @@
 }
 
 .reject-btn:hover {
-    background-color: var(--danger-color);
+    background-color: var(--danger-solid);
     color: var(--text-on-brand);
 }
 

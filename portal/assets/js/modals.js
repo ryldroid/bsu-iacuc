@@ -614,7 +614,8 @@ function formatDateTime(value) {
       });
       Array.from(dots).forEach((d, i) => d.classList.toggle("active", i === n));
       backBtn.hidden = n === 0;
-      nextBtn.textContent = n === steps.length - 1 ? "Finish" : "Next";
+      nextBtn.querySelector("[data-guide-next-label]").textContent =
+        n === steps.length - 1 ? "Finish" : "Next";
 
       // Header must be visible, the mobile menu open only for steps inside it, and the target on screen
       window.scrollTo({ top: 0, behavior: "instant" });

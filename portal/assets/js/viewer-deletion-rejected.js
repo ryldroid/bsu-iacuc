@@ -8,6 +8,7 @@ const deletionRejectedBackdrop = document.getElementById(
 
 function openDeletionRejectedModal() {
   deletionRejectedBackdrop.classList.add("open");
+  document.getElementById("deletionRejectedCloseBtn")?.focus();
 }
 
 function closeDeletionRejectedModal() {
@@ -16,4 +17,9 @@ function closeDeletionRejectedModal() {
 
 deletionRejectedBackdrop.addEventListener("click", (e) => {
   if (e.target === deletionRejectedBackdrop) closeDeletionRejectedModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && deletionRejectedBackdrop.classList.contains("open"))
+    closeDeletionRejectedModal();
 });

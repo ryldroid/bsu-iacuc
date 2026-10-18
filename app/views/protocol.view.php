@@ -37,11 +37,11 @@ $statusLabels = [
     'approved'       => 'Approved',
 ];
 $statusMeta = [
-    'under review'   => ['color' => '#0072B2', 'icon' => 'clock-icon'],
-    'needs revision' => ['color' => '#D55E00', 'icon' => 'alert-triangle-icon'],
-    'reviewed'       => ['color' => '#CC79A7', 'icon' => 'checkbox-icon'],
-    'endorsed'       => ['color' => '#E69F00', 'icon' => 'shield-check-icon'],
-    'approved'       => ['color' => '#009E73', 'icon' => 'check-circle-icon'],
+    'under review'   => ['class' => 'under-review', 'icon' => 'clock-icon'],
+    'needs revision' => ['class' => 'needs-revision', 'icon' => 'alert-triangle-icon'],
+    'reviewed'       => ['class' => 'reviewed', 'icon' => 'checkbox-icon'],
+    'endorsed'       => ['class' => 'endorsed', 'icon' => 'shield-check-icon'],
+    'approved'       => ['class' => 'approved', 'icon' => 'check-circle-icon'],
 ];
 $statusKey       = strtolower($protocol['status'] ?? '');
 $statusLabel     = $statusLabels[$statusKey] ?? ($protocol['status'] ?? '');
@@ -51,8 +51,8 @@ $isSignedScan    = $isSignedScan ?? false;
 $isAmendment     = $isAmendment ?? false;
 $isReadOnlyFile  = $isSignedScan || $isAmendment;
 $statusBadgeMeta  = $isReadOnlyFile
-    ? ['color' => '#64748b', 'icon' => 'review-icon']
-    : ($isLatestVersion ? ($statusMeta[$statusKey] ?? ['color' => '#64748b', 'icon' => 'info-icon']) : ['color' => '#64748b', 'icon' => 'history-icon']);
+    ? ['class' => 'neutral', 'icon' => 'review-icon']
+    : ($isLatestVersion ? ($statusMeta[$statusKey] ?? ['class' => 'neutral', 'icon' => 'info-icon']) : ['class' => 'neutral', 'icon' => 'history-icon']);
 $statusBadgeLabel = match (true) {
     $isSignedScan    => 'Signed scan: read only',
     $isAmendment     => 'Amendment: read only',
@@ -69,7 +69,7 @@ $paymentMethod     = $protocol['payment_method'] ?? null;
 $canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
-$isBsuResearcher   = stripos(trim($protocol['submitter_school'] ?? ''), 'Benguet State University') !== false;
+$isBsuResearcher   = UserModel::isBsuSchool($protocol['submitter_school'] ?? '');
 
 $rrWrongCert          = !empty($returnReason['wrong_cert']);
 
@@ -184,7 +184,7 @@ include 'includes/header.php';
             <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
 
             <span class="status-badge">
-                <span class="status-badge-icon" style="background:<?= $statusBadgeMeta['color'] ?>">
+                <span class="status-badge-icon status-badge-icon--<?= $statusBadgeMeta['class'] ?>">
                     <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#<?= $statusBadgeMeta['icon'] ?>" />
                     </svg>
@@ -321,8 +321,8 @@ include 'includes/header.php';
     <?php if ($canReview): ?>
         <!-- ===== Annotation hint (personnel only, while under review, latest version only) ===== -->
         <div class="annot-toolbar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414A2 2 0 019 13z" />
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#edit-icon" />
             </svg>
             <span class="toolbar-hint" id="toolbarHint">Click and drag on the document to add a comment.</span>
         </div>
@@ -349,17 +349,6 @@ include 'includes/header.php';
 
         <?php if (!$isReadOnlyFile): ?>
             <div class="annot-sidebar" id="annotSidebar">
-                <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-expanded="true">
-                    <span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:middle;margin-right:4px">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        Comments
-                    </span>
-                    <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
                 <div class="annot-sidebar-inner">
                     <h3>Comments</h3>
                     <p class="helper" id="annotOfflineNote" hidden></p>
@@ -384,16 +373,16 @@ include 'includes/header.php';
         </div>
         <p class="annot-comment" id="annotPopupComment"></p>
         <p class="annot-date" id="annotPopupDate"></p>
-        <div class="annot-popup-actions" id="annotPopupActions" style="display:none">
+        <div class="annot-popup-actions" id="annotPopupActions" hidden>
             <button class="annot-edit" id="annotPopupEdit" title="Edit comment">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#edit-icon">
+                    <use href="#edit-icon" />
                 </svg>
                 Edit
             </button>
             <button class="annot-delete" id="annotPopupDelete" title="Delete comment">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#trash-icon">
+                    <use href="#trash-icon" />
                 </svg>
                 Delete
             </button>
@@ -403,12 +392,31 @@ include 'includes/header.php';
     <!-- ===== Comment dialog (personnel only, latest version, while under review) ===== -->
     <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
-            <div class="modal-card">
-                <h2 id="commentDialogTitle">Add Comment</h2>
-                <textarea id="commentText" rows="4" placeholder="Type your comment…"></textarea>
-                <div class="modal-actions" id="commentDialogActions">
-                    <button class="tool-btn active" id="commentDialogSave" onclick="saveComment()">Save</button>
-                    <button class="tool-btn" onclick="cancelComment()">Cancel</button>
+            <div class="modal-card panel-modal-card">
+                <div class="modal-header">
+                    <span class="modal-header-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                            <use href="#edit-icon" />
+                        </svg>
+                    </span>
+                    <p class="modal-title" id="commentDialogTitle">Add Comment</p>
+                    <button class="modal-close" type="button" onclick="cancelComment()" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#close-icon" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="panel-modal-body">
+                    <textarea id="commentText" class="return-comment-textarea" rows="4" placeholder="Type your comment…"></textarea>
+                    <div class="panel-modal-actions" id="commentDialogActions">
+                        <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="cancelComment()">Cancel</button>
+                        <button class="confirm-modal-btn confirm-modal-ok" type="button" id="commentDialogSave" onclick="saveComment()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#edit-icon" />
+                            </svg>
+                            <span id="commentDialogSaveLabel">Save</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -421,6 +429,11 @@ include 'includes/header.php';
     <div class="modal-backdrop" id="reviewDecisionBackdrop">
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#review-icon" />
+                    </svg>
+                </span>
                 <div>
                     <p class="modal-label">Finish Review</p>
                     <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
@@ -435,12 +448,18 @@ include 'includes/header.php';
                 <p class="panel-modal-intro">Choose what to do with this protocol.</p>
 
                 <div class="panel-modal-actions">
-                    <button class="tool-btn tool-btn--warn" type="button"
+                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-warn" type="button"
                         onclick="closeReviewDecisionModal(); openReturnModal();">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#back-icon" />
+                        </svg>
                         Return for Revision
                     </button>
-                    <button class="tool-btn tool-btn--success" type="button" id="btnCompleteReview"
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="btnCompleteReview"
                         onclick="completeReview(this)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-icon" />
+                        </svg>
                         Complete Review
                     </button>
                 </div>
@@ -452,6 +471,11 @@ include 'includes/header.php';
     <div class="modal-backdrop" id="returnRevisionBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
+                <span class="modal-header-icon modal-header-icon--warn" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#back-icon" />
+                    </svg>
+                </span>
                 <div>
                     <p class="modal-label">Return for Revision</p>
                     <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
@@ -486,8 +510,8 @@ include 'includes/header.php';
                 <div id="returnRevisionError" class="error-messages" hidden></div>
 
                 <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeReturnModal(); openReviewDecisionModal();">Back</button>
-                    <button class="tool-btn tool-btn--warn" type="button" id="returnRevisionSubmitBtn"
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeReturnModal(); openReviewDecisionModal();">Back</button>
+                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-warn" type="button" id="returnRevisionSubmitBtn"
                         onclick="submitReturnRevision()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#back-icon" />
@@ -504,13 +528,13 @@ include 'includes/header.php';
     <!-- ===== Re-submit protocol modal (researcher only, this protocol, latest round) ===== -->
     <div class="modal-backdrop" id="reuploadModalBackdrop" data-static>
         <div class="modal-card panel-modal-card resub-card" role="dialog" aria-modal="true" aria-labelledby="reuploadModalTitle">
-            <div class="modal-header resub-header">
-                <span class="resub-header-icon" aria-hidden="true">
+            <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
                     <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
                         <use href="#upload-icon" />
                     </svg>
                 </span>
-                <div class="resub-header-text">
+                <div>
                     <p class="modal-label">Re-submit Protocol</p>
                     <p class="modal-title" id="reuploadModalTitle"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
@@ -548,8 +572,8 @@ include 'includes/header.php';
                 <div class="upload-progress-container" id="reuploadProgress"></div>
 
                 <div class="panel-modal-actions resub-actions">
-                    <button class="tool-btn" type="button" id="reuploadCancelBtn" onclick="closeReuploadModal()">Cancel</button>
-                    <button class="tool-btn tool-btn--success" type="button" id="reuploadSubmitBtn"
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" id="reuploadCancelBtn" onclick="closeReuploadModal()">Cancel</button>
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="reuploadSubmitBtn"
                         onclick="submitReupload()" disabled>
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
@@ -562,96 +586,21 @@ include 'includes/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($canConfirmPayment): ?>
-    <!-- ===== Verify Payment modal ===== -->
-    <div class="modal-backdrop" id="paymentModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <div>
-                    <p class="modal-label">Verify Payment</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" type="button" onclick="closePaymentModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="modal-notice">The BAI animal research clearance requires a Php 100.00 fee.</p>
-
-                <div id="paymentModalError" class="alert error-messages" hidden></div>
-
-                <?php if (!$isBsuResearcher): ?>
-                    <div class="consent-list">
-                        <label class="consent-item">
-                            <input type="radio" class="consent-checkbox" name="payment_method" value="in_person"
-                                checked onchange="handlePaymentMethodChange()">
-                            <span>Pay in person at CCARD</span>
-                        </label>
-                        <label class="consent-item">
-                            <input type="radio" class="consent-checkbox" name="payment_method" value="online"
-                                onchange="handlePaymentMethodChange()">
-                            <span>Pay online</span>
-                        </label>
-                    </div>
-                <?php endif; ?>
-
-                <div id="paymentInPersonPanel">
-                    <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
-                    <div class="consent-list">
-                        <label class="consent-item">
-                            <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
-                            <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div id="paymentOnlinePanel" hidden>
-                    <p class="modal-notice">
-                        <a href="<?= ROOT ?>/contact#director-contact" class="underlined" target="_blank" rel="noopener noreferrer">Contact the CCARD Director</a>
-                        to arrange online payment. Once paid, upload a photo of your receipt (or a photo of you handing over the payment) below.
-                    </p>
-
-                    <div class="modal-file-row">
-                        <div class="modal-file-info">
-                            <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
-                            <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
-                        </div>
-                        <label class="modal-file-picker">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#upload-icon" />
-                            </svg>
-                            <span id="paymentFilePickerLabel">Upload</span>
-                            <input type="file" id="payment_proof_file" name="payment_proof_file"
-                                accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-                                onchange="handlePaymentFileChange(this)">
-                        </label>
-                    </div>
-
-                    <div class="upload-progress-container" id="paymentProofProgress"></div>
-                </div>
-
-                <div class="modal-actions">
-                    <button class="button" type="button" onclick="closePaymentModal()">Back</button>
-                    <button class="button btn-apply" type="button" id="paymentModalSubmitBtn"
-                        onclick="submitPaymentProof()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#upload-icon" />
-                        </svg>
-                        <span id="paymentModalSubmitLabel">Verify Payment</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
+<?php if ($canConfirmPayment):
+    $paymentModalTitle = $protocol['research_title'];
+    include 'includes/payment-modal.php';
+endif; ?>
 
 <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
     <!-- ===== Approve / reject deletion request modal ===== -->
     <div class="modal-backdrop" id="deletionReviewModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
+                <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#trash-icon" />
+                    </svg>
+                </span>
                 <div>
                     <p class="modal-label" id="deletionReviewLabel">Deletion Requested</p>
                     <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
@@ -672,14 +621,14 @@ include 'includes/header.php';
                 </p>
 
                 <div id="deletionReviewChoiceActions" class="panel-modal-actions">
-                    <button class="tool-btn tool-btn--success" type="button" onclick="selectDeletionAction('approve')">
-                        <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" onclick="selectDeletionAction('approve')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#check-icon" />
                         </svg>
                         Approve
                     </button>
-                    <button class="tool-btn tool-btn--danger" type="button" onclick="selectDeletionAction('reject')">
-                        <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" onclick="selectDeletionAction('reject')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#close-icon" />
                         </svg>
                         Reject
@@ -700,9 +649,12 @@ include 'includes/header.php';
                     <div id="deletionReviewError" class="error-messages" hidden></div>
 
                     <div class="panel-modal-actions">
-                        <button class="tool-btn" type="button" onclick="backToDeletionChoice()">Back</button>
-                        <button class="tool-btn" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
-                            Confirm
+                        <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="backToDeletionChoice()">Back</button>
+                        <button class="confirm-modal-btn confirm-modal-ok" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use id="deletionReviewSubmitIcon" href="#check-icon" />
+                            </svg>
+                            <span id="deletionReviewSubmitLabel">Confirm</span>
                         </button>
                     </div>
                 </div>
@@ -713,17 +665,39 @@ include 'includes/header.php';
 
 <?php if (!empty($protocol['deletion_rejection_reason'])): ?>
     <!-- ===== Deletion request rejected modal ===== -->
-    <div class="modal-backdrop" id="deletionRejectedModalBackdrop">
-        <div class="modal-card panel-modal-card">
+    <div class="modal-backdrop" id="deletionRejectedModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="deletionRejectedTitle">
+        <div class="modal-card panel-modal-card deletion-rejected-card">
             <div class="modal-header">
+                <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#alert-triangle-icon" />
+                    </svg>
+                </span>
                 <div>
-                    <p class="modal-title">Deletion Request Rejected</p>
+                    <p class="modal-label">Deletion request</p>
+                    <p class="modal-title" id="deletionRejectedTitle">Request rejected</p>
                 </div>
+                <button class="modal-close" type="button" onclick="closeDeletionRejectedModal()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
             </div>
             <div class="panel-modal-body">
-                <p class="panel-modal-intro">Reason: <?= htmlspecialchars($protocol['deletion_rejection_reason'], ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="panel-modal-intro">The request to delete this protocol was not approved, so the protocol stays as it is.</p>
+
+                <div class="deletion-rejected-reason">
+                    <span class="deletion-rejected-reason-label">Reason given</span>
+                    <p><?= htmlspecialchars($protocol['deletion_rejection_reason'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+
                 <div class="panel-modal-actions">
-                    <button class="tool-btn" type="button" onclick="closeDeletionRejectedModal()">Close</button>
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="deletionRejectedCloseBtn" onclick="closeDeletionRejectedModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-icon" />
+                        </svg>
+                        Got it
+                    </button>
                 </div>
             </div>
         </div>
@@ -765,7 +739,7 @@ include 'includes/header.php';
 </script>
 <script src="<?= asset_js('viewer.js') ?>"></script>
 <?php if ($canConfirmPayment): ?>
-    <script src="<?= asset_js('viewer-payment.js') ?>"></script>
+    <script src="<?= asset_js('payment-modal.js') ?>"></script>
 <?php endif; ?>
 <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
     <script src="<?= asset_js('viewer-deletion-review.js') ?>"></script>

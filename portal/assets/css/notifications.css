@@ -17,7 +17,7 @@
   line-height: 1;
   color: #fff;
 
-  background-color: var(--danger-color);
+  background-color: var(--danger-solid);
   border-radius: 50%;
 }
 

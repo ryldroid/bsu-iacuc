@@ -15,19 +15,36 @@
 }
 
 /* ===== Sections & Facebook embeds ===== */
+/* The office announcements fill all the width the partner column leaves over */
 .announcements-sections {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
   gap: 2.5em;
 }
 
 .announcements-sections>.announcements,
 .announcements-sections>.fb-cards {
-  flex: 1 1 420px;
   min-width: 0;
 }
 
+.announcements-sections h2 {
+  text-align: left;
+  margin: 0;
+}
+
+/* Too narrow for two columns: partner pages go below the office cards, side by side */
+@media (max-width: 1100px) {
+  .announcements-sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fb-pages-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
 
 h2 {
   font-size: 1.4em;
@@ -36,7 +53,8 @@ h2 {
 
 .fb-pages-grid {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 1.5em;
   margin-top: 1em;
   justify-content: center;
@@ -75,12 +93,6 @@ h2 {
   width: 100% !important;
 }
 
-@media (max-width: 800px) {
-  .fb-pages-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ===== Empty state ===== */
 .announcements-empty {
   color: var(--secondary-text);
@@ -90,7 +102,7 @@ h2 {
 /* ===== Office announcement cards (public announcements page) ===== */
 .office-announcements-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.25em;
   margin-top: 1em;
   min-width: 0;
@@ -348,8 +360,8 @@ h2 {
 .ann-row-actions .delete-announcement-btn:hover,
 .ann-row-actions .delete-office-btn:hover,
 .ann-row-actions .delete-faq-btn:hover {
-  background: var(--danger-color);
-  border-color: var(--danger-color);
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
   color: var(--text-on-brand);
 }
 
@@ -409,4 +421,9 @@ h2 {
 /* ===== Error messages ===== */
 .error-messages {
   margin: 0;
+}
+
+/* ===== Pagination: cards on other pages ===== */
+.office-announcement-card.is-paged-out {
+  display: none;
 }
