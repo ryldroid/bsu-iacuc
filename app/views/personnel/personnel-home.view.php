@@ -1496,7 +1496,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         const rows = [
             ['Username', d.username],
             ['Email', d.email],
-            ['Phone', d.phone_number || 'N/A'],
+            ['Phone', formatPhone(d.phone_number) || 'N/A'],
             ['School', d.school || 'N/A'],
             ['Role', d.role ? d.role.charAt(0).toUpperCase() + d.role.slice(1) : 'N/A'],
             ['Account status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : 'N/A'],

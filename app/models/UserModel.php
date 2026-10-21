@@ -438,6 +438,15 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  public function updateEmail(int $user_id, string $email): bool
+  {
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET email = ?, email_verified = 0 WHERE id = ?"
+    );
+    $stmt->bind_param('si', $email, $user_id);
+    return $stmt->execute();
+  }
+
   public function markEmailUnverified(int $user_id): bool
   {
     $stmt = $this->connection->prepare(

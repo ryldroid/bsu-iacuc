@@ -56,7 +56,8 @@
   display: flex;
 }
 
-.notif-dropdown-header {
+.notif-dropdown-header,
+.account-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;

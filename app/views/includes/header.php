@@ -9,6 +9,12 @@ $hideHeader     = $hideHeader     ?? false;
 $previewMode     = $previewMode     ?? false;
 $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 
+$accountUser     = $user ? ($accountUser ?? (new UserModel())->getUser((int) $user['user_id'])) : null;
+$accountRequired = isset($_GET['required']);
+$needsProfile    = $role === 'researcher' && (empty($accountUser['sex']) || empty($accountUser['researcher_type']));
+// Once the profile is complete, a required verification is asked for in a page-wide modal
+$showVerifyModal = $accountRequired && !$needsProfile && empty($accountUser['email_verified']);
+
 // One list of theme options, rendered in the account dropdown and in the visitor theme menu
 $themeModes = [
   ['light', 'Light', 'sun-icon'],
@@ -106,6 +112,8 @@ if ($role === 'researcher') {
   <link rel="stylesheet" href="<?= asset_css('action-queue.css') ?>">
   <?php if ($user): ?>
     <link rel="stylesheet" href="<?= asset_css('notifications.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('account-panel.css') ?>">
   <?php endif; ?>
 
   <?php include __DIR__ . '/icons.php'; ?>
@@ -277,8 +285,222 @@ if ($role === 'researcher') {
             </div>
 
             <!-- MY ACCOUNT PANEL (anchored like the notification and more dropdowns) -->
-            <div id="account-drawer" role="dialog" aria-label="My Account" inert>
-              <iframe title="My Account" data-src="<?= ROOT ?>/user/account?panel=1"></iframe>
+            <div id="account-drawer" role="dialog" aria-label="My Account" tabindex="-1" inert>
+              <div class="account-panel-header">
+                <span>My Account</span>
+                <?php if (!$accountRequired): ?>
+                  <button type="button" class="modal-close account-close" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#close-icon" />
+                    </svg>
+                  </button>
+                <?php endif; ?>
+              </div>
+
+              <div class="account-panel-body">
+                <?php if ($accountRequired && $needsProfile): ?>
+                  <p class="info-notice">Complete the required fields to continue.<?= empty($accountUser['email_verified']) ? ' You will be asked to verify your email next.' : '' ?></p>
+                <?php endif; ?>
+
+
+                <!-- ===== Summary ===== -->
+                <div class="account-summary">
+                  <span class="account-avatar" aria-hidden="true"><?= htmlspecialchars(mb_strtoupper(mb_substr($accountUser['first_name'] ?? '', 0, 1) . mb_substr($accountUser['last_name'] ?? '', 0, 1)), ENT_QUOTES, 'UTF-8') ?></span>
+                  <div>
+                    <p class="account-summary-name"><?= htmlspecialchars(trim(($accountUser['first_name'] ?? '') . ' ' . ($accountUser['last_name'] ?? '')), ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="helper">@<?= htmlspecialchars($accountUser['username'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+                  </div>
+                </div>
+
+                <?php if ($role === 'researcher' && !empty($accountUser['cert_path'])): ?>
+                  <!-- ===== Training certificate ===== -->
+                  <section class="account-card account-card-row">
+                    <div>
+                      <h2>IACUC Training Certificate</h2>
+                      <?php if (!empty($accountUser['cert_uploaded_at'])): ?>
+                        <p class="helper">Uploaded <?= htmlspecialchars(date(DATE_FORMAT, strtotime($accountUser['cert_uploaded_at'])), ENT_QUOTES, 'UTF-8') ?></p>
+                      <?php endif; ?>
+                    </div>
+                    <a class="button" href="<?= ROOT ?>/apply/cert/<?= (int) $accountUser['id'] ?>" target="_blank" rel="noopener">
+                      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#open-mail-icon" />
+                      </svg>
+                      Open
+                    </a>
+                  </section>
+                <?php endif; ?>
+
+                <!-- ===== Resend verification form ===== -->
+                <form id="resend-verification-form" method="POST" action="<?= ROOT ?>/user/resend_verification" hidden
+                  data-confirm-message="Send a verification link to <?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
+                  data-confirm-ok-text="Send">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                </form>
+
+                <!-- ===== Account form ===== -->
+                <form id="account-form" class="account-form" method="POST" action="<?= ROOT ?>/user/update"
+                  data-confirm-message="Save changes to your account?"
+                  data-confirm-ok-text="Save Changes">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+                  <h2>Personal Details</h2>
+                  <div class="account-field-row">
+                    <div class="input-group">
+                      <input type="text" id="first_name" name="first_name" placeholder=" " autocomplete="given-name"
+                        value="<?= htmlspecialchars($accountUser['first_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                      <label for="first_name">First Name <span class="required-asterisk">*</span></label>
+                    </div>
+                    <div class="input-group">
+                      <input type="text" id="last_name" name="last_name" placeholder=" " autocomplete="family-name"
+                        value="<?= htmlspecialchars($accountUser['last_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                      <label for="last_name">Last Name <span class="required-asterisk">*</span></label>
+                    </div>
+                  </div>
+
+                  <div class="account-field-row">
+                    <div class="input-group">
+                      <select id="sex" name="sex" required>
+                        <option value="" disabled <?= empty($accountUser['sex']) ? 'selected' : '' ?>>Select</option>
+                        <?php foreach (['Male', 'Female'] as $sexOption): ?>
+                          <option value="<?= $sexOption ?>" <?= ($accountUser['sex'] ?? '') === $sexOption ? 'selected' : '' ?>><?= $sexOption ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                      <label for="sex">Sex <span class="required-asterisk">*</span></label>
+                    </div>
+                    <?php if ($role === 'researcher'): ?>
+                      <div class="input-group">
+                        <select id="researcher_type" name="researcher_type" required>
+                          <option value="" disabled <?= empty($accountUser['researcher_type']) ? 'selected' : '' ?>>Select</option>
+                          <?php $selectedResearcherType = $accountUser['researcher_type'] ?? '';
+                          include __DIR__ . '/researcher-type-options.php'; ?>
+                        </select>
+                        <label for="researcher_type">Researcher Type <span class="required-asterisk">*</span></label>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+
+                  <?php if ($role === 'researcher'): ?>
+                    <div class="input-group">
+                      <input type="text" id="school" name="school" list="school-options" placeholder=" " autocomplete="organization"
+                        value="<?= htmlspecialchars($accountUser['school'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                      <label for="school">School <span class="required-asterisk">*</span></label>
+                    </div>
+                  <?php endif; ?>
+
+                  <div class="input-group">
+                    <div class="phone-field-wrap">
+                      <span class="phone-prefix">+63</span>
+                      <input type="tel" id="phone_number" name="phone_number" placeholder=" " autocomplete="tel-national"
+                        inputmode="numeric"
+                        value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $accountUser['phone_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                    </div>
+                    <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
+                  </div>
+
+                  <h2>Sign-in Details</h2>
+                  <div class="input-group">
+                    <input type="text" id="username" name="username" placeholder=" " autocomplete="username"
+                      value="<?= htmlspecialchars($accountUser['username'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                    <label for="username">Username <span class="required-asterisk">*</span></label>
+                  </div>
+
+                  <div class="input-group">
+                    <input type="email" id="email" name="email" placeholder=" " autocomplete="email"
+                      value="<?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                    <label for="email">
+                      Email <span class="required-asterisk">*</span>
+                      <span class="email-badge <?= empty($accountUser['email_verified']) ? 'email-badge-unverified' : 'email-badge-verified' ?>"><?= empty($accountUser['email_verified']) ? 'Unverified' : 'Verified' ?></span>
+                    </label>
+                  </div>
+
+                  <button type="submit" form="resend-verification-form" class="email-verify-resend"
+                    data-saved-email="<?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                    <?= empty($accountUser['email_verified']) ? '' : 'hidden' ?>>Verify email</button>
+
+                  <details class="account-password">
+                    <summary>
+                      Change password
+                      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#chev-down-icon" />
+                      </svg>
+                    </summary>
+                    <div class="account-password-fields">
+                      <p class="helper">Leave the password fields blank to keep your current password.</p>
+                      <div class="input-group">
+                        <input type="password" id="password" name="password" placeholder=" " autocomplete="new-password">
+                        <label for="password">New Password</label>
+                      </div>
+                      <div class="input-group">
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder=" " autocomplete="new-password">
+                        <label for="confirm_password">Confirm New Password</label>
+                      </div>
+                      <div class="password-requirements">
+                        Password must contain:
+                        <ul>
+                          <li>At least 8 characters</li>
+                          <li>Uppercase letter</li>
+                          <li>Lowercase letter</li>
+                          <li>Number</li>
+                          <li>Special character (! @ # $ % ^ &amp; *)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </details>
+                </form>
+
+                <!-- ===== Email notifications ===== -->
+                <form id="email-notifications-form" class="account-card" method="POST" action="<?= ROOT ?>/user/notifications">
+                  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                  <h2>Email Notifications</h2>
+                  <label class="switch-toggle" for="email_notifications">
+                    <span>Email me about protocol updates</span>
+                    <span class="switch-toggle-control">
+                      <input type="checkbox" id="email_notifications" name="email_notifications" value="1"
+                        <?= !empty($accountUser['email_notifications']) ? 'checked' : '' ?>>
+                      <span class="switch-toggle-track"></span>
+                    </span>
+                  </label>
+                  <p class="helper">
+                    <span class="provider-blocked-note" <?= empty($accountUser['email_provider_blocked']) ? 'hidden' : '' ?>>You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</span>
+                    <!-- <span class="provider-unblocked-note" <?= empty($accountUser['email_provider_blocked']) ? '' : 'hidden' ?>>If you unsubscribed through your email client, turn this off and on again to receive emails again. We cannot detect that unsubscribe automatically.</span> -->
+                  </p>
+                </form>
+
+                <!-- ===== Account actions ===== -->
+                <section class="account-card">
+                  <h2>Account Actions</h2>
+                  <div class="account-actions">
+                    <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>"
+                      data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <button type="submit" class="button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#log-out-icon" />
+                        </svg>
+                        Log Out
+                      </button>
+                    </form>
+                    <?php if ($role === 'researcher'): ?>
+                      <form method="POST" action="<?= ROOT ?>/user/delete"
+                        data-confirm-message="Deleting your account permanently removes your personal details and training certificate. Your submitted protocols and their files stay in an archive for internal recordkeeping and are no longer linked to your account, though they may still contain personal information you provided. This cannot be undone."
+                        data-confirm-ok-text="Delete Account"
+                        data-confirm-danger="true">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <button type="submit" class="button btn-account-delete">
+                          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#trash-icon" />
+                          </svg>
+                          Delete Account
+                        </button>
+                      </form>
+                    <?php endif; ?>
+                  </div>
+                </section>
+              </div>
+
+              <div class="account-panel-footer">
+                <button type="submit" form="account-form" class="account-save">Save Changes</button>
+              </div>
             </div>
 
             <!-- PREVIEW (PERSONNEL VIEWING THE PUBLIC SITE) -->
@@ -293,6 +515,44 @@ if ($role === 'researcher') {
         </div>
       <?php endif; ?>
     </header>
+
+    <?php if ($showVerifyModal): ?>
+      <!-- ===== Verify email modal (saves the address, then sends the link) ===== -->
+      <div class="modal-backdrop open" id="verify-email-modal" data-static role="dialog" aria-modal="true" aria-labelledby="verify-email-title">
+        <form class="modal-card panel-modal-card" id="verify-email-form" method="POST" action="<?= ROOT ?>/user/resend_verification">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+          <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                <use href="#email-icon" />
+              </svg>
+            </span>
+            <div>
+              <p class="modal-label">Required</p>
+              <p class="modal-title" id="verify-email-title">Verify your email to continue</p>
+            </div>
+          </div>
+          <div class="panel-modal-body">
+            <p class="panel-modal-intro">We will send a verification link to this address. Make sure it is correct, because it will also be saved to your account.</p>
+            <div class="input-group">
+              <input type="email" id="verify_email" name="email" placeholder=" " autocomplete="email" autofocus
+                value="<?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+              <label for="verify_email">Email <span class="required-asterisk">*</span></label>
+            </div>
+            <p class="panel-modal-intro verify-email-sent" hidden></p>
+            <div class="panel-modal-actions">
+              <button type="submit" class="confirm-modal-btn confirm-modal-ok">
+                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#email-icon" />
+                </svg>
+                Send verification link
+              </button>
+              <button type="button" class="confirm-modal-btn confirm-modal-ok verify-email-continue" data-href="<?= ROOT ?>/<?= $role === 'researcher' ? 'home' : 'personnel/home' ?>" hidden>I have verified my email</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    <?php endif; ?>
     <!-- Mobile nav lives outside <header> so header's scroll-hide transform never traps it as a fixed-position containing block -->
     <?php if ($user): ?>
 
@@ -359,28 +619,6 @@ if ($role === 'researcher') {
       </nav>
     <?php endif; ?>
 
-  <?php endif; ?>
-
-  <?php if ($user && empty($user['email_verified'])): ?>
-    <div class="verify-banner" id="verifyEmailBanner">
-      <div class="verify-banner-text">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#info-icon" />
-        </svg>
-        <span>Verify your email to receive notification updates via email and keep up to date on your protocols' status.</span>
-        <form method="POST" action="<?= ROOT ?>/user/resend_verification" class="verify-banner-link-form"
-          data-confirm-message="Send a verification link to <?= htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
-          data-confirm-ok-text="Send">
-          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-          <button type="submit" class="verify-banner-link">Verify my email</button>
-        </form>
-      </div>
-      <button type="button" class="verify-banner-close" id="verifyEmailBannerClose" aria-label="Dismiss">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#close-icon" />
-        </svg>
-      </button>
-    </div>
   <?php endif; ?>
 
   <?php if ($welcomeSteps) {

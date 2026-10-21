@@ -22,7 +22,8 @@
 
   window.showToast = function (message, type = "success") {
     const stack = document.getElementById("toast-stack");
-    if (!stack || !message) return;
+    const messages = [].concat(message).filter(Boolean);
+    if (!stack || !messages.length) return;
 
     const isError = type === "error";
     const el = document.createElement("div");
@@ -34,10 +35,17 @@
       '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' +
       (isError ? "alert-triangle-icon" : "check-circle-icon") +
       '" /></svg>' +
-      '<div class="form-alert-body"><p></p></div>' +
+      '<div class="form-alert-body"></div>' +
       '<button type="button" class="form-alert-close" aria-label="Dismiss message">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg></button>';
-    el.querySelector("p").textContent = message;
+    const body = el.querySelector(".form-alert-body");
+    const isList = messages.length > 1;
+    const list = isList ? body.appendChild(document.createElement("ul")) : body;
+    messages.forEach((text) => {
+      const item = document.createElement(isList ? "li" : "p");
+      item.textContent = text;
+      list.appendChild(item);
+    });
     stack.append(el);
     setupAlert(el);
   };

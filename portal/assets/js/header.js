@@ -9,9 +9,7 @@ const backdrop = document.querySelector("#sidebar-backdrop");
 const mobileNav = document.querySelector('nav[aria-label="Mobile navigation"]');
 const media = window.matchMedia("(max-width: 768px)");
 const accountDrawer = document.querySelector("#account-drawer");
-const accountFrame = accountDrawer?.querySelector("iframe");
 const accountRequired = new URLSearchParams(location.search).has("required");
-window.accountRequired = accountRequired;
 document.documentElement.classList.toggle("account-required", accountRequired);
 
 function setBackdrop(active) {
@@ -21,7 +19,10 @@ function setBackdrop(active) {
 window.setBackdrop = setBackdrop;
 
 backdrop?.addEventListener("click", () => {
-  if (accountRequired) return;
+  if (accountRequired) {
+    shake(accountDrawer);
+    return;
+  }
   closeSidebar();
   closeAccountDrawer();
   closeMoreMenu();
@@ -73,12 +74,12 @@ function openAccountDrawer() {
   );
   setHeaderHidden(false);
 
-  accountFrame.src = accountFrame.dataset.src;
   accountDrawer.classList.add("show");
   accountDrawer.removeAttribute("inert");
   accountButton?.setAttribute("aria-expanded", "true");
   setBackdrop(true);
-  accountFrame.focus();
+  accountDrawer.focus();
+  loadSchoolOptions();
 }
 
 function closeAccountDrawer(restoreFocus = true) {
@@ -86,12 +87,216 @@ function closeAccountDrawer(restoreFocus = true) {
   accountDrawer.classList.remove("show");
   accountDrawer.setAttribute("inert", "");
   accountButton?.setAttribute("aria-expanded", "false");
-  accountFrame.src = "about:blank";
   setBackdrop(false);
   if (restoreFocus) accountButton.focus();
 }
 
 window.closeAccountDrawer = closeAccountDrawer;
+
+accountDrawer
+  ?.querySelector(".account-close")
+  ?.addEventListener("click", () => closeAccountDrawer());
+
+// ===== Account panel: verify email =====
+const resendVerification = accountDrawer?.querySelector(".email-verify-resend");
+if (resendVerification) {
+  const emailField = accountDrawer.querySelector("#email");
+  const syncResendVerification = () => {
+    const changed =
+      emailField.value.trim().toLowerCase() !==
+      resendVerification.dataset.savedEmail.toLowerCase();
+    resendVerification.disabled = changed;
+    resendVerification.title = changed ? "Save your new email first" : "";
+  };
+  emailField.addEventListener("input", syncResendVerification);
+  syncResendVerification();
+}
+
+// ===== Verify email modal (saves the address, then sends the link) =====
+const verifyEmailForm = document.querySelector("#verify-email-form");
+
+verifyEmailForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const button = verifyEmailForm.querySelector("button[type=submit]");
+  const email = verifyEmailForm.elements.email.value.trim();
+
+  setButtonBusy(button, true, "Sending...");
+  const { ok, data } = await postAccountForm(
+    verifyEmailForm,
+    new FormData(verifyEmailForm),
+  );
+  setButtonBusy(button, false);
+
+  if (ok) {
+    // Keep the account panel's email field in line with what was just saved
+    accountForm.elements.email.value = email;
+    resendVerification.dataset.savedEmail = email;
+
+    const sent = verifyEmailForm.querySelector(".verify-email-sent");
+    sent.textContent = `Link sent to ${email}. Open it from your inbox to finish, then continue here.`;
+    sent.hidden = false;
+
+    button.classList.replace("confirm-modal-ok", "confirm-modal-cancel");
+    button.lastChild.textContent = " Resend link";
+    button.dataset.originalHtml = button.innerHTML;
+    verifyEmailForm.querySelector(".verify-email-continue").hidden = false;
+  }
+  showAccountResult(ok, data);
+});
+
+verifyEmailForm
+  ?.querySelector(".verify-email-continue")
+  .addEventListener("click", (event) => {
+    location.href = event.currentTarget.dataset.href;
+  });
+
+// ===== Account panel: school suggestions (loaded on first open) =====
+let schoolOptionsRequested = false;
+
+async function loadSchoolOptions() {
+  const school = accountDrawer.querySelector("#school");
+  if (!school || schoolOptionsRequested) return;
+
+  schoolOptionsRequested = true;
+  try {
+    const res = await fetch(`${NOTIF_ROOT}/user/school_options`);
+    if (!res.ok) throw new Error(res.status);
+    school
+      .closest(".input-group")
+      .insertAdjacentHTML("afterend", await res.text());
+  } catch (e) {
+    schoolOptionsRequested = false;
+  }
+}
+
+// ===== Account panel: save without reloading =====
+const accountForm = accountDrawer?.querySelector("#account-form");
+const emailNotificationsForm = accountDrawer?.querySelector(
+  "#email-notifications-form",
+);
+
+async function postAccountForm(form, body) {
+  try {
+    const res = await fetch(form.action, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body,
+    });
+    return { ok: res.ok, data: await res.json() };
+  } catch (e) {
+    return {
+      ok: false,
+      data: {
+        error: "Something went wrong. Please reload the page and try again.",
+      },
+    };
+  }
+}
+
+function showAccountResult(ok, data) {
+  showToast(
+    ok ? data.message : (data.errors ?? data.error),
+    ok ? "success" : "error",
+  );
+}
+
+function applySavedAccount(user) {
+  const initials = [user.first_name, user.last_name]
+    .map((name) => Array.from(name)[0])
+    .join("")
+    .toUpperCase();
+
+  accountButton.querySelector("span").textContent = user.first_name;
+  accountDrawer.querySelector(".account-avatar").textContent = initials;
+  accountDrawer.querySelector(".account-summary-name").textContent =
+    `${user.first_name} ${user.last_name}`.trim();
+  accountDrawer.querySelector(".account-summary .helper").textContent =
+    `@${user.username}`;
+
+  ["first_name", "last_name", "username", "email"].forEach((field) => {
+    accountForm.elements[field].value = user[field];
+  });
+
+  const badge = accountForm.querySelector(".email-badge");
+  badge.textContent = user.email_verified ? "Verified" : "Unverified";
+  badge.classList.toggle("email-badge-verified", user.email_verified);
+  badge.classList.toggle("email-badge-unverified", !user.email_verified);
+
+  resendVerification.dataset.savedEmail = user.email;
+  resendVerification.hidden = user.email_verified;
+  accountDrawer.querySelector(
+    "#resend-verification-form",
+  ).dataset.confirmMessage = `Send a verification link to ${user.email}?`;
+  accountForm.elements.email.dispatchEvent(new Event("input"));
+
+  accountForm.querySelectorAll(".account-password input").forEach((input) => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+  });
+  accountForm.querySelector(".account-password").open = false;
+}
+
+// modals.js asks for confirmation first and marks the form confirmed
+accountForm?.addEventListener("submit", async (event) => {
+  if (accountForm.dataset.confirmed !== "true") return;
+  event.preventDefault();
+
+  const saveButton = accountDrawer.querySelector(".account-save");
+  setButtonBusy(saveButton, true, "Saving...");
+  const { ok, data } = await postAccountForm(
+    accountForm,
+    new FormData(accountForm),
+  );
+  delete accountForm.dataset.confirmed;
+
+  if (ok && data.redirect) {
+    location.href = data.redirect;
+    return;
+  }
+
+  setButtonBusy(saveButton, false);
+  if (ok) applySavedAccount(data.user);
+  showAccountResult(ok, data);
+});
+
+const resendVerificationForm = accountDrawer?.querySelector(
+  "#resend-verification-form",
+);
+
+// modals.js asks for confirmation first and marks the form confirmed
+resendVerificationForm?.addEventListener("submit", async (event) => {
+  if (resendVerificationForm.dataset.confirmed !== "true") return;
+  event.preventDefault();
+
+  setButtonBusy(resendVerification, true, "Sending...");
+  const { ok, data } = await postAccountForm(
+    resendVerificationForm,
+    new FormData(resendVerificationForm),
+  );
+  delete resendVerificationForm.dataset.confirmed;
+
+  setButtonBusy(resendVerification, false);
+  accountForm.elements.email.dispatchEvent(new Event("input"));
+  showAccountResult(ok, data);
+});
+
+emailNotificationsForm?.addEventListener("change", async (event) => {
+  const toggle = event.target;
+  const body = new FormData(emailNotificationsForm);
+
+  toggle.disabled = true;
+  const { ok, data } = await postAccountForm(emailNotificationsForm, body);
+  toggle.disabled = false;
+
+  if (ok) {
+    emailNotificationsForm.querySelector(".provider-blocked-note").hidden =
+      !data.provider_blocked;
+  } else {
+    toggle.checked = !toggle.checked;
+  }
+  showAccountResult(ok, data);
+});
 
 accountButton?.addEventListener("click", () =>
   accountDrawer.classList.contains("show")
@@ -104,8 +309,8 @@ document.addEventListener("click", (event) => {
   if (
     accountButton?.contains(event.target) ||
     accountDrawer?.contains(event.target) ||
-    // The panel's file popup and confirm dialogs are shown over the whole page, but belong to the panel
-    event.target.closest("#accountFilePopup, .confirm-modal-overlay")
+    // Confirm dialogs (save, log out, delete) are shown over the whole page, but belong to the panel
+    event.target.closest(".confirm-modal-overlay")
   )
     return;
   closeAccountDrawer(false);
@@ -151,9 +356,8 @@ if (moreButton && moreMenu) {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    // A file popup or confirm dialog opened from the panel handles this Escape itself
-    if (document.querySelector("#accountFilePopup.open") || e.defaultPrevented)
-      return;
+    // A confirm dialog opened from the panel handles this Escape itself
+    if (e.defaultPrevented) return;
     closeSidebar();
     closeAccountDrawer();
     closeMoreMenu();
@@ -186,35 +390,6 @@ document
       link.setAttribute("aria-current", "page");
     }
   });
-
-// ===== VERIFY EMAIL BANNER =====
-
-const verifyBanner = document.getElementById("verifyEmailBanner");
-const PINNED_BASE_OFFSET = 16;
-
-function syncPinnedOffset() {
-  if (!verifyBanner || !verifyBanner.isConnected) {
-    document.documentElement.style.removeProperty("--pinned-top-offset");
-    return;
-  }
-  const offset = verifyBanner.offsetHeight + PINNED_BASE_OFFSET;
-  document.documentElement.style.setProperty(
-    "--pinned-top-offset",
-    `${offset}px`,
-  );
-}
-
-document
-  .getElementById("verifyEmailBannerClose")
-  ?.addEventListener("click", () => {
-    document.getElementById("verifyEmailBanner")?.remove();
-    syncPinnedOffset();
-  });
-
-if (verifyBanner) {
-  syncPinnedOffset();
-  window.addEventListener("resize", syncPinnedOffset);
-}
 
 // ===== Mobile / desktop navbar switch =====
 function updateNavbar(e) {
@@ -361,7 +536,11 @@ if (mainHeader) {
 })();
 
 // Opens the panel when a redirect lands here with ?account=1
-if (accountButton && new URLSearchParams(location.search).has("account")) {
+if (
+  accountButton &&
+  !verifyEmailForm &&
+  new URLSearchParams(location.search).has("account")
+) {
   openAccountDrawer();
   history.replaceState(null, "", location.pathname);
 }

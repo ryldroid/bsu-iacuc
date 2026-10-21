@@ -30,7 +30,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <?php
             if (!empty($success)) {
                 $alertType = 'success';
-                $alertMessages = 'Account created successfully! Redirecting...';
+                $alertMessages = 'Account created successfully! Check your email to verify your account. Redirecting...';
                 $alertAutoDismiss = 0;
                 include dirname(__DIR__) . '/includes/alert.php';
             }
@@ -74,7 +74,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <div class="phone-field-wrap">
                     <span class="phone-prefix">+63</span>
                     <input type="tel" id="phone_number" name="phone_number" placeholder=" "
-                        inputmode="numeric" pattern="9[0-9]{9}" maxlength="10"
+                        inputmode="numeric"
                         value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $old['phone_number'] ?? '')); ?>" required>
                 </div>
                 <label for="phone_number">Phone Number</label>

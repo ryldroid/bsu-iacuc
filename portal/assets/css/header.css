@@ -40,73 +40,6 @@ header img {
     height: 36px;
 }
 
-/* ===== Verify email banner ===== */
-.verify-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: nowrap;
-    background: var(--status-info-bg);
-    color: var(--status-info-text);
-    padding: 10px 20px;
-    font-size: 0.85em;
-}
-
-.verify-banner-text {
-    display: block;
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-.verify-banner-text svg {
-    vertical-align: text-bottom;
-    margin-right: 8px;
-}
-
-.verify-banner-link-form {
-    display: contents;
-}
-
-.verify-banner-link {
-    background: none;
-    border: none;
-    padding: 0;
-    color: inherit;
-    font-weight: 600;
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: 1em;
-    white-space: nowrap;
-    box-shadow: none;
-    margin-top: 0;
-}
-
-.verify-banner-link:is(:hover, :active) {
-    background: none;
-    color: var(--brand-color-hover);
-    box-shadow: none;
-    transform: none;
-    text-decoration: none;
-}
-
-.verify-banner-close {
-    background: none;
-    border: none;
-    padding: 2px;
-    color: inherit;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    opacity: 0.75;
-    box-shadow: none;
-}
-
-.verify-banner-close:hover {
-    opacity: 1;
-}
-
 /* ===== Logo ===== */
 .header-logo-cont {
     display: flex;
@@ -223,11 +156,14 @@ header nav a:hover::after {
     right: 0;
 
     display: none;
+    flex-direction: column;
     overflow: hidden;
 
     width: var(--panel-width);
     max-width: 92vw;
-    height: min(760px, calc(100dvh - 76px));
+    max-height: min(760px, calc(100dvh - 76px));
+    font-family: var(--font-body);
+    font-size: 1rem;
 
     background-color: var(--card-background);
     color: var(--primary-text);
@@ -237,14 +173,11 @@ header nav a:hover::after {
 }
 
 #account-drawer.show {
-    display: block;
+    display: flex;
 }
 
-#account-drawer iframe {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 0;
+#account-drawer:focus {
+    outline: none;
 }
 
 #sidebar-backdrop {

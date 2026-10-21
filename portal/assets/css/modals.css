@@ -785,6 +785,44 @@ html:has(.modal-backdrop.open.guide-targeting) {
     flex-shrink: 0;
 }
 
+/* ===== Shake (see shake() in modals.js) ===== */
+@keyframes shake {
+
+    0%,
+    100% {
+        translate: 0;
+    }
+
+    20%,
+    60% {
+        translate: -8px 0;
+    }
+
+    40%,
+    80% {
+        translate: 8px 0;
+    }
+}
+
+.shake {
+    animation: shake 0.35s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shake {
+        animation: none;
+    }
+}
+
+.confirm-modal-btn[hidden] {
+    display: none;
+}
+
+.panel-modal-body .input-group {
+    width: 100%;
+    margin-bottom: 0;
+}
+
 .confirm-modal-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;

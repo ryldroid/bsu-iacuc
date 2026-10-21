@@ -655,11 +655,24 @@ function formatDateTime(value) {
   document.querySelectorAll(".guide-modal").forEach(bindGuide);
 })();
 
-// ===== Modals marked data-static ignore clicks on the backdrop =====
+// ===== Shake: feedback when a click can't dismiss something =====
+window.shake = function (el) {
+  if (!el) return;
+  el.classList.remove("shake");
+  void el.offsetWidth; // restarts the animation if it is already running
+  el.classList.add("shake");
+  el.addEventListener("animationend", () => el.classList.remove("shake"), {
+    once: true,
+  });
+};
+
+// ===== Modals marked data-static ignore clicks on the backdrop, and shake instead =====
 document.addEventListener(
   "click",
   (e) => {
-    if (e.target.matches(".modal-backdrop[data-static]")) e.stopPropagation();
+    if (!e.target.matches(".modal-backdrop[data-static]")) return;
+    e.stopPropagation();
+    shake(e.target.querySelector(".modal-card") ?? e.target.firstElementChild);
   },
   true,
 );

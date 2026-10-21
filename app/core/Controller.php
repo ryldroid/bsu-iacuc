@@ -3,6 +3,7 @@
 class Controller
 {
   protected UserModel $userModel;
+  protected ?array $currentUser = null;
 
   // ===== SETUP =====
   public function __construct()
@@ -18,7 +19,8 @@ class Controller
       } else {
         // Always trust the database for the role, never a stale session (e.g. after a role change)
         $_SESSION['user']['role'] = $fresh['role'];
-        $this->requireResearcherProfile($fresh);
+        $this->currentUser = $fresh;
+        $this->requireCompleteAccount($fresh);
       }
     }
   }
@@ -30,6 +32,7 @@ class Controller
 
     if (file_exists($filename)) {
       $data['user'] = array_key_exists('user', $data) ? $data['user'] : ($_SESSION['user'] ?? null);
+      $data += ['accountUser' => $this->currentUser];
       extract($data);
       require_once $filename;
     } else {
@@ -108,12 +111,17 @@ class Controller
   }
 
   // ===== REQUEST GUARDS =====
-  protected function jsonError(int $code, string $message): void
+  protected function jsonResponse(array $payload, int $code = 200): void
   {
     http_response_code($code);
     header('Content-Type: application/json');
-    echo json_encode(['error' => $message]);
+    echo json_encode($payload);
     exit;
+  }
+
+  protected function jsonError(int $code, string $message): void
+  {
+    $this->jsonResponse(['error' => $message], $code);
   }
 
   protected function verifyCsrfHeader(): void
@@ -154,25 +162,37 @@ class Controller
     }
   }
 
-  // Researchers must have sex and researcher type on file before using the portal
-  private function requireResearcherProfile(?array $fresh): void
+  // Everyone needs a verified email before using the portal; researchers also need sex and researcher type
+  private function requireCompleteAccount(?array $fresh): void
   {
-    if (!$fresh || $fresh['role'] !== 'researcher' || (!empty($fresh['sex']) && !empty($fresh['researcher_type']))) {
+    if (!$fresh) {
       return;
     }
 
+    $isResearcher = $fresh['role'] === 'researcher';
+    $needs = array_filter([
+      $isResearcher && (empty($fresh['sex']) || empty($fresh['researcher_type'])) ? 'set your sex and researcher type' : null,
+      empty($fresh['email_verified']) ? 'verify your email' : null,
+    ]);
+
+    if (!$needs) {
+      return;
+    }
+
+    // Researchers and personnel have different home pages, and the account panel opens on theirs
+    $home  = $isResearcher ? 'home' : 'personnel/home';
     $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
-    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'user/ping', 'user/email_preferences', 'user/verify_email'], true) || ($route === 'home' && isset($_GET['account']))) {
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'personnel/logout', 'user/ping', 'user/email_preferences', 'user/verify_email', 'user/resend_verification', 'user/school_options'], true) || ($route === $home && isset($_GET['account']))) {
       return;
     }
 
-    $message = 'Please set your sex and researcher type to continue.';
+    $message = 'Please ' . implode(' and ', $needs) . ' to continue.';
     if (!str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html')) {
       $this->jsonError(403, $message);
     }
 
-    $_SESSION['flash_error'] = $message;
-    $this->redirect('home?account=1&required=1');
+    // The account panel opens with its own explanation, so no flash message here
+    $this->redirect($home . '?account=1&required=1');
   }
 
   // ===== CSRF TOKENS =====

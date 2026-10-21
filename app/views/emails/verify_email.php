@@ -5,7 +5,7 @@ ob_start();
 ?>
 
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
-<p>Please verify your email address to receive email notifications about your protocol submissions in BSU-IACUC.</p>
+<p>Please verify your email address to start using BSU-IACUC and receive email notifications about your protocol submissions.</p>
 <p>
   <a href="<?= $verify_url ?>">Click here to verify your email</a>
 </p>

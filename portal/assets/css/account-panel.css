@@ -1,0 +1,388 @@
+/* ===== My Account panel ===== */
+#account-drawer svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.account-panel-header .account-close {
+  margin-block: -4px;
+}
+
+#account-drawer .account-close {
+  color: var(--muted-text);
+  padding: 4px;
+}
+
+#account-drawer .account-close:hover,
+#account-drawer .account-close:focus-visible {
+  color: var(--primary-text);
+}
+
+.account-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  flex: 1 1 auto;
+  padding: 1.1rem var(--panel-pad-x) 1.4rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#account-drawer h2 {
+  font-family: var(--font-default);
+  font-size: .95em;
+  font-weight: 600;
+  text-shadow: none;
+  color: var(--primary-text);
+}
+
+#account-drawer .info-notice {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+}
+
+/* ===== Summary ===== */
+.account-summary {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+}
+
+.account-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--brand-color);
+  color: var(--text-on-brand);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.account-summary-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ===== Cards ===== */
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  background-color: var(--divider-color-subtle);
+}
+
+.account-card-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#account-drawer .button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  padding: .45em .9em;
+  border-radius: var(--btn-radius);
+  background-color: var(--card-background);
+  color: var(--primary-text);
+  font-size: .85em;
+  white-space: nowrap;
+}
+
+#account-drawer .button:hover {
+  background-color: var(--brand-color-hover);
+  color: var(--text-on-brand);
+}
+
+/* ===== Form ===== */
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+#account-drawer .account-form h2 {
+  margin-top: .4rem;
+  font-size: .75em;
+  letter-spacing: .06em;
+  /* text-transform: uppercase; */
+  color: var(--secondary-text);
+}
+
+.account-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1.1rem;
+}
+
+#account-drawer .input-group {
+  width: 100%;
+  margin: 0;
+}
+
+#account-drawer .input-group :is(input, select) {
+  padding: 14px 12px;
+  font-family: inherit;
+  font-size: .95em;
+}
+
+#account-drawer .input-group .password-field-wrap input {
+  padding-right: 2.6rem;
+}
+
+#account-drawer .input-group label {
+  left: 12px;
+  font-size: .95em;
+}
+
+#account-drawer .input-group:is(:has(input:focus), :has(input:not(:placeholder-shown)), :has(select), :has(.phone-field-wrap)) label {
+  font-size: .8em;
+}
+
+#account-drawer .phone-prefix {
+  padding: 14px 12px;
+  font-size: .95em;
+}
+
+#account-drawer .password-toggle-btn {
+  transform: translateY(-50%);
+  color: var(--muted-text);
+  padding: 6px;
+}
+
+#account-drawer .password-toggle-btn:hover {
+  background: transparent;
+  color: var(--brand-color-hover);
+}
+
+#account-drawer .password-toggle-btn:active {
+  transform: translateY(calc(-50% + 1px));
+  background: transparent;
+}
+
+/* ===== Hidden elements (the header button rule would otherwise show them) ===== */
+#account-drawer [hidden] {
+  display: none;
+}
+
+/* ===== Email badge and verify link ===== */
+.email-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.email-badge-unverified {
+  background-color: var(--status-warning-bg);
+  color: var(--warning-text);
+}
+
+.email-badge-verified {
+  background-color: var(--brand-color);
+  color: var(--text-on-brand);
+}
+
+#account-drawer .email-verify-resend {
+  align-self: flex-start;
+  margin-top: -.5rem;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--brand-text);
+  font-size: .85em;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+#account-drawer .email-verify-resend:hover {
+  background: none;
+  color: var(--brand-color-hover);
+  text-decoration: none;
+}
+
+#account-drawer .email-verify-resend:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* ===== Change password (collapsed until needed) ===== */
+.account-password {
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+}
+
+.account-password summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .8rem 1.1rem;
+  font-size: .95em;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.account-password summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-password summary svg {
+  transition: transform .2s ease;
+}
+
+.account-password[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.account-password-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 0 1.1rem 1.1rem;
+}
+
+#account-drawer .password-requirements {
+  width: 100%;
+  margin: 0;
+}
+
+#account-drawer .password-requirements ul {
+  display: block;
+  height: auto;
+}
+
+/* ===== Switch toggle ===== */
+.switch-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: .95em;
+  color: var(--secondary-text);
+  cursor: pointer;
+}
+
+.switch-toggle-control {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch-toggle-control input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch-toggle-track {
+  position: absolute;
+  inset: 0;
+  background-color: var(--input-border);
+  border-radius: 999px;
+  transition: background-color .2s ease;
+  pointer-events: none;
+}
+
+.switch-toggle-track::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background-color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
+  transition: transform .2s ease;
+}
+
+.switch-toggle-control input:checked+.switch-toggle-track {
+  background-color: var(--brand-color);
+}
+
+.switch-toggle-control input:checked+.switch-toggle-track::before {
+  transform: translateX(18px);
+}
+
+.switch-toggle-control input:focus-visible+.switch-toggle-track {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+/* ===== Account actions ===== */
+.account-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: .75rem;
+}
+
+#account-drawer .account-actions .button {
+  justify-content: center;
+  width: 100%;
+  padding: .65em 1em;
+}
+
+#account-drawer .btn-account-delete {
+  background-color: var(--danger-solid);
+  color: var(--text-on-brand);
+}
+
+#account-drawer .btn-account-delete:hover {
+  background-color: var(--danger-solid-hover);
+}
+
+/* ===== Save bar (always visible while the panel scrolls) ===== */
+.account-panel-footer {
+  flex-shrink: 0;
+  padding: .8rem var(--panel-pad-x);
+  border-top: 1px solid var(--divider-color);
+  background-color: var(--card-background);
+}
+
+#account-drawer .account-save {
+  justify-content: center;
+  width: 100%;
+  padding: .7em 1em;
+  border-radius: var(--btn-radius);
+  background-color: var(--brand-color-hover);
+  color: var(--text-on-brand);
+  font-size: .95em;
+}
+
+#account-drawer .account-save:hover {
+  background-color: var(--brand-color-active);
+  color: var(--text-on-brand);
+}
+
+/* ===== Phones ===== */
+@media (max-width: 479px) {
+
+  #account-drawer .input-group :is(input, select),
+  #account-drawer .phone-prefix {
+    padding: 11px 10px;
+  }
+
+  .account-card {
+    padding: .9rem;
+  }
+}

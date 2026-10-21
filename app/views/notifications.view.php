@@ -133,6 +133,8 @@ function notifDateGroup(string $dateStr): string
   </main>
 </div>
 
+<?php include __DIR__ . '/includes/flash.php'; ?>
+
 <!-- ===== Page script ===== -->
 <script>
   (function() {

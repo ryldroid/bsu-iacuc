@@ -62,6 +62,7 @@ class Access
       'notifications' => 'auth',
       'ping' => 'auth',
       'resend_verification' => 'auth',
+      'school_options' => 'auth',
       // researchers only
       'delete' => 'researcher',
     ],

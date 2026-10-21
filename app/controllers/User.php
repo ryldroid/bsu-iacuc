@@ -241,10 +241,10 @@ class User extends Controller
     $this->redirect('submissions');
   }
 
-  // Welcome guide shows once, after the researcher has set sex and researcher type
+  // Welcome guide shows once, after the researcher has set sex and researcher type and verified their email
   private function showWelcomeOnce(array $user): void
   {
-    if (empty($user['welcome_seen'])) {
+    if (empty($user['welcome_seen']) && !empty($user['email_verified'])) {
       $_SESSION['user']['show_welcome'] = true;
       $this->userModel->markWelcomeSeen((int) $user['id']);
     }
@@ -307,6 +307,7 @@ class User extends Controller
     $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex, $researcher_type);
 
     if ($ok) {
+      $this->sendEmailVerification($this->userModel->getUserByEmail($email));
       $_SESSION['new_username'] = $username;
       $this->view('user/register', [
         'errors'  => [],
@@ -361,41 +362,7 @@ class User extends Controller
   public function account()
   {
     $this->requireLogin();
-
-    // Only the header's account panel (an iframe, loaded with ?panel=1) renders this page; direct visits open the panel instead
-    if (!isset($_GET['panel'])) {
-      $this->redirect(($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home?account=1' : 'personnel/home?account=1');
-    }
-
-    if (isset($_GET['completed'])) {
-      echo '<script>top.location.replace(' . json_encode(ROOT . '/home') . ');</script>';
-      exit;
-    }
-
-    $user = $this->userModel->getUser($_SESSION['user']['user_id']);
-
-    $certificate = ($user['role'] ?? '') === 'researcher'
-      ? $this->userModel->getCert((int) $user['id'])
-      : null;
-
-    $this->view('user/account', [
-      'csrf'           => $this->generateCsrfToken(),
-      'certificate'    => $certificate,
-      'email_verified' => (bool) $user['email_verified'],
-      'email_notifications' => (bool) $user['email_notifications'],
-      'email_provider_blocked' => (bool) $user['email_provider_blocked'],
-      'old'         => [
-        'first_name'   => $user['first_name'],
-        'last_name'    => $user['last_name'],
-        'username'     => $user['username'],
-        'email'        => $user['email'],
-        'phone_number' => $user['phone_number'] ?? '+63',
-        'school'       => $user['school'] ?? '',
-        'sex'          => $user['sex'] ?? '',
-        'researcher_type' => $user['researcher_type'] ?? '',
-        'role'         => $user['role'],
-      ],
-    ]);
+    $this->redirect(($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home?account=1' : 'personnel/home?account=1');
   }
 
   // ===== EMAIL NOTIFICATIONS TOGGLE (POST /user/notifications) =====
@@ -403,20 +370,25 @@ class User extends Controller
   public function notifications(): void
   {
     $this->requireLogin();
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('user/account');
-    }
-
+    $this->requirePostMethod();
     $this->verifyCsrfToken();
 
-    $_SESSION['flash_success'] = $this->saveEmailNotifications(
-      (int) $_SESSION['user']['user_id'],
-      $_SESSION['user']['email'],
-      !empty($_POST['email_notifications'])
-    );
+    $id      = (int) $_SESSION['user']['user_id'];
+    $message = $this->saveEmailNotifications($id, $_SESSION['user']['email'], !empty($_POST['email_notifications']));
 
-    $this->redirect('user/account?panel=1');
+    $this->jsonResponse([
+      'message'          => $message,
+      'provider_blocked' => !empty($this->userModel->getUser($id)['email_provider_blocked']),
+    ]);
+  }
+
+  // ===== SCHOOL SUGGESTIONS (LOADED WHEN THE ACCOUNT PANEL FIRST OPENS) =====
+
+  public function school_options(): void
+  {
+    $this->requireLogin();
+    header('Cache-Control: private, max-age=86400');
+    include dirname(__DIR__) . '/views/includes/school-options.php';
   }
 
   // ===== EMAIL PREFERENCES (SIGNED EMAIL LINK, NO LOGIN) =====
@@ -470,11 +442,7 @@ class User extends Controller
   public function update()
   {
     $this->requireLogin();
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('user/account');
-    }
-
+    $this->requirePostMethod();
     $this->verifyCsrfToken();
 
     $id = (int) $_SESSION['user']['user_id'];
@@ -488,7 +456,6 @@ class User extends Controller
     $role = $current_user['role'];
 
     $school = trim($school ?? '');
-    $old = compact('username', 'first_name', 'last_name', 'email', 'phone_number', 'school', 'sex', 'researcher_type', 'role');
 
     $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, $role, false, $sex, $researcher_type);
 
@@ -515,20 +482,7 @@ class User extends Controller
 
     // ===== SHOW ERRORS =====
     if (!empty($errors)) {
-      $certificate = $current_user['role'] === 'researcher'
-        ? $this->userModel->getCert($id)
-        : null;
-
-      $this->view('user/account', [
-        'csrf'        => $this->generateCsrfToken(),
-        'errors'      => $errors,
-        'certificate' => $certificate,
-        'email_verified'      => (bool) $current_user['email_verified'],
-        'email_notifications' => (bool) $current_user['email_notifications'],
-        'email_provider_blocked' => (bool) $current_user['email_provider_blocked'],
-        'old'         => $old,
-      ]);
-      return;
+      $this->jsonResponse(['errors' => $errors], 422);
     }
 
     // ===== SAVE CHANGES =====
@@ -539,43 +493,55 @@ class User extends Controller
 
     $profileWasIncomplete = $role === 'researcher' && (empty($current_user['sex']) || empty($current_user['researcher_type']));
 
-    $ok = $this->userModel->updateUser($id, $input);
-
-    // ===== AFTER SAVE =====
-    if ($ok) {
-      if ($role === 'researcher') {
-        (new RecordModel())->fillBlankDemographics($id, $sex, $researcher_type);
-        if ($profileWasIncomplete) {
-          $this->showWelcomeOnce($current_user);
-        }
-      }
-      $_SESSION['user']['first_name'] = $first_name;
-      $_SESSION['user']['username']   = $username;
-      $_SESSION['user']['email']      = $email;
-      $_SESSION['user']['role'] = $role;
-
-      if (!empty($password)) {
-        $this->userModel->logAudit('password_changed', $id, $username, $role, 'user', $id, 'Password changed via account settings');
-      }
-
-      if ($email !== $current_user['email']) {
-        $this->userModel->markEmailUnverified($id);
-        $verificationSent = $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
-        $_SESSION['user']['email_verified'] = false;
-
-        $this->userModel->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
-
-        $_SESSION['flash_success'] = $verificationSent
-          ? 'Account updated successfully! A verification link was sent to ' . $email . '.'
-          : 'Account updated successfully! Use "Verify email" to get a verification link for your new email.';
-      } else {
-        $_SESSION['flash_success'] = 'Account updated successfully!';
-      }
-    } else {
-      $_SESSION['flash_error'] = 'Update failed. Please try again.';
+    if (!$this->userModel->updateUser($id, $input)) {
+      $this->jsonError(500, 'Update failed. Please try again.');
     }
 
-    $this->redirect($ok && $profileWasIncomplete ? 'user/account?panel=1&completed=1' : 'user/account?panel=1');
+    // ===== AFTER SAVE =====
+    if ($role === 'researcher') {
+      (new RecordModel())->fillBlankDemographics($id, $sex, $researcher_type);
+      if ($profileWasIncomplete) {
+        $this->showWelcomeOnce($current_user);
+      }
+    }
+    $_SESSION['user']['first_name'] = $first_name;
+    $_SESSION['user']['username']   = $username;
+    $_SESSION['user']['email']      = $email;
+    $_SESSION['user']['role'] = $role;
+
+    if (!empty($password)) {
+      $this->userModel->logAudit('password_changed', $id, $username, $role, 'user', $id, 'Password changed via account settings');
+    }
+
+    $message = 'Account updated successfully!';
+
+    if ($email !== $current_user['email']) {
+      $this->userModel->markEmailUnverified($id);
+      $verificationSent = $this->sendEmailVerification(['id' => $id, 'first_name' => $first_name, 'email' => $email]);
+      $_SESSION['user']['email_verified'] = false;
+
+      $this->userModel->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
+
+      $message = $verificationSent
+        ? 'Account updated successfully! A verification link was sent to ' . $email . '.'
+        : 'Account updated successfully! Use "Verify email" to get a verification link for your new email.';
+    }
+
+    if ($profileWasIncomplete) {
+      $_SESSION['flash_success'] = $message;
+    }
+
+    $this->jsonResponse([
+      'message'  => $message,
+      'redirect' => $profileWasIncomplete ? ROOT . '/home' : null,
+      'user'     => [
+        'first_name'     => $first_name,
+        'last_name'      => $last_name,
+        'username'       => $username,
+        'email'          => $email,
+        'email_verified' => !empty($_SESSION['user']['email_verified']),
+      ],
+    ]);
   }
 
   // ===== DELETE ACCOUNT =====
@@ -692,8 +658,13 @@ class User extends Controller
     $this->userModel->markEmailVerificationUsed($token);
     $this->userModel->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
 
+    $verified = $this->userModel->getUser($userId);
+    if ($this->isLoggedIn() && (int) $_SESSION['user']['user_id'] === $userId && !empty($verified['sex']) && !empty($verified['researcher_type'])) {
+      $this->showWelcomeOnce($verified);
+    }
+
     $_SESSION['flash_success'] = 'Your email has been verified!';
-    $this->redirect($this->isLoggedIn() ? 'user/account' : 'user/login');
+    $this->redirect(!$this->isLoggedIn() ? 'user/login' : (empty($_SESSION['user']['show_welcome']) ? 'user/account' : 'home'));
   }
 
   public function resend_verification(): void
@@ -709,28 +680,54 @@ class User extends Controller
     $id   = (int) $_SESSION['user']['user_id'];
     $user = $this->userModel->getUser($id);
 
-    $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/user/account');
-
     if (!empty($user['email_verified'])) {
-      header('Location: ' . $back);
-      exit;
+      $this->verificationResult(true, 'Your email is already verified.');
     }
 
+    // The account panel's verify step lets people correct the address first, so a new one is saved before the link goes out
+    $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+    $emailChanged = $email !== '' && strcasecmp($email, $user['email']) !== 0;
+
+    if ($emailChanged) {
+      if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $this->verificationResult(false, 'A valid email address is required.', 422);
+      }
+      if ($this->userModel->isEmailTakenByAnother($email, $id)) {
+        $this->verificationResult(false, 'That email is already taken.', 422);
+      }
+
+      $this->userModel->updateEmail($id, $email);
+      $this->userModel->logAudit('email_changed', $id, $user['username'], $user['role'], 'user', $id, 'Email changed, re-verification sent');
+      $_SESSION['user']['email'] = $email;
+      $user['email']             = $email;
+    }
+
+    // The cooldown only guards repeat sends to the same address
     $cooldown  = 45;
     $elapsed   = $this->userModel->secondsSinceLastVerificationEmail($id);
 
-    if ($elapsed !== null && $elapsed < $cooldown) {
-      $_SESSION['flash_error'] = 'Please wait ' . ($cooldown - $elapsed) . ' seconds before requesting another verification link.';
-      header('Location: ' . $back);
-      exit;
+    if (!$emailChanged && $elapsed !== null && $elapsed < $cooldown) {
+      $this->verificationResult(false, 'Please wait ' . ($cooldown - $elapsed) . ' seconds before requesting another verification link.', 429);
     }
 
     if ($this->sendEmailVerification($user)) {
-      $_SESSION['flash_success'] = 'Verification link sent to ' . $user['email'] . '. Please check your inbox.';
-    } else {
-      $_SESSION['flash_error'] = 'Could not send the verification link. Please try again later.';
+      $this->verificationResult(true, 'Verification link sent to ' . $user['email'] . '. Please check your inbox.');
     }
-    header('Location: ' . $back);
+
+    $this->verificationResult(false, $emailChanged
+      ? 'Your email was saved, but we could not send the verification link. Please try again.'
+      : 'Could not send the verification link. Please try again later.', 500);
+  }
+
+  // Answers fetch requests with JSON and normal form posts with a flash message and a redirect back
+  private function verificationResult(bool $ok, string $message, int $errorCode = 400): void
+  {
+    if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+      $this->jsonResponse($ok ? ['message' => $message] : ['error' => $message], $ok ? 200 : $errorCode);
+    }
+
+    $_SESSION[$ok ? 'flash_success' : 'flash_error'] = $message;
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? (ROOT . '/user/account')));
     exit;
   }
 }

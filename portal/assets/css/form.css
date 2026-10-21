@@ -113,6 +113,86 @@
   padding: 0 5px;
 }
 
+/* ===== Password field & toggle ===== */
+.password-field-wrap {
+  position: relative;
+  width: 80%;
+}
+
+.password-field-wrap input {
+  width: 100%;
+  padding-right: 2.6rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  width: fit-content;
+  height: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 6px;
+  margin: 0;
+  color: var(--muted-text);
+  cursor: pointer;
+}
+
+.password-toggle-btn:hover {
+  background: transparent;
+  color: var(--brand-color-hover);
+}
+
+.password-toggle-btn:active {
+  transform: translateY(calc(-50% + 1px));
+  box-shadow: none;
+}
+
+.password-toggle-btn svg {
+  pointer-events: none;
+}
+
+.password-requirements {
+  width: 60%;
+  text-align: left;
+  margin-bottom: 1em;
+  font-size: 0.9em;
+  color: var(--muted-text);
+}
+
+.password-requirements ul {
+  padding-left: 1.2em;
+  margin-top: 0.3em;
+  list-style: none;
+}
+
+.password-requirements li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.password-requirements li .password-req-check {
+  flex-shrink: 0;
+  visibility: hidden;
+}
+
+.password-requirements li.met {
+  color: var(--success-text);
+}
+
+.password-requirements li.met .password-req-check {
+  visibility: visible;
+}
+
 /* ===== Helper spacing, hints and notices ===== */
 .helper+.input-group {
   margin: 1.2em 0;
