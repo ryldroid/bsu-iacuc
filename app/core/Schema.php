@@ -370,6 +370,7 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->ensureColumn('clearance_pool', 'version_id', "int(11) DEFAULT NULL AFTER `assigned_at`");
+        $this->ensureColumn('clearance_pool', 'ar_number', "varchar(50) DEFAULT NULL AFTER `original_name`");
 
         // ===== PROTOCOL DRAFTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_drafts` (

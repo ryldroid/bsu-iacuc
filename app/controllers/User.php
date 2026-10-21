@@ -664,7 +664,8 @@ class User extends Controller
     }
 
     $_SESSION['flash_success'] = 'Your email has been verified!';
-    $this->redirect(!$this->isLoggedIn() ? 'user/login' : (empty($_SESSION['user']['show_welcome']) ? 'user/account' : 'home'));
+    $home = ($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home' : 'personnel/home';
+    $this->redirect($this->isLoggedIn() ? $home : 'user/login');
   }
 
   public function resend_verification(): void

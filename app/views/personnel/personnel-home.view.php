@@ -349,6 +349,16 @@ foreach ($protocols as $p) {
                             </button>
                         </div>
 
+                        <div class="clearance-bulk" id="clearanceBulk" hidden>
+                            <span class="clearance-progress" id="clearanceProgress"></span>
+                            <button type="button" class="row-btn row-btn-primary" id="confirmBtn" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#check-icon" />
+                                </svg>
+                                Confirm all (<span id="stagedCount">0</span>)
+                            </button>
+                        </div>
+
                         <button type="button" class="row-btn row-btn-outline" id="toggleSelectBtn" hidden
                             title="Select protocols to download or endorse at once">
                             <svg id="toggleSelectBtnIcon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -359,150 +369,116 @@ foreach ($protocols as $p) {
                     </div>
                 <?php endif; ?>
 
-                <?php if ($personnelRole === 'staff'): ?>
-                    <!-- ===== Clearances: upload screenshots and match them to endorsed protocols (Endorsed filter only) ===== -->
-                    <section class="clearance-panel" id="clearancePanel" hidden>
-                        <div class="clearance-panel-head">
-                            <h2>Clearances</h2>
-                            <p class="helper">Upload the released animal research clearances, then drag each screenshot onto its protocol below. On a touch screen, tap a screenshot, then tap the clearance box of its protocol. Confirm to mark the matched protocols as Approved.</p>
-                        </div>
-
-                        <div class="bulk-actions-bar clearance-actions">
-                            <input type="file" id="clearanceFileInput" multiple
-                                accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
-
-                            <button type="button" class="row-btn row-btn-outline" id="clearanceUploadBtn"
-                                title="Upload clearance screenshots (JPG or PNG, several at once)">
-                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#upload-icon" />
-                                </svg>
-                                Upload Clearances
-                            </button>
-
-                            <button type="button" class="row-btn row-btn-primary" id="confirmBtn" disabled>
-                                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#check-icon" />
-                                </svg>
-                                Confirm (<span id="stagedCount">0</span>)
-                            </button>
-                        </div>
-
-                        <div class="upload-progress-container" id="clearanceUploadProgress"></div>
-
-                        <div class="clearance-tray" id="clearanceTrayCard">
-                            <h3>Unsorted Screenshots</h3>
-                            <div class="clearance-tray-grid" id="trayGrid">
-                                <p class="helper clearance-empty">Loading&hellip;</p>
+                <div class="clearance-layout" id="clearanceLayout">
+                    <?php if ($personnelRole === 'staff'): ?>
+                        <!-- ===== Clearances: upload screenshots and match them to endorsed protocols (Endorsed filter only) ===== -->
+                        <section class="clearance-panel" id="clearancePanel" hidden>
+                            <div class="clearance-panel-head">
+                                <h2>Clearances</h2>
+                                <ol class="clearance-steps">
+                                    <li>Upload each released clearance screenshot and enter its AR number</li>
+                                    <li>Drag each one onto its protocol (on a touch screen, tap it, then tap the protocol's box)</li>
+                                    <li>Confirm to mark the matched protocols as Approved</li>
+                                </ol>
                             </div>
-                        </div>
-                    </section>
-                <?php endif; ?>
 
-                <!-- ===== Protocol list ===== -->
-                <div class="protocols-list" id="protocolsList">
+                            <div class="bulk-actions-bar clearance-actions">
+                                <input type="file" id="clearanceFileInput" multiple
+                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
 
-                    <?php
-                    $iconMap = [
-                        'review'   => '#review-icon',
-                        'history'  => '#history-icon',
-                        'check'    => '#check-icon',
-                        'upload'   => '#upload-icon',
-                        'download' => '#download-icon',
-                        'back'     => '#back-icon',
-                        'reject'   => '#close-icon',
-                        'undo'     => '#undo-icon',
-                        'edit'     => '#edit-icon',
-                    ];
-                    ?>
+                                <button type="button" class="row-btn row-btn-outline" id="clearanceUploadBtn"
+                                    title="Upload clearance screenshots (JPG or PNG, several at once)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#upload-icon" />
+                                    </svg>
+                                    Upload Clearances
+                                </button>
+                            </div>
 
-                    <?php foreach ($protocols as $protocol):
-                        $submittedDate  = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
-                        $statusDisplay  = $protocol['status_display'];
-                        $badgeClass     = $protocol['badge_class'];
-                        $filterSlug     = $protocol['filter_slug'];
-                        $statusLower    = strtolower($protocol['status']);
-                        $protocolId     = (int) $protocol['protocol_id'];
-                        $paymentStatus  = $protocol['payment_status'] ?? 'unpaid';
-                        $hasSignedScan  = !empty($protocol['latest_signed_scan_version_id']);
-                        $hasIpn         = !empty($protocol['reference_no']);
-                        $hasHardCopyReleased = !empty($protocol['hard_copy_released_at']);
-                        $researcherName = htmlspecialchars(
-                            $protocol['first_name'] . ' ' . $protocol['last_name'],
-                            ENT_QUOTES,
-                            'UTF-8'
-                        );
-                        $title = htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8');
+                            <div class="clearance-tray" id="clearanceTrayCard">
+                                <h3>Unsorted Screenshots <span class="clearance-count" id="trayCount"></span></h3>
+                                <div class="clearance-tray-grid" id="trayGrid">
+                                    <p class="helper clearance-empty">Loading&hellip;</p>
+                                </div>
+                            </div>
+                        </section>
+                    <?php endif; ?>
 
-                        $userRole = $user['role'] ?? '';
-                        $actions = [];
+                    <!-- ===== Protocol list ===== -->
+                    <div class="protocols-list" id="protocolsList">
 
-                        $userRole = strtolower($user['role'] ?? '');
-                        $actions = [];
+                        <?php
+                        $iconMap = [
+                            'review'   => '#review-icon',
+                            'history'  => '#history-icon',
+                            'check'    => '#check-icon',
+                            'upload'   => '#upload-icon',
+                            'download' => '#download-icon',
+                            'back'     => '#back-icon',
+                            'reject'   => '#close-icon',
+                            'undo'     => '#undo-icon',
+                            'edit'     => '#edit-icon',
+                        ];
+                        ?>
 
-                        if ($statusLower === 'under review') {
-                            $actions = $userRole === 'reviewer' ? [
-                                [
-                                    'label' => 'Review',
-                                    'action' => 'open',
-                                    'icon' => 'review',
-                                    'primary' => true
-                                ],
-                            ] : [
-                                [
-                                    'label' => 'View Protocol',
-                                    'action' => 'view',
-                                    'icon' => 'review'
-                                ],
-                            ];
-                        } elseif ($userRole === 'reviewer') {
+                        <?php foreach ($protocols as $protocol):
+                            $submittedDate  = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
+                            $statusDisplay  = $protocol['status_display'];
+                            $badgeClass     = $protocol['badge_class'];
+                            $filterSlug     = $protocol['filter_slug'];
+                            $statusLower    = strtolower($protocol['status']);
+                            $protocolId     = (int) $protocol['protocol_id'];
+                            $paymentStatus  = $protocol['payment_status'] ?? 'unpaid';
+                            $hasSignedScan  = !empty($protocol['latest_signed_scan_version_id']);
+                            $hasIpn         = !empty($protocol['reference_no']);
+                            $hasHardCopyReleased = !empty($protocol['hard_copy_released_at']);
+                            $researcherName = htmlspecialchars(
+                                $protocol['first_name'] . ' ' . $protocol['last_name'],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
+                            $title = htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8');
 
-                            switch ($statusLower) {
+                            $userRole = $user['role'] ?? '';
+                            $actions = [];
 
-                                case 'reviewed':
-                                    $actions = [
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ]
-                                    ];
-                                    break;
+                            $userRole = strtolower($user['role'] ?? '');
+                            $actions = [];
 
-                                case 'approved':
-                                    $actions = [
-                                        [
-                                            'label' => 'View Clearance',
-                                            'action' => 'view-clearance',
-                                            'icon' => 'review',
-                                            'primary' => true
-                                        ],
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ]
-                                    ];
-                                    break;
+                            if ($statusLower === 'under review') {
+                                $actions = $userRole === 'reviewer' ? [
+                                    [
+                                        'label' => 'Review',
+                                        'action' => 'open',
+                                        'icon' => 'review',
+                                        'primary' => true
+                                    ],
+                                ] : [
+                                    [
+                                        'label' => 'View Protocol',
+                                        'action' => 'view',
+                                        'icon' => 'review'
+                                    ],
+                                ];
+                            } elseif ($userRole === 'reviewer') {
 
-                                default:
-                                    $actions = [
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ]
-                                    ];
-                            }
-                        } else {
+                                switch ($statusLower) {
 
-                            switch ($statusLower) {
-
-                                case 'reviewed':
-                                    if ($paymentStatus === 'proof_submitted') {
+                                    case 'reviewed':
                                         $actions = [
                                             [
-                                                'label' => 'Verify Payment',
-                                                'action' => 'review-payment',
+                                                'label' => 'View Protocol',
+                                                'action' => 'view',
+                                                'icon' => 'review'
+                                            ]
+                                        ];
+                                        break;
+
+                                    case 'approved':
+                                        $actions = [
+                                            [
+                                                'label' => 'View Clearance',
+                                                'action' => 'view-clearance',
                                                 'icon' => 'review',
                                                 'primary' => true
                                             ],
@@ -512,7 +488,9 @@ foreach ($protocols as $p) {
                                                 'icon' => 'review'
                                             ]
                                         ];
-                                    } elseif ($paymentStatus !== 'paid') {
+                                        break;
+
+                                    default:
                                         $actions = [
                                             [
                                                 'label' => 'View Protocol',
@@ -520,59 +498,142 @@ foreach ($protocols as $p) {
                                                 'icon' => 'review'
                                             ]
                                         ];
-                                    } elseif (!$hasIpn) {
-                                        $actions = [
-                                            [
-                                                'label' => 'Assign IPN',
-                                                'action' => 'assign-ipn',
-                                                'icon' => 'edit',
-                                                'primary' => true
-                                            ],
-                                            [
-                                                'label' => 'View Protocol',
-                                                'action' => 'view',
-                                                'icon' => 'review'
-                                            ],
-                                            [
-                                                'label' => 'Undo "Mark as Paid"',
-                                                'action' => 'undo-payment',
-                                                'icon' => 'undo',
-                                                'menu' => true
-                                            ]
-                                        ];
-                                    } elseif (!$hasSignedScan) {
-                                        $actions = [
-                                            [
-                                                'label' => 'Upload Signed Scan',
-                                                'action' => 'upload-signed-scan',
-                                                'icon' => 'upload',
-                                                'primary' => true
-                                            ],
-                                            [
-                                                'label' => 'View Protocol',
-                                                'action' => 'view',
-                                                'icon' => 'review'
-                                            ],
-                                            [
-                                                'label' => 'Edit IPN',
-                                                'action' => 'edit-ipn',
-                                                'icon' => 'edit',
-                                                'menu' => true
-                                            ],
-                                            [
-                                                'label' => 'Undo "Mark as Paid"',
-                                                'action' => 'undo-payment',
-                                                'icon' => 'undo',
-                                                'menu' => true
-                                            ]
-                                        ];
-                                    } else {
-                                        $actions = [
-                                            [
-                                                'label' => 'Mark as Endorsed',
-                                                'action' => 'mark-endorsed',
+                                }
+                            } else {
+
+                                switch ($statusLower) {
+
+                                    case 'reviewed':
+                                        if ($paymentStatus === 'proof_submitted') {
+                                            $actions = [
+                                                [
+                                                    'label' => 'Verify Payment',
+                                                    'action' => 'review-payment',
+                                                    'icon' => 'review',
+                                                    'primary' => true
+                                                ],
+                                                [
+                                                    'label' => 'View Protocol',
+                                                    'action' => 'view',
+                                                    'icon' => 'review'
+                                                ]
+                                            ];
+                                        } elseif ($paymentStatus !== 'paid') {
+                                            $actions = [
+                                                [
+                                                    'label' => 'View Protocol',
+                                                    'action' => 'view',
+                                                    'icon' => 'review'
+                                                ]
+                                            ];
+                                        } elseif (!$hasIpn) {
+                                            $actions = [
+                                                [
+                                                    'label' => 'Assign IPN',
+                                                    'action' => 'assign-ipn',
+                                                    'icon' => 'edit',
+                                                    'primary' => true
+                                                ],
+                                                [
+                                                    'label' => 'View Protocol',
+                                                    'action' => 'view',
+                                                    'icon' => 'review'
+                                                ],
+                                                [
+                                                    'label' => 'Undo "Mark as Paid"',
+                                                    'action' => 'undo-payment',
+                                                    'icon' => 'undo',
+                                                    'menu' => true
+                                                ]
+                                            ];
+                                        } elseif (!$hasSignedScan) {
+                                            $actions = [
+                                                [
+                                                    'label' => 'Upload Signed Scan',
+                                                    'action' => 'upload-signed-scan',
+                                                    'icon' => 'upload',
+                                                    'primary' => true
+                                                ],
+                                                [
+                                                    'label' => 'View Protocol',
+                                                    'action' => 'view',
+                                                    'icon' => 'review'
+                                                ],
+                                                [
+                                                    'label' => 'Edit IPN',
+                                                    'action' => 'edit-ipn',
+                                                    'icon' => 'edit',
+                                                    'menu' => true
+                                                ],
+                                                [
+                                                    'label' => 'Undo "Mark as Paid"',
+                                                    'action' => 'undo-payment',
+                                                    'icon' => 'undo',
+                                                    'menu' => true
+                                                ]
+                                            ];
+                                        } else {
+                                            $actions = [
+                                                [
+                                                    'label' => 'Mark as Endorsed',
+                                                    'action' => 'mark-endorsed',
+                                                    'icon' => 'check',
+                                                    'primary' => true
+                                                ],
+                                                [
+                                                    'label' => 'View Protocol',
+                                                    'action' => 'view',
+                                                    'icon' => 'review'
+                                                ],
+                                                [
+                                                    'label' => 'Edit IPN',
+                                                    'action' => 'edit-ipn',
+                                                    'icon' => 'edit',
+                                                    'menu' => true
+                                                ],
+                                                [
+                                                    'label' => 'Undo "Mark as Paid"',
+                                                    'action' => 'undo-payment',
+                                                    'icon' => 'undo',
+                                                    'menu' => true
+                                                ]
+                                            ];
+                                        }
+                                        break;
+
+                                    case 'endorsed':
+                                        $hasClearance = !empty($protocol['latest_clearance_version_id']);
+                                        $actions = [];
+                                        if ($hasClearance) {
+                                            $actions[] = [
+                                                'label' => 'Mark as Approved',
+                                                'action' => 'mark-approved',
                                                 'icon' => 'check',
                                                 'primary' => true
+                                            ];
+                                        }
+                                        $actions = array_merge($actions, [
+                                            [
+                                                'label' => 'View Protocol',
+                                                'action' => 'view',
+                                                'icon' => 'review'
+                                            ],
+                                            [
+                                                'label' => 'Revert to Reviewed',
+                                                'action' => 'revert-endorsed',
+                                                'icon' => 'undo',
+                                                'menu' => true
+                                            ]
+                                        ]);
+                                        break;
+
+                                    case 'approved':
+                                        $actions = [
+                                            [
+                                                'label' => 'View Clearance',
+                                                'action' => 'view-clearance',
+                                                'icon' => 'review',
+                                                'primary' => $hasHardCopyReleased
                                             ],
                                             [
                                                 'label' => 'View Protocol',
@@ -580,198 +641,144 @@ foreach ($protocols as $p) {
                                                 'icon' => 'review'
                                             ],
                                             [
-                                                'label' => 'Edit IPN',
-                                                'action' => 'edit-ipn',
-                                                'icon' => 'edit',
-                                                'menu' => true
-                                            ],
-                                            [
-                                                'label' => 'Undo "Mark as Paid"',
-                                                'action' => 'undo-payment',
-                                                'icon' => 'undo',
-                                                'menu' => true
+                                                'label' => $hasHardCopyReleased ? 'Undo Pickup' : 'Confirm Pickup',
+                                                'action' => $hasHardCopyReleased ? 'undo-hard-copy' : 'release-hard-copy',
+                                                'icon' => $hasHardCopyReleased ? 'undo' : 'check',
+                                                'primary' => !$hasHardCopyReleased,
+                                                'menu' => $hasHardCopyReleased
                                             ]
                                         ];
-                                    }
-                                    break;
+                                        if (!$hasHardCopyReleased) {
+                                            $actions[] = [
+                                                'label' => 'Revert to Endorsed',
+                                                'action' => 'revert-approved',
+                                                'icon' => 'undo',
+                                                'menu' => true
+                                            ];
+                                        }
+                                        break;
 
-                                case 'endorsed':
-                                    $hasClearance = !empty($protocol['latest_clearance_version_id']);
-                                    $actions = [];
-                                    if ($hasClearance) {
-                                        $actions[] = [
-                                            'label' => 'Mark as Approved',
-                                            'action' => 'mark-approved',
-                                            'icon' => 'check',
-                                            'primary' => true
+                                    default:
+                                        $actions = [
+                                            [
+                                                'label' => 'View Protocol',
+                                                'action' => 'view',
+                                                'icon' => 'review'
+                                            ]
                                         ];
-                                    }
-                                    $actions = array_merge($actions, [
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => 'Revert to Reviewed',
-                                            'action' => 'revert-endorsed',
-                                            'icon' => 'undo',
-                                            'menu' => true
-                                        ]
-                                    ]);
-                                    break;
-
-                                case 'approved':
-                                    $actions = [
-                                        [
-                                            'label' => 'View Clearance',
-                                            'action' => 'view-clearance',
-                                            'icon' => 'review',
-                                            'primary' => $hasHardCopyReleased
-                                        ],
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ],
-                                        [
-                                            'label' => $hasHardCopyReleased ? 'Undo Pickup' : 'Confirm Pickup',
-                                            'action' => $hasHardCopyReleased ? 'undo-hard-copy' : 'release-hard-copy',
-                                            'icon' => $hasHardCopyReleased ? 'undo' : 'check',
-                                            'primary' => !$hasHardCopyReleased,
-                                            'menu' => $hasHardCopyReleased
-                                        ]
-                                    ];
-                                    if (!$hasHardCopyReleased) {
-                                        $actions[] = [
-                                            'label' => 'Revert to Endorsed',
-                                            'action' => 'revert-approved',
-                                            'icon' => 'undo',
-                                            'menu' => true
-                                        ];
-                                    }
-                                    break;
-
-                                default:
-                                    $actions = [
-                                        [
-                                            'label' => 'View Protocol',
-                                            'action' => 'view',
-                                            'icon' => 'review'
-                                        ]
-                                    ];
+                                }
                             }
-                        }
 
-                        $nextStep = null;
-                        $stepCount = count(ProtocolModel::ENDORSEMENT_STEPS);
-                        if ($userRole === 'staff' && $statusLower === 'reviewed') {
-                            $nextStep = ProtocolModel::nextStep($paymentStatus, $hasIpn, $hasSignedScan);
-                        }
-                    ?>
-                        <div class="protocol"
-                            data-protocol-id="<?= $protocolId ?>"
-                            data-filter-slug="<?= $filterSlug ?>"
-                            data-payment="<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>"
-                            data-researcher="<?= strtolower(htmlspecialchars($protocol['first_name'] . ' ' . $protocol['last_name'], ENT_QUOTES, 'UTF-8')) ?>"
-                            data-submitted="<?= htmlspecialchars(date('c', strtotime($protocol['submitted_at'])), ENT_QUOTES, 'UTF-8') ?>"
-                            data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
+                            $nextStep = null;
+                            $stepCount = count(ProtocolModel::ENDORSEMENT_STEPS);
+                            if ($userRole === 'staff' && $statusLower === 'reviewed') {
+                                $nextStep = ProtocolModel::nextStep($paymentStatus, $hasIpn, $hasSignedScan);
+                            }
+                        ?>
+                            <div class="protocol"
+                                data-protocol-id="<?= $protocolId ?>"
+                                data-filter-slug="<?= $filterSlug ?>"
+                                data-payment="<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>"
+                                data-researcher="<?= strtolower(htmlspecialchars($protocol['first_name'] . ' ' . $protocol['last_name'], ENT_QUOTES, 'UTF-8')) ?>"
+                                data-submitted="<?= htmlspecialchars(date('c', strtotime($protocol['submitted_at'])), ENT_QUOTES, 'UTF-8') ?>"
+                                data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
-                            <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
-                                <label class="protocol-select-label" title="Select this protocol">
-                                    <input type="checkbox" class="consent-checkbox protocol-select-checkbox"
-                                        aria-label="Select protocol"
-                                        <?= $protocol['can_endorse'] ? 'data-can-endorse' : '' ?>
-                                        <?= empty($protocol['latest_protocol_version_id']) ? 'disabled' : '' ?>>
-                                </label>
-                            <?php endif; ?>
+                                <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
+                                    <label class="protocol-select-label" title="Select this protocol">
+                                        <input type="checkbox" class="consent-checkbox protocol-select-checkbox"
+                                            aria-label="Select protocol"
+                                            <?= $protocol['can_endorse'] ? 'data-can-endorse' : '' ?>
+                                            <?= empty($protocol['latest_protocol_version_id']) ? 'disabled' : '' ?>>
+                                    </label>
+                                <?php endif; ?>
 
-                            <span class="protocol-status-icon" style="background:<?= $statusMeta[$filterSlug]['color'] ?? 'var(--muted-text)' ?>">
-                                <?= statusIconSvg($statusMeta[$filterSlug]['icon'] ?? 'check-circle-icon', 15) ?>
-                            </span>
+                                <span class="protocol-status-icon" style="background:<?= $statusMeta[$filterSlug]['color'] ?? 'var(--muted-text)' ?>">
+                                    <?= statusIconSvg($statusMeta[$filterSlug]['icon'] ?? 'check-circle-icon', 15) ?>
+                                </span>
 
-                            <div class="protocol-body">
-                                <div class="protocol-meta">
-                                    <p class="research-title">
-                                        <?= $title ?>
-                                        <?php if ($statusLower === 'reviewed'): ?>
-                                            <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>" <?= $nextStep ? ' title="Step ' . $nextStep[0] . ' of ' . $stepCount . ': ' . htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
-                                                <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
-                                            </span>
-                                        <?php elseif ($statusLower === 'approved'): ?>
-                                            <span class="payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
-                                                <?= $hasHardCopyReleased ? 'Hard copy picked up' : 'Hard copy for pickup' ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </p>
-                                    <p class="protocol-meta-line">
-                                        <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
-                                    </p>
-                                    <?php if ($nextStep): ?>
-                                        <div class="protocol-next-step<?= $nextStep[2] ? ' protocol-next-step--waiting' : '' ?>">
-                                            <span class="step-pips">
-                                                <?php for ($step = 1; $step <= $stepCount; $step++): ?>
-                                                    <span class="step-pip<?= $step < $nextStep[0] ? ' step-pip--done' : ($step === $nextStep[0] ? ' step-pip--current' : '') ?>" title="Step <?= $step ?> of <?= $stepCount ?>: <?= htmlspecialchars(ProtocolModel::ENDORSEMENT_STEPS[$step], ENT_QUOTES, 'UTF-8') ?> (<?= $step < $nextStep[0] ? 'done' : ($step === $nextStep[0] ? 'current' : 'upcoming') ?>)"></span>
-                                                <?php endfor; ?>
-                                            </span>
-                                            <span class="step-count">Step <?= $nextStep[0] ?> of <?= $stepCount ?></span>
-                                            <span class="step-label"><?= htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if ($userRole === 'staff' && $statusLower === 'endorsed' && empty($protocol['latest_clearance_version_id'])): ?>
-                                        <!-- Filled by the clearance board script: drop target for an unsorted screenshot -->
-                                        <div class="clearance-slot" data-protocol-id="<?= $protocolId ?>"></div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <div class="actions">
-                                    <?php foreach ($actions as $action): ?>
-                                        <?php if (!empty($action['primary'])): ?>
-                                            <?php if (!empty($action['href'])): ?>
-                                                <a class="button button--primary" href="<?= htmlspecialchars($action['href'], ENT_QUOTES, 'UTF-8') ?>">
-                                                    <?php if (!empty($action['icon'])): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                            <use href="<?= $iconMap[$action['icon']] ?>"></use>
-                                                        </svg>
-                                                    <?php endif; ?>
-                                                    <?= htmlspecialchars($action['label']) ?>
-                                                </a>
-                                            <?php else: ?>
-                                                <button class="button button--primary" data-action="<?= $action['action'] ?>">
-                                                    <?php if (!empty($action['icon'])): ?>
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                            <use href="<?= $iconMap[$action['icon']] ?>"></use>
-                                                        </svg>
-                                                    <?php endif; ?>
-                                                    <?= htmlspecialchars($action['label']) ?>
-                                                </button>
+                                <div class="protocol-body">
+                                    <div class="protocol-meta">
+                                        <p class="research-title">
+                                            <?= $title ?>
+                                            <?php if ($statusLower === 'reviewed'): ?>
+                                                <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>" <?= $nextStep ? ' title="Step ' . $nextStep[0] . ' of ' . $stepCount . ': ' . htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+                                                    <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                            <?php elseif ($statusLower === 'approved'): ?>
+                                                <span class="payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
+                                                    <?= $hasHardCopyReleased ? 'Hard copy picked up' : 'Hard copy for pickup' ?>
+                                                </span>
                                             <?php endif; ?>
+                                        </p>
+                                        <p class="protocol-meta-line">
+                                            <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                                        </p>
+                                        <?php if ($nextStep): ?>
+                                            <div class="protocol-next-step<?= $nextStep[2] ? ' protocol-next-step--waiting' : '' ?>">
+                                                <span class="step-pips">
+                                                    <?php for ($step = 1; $step <= $stepCount; $step++): ?>
+                                                        <span class="step-pip<?= $step < $nextStep[0] ? ' step-pip--done' : ($step === $nextStep[0] ? ' step-pip--current' : '') ?>" title="Step <?= $step ?> of <?= $stepCount ?>: <?= htmlspecialchars(ProtocolModel::ENDORSEMENT_STEPS[$step], ENT_QUOTES, 'UTF-8') ?> (<?= $step < $nextStep[0] ? 'done' : ($step === $nextStep[0] ? 'current' : 'upcoming') ?>)"></span>
+                                                    <?php endfor; ?>
+                                                </span>
+                                                <span class="step-count">Step <?= $nextStep[0] ?> of <?= $stepCount ?></span>
+                                                <span class="step-label"><?= htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') ?></span>
+                                            </div>
                                         <?php endif; ?>
-                                    <?php endforeach; ?>
+                                        <?php if ($userRole === 'staff' && $statusLower === 'endorsed' && empty($protocol['latest_clearance_version_id'])): ?>
+                                            <!-- Filled by the clearance board script: drop target for an unsorted screenshot -->
+                                            <div class="clearance-slot" data-protocol-id="<?= $protocolId ?>"></div>
+                                        <?php endif; ?>
+                                    </div>
 
-                                    <div class="actions-secondary">
+                                    <div class="actions">
                                         <?php foreach ($actions as $action): ?>
-                                            <?php if (empty($action['primary']) && empty($action['menu'])): ?>
-                                                <button class="action-link" data-action="<?= $action['action'] ?>">
-                                                    <?= htmlspecialchars($action['label']) ?>
-                                                </button>
+                                            <?php if (!empty($action['primary'])): ?>
+                                                <?php if (!empty($action['href'])): ?>
+                                                    <a class="button button--primary" href="<?= htmlspecialchars($action['href'], ENT_QUOTES, 'UTF-8') ?>">
+                                                        <?php if (!empty($action['icon'])): ?>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                                <use href="<?= $iconMap[$action['icon']] ?>"></use>
+                                                            </svg>
+                                                        <?php endif; ?>
+                                                        <?= htmlspecialchars($action['label']) ?>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <button class="button button--primary" data-action="<?= $action['action'] ?>">
+                                                        <?php if (!empty($action['icon'])): ?>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                                <use href="<?= $iconMap[$action['icon']] ?>"></use>
+                                                            </svg>
+                                                        <?php endif; ?>
+                                                        <?= htmlspecialchars($action['label']) ?>
+                                                    </button>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
-                                        <?php $menu = ProtocolMenu::forRow($protocol, $actor, array_map(fn($a) => ['action' => $a['action'], 'label' => $a['label'], 'icon' => ltrim($iconMap[$a['icon']], '#')], array_values(array_filter($actions, fn($a) => !empty($a['menu'])))));
-                                        include dirname(__DIR__) . '/includes/protocol-menu.php'; ?>
+
+                                        <div class="actions-secondary">
+                                            <?php foreach ($actions as $action): ?>
+                                                <?php if (empty($action['primary']) && empty($action['menu'])): ?>
+                                                    <button class="action-link" data-action="<?= $action['action'] ?>">
+                                                        <?= htmlspecialchars($action['label']) ?>
+                                                    </button>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                            <?php $menu = ProtocolMenu::forRow($protocol, $actor, array_map(fn($a) => ['action' => $a['action'], 'label' => $a['label'], 'icon' => ltrim($iconMap[$a['icon']], '#')], array_values(array_filter($actions, fn($a) => !empty($a['menu'])))));
+                                            include dirname(__DIR__) . '/includes/protocol-menu.php'; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
 
-                    <p class="no-results" id="noResultsMsg">
-                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#file-x-icon" />
-                        </svg>
-                        No protocols match your search or filter.
-                    </p>
-                </div><!-- /.protocols-list -->
+                        <p class="no-results" id="noResultsMsg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#file-x-icon" />
+                            </svg>
+                            No protocols match your search or filter.
+                        </p>
+                    </div><!-- /.protocols-list -->
+                </div><!-- /.clearance-layout -->
 
                 <!-- ===== Pagination ===== -->
                 <div class="pagination-bar" id="paginationBar">
@@ -804,7 +811,7 @@ foreach ($protocols as $p) {
                         <use href="#check-circle-icon" />
                     </svg>
                 </span>
-                <p class="modal-title">Confirm Clearances</p>
+                <p class="modal-title" id="confirmReviewTitle"></p>
                 <button class="modal-close" type="button" onclick="closeConfirmReview()" aria-label="Close">
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#close-icon" />
@@ -812,7 +819,7 @@ foreach ($protocols as $p) {
                 </button>
             </div>
             <div class="panel-modal-body">
-                <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check all entries below before proceeding.</strong> Once you proceed, each protocol is marked <strong>Approved</strong>.</p>
+                <p class="helper clearance-modal-helper" id="confirmReviewHelper"></p>
 
                 <div id="confirmReviewError" class="alert error-messages clearance-modal-error" hidden></div>
 
@@ -829,7 +836,50 @@ foreach ($protocols as $p) {
         </div>
     </div>
 
-    <!-- Add/Edit IPN and AR number modal -->
+    <!-- Clearance upload modal: preview the screenshot and enter its AR number -->
+    <div class="modal-backdrop" id="clearanceUploadBackdrop" data-static>
+        <div class="modal-card panel-modal-card clearance-upload-modal-card">
+            <div class="modal-header">
+                <span class="modal-header-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                        <use href="#upload-icon" />
+                    </svg>
+                </span>
+                <p class="modal-title" id="clearanceUploadTitle">Upload Clearance</p>
+                <button class="modal-close" type="button" onclick="cancelClearanceUpload()" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#close-icon" />
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-modal-body">
+                <div class="clearance-upload-preview">
+                    <img id="clearanceUploadImg" src="" alt="">
+                </div>
+                <p class="clearance-upload-name" id="clearanceUploadName"></p>
+
+                <div id="clearanceUploadError" class="alert error-messages" hidden></div>
+
+                <div class="clearance-number-field">
+                    <label for="clearanceUploadAr">AR Number</label>
+                    <input type="text" id="clearanceUploadAr" maxlength="50" placeholder="AR number from the BAI clearance">
+                    <span class="helper">The animal research clearance ID printed on the clearance issued by BAI.</span>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="cancelClearanceUpload()">Cancel</button>
+                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="clearanceUploadSaveBtn" onclick="saveClearanceUpload()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        <span id="clearanceUploadSaveLabel">Upload</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit IPN modal -->
     <div class="modal-backdrop" id="numberModalBackdrop" data-static>
         <div class="modal-card panel-modal-card">
             <div class="modal-header">
@@ -913,6 +963,7 @@ foreach ($protocols as $p) {
     const resultsSummary = document.getElementById('resultsSummary');
     const rowsPerPageSel = document.getElementById('rowsPerPageSelect');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const clearanceBulk = document.getElementById('clearanceBulk');
     const paymentFilterWrapper = document.getElementById('paymentFilterWrapper');
     const paymentFilterSelect = document.getElementById('paymentFilterSelect');
     const clearancePanel = document.getElementById('clearancePanel');
@@ -1003,6 +1054,8 @@ foreach ($protocols as $p) {
         if (clearancePanel) {
             const showClearances = activeFilter === 'endorsed';
             clearancePanel.hidden = !showClearances;
+            clearanceBulk.hidden = !showClearances;
+            document.getElementById('clearanceLayout').classList.toggle('clearance-layout--split', showClearances);
             if (showClearances && typeof ensureClearanceBoard === 'function') ensureClearanceBoard();
         }
         if (toggleSelectBtn) {
@@ -1013,7 +1066,8 @@ foreach ($protocols as $p) {
         }
         if (bulkActionsBar) {
             bulkActionsBar.hidden = (paymentFilterWrapper?.hidden ?? true) &&
-                (toggleSelectBtn?.hidden ?? true);
+                (toggleSelectBtn?.hidden ?? true) &&
+                (clearanceBulk?.hidden ?? true);
         }
     }
 
@@ -1929,7 +1983,6 @@ include dirname(__DIR__) . '/includes/guide.php';
         const CLEARANCE_CONFIRM_API = ROOT_URL + '/apply/clearance_confirm';
         const CLEARANCE_DELETE_API = ROOT_URL + '/apply/clearance_delete';
         const ASSIGN_IPN_API = ROOT_URL + '/apply/assign_ipn';
-        const ASSIGN_AR_NUMBER_API = ROOT_URL + '/apply/assign_ar_number';
 
         let boardData = {
             unassigned: [],
@@ -2060,6 +2113,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         function renderTray() {
             const grid = document.getElementById('trayGrid');
             const items = boardData.unassigned || [];
+            document.getElementById('trayCount').textContent = items.length ? `(${items.length})` : '';
 
             reconcileList(grid, items.map(item => ({
                 key: item.id,
@@ -2069,8 +2123,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                 onclick="toggleSelectThumb(${item.id})">
                 ${thumbHtml(item)}
                 <span class="clearance-thumb-name">${escapeHtml(item.original_name)}</span>
+                <span class="clearance-thumb-ar">AR No. <strong>${escapeHtml(item.ar_number || '')}</strong></span>
             </div>`
-            })), '<p class="helper clearance-empty">No unsorted screenshots. Use Upload Clearances to add some.</p>');
+            })), '<p class="helper clearance-empty">No unsorted screenshots. Drag image files here or use Upload Clearances.</p>');
         }
 
         function stagedFor(protocolId) {
@@ -2084,8 +2139,6 @@ include dirname(__DIR__) . '/includes/guide.php';
                 const protocolId = Number(slot.dataset.protocolId);
                 const p = endorsedById.get(protocolId);
                 const staged = stagedFor(protocolId);
-                const hasArNumber = !!(p && p.ar_number);
-                const arNumber = p ? (p.ar_number || '') : '';
 
                 let html = '';
                 if (p && staged) {
@@ -2096,19 +2149,23 @@ include dirname(__DIR__) . '/includes/guide.php';
                                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg>
                             </button>
                         </div>
-                        <span class="helper clearance-slot-hint">Ready to confirm.</span>`;
+                        <div class="clearance-slot-info">
+                            <span class="clearance-ar">AR No. <strong>${escapeHtml(staged.ar_number || '')}</strong></span>
+                            <span class="helper clearance-slot-hint">Ready to confirm.</span>
+                        </div>
+                        <button type="button" class="button button--primary clearance-confirm-one" data-pool-id="${staged.id}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-icon" /></svg>
+                            Confirm
+                        </button>`;
                 } else if (p && !p.latest_clearance_version_id) {
-                    html = hasArNumber ?
-                        `<span class="helper clearance-slot-hint">Drop a screenshot here, or tap it after selecting one.
-                            AR No.: ${escapeHtml(arNumber)}
-                            <a href="#" class="clearance-ar-link" data-protocol-id="${protocolId}" data-ar-number="${escapeHtml(arNumber)}">Edit AR number</a></span>` :
-                        `<span class="helper clearance-slot-hint">Assign an AR number before attaching a clearance.
-                            <a href="#" class="clearance-ar-link" data-protocol-id="${protocolId}" data-ar-number="">Add AR number</a></span>`;
+                    html = `
+                        <span class="helper clearance-slot-hint">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#upload-icon" /></svg>
+                            Drop a clearance here, or tap here after selecting one.</span>`;
                 }
 
-                slot.dataset.canReceive = p && hasArNumber && !p.latest_clearance_version_id ? '1' : '0';
+                slot.dataset.canReceive = p && !p.latest_clearance_version_id && !staged ? '1' : '0';
                 slot.classList.toggle('has-staged', !!staged);
-                slot.classList.toggle('no-ar', !!p && !hasArNumber);
 
                 if (slot.dataset.render !== html) {
                     slot.innerHTML = html;
@@ -2121,6 +2178,11 @@ include dirname(__DIR__) . '/includes/guide.php';
             const count = (boardData.staged || []).length;
             document.getElementById('stagedCount').textContent = count;
             document.getElementById('confirmBtn').disabled = count === 0;
+
+            const waiting = (boardData.endorsed_protocols || []).filter(p => !p.latest_clearance_version_id).length;
+            document.getElementById('clearanceProgress').textContent = waiting ?
+                `${count} of ${waiting} protocols matched` :
+                'No protocols are waiting for a clearance';
         }
 
         // ===== Upload: staff adds screenshots straight into the unsorted tray =====
@@ -2128,50 +2190,143 @@ include dirname(__DIR__) . '/includes/guide.php';
         const clearanceUploadBtn = document.getElementById('clearanceUploadBtn');
 
         clearanceUploadBtn.addEventListener('click', () => clearanceFileInput.click());
-        clearanceFileInput.addEventListener('change', () => uploadClearances(clearanceFileInput.files));
-
-        async function uploadClearances(fileList) {
-            if (!fileList.length) return;
-
-            const progressContainer = document.getElementById('clearanceUploadProgress');
-            progressContainer.innerHTML = '';
-            const bar = createUploadProgressBar(progressContainer);
-            setButtonBusy(clearanceUploadBtn, true, 'Uploading...');
-
-            const formData = new FormData();
-            for (const file of fileList) {
-                formData.append('clearance_screenshots[]', file);
-            }
-            formData.append('csrf_token', CSRF_TOKEN);
-
-            try {
-                const data = await uploadWithProgress(CLEARANCE_POOL_UPLOAD_API, formData, {
-                    headers: {
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    onProgress: pct => bar.update(pct)
-                });
-
-                if (data.success) {
-                    const skipped = (data.failures && data.failures.length) ? ' Some files were skipped: ' + data.failures.join(' ') : '';
-                    showToast(`${data.inserted} screenshot(s) uploaded.${skipped}`, skipped ? 'error' : 'success');
-                } else {
-                    showToast((data.failures && data.failures.length) ? data.failures.join(' ') : (data.error ?? 'Upload failed.'), 'error');
-                }
-            } catch (err) {
-                showToast(err.message || 'Network error. Please try again.', 'error');
-            }
-
-            bar.remove();
-            setButtonBusy(clearanceUploadBtn, false);
+        clearanceFileInput.addEventListener('change', () => {
+            uploadClearances(clearanceFileInput.files);
             clearanceFileInput.value = '';
+        });
+
+        // Chosen files wait in a queue; each one is previewed in a modal, given its AR number, then uploaded
+        const clearanceUploadBackdrop = document.getElementById('clearanceUploadBackdrop');
+        const clearanceUploadImg = document.getElementById('clearanceUploadImg');
+        const clearanceUploadAr = document.getElementById('clearanceUploadAr');
+        const clearanceUploadError = document.getElementById('clearanceUploadError');
+        let uploadQueue = [];
+        let uploadTotal = 0;
+        let uploadedCount = 0;
+
+        function uploadClearances(fileList) {
+            const files = Array.from(fileList).filter(file => isImage(file.name));
+            if (!files.length) {
+                showToast('Please choose JPG or PNG screenshots.', 'error');
+                return;
+            }
+            uploadQueue = files;
+            uploadTotal = files.length;
+            uploadedCount = 0;
+            showNextUpload();
+        }
+
+        function showNextUpload() {
+            const file = uploadQueue[0];
+            if (!file) {
+                finishClearanceUploads();
+                return;
+            }
+            URL.revokeObjectURL(clearanceUploadImg.src);
+            clearanceUploadImg.src = URL.createObjectURL(file);
+            clearanceUploadImg.alt = file.name;
+            document.getElementById('clearanceUploadName').textContent = file.name;
+            document.getElementById('clearanceUploadTitle').textContent = uploadTotal > 1 ?
+                `Upload Clearance (${uploadedCount + 1} of ${uploadTotal})` : 'Upload Clearance';
+            document.getElementById('clearanceUploadSaveLabel').textContent = uploadQueue.length > 1 ? 'Upload & Next' : 'Upload';
+            clearanceUploadAr.value = '';
+            clearanceUploadError.hidden = true;
+            clearanceUploadBackdrop.classList.add('open');
+            clearanceUploadAr.focus();
+        }
+
+        function finishClearanceUploads() {
+            clearanceUploadBackdrop.classList.remove('open');
+            URL.revokeObjectURL(clearanceUploadImg.src);
+            clearanceUploadImg.src = '';
+            uploadQueue = [];
+            if (uploadedCount) showToast(`${uploadedCount} clearance(s) uploaded.`);
             loadBoard();
         }
 
+        function cancelClearanceUpload() {
+            finishClearanceUploads();
+        }
+
+        clearanceUploadAr.addEventListener('keydown', e => {
+            if (e.key === 'Enter') saveClearanceUpload();
+        });
+
+        async function saveClearanceUpload() {
+            const arNumber = clearanceUploadAr.value.trim();
+            if (!arNumber) {
+                clearanceUploadError.textContent = 'Please enter the AR number.';
+                clearanceUploadError.hidden = false;
+                return;
+            }
+
+            const btn = document.getElementById('clearanceUploadSaveBtn');
+            setButtonBusy(btn, true, 'Uploading...');
+
+            const formData = new FormData();
+            formData.append('clearance_screenshot', uploadQueue[0]);
+            formData.append('ar_number', arNumber);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            try {
+                const res = await fetch(CLEARANCE_POOL_UPLOAD_API, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: formData,
+                });
+                const data = await res.json();
+                setButtonBusy(btn, false);
+
+                if (!data.success) {
+                    clearanceUploadError.textContent = data.error || 'Upload failed.';
+                    clearanceUploadError.hidden = false;
+                    return;
+                }
+
+                uploadedCount++;
+                uploadQueue.shift();
+                showNextUpload();
+            } catch (err) {
+                setButtonBusy(btn, false);
+                clearanceUploadError.textContent = 'Network error. Please try again.';
+                clearanceUploadError.hidden = false;
+            }
+        }
+
         // ===== Drag and drop, and tap-to-place (for touch screens) =====
+        // A thumbnail being moved also carries file data in some browsers, so it must not count as an upload
+        let draggingThumb = false;
+
         function onDragStart(e, poolId) {
+            draggingThumb = true;
             e.dataTransfer.setData('text/plain', String(poolId));
         }
+
+        document.addEventListener('dragend', () => {
+            draggingThumb = false;
+        });
+
+        const clearanceTray = document.getElementById('clearanceTrayCard');
+        const isFileDrag = e => !draggingThumb && Array.from(e.dataTransfer?.types || []).includes('Files');
+
+        clearanceTray.addEventListener('dragover', e => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            clearanceTray.classList.add('is-file-drag');
+        });
+
+        clearanceTray.addEventListener('dragleave', e => {
+            if (!clearanceTray.contains(e.relatedTarget)) clearanceTray.classList.remove('is-file-drag');
+        });
+
+        clearanceTray.addEventListener('drop', e => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            clearanceTray.classList.remove('is-file-drag');
+            if (!clearanceUploadBtn.disabled) uploadClearances(e.dataTransfer.files);
+        });
 
         function receivingSlot(e) {
             const slot = e.target.closest('.clearance-slot');
@@ -2200,10 +2355,9 @@ include dirname(__DIR__) . '/includes/guide.php';
         });
 
         protocolsList.addEventListener('click', e => {
-            const arLink = e.target.closest('.clearance-ar-link');
-            if (arLink) {
-                e.preventDefault();
-                openNumberModal('ar', Number(arLink.dataset.protocolId), arLink.dataset.arNumber || '');
+            const confirmOneBtn = e.target.closest('.clearance-confirm-one');
+            if (confirmOneBtn) {
+                openConfirmReview(Number(confirmOneBtn.dataset.poolId));
                 return;
             }
 
@@ -2263,7 +2417,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         }
 
         async function deletePoolItem(poolId, btn) {
-            const ok = await confirmAction('Delete this screenshot? This cannot be undone.', {
+            const ok = await confirmAction('Delete uploaded clearance?', {
                 okText: 'Delete',
                 danger: true,
             });
@@ -2305,17 +2459,6 @@ include dirname(__DIR__) . '/includes/guide.php';
                 maxlength: 6,
                 helper: 'Write this IPN on the printed protocol before the IACUC chairperson signs it. It is kept in sync with the Records page.',
                 saved: () => window.location.reload()
-            },
-            ar: {
-                label: 'AR Number',
-                api: ASSIGN_AR_NUMBER_API,
-                key: 'ar_number',
-                placeholder: 'AR number from the BAI clearance',
-                helper: 'This is the animal research clearance ID printed on the clearance issued by BAI.',
-                saved: () => {
-                    showToast('AR number saved.');
-                    loadBoard();
-                }
             }
         };
 
@@ -2400,12 +2543,22 @@ include dirname(__DIR__) . '/includes/guide.php';
 
         const confirmReviewBackdrop = document.getElementById('confirmReviewBackdrop');
 
-        document.getElementById('confirmBtn').addEventListener('click', () => {
-            const staged = boardData.staged || [];
-            if (staged.length === 0) return;
+        let confirmPoolId = null;
 
+        function openConfirmReview(poolId = null) {
+            confirmPoolId = poolId;
+            const item = poolId ? (boardData.staged || []).find(s => Number(s.id) === poolId) : null;
+            document.getElementById('confirmReviewTitle').textContent = item ? 'Confirm Clearance' : 'Confirm All Clearances';
+            document.getElementById('confirmReviewHelper').innerHTML = item ?
+                `<strong class="clearance-modal-warning">Double-check the AR number and ARC file before proceeding.</strong> By proceeding, <strong>${escapeHtml(item.protocol_title)}</strong> (AR No. <strong>${escapeHtml(item.ar_number || '')}</strong>) will be marked <strong>Approved</strong>.` :
+                `<strong class="clearance-modal-warning">Double-check all matches before proceeding.</strong> Once you proceed, each matched protocol is marked <strong>Approved</strong>.`;
             document.getElementById('confirmReviewError').hidden = true;
             confirmReviewBackdrop.classList.add('open');
+        }
+
+        document.getElementById('confirmBtn').addEventListener('click', () => {
+            if ((boardData.staged || []).length === 0) return;
+            openConfirmReview();
         });
 
         // ===== Confirm review =====
@@ -2430,7 +2583,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': CSRF_TOKEN
                     },
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({
+                        pool_id: confirmPoolId
+                    }),
                 });
                 const data = await res.json();
 

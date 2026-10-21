@@ -1,10 +1,6 @@
 /* ===== Viewer canvas ===== */
 .viewer-body {
-  --viewer-canvas: var(--hover-surface);
-}
-
-[data-theme="dark"] .viewer-body {
-  --viewer-canvas: var(--page-background);
+  --viewer-canvas: #202124;
 }
 
 /* ===== Viewer layout ===== */
@@ -435,7 +431,7 @@
   justify-content: center;
   gap: 0.75rem;
   background: var(--viewer-canvas);
-  color: var(--primary-text);
+  color: #e8eaed;
   font-size: 0.82rem;
 }
 

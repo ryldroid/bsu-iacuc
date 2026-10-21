@@ -168,7 +168,6 @@ class Access
       'clearance_confirm' => 'staff',
       'clearance_unassign' => 'staff',
       'assign_ipn' => 'staff',
-      'assign_ar_number' => 'staff',
     ],
   ];
 

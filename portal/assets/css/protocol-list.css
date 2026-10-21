@@ -584,21 +584,44 @@
     margin: 12px 0 4px;
   }
 
-  /* ===== Status tabs scroll sideways instead of collapsing into a dropdown ===== */
+  /* ===== Status filters wrap into pills so every option stays visible ===== */
   .filter-wrapper {
     width: 100%;
     max-width: 100%;
   }
 
   .status-filters {
-    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     margin: 12px 0;
-    overflow-x: auto;
+    border-bottom: none;
   }
 
-  .status-card {
-    flex-shrink: 0;
+  .status-filters .status-card {
+    align-items: center;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 999px;
+    background: var(--card-background);
+    font-size: 0.85em;
     white-space: nowrap;
+  }
+
+  .status-filters .status-card.active {
+    background: var(--brand-color);
+    border-color: var(--brand-color);
+    color: var(--text-on-brand);
+    font-weight: 600;
+  }
+
+  .status-filters .status-card.active .status-count {
+    color: var(--text-on-brand);
+  }
+
+  .status-underline {
+    display: none;
   }
 
   /* ===== Sort dropdown (box styling shared via .dashboard-select-trigger) ===== */

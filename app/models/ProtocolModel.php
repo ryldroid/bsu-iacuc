@@ -1151,16 +1151,16 @@ class ProtocolModel extends Model
 
     // ===== CLEARANCE POOL =====
 
-    public function insertClearancePoolItem(string $filePath, string $originalName, int $uploadedBy): int | false
+    public function insertClearancePoolItem(string $filePath, string $originalName, string $arNumber, int $uploadedBy): int | false
     {
         $stmt = $this->connection->prepare(
-            "INSERT INTO `clearance_pool` (file_path, original_name, uploaded_by) VALUES (?, ?, ?)"
+            "INSERT INTO `clearance_pool` (file_path, original_name, ar_number, uploaded_by) VALUES (?, ?, ?, ?)"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('ssi', $filePath, $originalName, $uploadedBy);
+        $stmt->bind_param('sssi', $filePath, $originalName, $arNumber, $uploadedBy);
         if (! $stmt->execute()) {
             return false;
         }
@@ -1168,10 +1168,21 @@ class ProtocolModel extends Model
         return $this->connection->insert_id;
     }
 
+    public function clearancePoolArExists(string $arNumber): bool
+    {
+        $stmt = $this->connection->prepare("SELECT 1 FROM `clearance_pool` WHERE ar_number = ? AND version_id IS NULL");
+        if (! $stmt) {
+            return false;
+        }
+        $stmt->bind_param('s', $arNumber);
+        $stmt->execute();
+        return (bool) $stmt->get_result()->fetch_row();
+    }
+
     public function getUnassignedClearancePool(): array
     {
         $sql = "SELECT
-                    cp.id, cp.file_path, cp.original_name, cp.uploaded_at,
+                    cp.id, cp.file_path, cp.original_name, cp.ar_number, cp.uploaded_at,
                     u.first_name, u.last_name
                 FROM `clearance_pool` cp
                 JOIN `users` u ON u.id = cp.uploaded_by
@@ -1281,7 +1292,7 @@ class ProtocolModel extends Model
     public function getStagedClearanceItems(): array
     {
         $sql = "SELECT
-                    cp.id, cp.file_path, cp.original_name, cp.protocol_id,
+                    cp.id, cp.file_path, cp.original_name, cp.ar_number, cp.protocol_id,
                     p.title AS protocol_title, p.reference_no, p.status AS protocol_status,
                     u.first_name, u.last_name
                 FROM `clearance_pool` cp

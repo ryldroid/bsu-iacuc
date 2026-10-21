@@ -14,8 +14,8 @@ $guideShowOnce = $guideShowOnce ?? false;
     </button>
     <div class="welcome-dots" aria-hidden="true"></div>
     <?php foreach ($guideSteps as $i => $step): ?>
-      <?php [$stepTitle, $stepText, $stepTarget, $stepMobileTarget] = array_pad($step, 4, ''); ?>
-      <section class="welcome-step" data-welcome-step<?= $i > 0 ? ' hidden' : '' ?> data-guide-target="<?= htmlspecialchars($stepTarget, ENT_QUOTES, 'UTF-8') ?>" <?= $stepMobileTarget ? ' data-guide-target-mobile="' . htmlspecialchars($stepMobileTarget, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+      <?php [$stepTitle, $stepText, $stepTarget, $stepMobileTarget, $stepDesktopOnly] = array_pad($step, 5, ''); ?>
+      <section class="welcome-step" data-welcome-step<?= $stepDesktopOnly ? ' data-guide-desktop-only' : '' ?><?= $i > 0 ? ' hidden' : '' ?> data-guide-target="<?= htmlspecialchars($stepTarget, ENT_QUOTES, 'UTF-8') ?>" <?= $stepMobileTarget ? ' data-guide-target-mobile="' . htmlspecialchars($stepMobileTarget, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
         <span class="welcome-step-label">Step <?= $i + 1 ?> of <?= count($guideSteps) ?></span>
         <h3><?= htmlspecialchars($stepTitle, ENT_QUOTES, 'UTF-8') ?></h3>
         <p><?= preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', htmlspecialchars($stepText, ENT_QUOTES, 'UTF-8')) ?></p>

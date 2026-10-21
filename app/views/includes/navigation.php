@@ -129,4 +129,18 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
             <?php endif; ?>
         </ul>
     </nav>
+
+    <!-- ===== Expand / collapse toggle ===== -->
+    <ul>
+        <li>
+            <button type="button" id="sidebar-toggle" aria-expanded="false" aria-label="Expand sidebar">
+                <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#panel-left-icon" />
+                </svg>
+            </button>
+            <div>
+                <span>Expand sidebar</span>
+            </div>
+        </li>
+    </ul>
 </aside>

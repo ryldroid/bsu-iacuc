@@ -519,13 +519,22 @@ function formatDateTime(value) {
 
   // Step-by-step spotlight guide; steps without a target stay centered. Returns a restart function.
   function bindGuideSteps(modal, close) {
+    const mobileQuery = window.matchMedia("(max-width: 768px)");
+    if (mobileQuery.matches) {
+      modal
+        .querySelectorAll("[data-guide-desktop-only]")
+        .forEach((step) => step.remove());
+    }
     const steps = modal.querySelectorAll("[data-welcome-step]");
+    steps.forEach((step, i) => {
+      step.querySelector(".welcome-step-label").textContent =
+        `Step ${i + 1} of ${steps.length}`;
+    });
     const card = modal.querySelector(".welcome-modal-card");
     const spotlight = modal.querySelector(".guide-spotlight");
     const dotsEl = modal.querySelector(".welcome-dots");
     const backBtn = modal.querySelector("[data-guide-back]");
     const nextBtn = modal.querySelector("[data-guide-next]");
-    const mobileQuery = window.matchMedia("(max-width: 768px)");
     const SPOT_PAD = 6;
     const CARD_GAP = 12;
     const SETTLE_MS = 300;

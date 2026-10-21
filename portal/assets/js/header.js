@@ -67,6 +67,35 @@ function showSidebar() {
   }
 }
 
+// ===== Desktop sidebar expand / collapse (saved preference) =====
+const sidebarToggle = document.querySelector("#sidebar-toggle");
+
+function setSidebarExpanded(expanded) {
+  if (expanded) {
+    document.documentElement.dataset.sidebar = "expanded";
+  } else {
+    delete document.documentElement.dataset.sidebar;
+  }
+  const label = expanded ? "Collapse sidebar" : "Expand sidebar";
+  sidebarToggle.setAttribute("aria-expanded", String(expanded));
+  sidebarToggle.setAttribute("aria-label", label);
+  sidebarToggle.nextElementSibling.querySelector("span").textContent = label;
+}
+
+if (sidebarToggle) {
+  setSidebarExpanded(localStorage.getItem("sidebar") === "expanded");
+
+  sidebarToggle.addEventListener("click", () => {
+    const expanded = !document.documentElement.dataset.sidebar;
+    if (expanded) {
+      localStorage.setItem("sidebar", "expanded");
+    } else {
+      localStorage.removeItem("sidebar");
+    }
+    setSidebarExpanded(expanded);
+  });
+}
+
 // ===== Account drawer =====
 function openAccountDrawer() {
   document.dispatchEvent(

@@ -420,6 +420,13 @@ class Apply extends Controller
         return dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $protocolId . '/';
     }
 
+    private function arNumberTaken(string $arNumber, ?array $protocol = null, ?array $record = null): bool
+    {
+        $onProtocols = ($protocol['ar_number'] ?? '') !== $arNumber && $this->protocolModel->arNumberExists($arNumber);
+        $onRecords   = (!$record || ($record['ar_number'] ?? '') !== $arNumber) && $this->recordModel->arExists($arNumber);
+        return $onProtocols || $onRecords;
+    }
+
     private function clearancePoolDir(): string
     {
         return dirname(__DIR__, 2) . '/storage/uploads/clearance_pool/';
@@ -2424,48 +2431,32 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
 
-        $files = $_FILES['clearance_screenshots'] ?? null;
-        if (!$files || empty($files['name'][0])) {
-            $this->jsonError(400, 'Please attach at least one screenshot.');
+        $arNumber = trim($_POST['ar_number'] ?? '');
+        if ($arNumber === '') {
+            $this->jsonError(422, 'AR number is required.');
+        }
+        if (mb_strlen($arNumber) > 50) {
+            $this->jsonError(422, 'AR number is too long.');
+        }
+        if ($this->arNumberTaken($arNumber) || $this->protocolModel->clearancePoolArExists($arNumber)) {
+            $this->jsonError(422, 'That AR number already exists.');
         }
 
-        $dir       = $this->clearancePoolDir();
-        $inserted  = 0;
-        $failures  = [];
-
-        foreach ($files['name'] as $i => $name) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
-                continue;
-            }
-
-            $single = [
-                'name'     => $files['name'][$i],
-                'type'     => $files['type'][$i],
-                'tmp_name' => $files['tmp_name'][$i],
-                'error'    => $files['error'][$i],
-                'size'     => $files['size'][$i],
-            ];
-            $_FILES['__clearance_pool_single'] = $single;
-
-            $reason = null;
-            $upload = $this->saveUpload('__clearance_pool_single', $dir, ['jpg', 'jpeg', 'png'], required: true, reason: $reason);
-            if ($upload === false) {
-                $failures[] = $name . ($reason ? " ($reason)" : '');
-                continue;
-            }
-            [$path, $originalName] = $upload;
-
-            if ($this->protocolModel->insertClearancePoolItem($path, $originalName, $actor['id']) !== false) {
-                $inserted++;
-            }
+        $reason = null;
+        $upload = $this->saveUpload('clearance_screenshot', $this->clearancePoolDir(), ['jpg', 'jpeg', 'png'], required: true, reason: $reason);
+        if ($upload === false) {
+            $this->jsonError(422, $reason ?? 'Please attach a JPG or PNG screenshot.');
         }
-        unset($_FILES['__clearance_pool_single']);
+        [$path, $originalName] = $upload;
 
-        if ($inserted > 0) {
-            $this->protocolModel->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "$inserted screenshot(s) uploaded");
+        if ($this->protocolModel->insertClearancePoolItem($path, $originalName, $arNumber, $actor['id']) === false) {
+            @unlink($path);
+            $this->jsonError(500, 'Could not save the screenshot. Please try again.');
         }
 
-        echo json_encode(['success' => $inserted > 0, 'inserted' => $inserted, 'failures' => $failures]);
+        $this->protocolModel->logAudit('clearance_pool_uploaded', $actor['id'], $actor['name'], $actor['role'], 'clearance_pool', null, "Screenshot uploaded with AR number $arNumber");
+
+        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -2557,8 +2548,8 @@ class Apply extends Controller
         if (strtolower($protocol['status']) !== 'endorsed') {
             $this->jsonError(422, 'Only endorsed protocols can receive a clearance.');
         }
-        if (empty($protocol['ar_number'])) {
-            $this->jsonError(422, 'Assign an AR number to this protocol before attaching a clearance.');
+        if (empty($item['ar_number'])) {
+            $this->jsonError(422, 'That screenshot has no AR number. Delete it and upload it again.');
         }
 
         $ok = $this->protocolModel->stageClearancePoolItem($poolId, $protocolId, $actor['id']);
@@ -2707,64 +2698,6 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== ASSIGN AR NUMBER  (POST /apply/assign_ar_number) =====
-
-    public function assign_ar_number(): void
-    {
-        $this->requireLogin();
-        header('Content-Type: application/json');
-
-        $actor = $this->actor();
-        if ($actor['role'] !== 'staff') {
-            $this->jsonError(403, 'Administrative staff only.');
-        }
-
-        $this->requirePostMethod();
-        $this->verifyCsrfHeader();
-
-        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
-        $protocolId = (int) ($body['protocol_id'] ?? 0);
-        $arNumber   = trim($body['ar_number'] ?? '');
-
-        if ($protocolId < 1) {
-            $this->jsonError(400, 'Invalid protocol.');
-        }
-        if ($arNumber === '') {
-            $this->jsonError(422, 'AR number is required.');
-        }
-        if (mb_strlen($arNumber) > 50) {
-            $this->jsonError(422, 'AR number is too long.');
-        }
-
-        $protocol = $this->protocolModel->getById($protocolId);
-        if (!$protocol) {
-            $this->jsonError(404, 'Protocol not found.');
-        }
-        if (strtolower($protocol['status']) !== 'endorsed') {
-            $this->jsonError(422, 'An AR number can only be assigned to an endorsed protocol.');
-        }
-
-        $existingRecord = $this->recordModel->getByProtocolId($protocolId);
-
-        $arTakenOnProtocols = ($protocol['ar_number'] ?? '') !== $arNumber && $this->protocolModel->arNumberExists($arNumber);
-        $arTakenOnRecords   = (!$existingRecord || ($existingRecord['ar_number'] ?? '') !== $arNumber) && $this->recordModel->arExists($arNumber);
-        if ($arTakenOnProtocols || $arTakenOnRecords) {
-            $this->jsonError(422, 'That AR number already exists.');
-        }
-
-        if (!$this->protocolModel->setArNumber($protocolId, $arNumber)) {
-            $this->jsonError(500, 'Could not save the AR number. Please try again.');
-        }
-        if ($existingRecord) {
-            $this->recordModel->setArNumberByProtocolId($protocolId, $arNumber);
-        }
-
-        $this->protocolModel->logAudit('protocol_ar_number_assigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "AR number assigned: $arNumber");
-
-        echo json_encode(['success' => true, 'ar_number' => $arNumber]);
-        exit;
-    }
-
     // ===== CLEARANCE CONFIRM  (POST /apply/clearance_confirm) =====
 
     public function clearance_confirm(): void
@@ -2780,7 +2713,13 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
 
+        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $poolId = (int) ($body['pool_id'] ?? 0);
+
         $staged = $this->protocolModel->getStagedClearanceItems();
+        if ($poolId > 0) {
+            $staged = array_filter($staged, fn($item) => (int) $item['id'] === $poolId);
+        }
 
         if (empty($staged)) {
             $this->jsonError(422, 'Nothing is staged to confirm.');
@@ -2794,6 +2733,13 @@ class Apply extends Controller
 
             if (strtolower($item['protocol_status']) !== 'endorsed') {
                 $failures[] = $item['protocol_title'] . ' is no longer Endorsed: skipped.';
+                continue;
+            }
+
+            $protocol = $this->protocolModel->getById($protocolId);
+            $record   = $this->recordModel->getByProtocolId($protocolId);
+            if ($this->arNumberTaken($item['ar_number'], $protocol, $record)) {
+                $failures[] = $item['protocol_title'] . ': AR number ' . $item['ar_number'] . ' already exists: skipped.';
                 continue;
             }
 
@@ -2816,7 +2762,10 @@ class Apply extends Controller
                 continue;
             }
 
-            $protocol = $this->protocolModel->getById($protocolId);
+            $this->protocolModel->setArNumber($protocolId, $item['ar_number']);
+            if ($record) {
+                $this->recordModel->setArNumberByProtocolId($protocolId, $item['ar_number']);
+            }
             $this->protocolModel->updateStatus($protocolId, 'Approved');
             $this->notifyStatusChange($protocol, 'Approved');
             $this->protocolModel->logAudit('clearance_confirmed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #{$item['id']} confirmed; marked Approved");

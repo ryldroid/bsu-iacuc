@@ -30,6 +30,7 @@ $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. I
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
 $guideContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
+$guideSidebar = ['Expand the sidebar', 'On a computer, use this button to show the page names beside the icons, or hide them again.', '#sidebar-toggle', '', true];
 $guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
 $guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
 $guideHelp = ['Guide', 'Replay this tour anytime with the question mark button.', '.header-help'];
@@ -40,6 +41,7 @@ if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
     ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideSidebar,
     $guideHome,
     ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
     $guideAnnouncements,
@@ -52,6 +54,7 @@ if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
     ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideSidebar,
     ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
@@ -64,6 +67,7 @@ if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
     ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideSidebar,
     ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
@@ -75,6 +79,7 @@ if ($role === 'researcher') {
     ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
     ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
     ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    $guideSidebar,
     $guideHome,
     $guideAnnouncements,
     $guideContact,
@@ -103,6 +108,7 @@ if ($role === 'researcher') {
       var resolvedTheme = (mode === 'light' || mode === 'dark') ? mode : (systemPrefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', resolvedTheme);
       document.documentElement.setAttribute('data-theme-mode', mode);
+      if (localStorage.getItem('sidebar') === 'expanded') document.documentElement.dataset.sidebar = 'expanded';
     })();
   </script>
 
@@ -470,16 +476,6 @@ if ($role === 'researcher') {
                 <section class="account-card">
                   <h2>Account Actions</h2>
                   <div class="account-actions">
-                    <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>"
-                      data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
-                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                      <button type="submit" class="button">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                          <use href="#log-out-icon" />
-                        </svg>
-                        Log Out
-                      </button>
-                    </form>
                     <?php if ($role === 'researcher'): ?>
                       <form method="POST" action="<?= ROOT ?>/user/delete"
                         data-confirm-message="Deleting your account permanently removes your personal details and training certificate. Your submitted protocols and their files stay in an archive for internal recordkeeping and are no longer linked to your account, though they may still contain personal information you provided. This cannot be undone."
@@ -494,6 +490,16 @@ if ($role === 'researcher') {
                         </button>
                       </form>
                     <?php endif; ?>
+                    <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>"
+                      data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <button type="submit" class="button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#log-out-icon" />
+                        </svg>
+                        Log Out
+                      </button>
+                    </form>
                   </div>
                 </section>
               </div>
@@ -533,7 +539,7 @@ if ($role === 'researcher') {
             </div>
           </div>
           <div class="panel-modal-body">
-            <p class="panel-modal-intro">We will send a verification link to this address. Make sure it is correct, because it will also be saved to your account.</p>
+            <p class="panel-modal-intro">Verify your email address to receive important updates about your account and IACUC protocol submissions.</p>
             <div class="input-group">
               <input type="email" id="verify_email" name="email" placeholder=" " autocomplete="email" autofocus
                 value="<?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
