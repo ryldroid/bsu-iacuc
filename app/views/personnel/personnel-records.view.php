@@ -1120,7 +1120,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     .then(r => r.json())
                     .then(data => {
                         if (!data.ok) {
-                            alert(data.message || 'Could not load record.');
+                            showToast(data.message || 'Could not load record.', 'error');
                             return;
                         }
                         const d = data.data;
@@ -1150,7 +1150,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                         document.getElementById('edit_status').value = d.status || 'Ongoing';
                         openModal('editModal');
                     })
-                    .catch(() => alert('Network error. Please try again.'));
+                    .catch(() => showToast('Network error. Please try again.', 'error'));
             });
         });
 
@@ -1227,11 +1227,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                             location.reload();
                         } else {
                             setButtonBusy(btn, false);
-                            alert(data.message || 'Delete failed.');
+                            showToast(data.message || 'Delete failed.', 'error');
                         }
                     }).catch(() => {
                         setButtonBusy(btn, false);
-                        alert('Network error. Please try again.');
+                        showToast('Network error. Please try again.', 'error');
                     });
             });
         });

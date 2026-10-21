@@ -41,13 +41,14 @@ async function postProtocolAction(url, body, btn, errorFallback, busyText) {
       return;
     }
     setButtonBusy(btn, false);
-    if (!data.queued) alert("Error: " + (data.error ?? errorFallback));
+    if (!data.queued) showToast(data.error ?? errorFallback, "error");
   } catch (err) {
     setButtonBusy(btn, false);
-    alert(
+    showToast(
       navigator.onLine
         ? "Network error. Please try again."
         : "You are offline. The action could not be queued. Please try again when reconnected.",
+      "error",
     );
   }
 }

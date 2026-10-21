@@ -212,6 +212,27 @@ function formatDateTime(value) {
     return !!(busyOverlayEl && busyOverlayEl.classList.contains("open"));
   };
 
+  // ===== Protocol file conversion overlay (shared by apply, amendment and re-submit) =====
+  window.showConversionOverlay = function () {
+    window.showBusyOverlay({
+      title: "Uploading your file\u2026",
+      text: "Please keep this page open.",
+      percent: 0,
+    });
+  };
+
+  window.updateConversionOverlay = function (pct) {
+    if (pct >= 100) {
+      window.updateBusyOverlay({
+        title: "Converting to PDF\u2026",
+        text: "This usually takes a few seconds, but can take up to a minute for larger documents. Please don\u2019t close or refresh this page.",
+        percent: null,
+      });
+    } else {
+      window.updateBusyOverlay({ percent: pct });
+    }
+  };
+
   // ===== Upload progress (real % for file uploads, via XHR since fetch
   // can't report upload progress) =====
 
@@ -237,6 +258,7 @@ function formatDateTime(value) {
       converting() {
         bar.classList.add("is-converting");
         pct.innerHTML = '<span class="btn-busy-spinner"></span>';
+        if (subEl) subEl.textContent = "Converting to PDF, please wait\u2026";
       },
       remove() {
         bar.remove();

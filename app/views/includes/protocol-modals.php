@@ -143,8 +143,9 @@ include_once __DIR__ . '/file-popup.php';
           <div class="doc-row-info">
             <div class="doc-row-title">Updated protocol <span class="req">*</span></div>
             <span class="doc-row-sub" id="amendmentFileName">PDF, DOC, or DOCX, max 10 MB</span>
+            <div class="upload-progress-container" id="amendmentFileProgress"></div>
           </div>
-          <div class="doc-row-action">
+          <div class="doc-row-action" id="amendmentFileAction">
             <label class="btn-upload-inline">
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#upload-icon" />

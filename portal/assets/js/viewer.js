@@ -301,7 +301,10 @@ async function saveComment() {
       if (ann) ann.comment = text;
       renderAnnotations();
     } else {
-      alert("Could not save comment: " + (data.error ?? "unknown error"));
+      showToast(
+        "Could not save comment: " + (data.error ?? "unknown error"),
+        "error",
+      );
     }
     return;
   }
@@ -353,7 +356,10 @@ async function saveComment() {
     pendingBox = null;
     renderAnnotations();
   } else {
-    alert("Could not save comment: " + (data.error ?? "unknown error"));
+    showToast(
+      "Could not save comment: " + (data.error ?? "unknown error"),
+      "error",
+    );
   }
 }
 
@@ -759,12 +765,13 @@ async function updateStatus(btn, newStatus) {
       setButtonBusy(btn, false);
     } else {
       setButtonBusy(btn, false);
-      alert("Error: " + (data.error ?? "unknown error"));
+      showToast(data.error ?? "unknown error", "error");
     }
   } catch (err) {
     setButtonBusy(btn, false);
-    alert(
+    showToast(
       "Could not reach the server and the action could not be queued. Please check your connection.",
+      "error",
     );
   }
 }

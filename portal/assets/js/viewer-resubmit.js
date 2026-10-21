@@ -51,62 +51,46 @@ function clearResubmitError() {
   document.getElementById("reuploadError").hidden = true;
 }
 
-function resubmitDocRow(doc, index) {
+function resubmitDocRow(doc) {
   const file = resubmitFiles[doc.key];
   const converting = resubmitConverting === doc.key;
-  const done = !!file && !converting;
+  const title = `${doc.title}${doc.required ? ' <span class="req">*</span>' : ""}`;
 
-  let badge;
-  if (converting) {
-    badge = '<span class="btn-busy-spinner" aria-hidden="true"></span>';
-  } else if (done) {
-    badge =
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg>';
-  } else {
-    badge = index + 1;
-  }
-
-  let sub;
-  if (converting) {
-    sub = `<span class="resub-doc-sub">Converting to PDF&hellip;</span>`;
-  } else if (done) {
+  if (file && !converting) {
     const converted = file.staged
       ? '<span class="resub-doc-hint">Converted to PDF</span>'
       : "";
-    sub = `<span class="resub-doc-sub is-file">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}${converted}</span>`;
-  } else {
-    sub = `<span class="resub-doc-sub">${doc.subtitle}</span>`;
-  }
-
-  const picker = (label, cls) => `<label class="resub-btn-link ${cls || ""}">
-            ${label}
+    const picker = `<label class="resub-btn-link">
+            Replace
             <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
         </label>`;
 
-  let actions;
-  if (converting) {
-    actions = "";
-  } else if (done) {
-    actions =
-      picker("Replace") +
-      `<button type="button" class="resub-btn-link is-danger" onclick="removeResubmitFile('${doc.key}')">Remove</button>`;
-  } else {
-    actions = `<label class="btn-upload-inline">
+    return `<div class="resub-doc is-done" data-doc-key="${doc.key}">
+        <span class="resub-doc-badge"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg></span>
+        <div class="resub-doc-info">
+            <div class="resub-doc-title">${title}</div>
+            <span class="resub-doc-sub is-file">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}${converted}</span>
+        </div>
+        <div class="resub-doc-actions">${picker}<button type="button" class="resub-btn-link is-danger" onclick="removeResubmitFile('${doc.key}')">Remove</button></div>
+    </div>`;
+  }
+
+  const action = converting
+    ? ""
+    : `<label class="btn-upload-inline">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#upload-icon" /></svg>
             Upload
             <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
         </label>`;
-  }
 
-  const state = converting ? " is-converting" : done ? " is-done" : "";
-
-  return `<div class="resub-doc${state}" data-doc-key="${doc.key}">
-        <span class="resub-doc-badge">${badge}</span>
-        <div class="resub-doc-info">
-            <div class="resub-doc-title">${doc.title}${doc.required ? ' <span class="req">*</span>' : ""}</div>
-            ${sub}
+  return `<div class="doc-list" data-doc-key="${doc.key}">
+        <div class="doc-row">
+            <div class="doc-row-info">
+                <div class="doc-row-title">${title}</div>
+                <span class="doc-row-sub">${doc.subtitle}</span>
+            </div>
+            <div class="doc-row-action">${action}</div>
         </div>
-        <div class="resub-doc-actions">${actions}</div>
     </div>`;
 }
 
@@ -161,24 +145,10 @@ async function processResubmitFile(key, file) {
     delete resubmitFiles[key];
     renderResubmitDocs();
 
-    showBusyOverlay({
-      title: "Uploading your file\u2026",
-      text: "Please keep this page open.",
-      percent: 0,
-    });
+    showConversionOverlay();
 
     try {
-      resubmitFiles[key] = await stageWordFile(file, (pct) => {
-        if (pct >= 100) {
-          updateBusyOverlay({
-            title: "Converting to PDF\u2026",
-            text: "This usually takes a few seconds, but can take up to a minute for larger documents. Please don\u2019t close or refresh this page.",
-            percent: null,
-          });
-        } else {
-          updateBusyOverlay({ percent: pct });
-        }
-      });
+      resubmitFiles[key] = await stageWordFile(file, updateConversionOverlay);
     } catch (error) {
       showResubmitError(error.message || "Network error. Please try again.");
     }
@@ -203,7 +173,7 @@ function handleResubmitUpload(event, key) {
 // ===== Drag & drop onto a document card =====
 function initResubmitDropzones() {
   const list = document.getElementById("reuploadDocList");
-  const cardFor = (e) => e.target.closest && e.target.closest(".resub-doc");
+  const cardFor = (e) => e.target.closest && e.target.closest("[data-doc-key]");
 
   ["dragenter", "dragover"].forEach((type) =>
     list.addEventListener(type, (e) => {
@@ -238,7 +208,7 @@ function initResubmitDropzones() {
 // Stop the browser from navigating to a file dropped outside a card while the modal is open
 ["dragover", "drop"].forEach((type) =>
   resubmitModal.addEventListener(type, (e) => {
-    if (!e.target.closest(".resub-doc")) e.preventDefault();
+    if (!e.target.closest("[data-doc-key]")) e.preventDefault();
   }),
 );
 

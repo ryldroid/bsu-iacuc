@@ -1195,10 +1195,10 @@ foreach ($protocols as $p) {
 
         if (failedCount > 0) {
             setButtonBusy(btn, false);
-            alert(
+            showToast(
                 okCount > 0 ?
                 `${okCount} of ${results.length} protocol(s) were marked as endorsed. ${failedCount} could not be updated and may no longer be eligible.` :
-                `Could not mark the selected protocol(s) as endorsed. They may no longer be eligible, or a network error occurred.`
+                `Could not mark the selected protocol(s) as endorsed. They may no longer be eligible, or a network error occurred.`, 'error'
             );
         }
 

@@ -501,10 +501,10 @@ include 'includes/guide.php';
                     return;
                 }
                 setButtonBusy(btn, false);
-                alert(data.error ?? 'Could not record the hard copy pickup.');
+                showToast(data.error ?? 'Could not record the hard copy pickup.', 'error');
             } catch (err) {
                 setButtonBusy(btn, false);
-                alert(navigator.onLine ? 'Network error. Please try again.' : 'You are offline. Please try again when reconnected.');
+                showToast(navigator.onLine ? 'Network error. Please try again.' : 'You are offline. Please try again when reconnected.', 'error');
             }
         });
     }

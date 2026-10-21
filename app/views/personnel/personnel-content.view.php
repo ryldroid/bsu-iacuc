@@ -694,7 +694,7 @@ include dirname(__DIR__) . '/includes/guide.php';
           .then(r => r.json())
           .then(data => {
             if (!data.ok) {
-              alert(data.message || 'Could not load announcement.');
+              showToast(data.message || 'Could not load announcement.', 'error');
               return;
             }
             document.getElementById('edit_ann_id').value = data.data.id;
@@ -719,7 +719,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 
             openModal('editAnnouncementModal');
           })
-          .catch(() => alert('Network error. Please try again.'));
+          .catch(() => showToast('Network error. Please try again.', 'error'));
       });
     });
 
@@ -799,11 +799,11 @@ include dirname(__DIR__) . '/includes/guide.php';
             location.reload();
           } else {
             setButtonBusy(btn, false);
-            alert(data.message || 'Delete failed.');
+            showToast(data.message || 'Delete failed.', 'error');
           }
         }).catch(() => {
           setButtonBusy(btn, false);
-          alert('Network error. Please try again.');
+          showToast('Network error. Please try again.', 'error');
         });
       });
     });
@@ -901,7 +901,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         const id = btn.dataset.id;
         const res = await fetch(ROOT + '/personnel/site_content_office_get?id=' + id).then(r => r.json());
         if (!res.ok) {
-          alert(res.message || 'Could not load office.');
+          showToast(res.message || 'Could not load office.', 'error');
           return;
         }
         fillOfficeForm(res.data);
@@ -982,7 +982,7 @@ include dirname(__DIR__) . '/includes/guide.php';
           direction: btn.dataset.direction
         }).then(data => {
           if (!data.ok) {
-            alert(data.message || 'Move failed.');
+            showToast(data.message || 'Move failed.', 'error');
             return;
           }
           if (btn.dataset.direction === 'up') {
@@ -1015,7 +1015,7 @@ include dirname(__DIR__) . '/includes/guide.php';
           if (data.ok) {
             location.reload();
           } else {
-            alert(data.message || 'Delete failed.');
+            showToast(data.message || 'Delete failed.', 'error');
           }
         });
       });
@@ -1058,7 +1058,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         const id = btn.dataset.id;
         const res = await fetch(ROOT + '/personnel/site_content_faq_get?id=' + id).then(r => r.json());
         if (!res.ok) {
-          alert(res.message || 'Could not load FAQ.');
+          showToast(res.message || 'Could not load FAQ.', 'error');
           return;
         }
         fillFaqForm(res.data);
@@ -1131,7 +1131,7 @@ include dirname(__DIR__) . '/includes/guide.php';
           if (data.ok) {
             location.reload();
           } else {
-            alert(data.message || 'Delete failed.');
+            showToast(data.message || 'Delete failed.', 'error');
           }
         });
       });

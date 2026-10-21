@@ -358,11 +358,11 @@ async function handleAmendmentFile(event) {
   if (isPdf) return;
 
   const submitBtn = document.getElementById("amendmentSubmitBtn");
-  amendmentFileName.textContent = "Converting to PDF\u2026";
   setButtonBusy(submitBtn, true, "Converting...");
+  showConversionOverlay();
 
   try {
-    amendmentStaged = await stageWordFile(file);
+    amendmentStaged = await stageWordFile(file, updateConversionOverlay);
     amendmentFileName.textContent = amendmentStaged.name;
     amendmentConvertedNotice.classList.remove("is-hidden");
   } catch (err) {
@@ -375,6 +375,7 @@ async function handleAmendmentFile(event) {
     event.target.value = "";
   }
 
+  hideBusyOverlay();
   setButtonBusy(submitBtn, false);
 }
 

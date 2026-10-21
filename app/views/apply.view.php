@@ -700,6 +700,8 @@ include 'includes/guide.php';
     })}
     </div>
 
+    <div id="protocol-error" class="error-messages is-hidden"></div>
+
     ${state.protocolName && state.protocolConverted && !uploadProgress.protocol ? convertedNotice() : ''}
 
     <hr class="part-1-2-hr">
@@ -813,36 +815,48 @@ include 'includes/guide.php';
         goTo(3);
     }
 
+    function showUploadError(key, msg) {
+        const box = document.getElementById(key === 'protocol' ? 'protocol-error' : 'doc-error');
+        box.textContent = msg;
+        box.classList.remove('is-hidden');
+        box.style.display = 'flex';
+    }
+
     async function handleUpload(event, key) {
         const file = event.target.files[0];
         if (!file) return;
+
+        ['protocol-error', 'doc-error'].forEach(id => {
+            const box = document.getElementById(id);
+            if (box) box.style.display = 'none';
+        });
 
         const isWord = key === 'protocol' && !file.name.toLowerCase().endsWith('.pdf');
 
         if (key === 'protocol') {
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['pdf', 'doc', 'docx'].includes(ext)) {
-                alert('Please upload your IACUC protocol form as a PDF, DOC, or DOCX file.');
+                showUploadError(key, 'Please upload your IACUC protocol form as a PDF, DOC, or DOCX file.');
                 event.target.value = '';
                 return;
             }
         } else {
             const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
             if (!allowedTypes.includes(file.type)) {
-                alert('Only PDF, JPG, or PNG files are accepted.');
+                showUploadError(key, 'Only PDF, JPG, or PNG files are accepted.');
                 event.target.value = '';
                 return;
             }
             const ext = file.name.split('.').pop().toLowerCase();
             if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
-                alert('Only PDF, JPG, or PNG files are accepted.');
+                showUploadError(key, 'Only PDF, JPG, or PNG files are accepted.');
                 event.target.value = '';
                 return;
             }
         }
 
         if (file.size > 10 * 1024 * 1024) {
-            alert('File is too large. Maximum size is 10 MB.');
+            showUploadError(key, 'File is too large. Maximum size is 10 MB.');
             event.target.value = '';
             return;
         }
@@ -861,23 +875,18 @@ include 'includes/guide.php';
         uploadProgress[key] = true;
         render();
         const progressContainer = document.getElementById('upload-progress-' + key);
-        const bar = createUploadProgressBar(progressContainer);
+        const bar = isWord ? null : createUploadProgressBar(progressContainer);
+        if (isWord) showConversionOverlay();
 
         try {
             const json = await uploadWithProgress(ROOT + '/apply/draftupload', fd, {
-                onProgress: pct => {
-                    bar.update(pct);
-                    if (pct >= 100 && isWord && progressContainer) {
-                        progressContainer.closest('.doc-row-info').querySelector('.doc-row-sub').textContent = 'Converting to PDF, please wait…';
-                        bar.converting();
-                    }
-                }
+                onProgress: pct => isWord ? updateConversionOverlay(pct) : bar.update(pct)
             });
 
             if (json.error) {
-                alert(json.error ?? 'Upload failed. Please try again.');
                 delete uploadProgress[key];
                 render();
+                showUploadError(key, json.error);
                 return;
             }
 
@@ -887,9 +896,11 @@ include 'includes/guide.php';
             delete uploadProgress[key];
             render();
         } catch (e) {
-            alert(e.message || 'Network error. Please check your connection and try again.');
             delete uploadProgress[key];
             render();
+            showUploadError(key, e.message || 'Network error. Please check your connection and try again.');
+        } finally {
+            if (isWord) hideBusyOverlay();
         }
     }
 

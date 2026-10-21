@@ -24,5 +24,7 @@ Thumbs.db
 .vscode/
 storage/uploads/records/**
 storage/uploads/clearance_pool/**
+storage/uploads/staging/**
+storage/backups/**
 portal/assets/uploads/**
 app.zip
