@@ -151,6 +151,19 @@ class Apply extends Controller
         }
     }
 
+    private function notifyReviewersReturnedToReview(array $protocol, array $actor, string $reason): void
+    {
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::sendToRole(
+            'reviewer',
+            'protocol_returned_to_review',
+            'Protocol Returned to Review',
+            $this->roleLabel($actor['role']) . " {$actor['name']} returned " . Notifier::boldTitle($title) . ' to To Review after DA-CARFU or BAI sent it back.' . Notifier::reasonSentence($reason) . ' ' . Notifier::NEXT_STEPS['new_submission_reviewer'],
+            'apply/viewer/' . $protocol['protocol_id']
+        );
+    }
+
     private function notifyPersonnelProtocolAmended(array $protocol, array $actor, string $note): void
     {
         $title = $protocol['research_title'] ?? 'Untitled Protocol';
@@ -267,7 +280,7 @@ class Apply extends Controller
         );
     }
 
-    private function notifyStatusChange(array $protocol, string $newStatus): void
+    private function notifyStatusChange(array $protocol, string $newStatus, string $reason = ''): void
     {
         $owner = $this->ownerOf($protocol);
         if (!$owner) {
@@ -285,11 +298,12 @@ class Apply extends Controller
             $noticeKey = 'reviewed paid';
         }
 
-        [$noticeTitle, $nextStep] = Notifier::STATUS_NOTICES[$noticeKey];
+        $returned = $noticeKey === 'under review';
+        [$noticeTitle, $nextStep] = $returned ? Notifier::returnedToReviewNotice($reason) : Notifier::STATUS_NOTICES[$noticeKey];
 
         Notifier::send(
             (int) $protocol['user_id'],
-            'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
+            $returned ? 'protocol_returned_to_review' : 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
             $noticeTitle,
             'Your protocol ' . Notifier::boldTitle($title) . ' ' . $nextStep,
             $link,
@@ -916,20 +930,21 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfHeader();
 
-        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body  = json_decode(file_get_contents('php://input'), true) ?? [];
         $actor = $this->actor();
+        $text  = fn(string $key): string => (string) ($body[$key] ?? '');
 
         $ok = $this->draftModel->saveFields(
             $actor['id'],
             (int) ($body['step'] ?? 0),
             (bool) ($body['agreedTerms'] ?? false),
             (bool) ($body['agreedPrivacy'] ?? false),
-            (string) ($body['title'] ?? ''),
+            $text('title'),
             [
-                'animal_type'      => (string) ($body['animalType'] ?? ''),
+                'animal_type'      => $text('animalType'),
                 'animal_count'     => (string) ($body['animalCount'] ?? ''),
-                'research_adviser' => (string) ($body['researchAdviser'] ?? ''),
-                'veterinarian'     => (string) ($body['veterinarian'] ?? ''),
+                'research_adviser' => $text('researchAdviser'),
+                'veterinarian'     => $text('veterinarian'),
             ]
         );
 
@@ -1584,7 +1599,7 @@ class Apply extends Controller
             'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
             'staff'    => [
                 'reviewed' => ['Endorsed'],
-                'endorsed' => ['Reviewed', 'Approved'],
+                'endorsed' => ['Reviewed', 'Approved', 'Under Review'],
                 'approved' => ['Endorsed'],
             ],
         ];
@@ -1594,8 +1609,10 @@ class Apply extends Controller
             $this->jsonError(422, "That status change isn't allowed from the protocol's current state.");
         }
 
-        $isRevert = ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
+        $isRevert = (in_array($newStatus, ['Reviewed', 'Under Review'], true) && strtolower($protocol['status']) === 'endorsed')
             || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
+
+        $reason = $newStatus === 'Under Review' ? mb_substr(trim((string) ($body['reason'] ?? '')), 0, 1000) : '';
 
         if ($newStatus === 'Endorsed' && $isRevert && !empty($protocol['hard_copy_released_at'])) {
             $this->jsonError(422, 'Undo the hard copy pickup before reverting this protocol.');
@@ -1632,7 +1649,7 @@ class Apply extends Controller
 
         if ($ok) {
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
-            $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus");
+            $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus" . ($reason !== '' ? ". Reason: $reason" : ''));
 
             // ===== SNAPSHOT RECORD ON REVIEWED =====
             // Runs before notifications so a mail or file problem can never skip it.
@@ -1644,10 +1661,15 @@ class Apply extends Controller
                 }
             }
 
-            $this->notifyStatusChange($protocol, $newStatus);
+            $this->notifyStatusChange($protocol, $newStatus, $reason);
+
+            if ($newStatus === 'Under Review') {
+                $this->notifyReviewersReturnedToReview($protocol, $actor, $reason);
+            }
 
             // ===== SUCCESS MESSAGE =====
             $flashMessages = [
+                'Under Review'   => 'Endorsement reverted. Protocol is back to To Review.',
                 'Needs Revision' => 'Protocol returned for revision. The researcher will be notified to make changes.',
                 'Reviewed'       => $isRevert ? 'Endorsement reverted. Protocol is back to Reviewed.' : 'Review finished. Protocol details have been added to the records.',
                 'Endorsed'       => $isRevert ? 'Approval reverted. Protocol is back to Endorsed.' : 'Protocol marked as endorsed.',
@@ -2067,7 +2089,7 @@ class Apply extends Controller
     private function rejectDuplicateTitle(string $title, ?int $excludeId = null): void
     {
         if ($this->protocolModel->titleExists($title, $excludeId)) {
-            $this->jsonError(422, 'A protocol with this title already exists. Please use a different title.');
+            $this->jsonError(422, 'A protocol with this title has already been submitted. Please use a different title.');
         }
     }
 
@@ -2083,7 +2105,7 @@ class Apply extends Controller
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
         $protocolId = (int) ($body['protocol_id'] ?? 0);
-        $newTitle   = trim($body['title'] ?? '');
+        $newTitle   = normalize_pasted_text(trim($body['title'] ?? ''));
 
         if ($protocolId < 1) {
             $this->jsonError(400, 'Missing protocol ID.');

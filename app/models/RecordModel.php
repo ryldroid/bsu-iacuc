@@ -202,22 +202,61 @@ class RecordModel extends Model
     return ($d && $d->format('Y-m-d') === trim($value)) ? $d->format('Y-m-d') : null;
   }
 
-  public const SORT_OPTIONS = [
-    'newest'             => ['sql' => 'id DESC',                'label' => 'Newest Added'],
-    'oldest'             => ['sql' => 'id ASC',                 'label' => 'Oldest Added'],
-    'ipn_asc'            => ['sql' => 'reference_no ASC',       'label' => 'IPN (A–Z)'],
-    'ipn_desc'           => ['sql' => 'reference_no DESC',      'label' => 'IPN (Z–A)'],
-    'ar_asc'             => ['sql' => 'ar_number ASC',          'label' => 'AR No. (A–Z)'],
-    'ar_desc'            => ['sql' => 'ar_number DESC',         'label' => 'AR No. (Z–A)'],
-    'title_asc'          => ['sql' => 'title_of_research ASC',  'label' => 'Title (A–Z)'],
-    'title_desc'         => ['sql' => 'title_of_research DESC', 'label' => 'Title (Z–A)'],
-    'date_released_desc' => ['sql' => 'date_released DESC',     'label' => 'Date Released (Newest)'],
-    'date_released_asc'  => ['sql' => 'date_released ASC',      'label' => 'Date Released (Oldest)'],
+  // One entry per sortable column: [SQL column, header label, type].
+  // Drives both the clickable table headers and the Sort dropdown, so they never drift apart.
+  // Sort keys are "<column>_asc" / "<column>_desc" (e.g. ipn_desc).
+  public const SORT_COLUMNS = [
+    'ipn'           => ['reference_no',            'IPN',               'text'],
+    'ar'            => ['ar_number',               'AR No.',            'text'],
+    'title'         => ['title_of_research',       'Title of Research', 'text'],
+    'school'        => ['school',                  'School',            'text'],
+    'animal'        => ['animal_type',             'Animal Type',       'text'],
+    'count'         => ['animal_count',            'Count',             'number'],
+    'researcher'    => ['principal_investigator',  'Researcher',        'text'],
+    'sex'           => ['sex',                     'Researcher Sex',    'text'],
+    'rtype'         => ['researcher_type',         'Researcher Type',   'text'],
+    'adviser'       => ['research_adviser',        'Research Adviser',  'text'],
+    'vet'           => ['veterinarian',            'Veterinarian',      'text'],
+    'duration'      => ['research_duration_start', 'Research Duration',          'date'],
+    'date_released' => ['date_released',           'Date Released',     'date'],
+    'date_added'    => ['created_at',              'Date Added',        'date'],
+    'received'      => ['received_by',             'Received By',       'text'],
+    'status'        => ['status',                  'Status',            'text'],
   ];
+
+  private const SORT_SUFFIXES = [
+    'text'   => ['A–Z', 'Z–A'],
+    'number' => ['Low–High', 'High–Low'],
+    'date'   => ['Oldest', 'Newest'],
+  ];
+
+  // Dropdown options: insertion order (id) plus both directions of every sortable column.
+  public static function sortOptions(): array
+  {
+    $options = [
+      'newest' => ['label' => 'Newest Added'],
+      'oldest' => ['label' => 'Oldest Added'],
+    ];
+    foreach (self::SORT_COLUMNS as $key => [, $label, $type]) {
+      [$asc, $desc] = self::SORT_SUFFIXES[$type];
+      $options[$key . '_asc']  = ['label' => "$label ($asc)"];
+      $options[$key . '_desc'] = ['label' => "$label ($desc)"];
+    }
+    return $options;
+  }
 
   private function sortClause(string $sort): string
   {
-    return self::SORT_OPTIONS[$sort]['sql'] ?? self::SORT_OPTIONS['newest']['sql'];
+    if ($sort === 'oldest') return 'id ASC';
+
+    if (preg_match('/^([a-z_]+)_(asc|desc)$/', $sort, $m) && isset(self::SORT_COLUMNS[$m[1]])) {
+      [$column,, $type] = self::SORT_COLUMNS[$m[1]];
+      // Blank values sort last in both directions instead of bunching up at the top.
+      $expr = $type === 'text' ? "NULLIF(`$column`, '')" : "`$column`";
+      return "($expr IS NULL), $expr " . strtoupper($m[2]) . ', id DESC';
+    }
+
+    return 'id DESC';
   }
 
   // ===== RECORD LIST =====
@@ -291,16 +330,22 @@ class RecordModel extends Model
 
     // ===== REVISIONS PER PROTOCOL / PER PI =====
     [$window, $windowParams, $windowTypes] = $this->timeWindow('al.created_at', $period);
+    [$reviewWindow, $reviewParams, $reviewTypes] = $this->timeWindow('rv.created_at', $period);
     $revisionsByProtocol = $this->rows(
       "SELECT p.title AS label,
               CONCAT(p.title, ' (', COALESCE(NULLIF(p.ar_number, ''), NULLIF(p.reference_no, ''), CONCAT('Protocol #', p.id)), ')') AS tooltip,
-              COUNT(*) AS total
-       FROM `audit_logs` al
-       JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
-       WHERE al.action = 'protocol_revised' AND al.target_type = 'protocol'$window
-       GROUP BY p.id ORDER BY total DESC, p.id ASC LIMIT 8",
-      $windowParams,
-      $windowTypes
+              COUNT(al.target_id) AS total
+       FROM `protocols` p
+       LEFT JOIN `audit_logs` al ON al.target_id = p.id AND al.target_type = 'protocol' AND al.action = 'protocol_revised'$window
+       WHERE p.deleted_at IS NULL
+         AND (al.target_id IS NOT NULL OR p.id IN (
+           SELECT rv.target_id FROM `audit_logs` rv
+           WHERE rv.target_type = 'protocol' AND rv.action = 'status_updated'
+             AND rv.details = 'Status changed to: Reviewed'$reviewWindow
+         ))
+       GROUP BY p.id ORDER BY total DESC, p.id ASC",
+      array_merge($windowParams, $reviewParams),
+      $windowTypes . $reviewTypes
     );
     $revisionsByPi = $this->rows(
       "SELECT TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS label,
@@ -368,28 +413,12 @@ class RecordModel extends Model
       ) ?? 0);
     }
 
-    // ===== ACTIVE CLEARANCES (snapshot as of today, not limited to the period) =====
-    $activeClearances = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` WHERE research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()",
-      [],
-      ''
-    ) ?? 0);
-    $expiringSoon = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records`
-       WHERE research_duration_end IS NOT NULL AND research_duration_end >= CURDATE()
-         AND research_duration_end <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)",
-      [],
-      ''
-    ) ?? 0);
-
     return array_merge($totals, [
       'revision_submissions'      => $revisionSubmissions,
       'avg_revisions'             => $avgRevisions,
       'revisions_by_protocol'     => $revisionsByProtocol,
       'revisions_by_pi'           => $revisionsByPi,
       'total_records_all'         => $totalRecordsAll,
-      'active_clearances'         => $activeClearances,
-      'expiring_soon'             => $expiringSoon,
       'avg_animals_per_record'    => $withCount > 0 ? round($totals['total_animals'] / $withCount, 1) : 0.0,
       'species_breakdown'         => $speciesBreakdown,
       'school_breakdown'          => $schoolBreakdown,

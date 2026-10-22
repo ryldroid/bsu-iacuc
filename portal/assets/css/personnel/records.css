@@ -121,17 +121,22 @@
 }
 
 .records-data-note {
-  margin-top: 20px;
+  flex-wrap: wrap;
   background: var(--status-warning-bg);
   color: var(--status-warning-text);
 }
 
-.records-data-note ul {
-  display: grid;
-  gap: 4px;
+.records-data-note p {
+  flex: 1 1 240px;
   margin: 0;
-  padding: 0;
-  list-style: none;
+}
+
+.records-data-note a {
+  font-weight: 600;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .records-data-note svg {
@@ -271,7 +276,7 @@
 /* ===== Statistics: column chart ===== */
 .records-column-chart {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -328,6 +333,19 @@
 .records-card-empty {
   font-size: .8em;
   color: var(--muted-text);
+}
+
+/* ===== Statistics: show more ===== */
+.records-more summary {
+  margin-top: 12px;
+  font-size: .8em;
+  font-weight: 600;
+  color: var(--brand-color);
+  cursor: pointer;
+}
+
+.records-more[open] summary {
+  margin-bottom: 12px;
 }
 
 /* ===== Statistics: donut charts ===== */
@@ -531,6 +549,7 @@
   color: var(--text-on-brand);
   border: none;
   cursor: pointer;
+  margin-top: 0;
 }
 
 .records-period-apply:hover {
@@ -559,22 +578,93 @@
   white-space: nowrap;
 }
 
-.records-filters-row--sticky {
+.records-period-bar {
   position: sticky;
   top: var(--header-offset, 52px);
   z-index: 10;
-  margin: 0;
-  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 14px;
   background: var(--card-background);
-  border: none;
-  border-bottom: 1px solid var(--divider-color);
-  border-radius: 0;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
   transition: top 0.3s ease;
+}
+
+.records-period-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.records-period-chip {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+
+.records-period-chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.records-period-chip span {
+  display: block;
+  padding: 6px 12px;
+  font-size: .82em;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--secondary-text);
+  background: var(--card-background);
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.records-period-chip:hover span {
+  border-color: var(--brand-color-hover);
+}
+
+.records-period-chip input:checked+span {
+  background: var(--brand-color);
+  border-color: var(--brand-color);
+  color: var(--text-on-brand);
+}
+
+.records-period-chip input:focus-visible+span {
+  box-shadow: 0 0 0 2px var(--focus-ring-tint);
+  border-color: var(--focus-ring-color);
+}
+
+.records-period-summary {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  margin-left: auto;
+  line-height: 1.3;
 }
 
 .records-period-range {
   font-size: .82em;
   color: var(--muted-text);
+}
+
+.records-period-range--current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--primary-text);
 }
 
 .records-sort-group {
@@ -746,6 +836,24 @@
 
 .records-table .col-recv {
   width: 130px;
+}
+
+/* ===== Sortable column headers ===== */
+.records-sort-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.records-sort-link:hover,
+.records-sort-link:focus-visible {
+  text-decoration: underline;
+}
+
+.records-sort-link.is-active {
+  color: var(--brand-text);
 }
 
 .records-table .col-status {
@@ -1040,6 +1148,17 @@
     grid-column: 1 / -1;
   }
 
+  .records-period-bar {
+    position: static;
+    padding: 12px;
+  }
+
+  .records-period-summary {
+    justify-items: start;
+    margin-left: 0;
+    width: 100%;
+  }
+
   .records-filter-select {
     width: 100%;
     min-width: 0;
@@ -1275,4 +1394,555 @@
 
 .row-btn-primary:hover {
   background: var(--brand-color-active);
+}
+
+/* =====================================================================
+   Statistics page refresh
+   ===================================================================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Section headers: title and one-line description on a shared baseline */
+.records-section-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 30px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.records-section-head:first-of-type {
+  margin-top: 20px;
+}
+
+.records-section-head .records-section-title {
+  margin: 0;
+  font-size: 1.05em;
+}
+
+.records-section-sub {
+  margin: 0;
+  font-size: .78em;
+  color: var(--muted-text);
+}
+
+/* KPI cards: number on the left, change on the right, context underneath */
+.records-metrics .metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px 14px;
+}
+
+.records-metrics .metric-card-label {
+  margin: 0;
+  font-size: .8em;
+  color: var(--secondary-text);
+}
+
+.records-stat-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.records-metrics .metric-card-value {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 2.3em;
+  line-height: 1.1;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-text);
+}
+
+/* Zero is information too, but it shouldn't shout */
+.records-metrics .metric-card.is-zero .metric-card-value {
+  color: var(--muted-text);
+  opacity: .7;
+}
+
+.stat-delta {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: .74em;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--divider-color-subtle);
+  color: var(--secondary-text);
+}
+
+/* Direction is shown by the arrow only: more or fewer is not good or bad on its own */
+.stat-delta--up {
+  background: var(--brand-surface-tint);
+  color: var(--brand-text);
+}
+
+.stat-delta--flat {
+  font-weight: 600;
+  color: var(--muted-text);
+}
+
+.records-metrics .records-stat-hint {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider-color-subtle);
+  font-size: .76em;
+  line-height: 1.35;
+  color: var(--muted-text);
+}
+
+/* Bars and columns: use the chart palette so they stay readable in dark mode */
+.records-bar-track,
+.records-column-track {
+  background: var(--divider-color);
+}
+
+.records-bar-track {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.records-bar-fill,
+.records-column-fill {
+  background: var(--chart-1);
+}
+
+.records-bar-fill {
+  border-radius: 5px;
+}
+
+.records-bar-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.records-bar-row:hover .records-bar-label {
+  color: var(--primary-text);
+}
+
+/* Empty charts: a quiet placeholder instead of a stray line of text */
+.records-card-empty {
+  display: grid;
+  place-items: center;
+  min-height: 84px;
+  padding: 16px;
+  border: 1px dashed var(--divider-color);
+  border-radius: var(--btn-radius);
+  text-align: center;
+  font-size: .8em;
+  line-height: 1.4;
+  color: var(--muted-text);
+}
+
+@media (max-width: 600px) {
+  .records-metrics .metric-card-value {
+    font-size: 2em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .records-metrics .metric-card {
+    transition: none;
+  }
+}
+
+
+/* =====================================================================
+   Statistics: at-a-glance colour coding
+   Same colours the inbox uses for each review stage.
+   ===================================================================== */
+
+:where(.records-metrics .metric-card, .records-bar-card) {
+  --tone: var(--status-color-neutral);
+}
+
+[data-tone="reviewed"] {
+  --tone: var(--status-color-reviewed);
+}
+
+[data-tone="revised"] {
+  --tone: var(--status-color-needs-revision);
+}
+
+[data-tone="endorsed"] {
+  --tone: var(--status-color-endorsed);
+}
+
+[data-tone="signed"] {
+  --tone: var(--status-color-approved);
+}
+
+[data-tone="animals"] {
+  --tone: var(--status-color-under-review);
+}
+
+.records-metrics .metric-card {
+  gap: 8px;
+}
+
+.records-stat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.records-stat-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+
+.records-stat-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Name first, in full-strength text */
+.records-metrics .metric-card-label {
+  font-size: .9em;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--primary-text);
+}
+
+/* The number is neutral; colour is carried by the stripe and icon */
+.records-metrics .metric-card-value {
+  font-size: 2.6em;
+  color: var(--primary-text);
+}
+
+.records-metrics .metric-card.is-zero .records-stat-icon {
+  color: var(--muted-text);
+  background: var(--divider-color-subtle);
+}
+
+.records-metrics .metric-card.is-zero .metric-card-value {
+  color: var(--muted-text);
+  opacity: .6;
+}
+
+/* Revision charts share the "revised" colour with the card above */
+.records-bar-card[data-tone="revised"] {
+  --chart-1: var(--tone);
+}
+
+
+/* =====================================================================
+   Statistics: bolder, more colourful pass
+   ===================================================================== */
+
+/* KPI cards: tinted with their own colour, no side stripe */
+.records-metrics {
+  gap: 16px;
+}
+
+.records-metrics .metric-card {
+  gap: 10px;
+  padding: 20px 22px 18px;
+  background: color-mix(in srgb, var(--tone) 13%, var(--card-background));
+  border: 1px solid color-mix(in srgb, var(--tone) 38%, var(--divider-color));
+  border-radius: 14px;
+}
+
+.records-metrics .metric-card.is-zero {
+  background: var(--card-background);
+  border-color: var(--divider-color);
+}
+
+.records-stat-icon {
+  width: 42px;
+  height: 42px;
+  color: #fff;
+  background: var(--tone);
+}
+
+.records-stat-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.records-metrics .metric-card-label {
+  font-size: 1.05em;
+}
+
+.records-metrics .metric-card-value {
+  font-size: 3.6em;
+  color: color-mix(in srgb, var(--tone) 68%, var(--primary-text));
+}
+
+.records-metrics .metric-card.is-zero .records-stat-icon {
+  color: var(--muted-text);
+  background: var(--divider-color-subtle);
+}
+
+.records-metrics .metric-card.is-zero .metric-card-value {
+  color: var(--muted-text);
+}
+
+.stat-delta {
+  padding: 4px 11px;
+  font-size: .86em;
+  background: color-mix(in srgb, var(--tone) 20%, transparent);
+  color: color-mix(in srgb, var(--tone) 60%, var(--primary-text));
+}
+
+.records-metrics .metric-card.is-zero .stat-delta {
+  background: var(--divider-color-subtle);
+  color: var(--secondary-text);
+}
+
+.records-metrics .records-stat-hint {
+  font-size: .84em;
+  border-top-color: color-mix(in srgb, var(--tone) 22%, transparent);
+}
+
+/* Before / now bars: the change at a glance */
+.stat-compare {
+  display: grid;
+  gap: 5px;
+}
+
+.stat-compare-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: .8em;
+  color: var(--secondary-text);
+}
+
+.stat-compare-track {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  overflow: hidden;
+}
+
+.stat-compare-fill {
+  display: block;
+  width: var(--w);
+  min-width: 3px;
+  height: 100%;
+  border-radius: 4px;
+  transform-origin: left;
+}
+
+.stat-compare-fill--before {
+  background: color-mix(in srgb, var(--tone) 38%, var(--card-background));
+}
+
+.stat-compare-fill--now {
+  background: var(--tone);
+}
+
+.stat-compare-num {
+  min-width: 18px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary-text);
+}
+
+/* Section headers */
+.records-section-head .records-section-title {
+  font-size: 1.3em;
+}
+
+.records-section-sub {
+  font-size: .88em;
+}
+
+/* Chart cards: bigger type, rounder, tinted header */
+.records-charts-grid {
+  gap: 16px;
+}
+
+.records-bar-card {
+  padding: 22px 24px;
+  border-radius: 14px;
+}
+
+.records-bar-card .metric-card-label {
+  font-size: 1.05em;
+}
+
+.records-card-hint {
+  margin-bottom: 18px;
+  font-size: .84em;
+}
+
+.records-bar-row {
+  font-size: .95em;
+}
+
+.records-bar-chart {
+  gap: 14px;
+}
+
+.records-bar-track {
+  height: 14px;
+  border-radius: 7px;
+}
+
+.records-bar-fill {
+  border-radius: 7px;
+}
+
+.records-column-track {
+  height: 150px;
+}
+
+.records-column-count {
+  font-size: 1em;
+}
+
+.records-column-label {
+  font-size: .82em;
+}
+
+.records-legend {
+  gap: 11px;
+  font-size: .95em;
+}
+
+.records-legend-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+}
+
+.records-donut {
+  width: 168px;
+  height: 168px;
+}
+
+.records-donut-ring,
+.records-donut-seg {
+  stroke-width: 7;
+}
+
+.records-donut-center strong {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 2.1em;
+}
+
+.records-donut-center span {
+  font-size: .78em;
+}
+
+/* Every bar and column gets its own colour from the chart palette */
+.records-bar-row:nth-child(1) .records-bar-fill,
+.records-column-col:nth-child(1) .records-column-fill {
+  background: var(--chart-1);
+}
+
+.records-bar-row:nth-child(2) .records-bar-fill,
+.records-column-col:nth-child(2) .records-column-fill {
+  background: var(--chart-7);
+}
+
+.records-bar-row:nth-child(3) .records-bar-fill,
+.records-column-col:nth-child(3) .records-column-fill {
+  background: var(--chart-4);
+}
+
+.records-bar-row:nth-child(4) .records-bar-fill,
+.records-column-col:nth-child(4) .records-column-fill {
+  background: var(--chart-5);
+}
+
+.records-bar-row:nth-child(5) .records-bar-fill,
+.records-column-col:nth-child(5) .records-column-fill {
+  background: var(--chart-6);
+}
+
+.records-bar-row:nth-child(6) .records-bar-fill,
+.records-column-col:nth-child(6) .records-column-fill {
+  background: var(--chart-2);
+}
+
+.records-bar-row:nth-child(7) .records-bar-fill,
+.records-column-col:nth-child(7) .records-column-fill {
+  background: var(--chart-3);
+}
+
+.records-bar-row:nth-child(8) .records-bar-fill,
+.records-column-col:nth-child(8) .records-column-fill {
+  background: var(--chart-8);
+}
+
+/* Revision charts stay in the "revised" orange */
+.records-bar-card[data-tone="revised"] .records-bar-row .records-bar-fill {
+  background: var(--tone);
+}
+
+/* One entrance: bars grow in when the tab opens */
+@media (prefers-reduced-motion: no-preference) {
+
+  .records-bar-fill,
+  .stat-compare-fill {
+    animation: stat-grow-x 700ms cubic-bezier(.2, .7, .2, 1) both;
+  }
+
+  .records-column-fill {
+    transform-origin: bottom;
+    animation: stat-grow-y 700ms cubic-bezier(.2, .7, .2, 1) both;
+  }
+
+  .records-donut-seg {
+    animation: stat-fade 800ms ease both;
+  }
+}
+
+@keyframes stat-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes stat-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes stat-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .records-metrics .metric-card-value {
+    font-size: 3em;
+  }
+
+  .records-donut-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

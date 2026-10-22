@@ -591,13 +591,6 @@ main button svg {
     font-size: .9em;
 }
 
-/* ===== Submit button label ===== */
-#submit-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
 /* ===== Responsive ===== */
 @media(max-width:1045px) {
     .portal-header {
@@ -644,10 +637,14 @@ main button svg {
 }
 
 /* ===== Larger text for components shared with the modals (protocol-modals.css loads after this file) ===== */
-main .doc-row-title {
+main :is(.doc-row-title, .resub-doc-title) {
     font-size: .95rem;
 }
 
-main :is(.doc-row-sub, .doc-row-done, .doc-row-replace, .btn-upload-inline, .notice) {
+main :is(.doc-row-sub, .doc-row-done, .doc-row-replace, .btn-upload-inline, .notice, .resub-doc-sub, .resub-btn-link) {
     font-size: .88rem;
+}
+
+main .resub-doc {
+    margin-bottom: 1.2rem;
 }

@@ -51,9 +51,9 @@ include_once __DIR__ . '/file-popup.php';
 <div class="modal-backdrop" id="deleteModalBackdrop" data-static>
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
-      <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
+      <span class="modal-header-icon modal-header-icon--danger" id="deleteModalIcon" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-          <use href="#trash-icon" />
+          <use href="#trash-icon" data-mode-icon />
         </svg>
       </span>
       <div>
@@ -69,7 +69,7 @@ include_once __DIR__ . '/file-popup.php';
     <div class="panel-modal-body">
       <p class="panel-modal-intro" id="deleteModalIntro"></p>
 
-      <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional">(required)</span></label>
+      <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional" id="deleteReasonRequirement">(required)</span></label>
       <textarea id="deleteReasonText" class="return-comment-textarea"
         placeholder="Explain why this protocol should be deleted..."
         rows="4" maxlength="1000"></textarea>
@@ -81,7 +81,7 @@ include_once __DIR__ . '/file-popup.php';
         <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeDeleteModal()">Cancel</button>
         <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="deleteSubmitBtn" onclick="submitDelete()">
           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <use href="#trash-icon" />
+            <use href="#trash-icon" data-mode-icon />
           </svg>
           <span id="deleteSubmitLabel"></span>
         </button>

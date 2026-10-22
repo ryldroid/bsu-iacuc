@@ -153,13 +153,15 @@ function formatDateTime(value) {
       busyOverlayEl = document.createElement("div");
       busyOverlayEl.className = "busy-overlay";
       busyOverlayEl.setAttribute("role", "alertdialog");
+      busyOverlayEl.setAttribute("aria-labelledby", "busy-overlay-title");
+      busyOverlayEl.setAttribute("aria-describedby", "busy-overlay-text");
       busyOverlayEl.setAttribute("aria-live", "assertive");
       busyOverlayEl.setAttribute("aria-busy", "true");
       busyOverlayEl.innerHTML =
         '<div class="busy-overlay-card">' +
         '<div class="busy-overlay-spinner" aria-hidden="true"></div>' +
-        '<p class="busy-overlay-title"></p>' +
-        '<p class="busy-overlay-text"></p>' +
+        '<p id="busy-overlay-title" class="busy-overlay-title"></p>' +
+        '<p id="busy-overlay-text" class="busy-overlay-text"></p>' +
         '<div class="busy-overlay-track" aria-hidden="true"><div class="busy-overlay-fill"></div></div>' +
         '<p class="busy-overlay-elapsed"></p>' +
         "</div>";
@@ -254,11 +256,6 @@ function formatDateTime(value) {
         const clamped = Math.max(0, Math.min(100, Math.round(percent)));
         fill.style.width = clamped + "%";
         pct.textContent = clamped + "%";
-      },
-      converting() {
-        bar.classList.add("is-converting");
-        pct.innerHTML = '<span class="btn-busy-spinner"></span>';
-        if (subEl) subEl.textContent = "Converting to PDF, please wait\u2026";
       },
       remove() {
         bar.remove();
@@ -485,7 +482,7 @@ function formatDateTime(value) {
     const btn = e.target.closest("[data-guide-start]");
     const open = btn && guideOpeners[btn.dataset.guideStart];
     if (!open) return;
-    closeMoreMenu();
+    closeAccountDrawer(false);
     open();
   });
 

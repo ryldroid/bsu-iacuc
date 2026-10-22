@@ -32,6 +32,17 @@ class Notifier
 
   public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
 
+  // ===== RETURNED TO REVIEW (BY DA-CARFU OR BAI) =====
+  public static function reasonSentence(string $reason): string
+  {
+    return $reason === '' ? '' : ' Reason: ' . rtrim($reason, '.') . '.';
+  }
+
+  public static function returnedToReviewNotice(string $reason): array
+  {
+    return ['Protocol Returned to Review', 'was returned to review after DA-CARFU or BAI sent it back.' . self::reasonSentence($reason) . ' No action needed for now. You will be notified if revisions are needed or once the review is finished.'];
+  }
+
   // ===== SEND TO ONE USER =====
   public static function send(
     int $userId,

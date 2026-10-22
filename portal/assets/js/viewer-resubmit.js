@@ -17,12 +17,6 @@ let resubmitFiles = {};
 let resubmitConverting = null;
 let resubmitSubmitting = false;
 
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-}
-
 function validateResubmitFile(key, file) {
   const ext = file.name.split(".").pop().toLowerCase();
   if (key === "protocol") {
@@ -57,22 +51,17 @@ function resubmitDocRow(doc) {
   const title = `${doc.title}${doc.required ? ' <span class="req">*</span>' : ""}`;
 
   if (file && !converting) {
-    const converted = file.staged
-      ? '<span class="resub-doc-hint">Converted to PDF</span>'
-      : "";
-    const picker = `<label class="resub-btn-link">
-            Replace
-            <input type="file" accept="${doc.accept}" onchange="handleResubmitUpload(event,'${doc.key}')">
-        </label>`;
-
-    return `<div class="resub-doc is-done" data-doc-key="${doc.key}">
-        <span class="resub-doc-badge"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#check-circle-icon" /></svg></span>
-        <div class="resub-doc-info">
-            <div class="resub-doc-title">${title}</div>
-            <span class="resub-doc-sub is-file">${escapeHtml(file.name)} &middot; ${formatFileSize(file.size)}${converted}</span>
-        </div>
-        <div class="resub-doc-actions">${picker}<button type="button" class="resub-btn-link is-danger" onclick="removeResubmitFile('${doc.key}')">Remove</button></div>
-    </div>`;
+    return uploadedDocRow({
+      key: doc.key,
+      title: doc.title,
+      required: doc.required,
+      name: file.name,
+      size: file.size,
+      accept: doc.accept,
+      hint: file.staged ? "Converted to PDF" : "",
+      uploadHandler: "handleResubmitUpload",
+      removeHandler: "removeResubmitFile",
+    });
   }
 
   const action = converting

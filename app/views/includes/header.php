@@ -12,10 +12,8 @@ $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 $accountUser     = $user ? ($accountUser ?? (new UserModel())->getUser((int) $user['user_id'])) : null;
 $accountRequired = isset($_GET['required']);
 $needsProfile    = $role === 'researcher' && (empty($accountUser['sex']) || empty($accountUser['researcher_type']));
-// Once the profile is complete, a required verification is asked for in a page-wide modal
 $showVerifyModal = $accountRequired && !$needsProfile && empty($accountUser['email_verified']);
 
-// One list of theme options, rendered in the account dropdown and in the visitor theme menu
 $themeModes = [
   ['light', 'Light', 'sun-icon'],
   ['dark', 'Dark', 'moon-icon'],
@@ -23,10 +21,8 @@ $themeModes = [
 ];
 
 $showWelcome = $user && !empty($user['show_welcome']);
-// Every audience gets a spotlight guide of the website (replayable from the header help button).
-// Step format: [title, text, desktop target selector, mobile target selector (optional)]
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
-$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime from **Guide** in the three dots menu in the header.'];
+$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime with the question mark button at the top of the page.'];
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
 $guideContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
@@ -34,8 +30,7 @@ $guideSidebar = ['Expand the sidebar', 'On a computer, use this button to show t
 $guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
 $guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
 $guideHelp = ['Guide', 'Replay this tour anytime with the question mark button.', '.header-help'];
-$guideAccount = ['Your account', 'Open this to view and update **My Account**.', '.header-account'];
-$guideMore = ['More options', 'Open this menu to ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'replay this guide, switch between Light, Dark, and System theme, or log out.', '.header-more'];
+$guideAccount = ['Your account', 'Open this to update **My Account**, ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'switch between Light, Dark, and System theme, or log out.', '.header-account'];
 $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
@@ -48,7 +43,6 @@ if ($role === 'researcher') {
     $guideContact,
     $guideNotifications,
     $guideAccount,
-    $guideMore,
   ];
 } elseif ($role === 'staff') {
   $welcomeSteps = [
@@ -61,7 +55,6 @@ if ($role === 'researcher') {
     ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
     $guideNotifications,
     $guideAccount,
-    $guideMore,
   ];
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
@@ -72,7 +65,6 @@ if ($role === 'researcher') {
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,
-    $guideMore,
   ];
 } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
   $welcomeSteps = [
@@ -87,6 +79,8 @@ if ($role === 'researcher') {
     $guideHelp,
   ];
 }
+$canPreviewSite = $role === 'staff' || $role === 'reviewer';
+$canReplayGuide = $welcomeSteps && !$accountRequired;
 ?>
 
 <!DOCTYPE html>
@@ -173,25 +167,23 @@ if ($role === 'researcher') {
         <?php endif; ?>
         <a href="<?= $previewMode ? $pubRoot . '/home' : ROOT ?>" class="header-logo">
           <div>
-            <!-- <img src="<?= IMGPATH ?>/bsu.webp" alt=""> -->
-            <!-- <img src="<?= IMGPATH ?>/ccard.webp" alt=""> -->
           </div>
           <div>BSU-<span>IACUC</span></div>
         </a>
       </div>
 
       <?php if (!$hideHeaderAuth): ?>
-        <!-- THEME (VISITORS ONLY: logged-in users switch theme from the account dropdown) -->
+        <!-- THEME (VISITORS ONLY) -->
         <?php if (!$user) include 'theme-toggle.php'; ?>
 
         <div class="header-auth">
-          <!-- GUIDE (HELP, VISITORS ONLY: logged-in users open it from the more menu) -->
-          <?php if ($welcomeSteps && !$user): ?>
+          <!-- GUIDE -->
+          <?php if ($canReplayGuide): ?>
             <button type="button" class="header-help" data-guide-start="welcome" aria-label="View guide on website navigation" data-tooltip="View guide on website navigation">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#question-info-icon" />
               </svg>
-              <span>Guide</span>
+              <?php if (!$user): ?><span>Guide</span><?php endif; ?>
             </button>
           <?php endif; ?>
 
@@ -220,7 +212,7 @@ if ($role === 'researcher') {
               </div>
             </div>
 
-            <!-- MY ACCOUNT (OPENS A DROPDOWN PANEL) -->
+            <!-- MY ACCOUNT -->
             <button class="header-account"
               aria-expanded="false"
               aria-haspopup="dialog"
@@ -235,62 +227,7 @@ if ($role === 'researcher') {
               <span><?= htmlspecialchars($first_name, ENT_QUOTES, 'UTF-8') ?></span>
             </button>
 
-            <!-- MORE OPTIONS -->
-            <button class="header-more"
-              aria-expanded="false"
-              aria-haspopup="true"
-              aria-label="More options"
-              data-tooltip="More options"
-              aria-controls="header-menu">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#more-icon" />
-              </svg>
-            </button>
-
-            <div id="header-menu">
-              <?php if ($role === 'staff' || $role === 'reviewer'): ?>
-                <a href="<?= ROOT ?>/preview/home" target="_blank" rel="noopener">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#eye-icon" />
-                  </svg>
-                  Preview public site</a>
-              <?php endif; ?>
-
-              <?php if ($welcomeSteps): ?>
-                <button type="button" data-guide-start="welcome">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#question-info-icon" />
-                  </svg>
-                  Guide
-                </button>
-              <?php endif; ?>
-
-              <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
-                <span>Theme</span>
-                <div class="theme-options">
-                  <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
-                    <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#<?= $themeIcon ?>" />
-                      </svg>
-                    </button>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-
-              <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>" data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                <button type="submit" class="btn-header-logout">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#log-out-icon" />
-                  </svg>
-                  Log Out
-                </button>
-              </form>
-            </div>
-
-            <!-- MY ACCOUNT PANEL (anchored like the notification and more dropdowns) -->
+            <!-- MY ACCOUNT PANEL -->
             <div id="account-drawer" role="dialog" aria-label="My Account" tabindex="-1" inert>
               <div class="account-panel-header">
                 <span>My Account</span>
@@ -317,6 +254,33 @@ if ($role === 'researcher') {
                     <p class="helper">@<?= htmlspecialchars($accountUser['username'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
                   </div>
                 </div>
+
+                <!-- ===== Preferences ===== -->
+                <section class="account-card">
+                  <h2>Preferences</h2>
+                  <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
+                    <span>Theme</span>
+                    <div class="theme-options">
+                      <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
+                        <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
+                          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#<?= $themeIcon ?>" />
+                          </svg>
+                        </button>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+                  <?php if ($canPreviewSite): ?>
+                    <div class="account-actions">
+                      <a class="button" href="<?= ROOT ?>/preview/home" target="_blank" rel="noopener">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#eye-icon" />
+                        </svg>
+                        Preview public site
+                      </a>
+                    </div>
+                  <?php endif; ?>
+                </section>
 
                 <?php if ($role === 'researcher' && !empty($accountUser['cert_path'])): ?>
                   <!-- ===== Training certificate ===== -->
@@ -468,7 +432,6 @@ if ($role === 'researcher') {
                   </label>
                   <p class="helper">
                     <span class="provider-blocked-note" <?= empty($accountUser['email_provider_blocked']) ? 'hidden' : '' ?>>You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</span>
-                    <!-- <span class="provider-unblocked-note" <?= empty($accountUser['email_provider_blocked']) ? '' : 'hidden' ?>>If you unsubscribed through your email client, turn this off and on again to receive emails again. We cannot detect that unsubscribe automatically.</span> -->
                   </p>
                 </form>
 
@@ -559,7 +522,6 @@ if ($role === 'researcher') {
         </form>
       </div>
     <?php endif; ?>
-    <!-- Mobile nav lives outside <header> so header's scroll-hide transform never traps it as a fixed-position containing block -->
     <?php if ($user): ?>
 
       <!-- RESEARCHER MOBILE NAVIGATION -->

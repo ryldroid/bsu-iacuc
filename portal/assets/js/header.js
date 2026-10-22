@@ -1,8 +1,6 @@
 // ===== DROPDOWNS AND SIDEBAR NAVIGATION =====
 
 const accountButton = document.querySelector(".header-account");
-const moreButton = document.querySelector(".header-more");
-const moreMenu = document.querySelector("#header-menu");
 const sidebar = document.querySelector(".nav-sidebar");
 const mobileMenu = document.querySelector(".mobile-menu");
 const backdrop = document.querySelector("#sidebar-backdrop");
@@ -25,7 +23,6 @@ backdrop?.addEventListener("click", () => {
   }
   closeSidebar();
   closeAccountDrawer();
-  closeMoreMenu();
 });
 mobileMenu?.addEventListener("click", showSidebar);
 media.addEventListener("change", (e) => updateNavbar(e));
@@ -54,8 +51,6 @@ function closeSidebar() {
 
 function showSidebar() {
   const isOpen = sidebar.classList.contains("show");
-
-  closeMoreMenu();
 
   if (isOpen) {
     closeSidebar();
@@ -158,7 +153,6 @@ verifyEmailForm?.addEventListener("submit", async (event) => {
   setButtonBusy(button, false);
 
   if (ok) {
-    // Keep the account panel's email field in line with what was just saved
     accountForm.elements.email.value = email;
     resendVerification.dataset.savedEmail = email;
 
@@ -266,7 +260,6 @@ function applySavedAccount(user) {
   accountForm.querySelector(".account-password").open = false;
 }
 
-// modals.js asks for confirmation first and marks the form confirmed
 accountForm?.addEventListener("submit", async (event) => {
   if (accountForm.dataset.confirmed !== "true") return;
   event.preventDefault();
@@ -293,7 +286,6 @@ const resendVerificationForm = accountDrawer?.querySelector(
   "#resend-verification-form",
 );
 
-// modals.js asks for confirmation first and marks the form confirmed
 resendVerificationForm?.addEventListener("submit", async (event) => {
   if (resendVerificationForm.dataset.confirmed !== "true") return;
   event.preventDefault();
@@ -333,63 +325,27 @@ accountButton?.addEventListener("click", () =>
     : openAccountDrawer(),
 );
 
-// Clicking anywhere outside the panel closes it, like the other dropdowns
 document.addEventListener("click", (event) => {
   if (
     accountButton?.contains(event.target) ||
     accountDrawer?.contains(event.target) ||
-    // Confirm dialogs (save, log out, delete) are shown over the whole page, but belong to the panel
     event.target.closest(".confirm-modal-overlay")
   )
     return;
   closeAccountDrawer(false);
 });
 
-// ===== More menu =====
+// ===== Dropdown coordination =====
 document.addEventListener("header-dropdown-open", (event) => {
   if (event.detail !== "sidebar") closeSidebar();
-  if (event.detail !== "more") closeMoreMenu();
   if (event.detail !== "account") closeAccountDrawer(false);
 });
 
-function closeMoreMenu() {
-  if (!moreMenu?.classList.contains("active")) return;
-  moreMenu.classList.remove("active");
-  moreButton?.setAttribute("aria-expanded", "false");
-  setBackdrop(false);
-}
-
-if (moreButton && moreMenu) {
-  moreButton.addEventListener("click", () => {
-    const isOpen = moreMenu.classList.toggle("active");
-    moreButton.setAttribute("aria-expanded", isOpen);
-    if (isOpen) {
-      document.dispatchEvent(
-        new CustomEvent("header-dropdown-open", { detail: "more" }),
-      );
-      setBackdrop(true);
-    } else {
-      setBackdrop(false);
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    if (
-      !moreButton.contains(event.target) &&
-      !moreMenu.contains(event.target)
-    ) {
-      closeMoreMenu();
-    }
-  });
-}
-
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    // A confirm dialog opened from the panel handles this Escape itself
     if (e.defaultPrevented) return;
     closeSidebar();
     closeAccountDrawer();
-    closeMoreMenu();
   }
 });
 
@@ -460,10 +416,8 @@ function handleHeaderScroll() {
 
   if (sidebar?.classList.contains("show")) return;
 
-  // Keep the header (and the dropdowns anchored to it) in place while one is open
   if (
     accountDrawer?.classList.contains("show") ||
-    moreMenu?.classList.contains("active") ||
     document.querySelector("#notif-dropdown.active")
   ) {
     lastScrollY = window.scrollY;
@@ -543,7 +497,6 @@ if (mainHeader) {
     passive: true,
   });
 
-  // A long press shouldn't also trigger the button / link
   document.addEventListener(
     "click",
     (e) => {
@@ -556,7 +509,6 @@ if (mainHeader) {
     true,
   );
 
-  // Block the browser's long-press menu on header icons
   document.addEventListener("contextmenu", (e) => {
     if (e.target.closest("header [data-tooltip]") && "ontouchstart" in window) {
       e.preventDefault();
@@ -564,7 +516,6 @@ if (mainHeader) {
   });
 })();
 
-// Opens the panel when a redirect lands here with ?account=1
 if (
   accountButton &&
   !verifyEmailForm &&

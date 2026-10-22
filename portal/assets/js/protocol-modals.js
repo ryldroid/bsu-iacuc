@@ -110,6 +110,8 @@ const DELETE_MODES = {
     confirm:
       "Delete this protocol? The researcher will be notified with your reason. This cannot be undone.",
     danger: true,
+    icon: "trash-icon",
+    placeholder: "Explain why this protocol should be deleted...",
   },
   request: {
     api: "/apply/request_deletion",
@@ -120,6 +122,23 @@ const DELETE_MODES = {
     busy: "Sending...",
     confirm: "Send a deletion request with this reason?",
     danger: false,
+    icon: "trash-icon",
+    placeholder: "Explain why this protocol should be deleted...",
+  },
+  revert: {
+    api: "/apply/status",
+    label: "Revert to To Review",
+    intro:
+      "The researcher and reviewers will be notified. Add why DA-CARFU or BAI returned it.",
+    button: "Revert",
+    busy: "Reverting...",
+    confirm: "Send this protocol back to To Review?",
+    danger: false,
+    icon: "undo-icon",
+    placeholder: "For example: DA-CARFU asked for a corrected animal count.",
+    optional: true,
+    neutral: true,
+    body: { status: "Under Review" },
   },
 };
 const deleteBackdrop = protocolModalBind("deleteModalBackdrop", () =>
@@ -136,6 +155,19 @@ function openDeleteModal(protocolId, title, opts) {
   document.getElementById("deleteModalTitle").textContent = title;
   document.getElementById("deleteModalIntro").textContent = mode.intro;
   document.getElementById("deleteSubmitLabel").textContent = mode.button;
+  deleteReasonText.placeholder = mode.placeholder;
+  document.getElementById("deleteReasonRequirement").textContent = mode.optional
+    ? "(optional)"
+    : "(required)";
+  document
+    .getElementById("deleteModalIcon")
+    .classList.toggle("modal-header-icon--danger", !mode.neutral);
+  document
+    .getElementById("deleteSubmitBtn")
+    .classList.toggle("confirm-modal-ok-danger", !mode.neutral);
+  document
+    .querySelectorAll("#deleteModalBackdrop [data-mode-icon]")
+    .forEach((use) => use.setAttribute("href", "#" + mode.icon));
   deleteReasonText.value = "";
   deleteCharCount.textContent = "0";
   document.getElementById("deleteError").hidden = true;
@@ -157,7 +189,7 @@ async function submitDelete() {
   const { mode, protocolId, opts } = deleteCtx;
   errBox.hidden = true;
 
-  if (!reason) {
+  if (!reason && !mode.optional) {
     showProtocolModalError(errBox, "A reason is required.");
     return;
   }
@@ -172,6 +204,7 @@ async function submitDelete() {
   setButtonBusy(submitBtn, true, mode.busy);
   try {
     const data = await protocolModalPost(mode.api, {
+      ...mode.body,
       protocol_id: protocolId,
       reason,
     });

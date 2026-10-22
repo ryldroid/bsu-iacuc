@@ -623,6 +623,12 @@ foreach ($protocols as $p) {
                                                 'action' => 'revert-endorsed',
                                                 'icon' => 'undo',
                                                 'menu' => true
+                                            ],
+                                            [
+                                                'label' => 'Revert to To Review',
+                                                'action' => 'revert-endorsed-to-review',
+                                                'icon' => 'undo',
+                                                'menu' => true
                                             ]
                                         ]);
                                         break;

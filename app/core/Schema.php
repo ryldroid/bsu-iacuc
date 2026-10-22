@@ -224,6 +224,7 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
+        $this->addRecordCreatedAt();
 
         $this->dropColumn('protocol_return_reasons', 'wrong_auth');
 
@@ -400,6 +401,8 @@ class Schema
 
         $this->ensureColumn('users', 'researcher_type', "varchar(50) DEFAULT NULL AFTER `sex`");
 
+        $this->cleanProtocolEmojiText();
+
         $this->dropColumn('protocol_drafts', 'is_pi');
         $this->dropColumn('protocol_drafts', 'auth_file_path');
         $this->dropColumn('protocol_drafts', 'auth_file_name');
@@ -425,6 +428,28 @@ class Schema
         if ($oldExists && $oldExists->num_rows > 0 && $newExists && $newExists->num_rows === 0) {
             $c->query("ALTER TABLE `$table` CHANGE COLUMN `$from` `$to` $definition");
         }
+    }
+
+    // Adds records.created_at. New rows get the timestamp from the column default, so the
+    // INSERTs stay untouched. Existing rows are backfilled once from the day their protocol
+    // was marked Reviewed; manual records with no such event stay NULL (unknown) instead of
+    // all showing the migration date.
+    private function addRecordCreatedAt(): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW COLUMNS FROM `records` LIKE 'created_at'");
+        if (! $exists || $exists->num_rows > 0) return;
+
+        $c->query("ALTER TABLE `records` ADD COLUMN `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP");
+        $c->query(
+            "UPDATE `records` r
+             SET r.created_at = (
+                 SELECT MIN(al.created_at) FROM `audit_logs` al
+                 WHERE al.action = 'status_updated' AND al.target_type = 'protocol'
+                   AND al.target_id = r.protocol_id
+                   AND al.details = 'Status changed to: Reviewed')"
+        );
     }
 
     // ===== ONE-TIME DATA MIGRATIONS =====
@@ -461,6 +486,29 @@ class Schema
                    SELECT used FROM (SELECT ar_number AS used FROM `records` WHERE ar_number IS NOT NULL) t
                )"
         );
+    }
+
+    private function cleanProtocolEmojiText(): void
+    {
+        $c = $this->connection;
+
+        foreach (['protocols', 'protocol_drafts'] as $table) {
+            foreach (['title', 'research_adviser', 'veterinarian'] as $column) {
+                $update = $c->prepare("UPDATE `$table` SET `$column` = ? WHERE `id` = ?");
+                $update->bind_param('si', $clean, $id);
+
+                $rows = $c->query("SELECT `id`, `$column` AS `value` FROM `$table` WHERE `$column` <> ''");
+                while ($row = $rows->fetch_assoc()) {
+                    $clean = normalize_pasted_text($row['value']);
+                    $id    = (int) $row['id'];
+                    if ($clean !== $row['value']) {
+                        $update->execute();
+                    }
+                }
+
+                $update->close();
+            }
+        }
     }
 
     private function migrateAdminRoleToStaff(): void

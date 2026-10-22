@@ -80,6 +80,9 @@ define('MAIL_FROMNAME_SECURITY', EnvLoader::get('MAIL_FROMNAME_SECURITY', MAIL_F
 define('BREVO_API_KEY', EnvLoader::get('BREVO_API_KEY'));
 define('BREVO_WEBHOOK_SECRET', EnvLoader::get('BREVO_WEBHOOK_SECRET', ''));
 
+// ===== BACKUP SETTINGS =====
+define('BACKUP_CRON_SECRET', EnvLoader::get('BACKUP_CRON_SECRET', ''));
+
 // ===== CLOUDCONVERT SETTINGS =====
 define('CLOUDCONVERT_API_KEY', EnvLoader::get('CLOUDCONVERT_API_KEY', ''));
 

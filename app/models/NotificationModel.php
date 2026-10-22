@@ -28,6 +28,8 @@ class NotificationModel extends Model
     'protocol_deletion_requested'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
+    'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
+    'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],
   ];
 
   // ===== CREATE NOTIFICATIONS =====
@@ -67,6 +69,36 @@ class NotificationModel extends Model
     }
 
     return $users;
+  }
+
+  // ===== BACKUP WARNING FOR ALL STAFF: ONE PER STALE BACKUP =====
+  public function warnStaffAboutBackup(Backup $backup): void
+  {
+    $message = $backup->ageWarning();
+    if (! $message) {
+      return;
+    }
+
+    $since = date('Y-m-d H:i:s', $backup->lastBackupTime() ?? strtotime('2000-01-01'));
+
+    $stmt = $this->connection->prepare(
+      "SELECT u.id FROM `users` u
+             WHERE u.role = 'staff' AND u.status = 'active'
+             AND NOT EXISTS (
+               SELECT 1 FROM `notifications` n
+               WHERE n.user_id = u.id AND n.type = 'backup_warning' AND n.created_at > ?
+             )"
+    );
+    if (! $stmt) {
+      return;
+    }
+
+    $stmt->bind_param('s', $since);
+    $stmt->execute();
+
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $staff) {
+      $this->create((int) $staff['id'], 'backup_warning', 'Backup Needed', $message, 'personnel/accounts?tab=backups');
+    }
   }
 
   // ===== READ NOTIFICATIONS =====

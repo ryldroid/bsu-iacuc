@@ -283,7 +283,7 @@ main {
 /* ===== Headings & buttons ===== */
 h1,
 h2 {
-    font-family: "PT Serif", serif;
+    font-family: var(--font-body);
     text-shadow: 0 0 1px var(--heading-shadow);
     color: var(--heading-fill-main);
 }
@@ -408,6 +408,10 @@ button:active,
 main input {
     display: block;
     margin-bottom: 1em;
+}
+
+main input[hidden] {
+    display: none;
 }
 
 main button {

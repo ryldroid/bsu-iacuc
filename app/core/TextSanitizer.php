@@ -1,5 +1,16 @@
 <?php
 
+// ===== EMOJI RANGES =====
+function emoji_class_body(string $escape): string
+{
+  $ranges = [[0x1F000, 0x1FAFF], [0x2600, 0x27BF], [0x2B50], [0x2B55], [0xFE0F], [0x20E3]];
+
+  return implode('', array_map(
+    fn(array $range): string => sprintf('%s{%X}', $escape, $range[0]) . (isset($range[1]) ? sprintf('-%s{%X}', $escape, $range[1]) : ''),
+    $ranges
+  ));
+}
+
 // ===== NORMALIZE PASTED TEXT =====
 function normalize_pasted_text(?string $text): string
 {
@@ -63,8 +74,11 @@ function normalize_pasted_text(?string $text): string
     '\x{2102}\x{210A}-\x{2112}\x{2115}\x{2119}-\x{211D}\x{2124}\x{2128}\x{212C}\x{212D}\x{212F}\x{2130}\x{2131}\x{2133}\x{2134}' .
     ']/u';
 
+  // ===== STRIP EMOJI =====
+  $text = preg_replace('/[' . emoji_class_body('\\x') . ']/u', '', $text);
+
   // ===== REPLACE LOOK-ALIKES =====
-  return preg_replace_callback(
+  $result = preg_replace_callback(
     $pattern,
     function (array $m) use ($legacy, $letterBlocks, $digitBlocks): string {
       $cp = mb_ord($m[0], 'UTF-8');
@@ -106,4 +120,7 @@ function normalize_pasted_text(?string $text): string
     },
     $text
   );
+
+  // ===== COLLAPSE SPACES =====
+  return trim(preg_replace('/[^\S\r\n]{2,}/u', ' ', $result));
 }

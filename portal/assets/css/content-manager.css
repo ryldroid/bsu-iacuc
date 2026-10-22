@@ -1,0 +1,245 @@
+/* ===== Content manager (shared by pages that manage lists of content) ===== */
+/* Pairs with js/content-manager.js. Builds on .ann-list / .ann-row from announcements.css. */
+
+/* ===== Section header: title, count pill, search and add button ===== */
+.cm-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.cm-tools .inbox-search-wrap {
+  margin-left: 0;
+  max-width: 320px;
+}
+
+.cm-count {
+  display: inline-block;
+  margin-left: .5rem;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--brand-surface-tint);
+  color: var(--brand-text);
+  font-size: .75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .cm-tools {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .cm-tools .inbox-search-wrap {
+    max-width: none;
+  }
+}
+
+/* ===== List wrapper (the part that refreshes in place) ===== */
+.cm-list-wrap {
+  position: relative;
+  transition: opacity .15s;
+}
+
+.cm-list-wrap.is-refreshing {
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* ===== Rows ===== */
+.cm-row {
+  transition: background .15s, opacity .2s, transform .2s;
+}
+
+.cm-row[data-cm-entity] {
+  cursor: pointer;
+}
+
+.cm-row[hidden] {
+  display: none;
+}
+
+.cm-row.is-busy {
+  opacity: .5;
+  pointer-events: none;
+}
+
+.cm-row.is-removing {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.cm-row .ann-row-snippet {
+  -webkit-line-clamp: 2;
+}
+
+.cm-row .ann-row-thumb[data-zoom-src] {
+  cursor: zoom-in;
+}
+
+.cm-row .ann-row-thumb img {
+  transition: transform .2s;
+}
+
+.cm-row .ann-row-thumb[data-zoom-src]:hover img {
+  transform: scale(1.08);
+}
+
+/* A row that was just added, edited or moved glows briefly */
+.cm-row-flash {
+  animation: cm-row-flash 1.6s ease-out;
+}
+
+@keyframes cm-row-flash {
+
+  0%,
+  35% {
+    background: var(--brand-surface-tint);
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+/* ===== Row action buttons: quiet until hovered ===== */
+.cm-list-wrap .ann-row-actions .row-btn {
+  background: transparent;
+  border-color: var(--divider-color);
+  color: var(--secondary-text);
+}
+
+.cm-list-wrap .ann-row-actions .row-btn:hover {
+  background: var(--brand-color);
+  border-color: var(--brand-color);
+  color: var(--text-on-brand);
+}
+
+.cm-list-wrap .ann-row-actions .row-btn[data-cm-action="delete"]:hover {
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
+  color: var(--text-on-brand);
+}
+
+/* ===== Empty and no-results states ===== */
+.cm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  background: var(--brand-surface-faint);
+  border: 1px dashed var(--divider-color-strong);
+  border-radius: var(--btn-radius);
+  color: var(--muted-text);
+}
+
+.cm-empty[hidden] {
+  display: none;
+}
+
+.cm-empty svg {
+  color: var(--brand-text);
+  opacity: .7;
+}
+
+.cm-empty h3 {
+  margin: 0;
+  font-family: var(--font-default);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--brand-text);
+}
+
+.cm-empty p {
+  margin: 0;
+  font-size: .9rem;
+}
+
+/* ===== Image preview in the add/edit modal ===== */
+.ann-image-preview-wrap.is-marked img {
+  opacity: .35;
+  filter: grayscale(1);
+}
+
+/* ===== Save bar for forms that track unsaved changes ===== */
+.cm-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1.25rem;
+  padding: .75rem 0 0;
+  background: var(--card-background);
+  border-top: 1px solid var(--divider-color-subtle);
+}
+
+.cm-savebar-status {
+  margin-right: auto;
+  font-size: .85rem;
+  color: var(--muted-text);
+}
+
+.cm-savebar-dirty {
+  display: none;
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+.is-dirty .cm-savebar-dirty {
+  display: inline;
+}
+
+.is-dirty .cm-savebar-clean {
+  display: none;
+}
+
+.cm-savebar .accounts-btn-primary:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cm-link-btn {
+  margin: 0;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--secondary-text);
+  cursor: pointer;
+}
+
+.cm-link-btn:hover {
+  background: none;
+  color: var(--brand-text);
+}
+
+.cm-link-btn[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .cm-row,
+  .cm-list-wrap,
+  .cm-row .ann-row-thumb img {
+    transition: none;
+  }
+
+  .cm-row-flash {
+    animation: none;
+  }
+}

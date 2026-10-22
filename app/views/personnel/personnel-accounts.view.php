@@ -16,7 +16,7 @@ $auditPerPage   = $auditPerPage   ?? 10;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditOffset    = ($auditPage - 1) * $auditPerPage;
 
-$allowedTabs = ['audit-logs', 'accounts'];
+$allowedTabs = ['audit-logs', 'accounts', 'backups'];
 $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', $allowedTabs, true)
     ? $_GET['tab']
     : $allowedTabs[0]);
@@ -51,6 +51,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                 aria-controls="panel-accounts">Manage Accounts</button>
             <?php $tabGuideId = 'accounts';
             $tabGuideLabel = 'Manage Accounts';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
+            <button type="button" role="tab" class="has-guide" id="tab-backups" data-tab="backups"
+                aria-selected="<?= $activeTab === 'backups' ? 'true' : 'false' ?>"
+                aria-controls="panel-backups">Backups</button>
+            <?php $tabGuideId = 'backups';
+            $tabGuideLabel = 'Backups';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
         </div>
 
@@ -300,6 +306,44 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     <?php endif; ?>
                 </section>
             </div>
+
+            <div class="tab-panel" id="panel-backups" role="tabpanel" aria-labelledby="tab-backups"
+                data-tab-panel="backups" <?= $activeTab === 'backups' ? '' : 'hidden' ?>>
+                <div class="sections-column">
+                    <!-- BACKUP MANAGER -->
+                    <section class="accounts-card audit-section" id="backup-manager"
+                        data-endpoint="<?= ROOT ?>/backups" data-csrf="<?= htmlspecialchars($csrf) ?>">
+                        <div class="audit-viewer-header">
+                            <h2>
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#download-icon" />
+                                </svg>
+                                Backups
+                            </h2>
+                            <div class="backup-actions">
+                                <button type="button" id="backup-upload" class="accounts-btn-primary">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#upload-icon" />
+                                    </svg>
+                                    Upload Backup
+                                </button>
+                                <button type="button" id="backup-create" class="accounts-btn-primary">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#add-icon" />
+                                    </svg>
+                                    Create Backup
+                                </button>
+                                <input type="file" id="backup-upload-input" accept=".zip,application/zip" hidden>
+                            </div>
+                        </div>
+                        <p class="audit-description" id="backup-status">Each backup holds the database, protocol files and site uploads. The 10 newest are kept.</p>
+                        <div id="backup-health"></div>
+                        <div class="upload-progress-container" id="backup-progress"></div>
+                        <div class="alert error-messages" id="backup-error" hidden></div>
+                        <div id="backup-results"></div>
+                    </section>
+                </div>
+            </div>
         </div>
 
     </main>
@@ -329,6 +373,17 @@ if ($isStaff) {
 }
 $guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed.', '.personnel-manage-section'];
 $guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
+include dirname(__DIR__) . '/includes/guide.php';
+
+$guideId    = 'backups';
+$guideSteps = [
+    ['Backups', 'Create and download copies of the database and uploaded files. Let us walk through it.'],
+    ['Create a backup', 'Press **Create Backup**. It runs in steps, so keep this page open until the bar reaches 100%.', '#backup-create'],
+    ['Upload a backup', 'Press **Upload Backup** and choose a backup ZIP you downloaded earlier. It is sent in small pieces and checked before it appears in the list. Then use **Restore** to bring it back.', '#backup-upload'],
+    ['Backup health', 'This line shows the last backup time and the limits of the server. A red notice appears when the newest backup is 3 days old or more, or when none exists.', '#backup-health'],
+    ['Saved backups', '**Download** a backup to keep a copy off the server, **Verify** it to check that it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
+    ['Restore', '**Restore** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
+];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
 
@@ -373,9 +428,55 @@ include dirname(__DIR__) . '/includes/guide.php';
     </div>
 </div>
 
+<!-- Restore backup modal -->
+<div class="modal-backdrop" id="backupRestoreBackdrop" data-static>
+    <div class="modal-card panel-modal-card">
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#undo-icon" />
+                </svg>
+            </span>
+            <p class="modal-title">Restore Backup</p>
+            <button class="modal-close" type="button" id="backupRestoreClose" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
+        </div>
+        <div class="panel-modal-body">
+            <p class="helper" id="backupRestoreText"></p>
+            <p class="helper">This replaces all current data and uploaded files with the contents of this backup. A safety backup of the current data is saved first. Anything submitted while the restore runs will be lost, and you may be signed out afterwards.</p>
+
+            <div id="backupRestoreError" class="alert error-messages" hidden></div>
+
+            <div class="role-confirm-field">
+                <label for="backupRestorePassword">Enter your password to confirm</label>
+                <input type="password" id="backupRestorePassword" class="role-confirm-password" autocomplete="current-password">
+            </div>
+
+            <div class="role-confirm-field">
+                <label for="backupRestoreConfirm">Type RESTORE to confirm</label>
+                <input type="text" id="backupRestoreConfirm" class="role-confirm-password" autocomplete="off">
+            </div>
+
+            <div class="modal-actions">
+                <button class="confirm-modal-btn confirm-modal-cancel" type="button" id="backupRestoreCancel">Cancel</button>
+                <button class="confirm-modal-btn confirm-modal-ok" type="button" id="backupRestoreSubmit">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#undo-icon" />
+                    </svg>
+                    Restore
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
+<script src="<?= asset_js('backups.js') ?>" defer></script>
 
 <script>
     // ===== Copy invite link =====

@@ -114,6 +114,20 @@ class Access
       'update_role' => 'staff',
     ],
 
+    'backups' => [
+      'all' => 'staff',
+      'start' => 'staff',
+      'step' => 'staff',
+      'download' => 'staff',
+      'delete' => 'staff',
+      'restore' => 'staff',
+      'verify' => 'staff',
+      'auto' => 'public', // authenticated by its own bearer secret
+      'uploadstart' => 'staff',
+      'uploadchunk' => 'staff',
+      'uploadfinish' => 'staff',
+    ],
+
     'apply' => [
       // researcher application flow
       'index' => 'researcher',

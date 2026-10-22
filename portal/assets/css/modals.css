@@ -1045,6 +1045,102 @@ html:has(.modal-backdrop.open.guide-targeting) {
     }
 }
 
+/* ===== Busy overlay ===== */
+.busy-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9600;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--backdrop-color);
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+}
+
+.busy-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+body.busy-overlay-lock {
+    overflow: hidden;
+}
+
+.busy-overlay-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    width: min(420px, calc(100% - 40px));
+    padding: 30px 36px 28px;
+
+    background: var(--card-background);
+    color: var(--primary-text);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px var(--shadow-color-modal);
+    text-align: center;
+}
+
+.busy-overlay-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--divider-color);
+    border-top-color: var(--brand-color);
+    border-radius: 50%;
+    animation: btn-busy-spin .8s linear infinite;
+}
+
+.busy-overlay-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.busy-overlay-text {
+    margin: 0;
+    font-size: .88rem;
+    line-height: 1.45;
+    color: var(--secondary-text);
+}
+
+.busy-overlay-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--divider-color);
+    overflow: hidden;
+}
+
+.busy-overlay-fill {
+    width: 40%;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--brand-color);
+    animation: upload-progress-slide 1.2s ease-in-out infinite;
+}
+
+.busy-overlay-track.is-determinate .busy-overlay-fill {
+    animation: none;
+    transition: width .15s ease-out;
+}
+
+.busy-overlay-elapsed {
+    margin: 0;
+    font-size: .8rem;
+    color: var(--muted-text);
+}
+
+.busy-overlay-text:empty,
+.busy-overlay-elapsed:empty {
+    display: none;
+}
+
 @media (max-width: 480px) {
     .modal-actions button {
         /* flex: 1 1 auto; */

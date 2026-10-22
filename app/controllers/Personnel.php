@@ -76,6 +76,8 @@ class Personnel extends Controller
         $activityTimestamps = array_column($protocols, 'last_activity_at');
         $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
 
+        (new NotificationModel())->warnStaffAboutBackup(new Backup($this->userModel->connection));
+
         $this->view('personnel/personnel-home', [
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
@@ -415,6 +417,7 @@ class Personnel extends Controller
             'Veterinarian',
             'Duration',
             'Date Released',
+            'Date Added',
             'Received By',
             'Status',
         ];
@@ -436,13 +439,14 @@ class Personnel extends Controller
                 $r['veterinarian'] ?? '',
                 $this->formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
                 $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '',
+                ! empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '',
                 $r['received_by'] ?? '',
                 $r['status'] ?? RecordModel::DEFAULT_STATUS,
             ], null, "A$row");
             $row++;
         }
 
-        foreach (range('A', 'O') as $column) {
+        foreach (range('A', 'P') as $column) {
             $recordsSheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -490,9 +494,8 @@ class Personnel extends Controller
                 ['Average Revisions per Revised Protocol', $stats['avg_revisions']],
                 ['Protocols Endorsed', $stats['endorsed']],
                 ['Protocols Signed by IACUC Chairperson', $stats['signed']],
-                ['Clearances Returned', $stats['clearances_returned']],
+                ['Clearances Received', $stats['clearances_returned']],
                 ['Total Records', $stats['total_records']],
-                ['Active Clearances (as of today)', $stats['active_clearances']],
                 ['Total Animals Used', $stats['total_animals']],
             ] as [$label, $value]
         ) {
@@ -502,12 +505,12 @@ class Personnel extends Controller
         }
         $row++;
 
-        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per Protocol', $stats['revisions_by_protocol'], 'Protocol');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per PI', $stats['revisions_by_pi'], 'Principal Investigator');
         $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Species', $stats['species_breakdown'], 'Species');
         $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by School', $stats['school_breakdown'], 'School');
         $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
         $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per Protocol', $stats['revisions_by_protocol'], 'Protocol');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per PI', $stats['revisions_by_pi'], 'Principal Investigator');
 
         foreach (['A', 'B', 'C'] as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);

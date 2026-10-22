@@ -46,6 +46,7 @@
 
 .return-reason-comment {
     color: var(--muted-text);
+    overflow-wrap: anywhere;
     /* font-style: italic; */
 }
 

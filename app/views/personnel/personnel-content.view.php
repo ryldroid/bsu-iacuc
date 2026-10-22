@@ -21,12 +21,12 @@ $faqs          = $faqs          ?? [];
 $activeTab     = $activeTab     ?? 'announcements';
 ?>
 
-<link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('content-manager.css') ?>">
 
 <div class="body">
   <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -64,61 +64,64 @@ $activeTab     = $activeTab     ?? 'announcements';
 
         <div class="dashboard-page-header records-page-header">
           <div>
-            <h2>Manage Announcements</h2>
+            <h2>Manage Announcements <span class="cm-count" data-cm-count="annListWrap" aria-live="polite"><?= count($announcements) ?></span></h2>
           </div>
-          <button class="row-btn row-btn-primary" id="addAnnouncementBtn" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#add-icon">
-            </svg>
-            Add Announcement
-          </button>
+          <div class="cm-tools">
+            <?php $cmSearchTarget = 'annListWrap';
+            $cmSearchPlaceholder = 'Search announcements...';
+            include dirname(__DIR__) . '/includes/cm-search.php'; ?>
+            <button class="row-btn row-btn-primary" id="addAnnouncementBtn" type="button" data-cm-add="announcement">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#add-icon" />
+              </svg>
+              Add Announcement
+            </button>
+          </div>
         </div>
 
-        <div class="records-table-wrap">
+        <div class="cm-list-wrap" id="annListWrap">
           <?php if (empty($announcements)): ?>
-            <p style="padding: 1.5rem;">No announcements yet.</p>
+            <div class="cm-empty">
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#announcement-icon" />
+              </svg>
+              <h3>No announcements yet</h3>
+              <p>Press Add Announcement to post the first one.</p>
+            </div>
           <?php else: ?>
             <div class="ann-list">
               <?php foreach ($announcements as $a):
                 $annTitle = normalize_pasted_text($a['title']);
                 $annBody  = normalize_pasted_text($a['body']);
                 $hasImage = !empty($a['image_path']);
+                $annImage = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($a['image_path']) : '';
+                $annRowTs = strtotime($a['created_at']);
               ?>
-                <div class="ann-row">
-                  <div class="ann-row-thumb">
+                <div class="ann-row cm-row" data-cm-entity="announcement" data-id="<?= (int) $a['id'] ?>"
+                  data-cm-label="<?= htmlspecialchars($annTitle !== '' ? $annTitle : 'Untitled', ENT_QUOTES) ?>">
+                  <div class="ann-row-thumb" <?= $hasImage ? 'data-zoom-src="' . htmlspecialchars($annImage, ENT_QUOTES) . '" data-zoom-alt="' . htmlspecialchars($annTitle, ENT_QUOTES) . '"' : '' ?>>
                     <?php if ($hasImage): ?>
-                      <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($a['image_path']) ?>" alt="">
+                      <img src="<?= htmlspecialchars($annImage, ENT_QUOTES) ?>" alt="">
                     <?php else: ?>
                       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#file-x-icon">
+                        <use href="#file-x-icon" />
                       </svg>
                     <?php endif; ?>
                   </div>
                   <div class="ann-row-body">
-                    <?php if ($annTitle !== ''): ?>
-                      <div class="ann-row-title"><?= htmlspecialchars($annTitle, ENT_QUOTES) ?></div>
-                    <?php else: ?>
-                      <div class="ann-row-title ann-empty-state">Untitled</div>
-                    <?php endif; ?>
-
-                    <?php if ($annBody !== ''): ?>
-                      <div class="ann-row-snippet"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></div>
-                    <?php else: ?>
-                      <div class="ann-row-snippet ann-empty-state">No caption</div>
-                    <?php endif; ?>
-
-                    <?php $annRowTs = strtotime($a['created_at']); ?>
+                    <div class="ann-row-title<?= $annTitle === '' ? ' ann-empty-state' : '' ?>"><?= htmlspecialchars($annTitle !== '' ? $annTitle : 'Untitled', ENT_QUOTES) ?></div>
+                    <div class="ann-row-snippet<?= $annBody === '' ? ' ann-empty-state' : '' ?>"><?= htmlspecialchars($annBody !== '' ? $annBody : 'No caption', ENT_QUOTES) ?></div>
                     <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date(DATETIME_FORMAT, $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                   </div>
                   <div class="ann-row-actions">
-                    <button type="button" class="row-btn edit-announcement-btn" data-id="<?= (int) $a['id'] ?>" aria-label="Edit announcement">
+                    <button type="button" class="row-btn" data-cm-action="edit" aria-label="Edit announcement">
                       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#edit-icon">
+                        <use href="#edit-icon" />
                       </svg>
                     </button>
-                    <button type="button" class="row-btn delete-announcement-btn" data-id="<?= (int) $a['id'] ?>" data-title="<?= htmlspecialchars($annTitle, ENT_QUOTES) ?>" aria-label="Delete announcement">
+                    <button type="button" class="row-btn" data-cm-action="delete" aria-label="Delete announcement">
                       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#trash-icon">
+                        <use href="#trash-icon" />
                       </svg>
                     </button>
                   </div>
@@ -138,10 +141,10 @@ $activeTab     = $activeTab     ?? 'announcements';
           <section class="accounts-card">
             <h2>Homepage Content</h2>
             <p class="audit-description">Controls the banner title and the first two "What is IACUC?" paragraphs on the public homepage.</p>
-            <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings"
+            <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings" data-cm-dirty
               data-confirm-message="Save changes to the homepage content?" data-confirm-ok-text="Save">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
-              <div class="records-form-grid" style="margin-bottom: 1.25rem;">
+              <div class="records-form-grid">
                 <div class="records-form-group records-form-full">
                   <label class="field-label" for="banner_title">Banner Title</label>
                   <input type="text" id="banner_title" name="banner_title"
@@ -156,53 +159,70 @@ $activeTab     = $activeTab     ?? 'announcements';
                   <textarea id="about_paragraph_2" name="about_paragraph_2" rows="3"><?= htmlspecialchars($settings['about_paragraph_2'] ?? '', ENT_QUOTES) ?></textarea>
                 </div>
               </div>
-              <button type="submit" class="accounts-btn-primary">Save Changes</button>
+              <div class="cm-savebar">
+                <span class="cm-savebar-status">
+                  <span class="cm-savebar-clean">No unsaved changes</span>
+                  <span class="cm-savebar-dirty">You have unsaved changes</span>
+                </span>
+                <button type="reset" class="cm-link-btn" data-cm-dirty-reset hidden>Discard</button>
+                <button type="submit" class="accounts-btn-primary" data-cm-dirty-submit disabled>Save Changes</button>
+              </div>
             </form>
           </section>
+
           <!-- CONTACT OFFICES -->
           <section class="accounts-card">
             <div class="dashboard-page-header records-page-header">
               <div>
-                <h2>Contact Page Offices</h2>
+                <h2>Contact Page Offices <span class="cm-count" data-cm-count="officeListWrap" aria-live="polite"><?= count($offices) ?></span></h2>
                 <p class="audit-description">These cards appear on the public Contact page.</p>
               </div>
-              <button class="row-btn row-btn-primary" id="addOfficeBtn" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#add-icon">
-                </svg>
-                Add Office
-              </button>
+              <div class="cm-tools">
+                <button class="row-btn row-btn-primary" id="addOfficeBtn" type="button" data-cm-add="office">
+                  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#add-icon" />
+                  </svg>
+                  Add Office
+                </button>
+              </div>
             </div>
-            <div class="records-table-wrap">
+            <div class="cm-list-wrap" id="officeListWrap">
               <?php if (empty($offices)): ?>
-                <p style="padding: 1.5rem;">No offices yet.</p>
+                <div class="cm-empty">
+                  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#contact-icon" />
+                  </svg>
+                  <h3>No offices yet</h3>
+                  <p>Press Add Office to put the first card on the Contact page.</p>
+                </div>
               <?php else: ?>
                 <div class="ann-list" id="office-list">
                   <?php foreach ($offices as $index => $o): ?>
-                    <div class="ann-row">
+                    <div class="ann-row cm-row" data-cm-entity="office" data-id="<?= (int) $o['id'] ?>"
+                      data-cm-label="<?= htmlspecialchars($o['name'], ENT_QUOTES) ?>">
                       <div class="ann-row-body">
                         <div class="ann-row-title"><?= htmlspecialchars($o['name'], ENT_QUOTES) ?></div>
                         <div class="ann-row-snippet"><?= htmlspecialchars($o['address'] ?? '', ENT_QUOTES) ?></div>
                       </div>
                       <div class="ann-row-actions">
-                        <button type="button" class="row-btn move-office-btn" data-id="<?= (int) $o['id'] ?>" data-direction="up" aria-label="Move office up" <?= $index === 0 ? 'disabled' : '' ?>>
+                        <button type="button" class="row-btn" data-cm-action="move" data-direction="up" aria-label="Move office up" <?= $index === 0 ? 'disabled' : '' ?>>
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-up-icon">
+                            <use href="#chev-up-icon" />
                           </svg>
                         </button>
-                        <button type="button" class="row-btn move-office-btn" data-id="<?= (int) $o['id'] ?>" data-direction="down" aria-label="Move office down" <?= $index === count($offices) - 1 ? 'disabled' : '' ?>>
+                        <button type="button" class="row-btn" data-cm-action="move" data-direction="down" aria-label="Move office down" <?= $index === count($offices) - 1 ? 'disabled' : '' ?>>
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-down-icon">
+                            <use href="#chev-down-icon" />
                           </svg>
                         </button>
-                        <button type="button" class="row-btn edit-office-btn" data-id="<?= (int) $o['id'] ?>" aria-label="Edit office">
+                        <button type="button" class="row-btn" data-cm-action="edit" aria-label="Edit office">
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#edit-icon">
+                            <use href="#edit-icon" />
                           </svg>
                         </button>
-                        <button type="button" class="row-btn delete-office-btn" data-id="<?= (int) $o['id'] ?>" data-name="<?= htmlspecialchars($o['name'], ENT_QUOTES) ?>" aria-label="Delete office">
+                        <button type="button" class="row-btn" data-cm-action="delete" aria-label="Delete office">
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#trash-icon">
+                            <use href="#trash-icon" />
                           </svg>
                         </button>
                       </div>
@@ -212,40 +232,53 @@ $activeTab     = $activeTab     ?? 'announcements';
               <?php endif; ?>
             </div>
           </section>
+
           <!-- HOMEPAGE FAQ -->
           <section class="accounts-card">
             <div class="dashboard-page-header records-page-header">
               <div>
-                <h2>Homepage FAQ</h2>
+                <h2>Homepage FAQ <span class="cm-count" data-cm-count="faqListWrap" aria-live="polite"><?= count($faqs) ?></span></h2>
                 <p class="audit-description">These questions appear in the FAQ accordion on the public homepage.</p>
               </div>
-              <button class="row-btn row-btn-primary" id="addFaqBtn" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#add-icon">
-                </svg>
-                Add FAQ
-              </button>
+              <div class="cm-tools">
+                <?php $cmSearchTarget = 'faqListWrap';
+                $cmSearchPlaceholder = 'Search FAQ...';
+                include dirname(__DIR__) . '/includes/cm-search.php'; ?>
+                <button class="row-btn row-btn-primary" id="addFaqBtn" type="button" data-cm-add="faq">
+                  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#add-icon" />
+                  </svg>
+                  Add FAQ
+                </button>
+              </div>
             </div>
-            <div class="records-table-wrap">
+            <div class="cm-list-wrap" id="faqListWrap">
               <?php if (empty($faqs)): ?>
-                <p style="padding: 1.5rem;">No FAQs yet.</p>
+                <div class="cm-empty">
+                  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#question-info-icon" />
+                  </svg>
+                  <h3>No FAQs yet</h3>
+                  <p>Press Add FAQ to add the first question.</p>
+                </div>
               <?php else: ?>
                 <div class="ann-list">
                   <?php foreach ($faqs as $f): ?>
-                    <div class="ann-row">
+                    <div class="ann-row cm-row" data-cm-entity="faq" data-id="<?= (int) $f['id'] ?>"
+                      data-cm-label="<?= htmlspecialchars($f['question'], ENT_QUOTES) ?>">
                       <div class="ann-row-body">
                         <div class="ann-row-title"><?= htmlspecialchars($f['question'], ENT_QUOTES) ?></div>
                         <div class="ann-row-snippet"><?= htmlspecialchars($f['answer'], ENT_QUOTES) ?></div>
                       </div>
                       <div class="ann-row-actions">
-                        <button type="button" class="row-btn edit-faq-btn" data-id="<?= (int) $f['id'] ?>" aria-label="Edit FAQ">
+                        <button type="button" class="row-btn" data-cm-action="edit" aria-label="Edit FAQ">
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#edit-icon">
+                            <use href="#edit-icon" />
                           </svg>
                         </button>
-                        <button type="button" class="row-btn delete-faq-btn" data-id="<?= (int) $f['id'] ?>" data-question="<?= htmlspecialchars($f['question'], ENT_QUOTES) ?>" aria-label="Delete FAQ">
+                        <button type="button" class="row-btn" data-cm-action="delete" aria-label="Delete FAQ">
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#trash-icon">
+                            <use href="#trash-icon" />
                           </svg>
                         </button>
                       </div>
@@ -269,7 +302,8 @@ $guideSteps = [
   ['Add Announcement', 'Post a new announcement. The title, content, and image are each optional.', '#addAnnouncementBtn'],
 ];
 if ($announcements) {
-  $guideSteps[] = ['Announcement list', 'Each row shows the photo, title, caption, and the date it was posted.', '#panel-announcements .ann-list'];
+  $guideSteps[] = ['Search', 'Type to narrow the list by title or caption. The number beside the heading shows how many match.', '#panel-announcements .inbox-search-wrap'];
+  $guideSteps[] = ['Announcement list', 'Each row shows the photo, title, caption, and the date it was posted. Click a row to edit it, or press the photo to see it larger.', '#panel-announcements .ann-list'];
   $guideSteps[] = ['Row actions', 'Edit an announcement to change its text, replace its photo, or remove the photo. Delete takes it off the public page.', '#panel-announcements .ann-row-actions:first-visible'];
 }
 $guideSteps[] = ['Homepage tab', 'Switch to **Homepage** to edit the homepage banner, contact offices, and FAQ.', '#tab-site_content'];
@@ -278,148 +312,87 @@ include dirname(__DIR__) . '/includes/guide.php';
 $guideId    = 'site-homepage';
 $guideSteps = [
   ['Homepage', 'Edit what visitors see on the public homepage and Contact page. Let us walk through it.'],
-  ['Homepage Content', 'Change the banner title and the first two "What is IACUC?" paragraphs. Press **Save Changes** and confirm to apply your edits.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
+  ['Homepage Content', 'Change the banner title and the first two "What is IACUC?" paragraphs. **Save Changes** turns on once you change something. Press it and confirm to apply your edits, or press **Discard** to undo them.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
   ['Add Office', 'Add an office card to the public Contact page.', '#addOfficeBtn'],
 ];
 if ($offices) {
-  $guideSteps[] = ['Office list', 'Use the arrows to change the order the offices appear in, or edit and delete an office.', '#office-list .ann-row-actions:first-visible'];
+  $guideSteps[] = ['Office list', 'Use the arrows to change the order the offices appear in, or edit and delete an office. Clicking a row also opens it for editing.', '#office-list .ann-row-actions:first-visible'];
 }
 $guideSteps[] = ['Add FAQ', 'Add a question and answer to the FAQ on the public homepage.', '#addFaqBtn'];
 if ($faqs) {
+  $guideSteps[] = ['Search FAQ', 'Type to find a question or answer in the list.', '#panel-site_content .sections > .accounts-card:nth-child(3) .inbox-search-wrap'];
   $guideSteps[] = ['FAQ list', 'Edit or delete a question. Changes show on the homepage right away.', '#panel-site_content .sections > .accounts-card:nth-child(3) .ann-row-actions:first-visible'];
 }
 $guideSteps[] = ['Announcements tab', 'Switch to **Announcements** to post and manage announcements.', '#tab-announcements'];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
 
-<!-- ===== ADD ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="addAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="addAnnouncementModalTitle">
+<!-- ===== ADD / EDIT ANNOUNCEMENT MODAL (shared) ===== -->
+<div class="modal-backdrop" id="announcementModal" data-cm-modal data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="announcementModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header">
       <span class="modal-header-icon" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-          <use href="#add-icon" />
-        </svg>
-      </span>
-      <p class="modal-title" id="addAnnouncementModalTitle">Add Announcement</p>
-      <button type="button" class="modal-close" data-close="addAnnouncementModal" aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#close-icon" />
-        </svg>
-      </button>
-    </div>
-    <div class="records-modal-body">
-      <div class="alert error-messages" id="addAnnouncementError" hidden></div>
-      <div class="records-form-grid">
-        <div class="records-form-group records-form-full">
-          <label class="field-label" for="add_ann_title">Title (optional)</label>
-          <input type="text" id="add_ann_title" name="title" placeholder="e.g. IACUC Protocol Orientation">
-        </div>
-        <div class="records-form-group records-form-full">
-          <label class="field-label" for="add_ann_body">Content (optional)</label>
-          <textarea id="add_ann_body" name="body" rows="5"></textarea>
-        </div>
-        <div class="records-form-group records-form-full">
-          <label class="field-label" for="add_ann_image">Image (optional)</label>
-          <label class="modal-file-picker">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#upload-icon" />
-            </svg>
-            Choose image
-            <input type="file" id="add_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
-          </label>
-          <div class="ann-image-preview-wrap" id="add_ann_image_preview_wrap" hidden>
-            <img id="add_ann_image_preview" src="" alt="Selected image preview">
-            <button type="button" class="image-zoom-btn" id="add_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
-              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#search-icon" />
-              </svg>
-            </button>
-          </div>
-          <div class="upload-progress-container" id="addAnnImageProgress"></div>
-        </div>
-      </div>
-    </div>
-    <div class="records-modal-footer">
-      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="addAnnouncementModal">Cancel</button>
-      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="addAnnouncementSave">
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#announcement-icon" />
         </svg>
-        Post Announcement
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== EDIT ANNOUNCEMENT MODAL ===== -->
-<div class="modal-backdrop" id="editAnnouncementModal" data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="editAnnouncementModalTitle">
-  <div class="modal-card records-modal-card">
-    <div class="modal-header">
-      <span class="modal-header-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-          <use href="#edit-icon" />
-        </svg>
       </span>
-      <p class="modal-title" id="editAnnouncementModalTitle">Edit Announcement</p>
-      <button type="button" class="modal-close" data-close="editAnnouncementModal" aria-label="Close">
+      <p class="modal-title" id="announcementModalTitle">Add Announcement</p>
+      <button type="button" class="modal-close" data-close="announcementModal" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
         </svg>
       </button>
     </div>
     <div class="records-modal-body">
-      <div class="alert error-messages" id="editAnnouncementError" hidden></div>
+      <div class="alert error-messages" hidden></div>
       <div class="records-form-grid">
-        <input type="hidden" id="edit_ann_id">
         <div class="records-form-group records-form-full">
-          <label class="field-label" for="edit_ann_title">Title (optional)</label>
-          <input type="text" id="edit_ann_title" name="title">
+          <label class="field-label" for="ann_title">Title (optional)</label>
+          <input type="text" id="ann_title" placeholder="e.g. IACUC Protocol Orientation">
         </div>
         <div class="records-form-group records-form-full">
-          <label class="field-label" for="edit_ann_body">Content (optional)</label>
-          <textarea id="edit_ann_body" name="body" rows="5"></textarea>
+          <label class="field-label" for="ann_body">Content (optional)</label>
+          <textarea id="ann_body" rows="5"></textarea>
         </div>
         <div class="records-form-group records-form-full">
-          <label class="field-label" for="edit_ann_image">Replace image (optional)</label>
+          <label class="field-label" for="ann_image">Image (optional)</label>
           <label class="modal-file-picker">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <use href="#upload-icon" />
             </svg>
             Choose image
-            <input type="file" id="edit_ann_image" name="image" accept="image/png,image/jpeg,image/webp,image/gif">
+            <input type="file" id="ann_image" accept="image/png,image/jpeg,image/webp,image/gif">
           </label>
-          <div class="ann-image-preview-wrap" id="edit_ann_image_preview_wrap" hidden>
-            <img id="edit_ann_image_preview" src="" alt="Announcement image preview">
-            <button type="button" class="image-zoom-btn" id="edit_ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
+          <div class="ann-image-preview-wrap" id="ann_image_preview_wrap" hidden>
+            <img id="ann_image_preview" alt="Image preview">
+            <button type="button" class="image-zoom-btn" id="ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#search-icon" />
               </svg>
             </button>
           </div>
-          <div class="ann-remove-image-row" id="edit_ann_remove_row" hidden>
-            <input type="checkbox" id="edit_ann_remove_image">
-            <label for="edit_ann_remove_image">Remove current image</label>
+          <div class="ann-remove-image-row" id="ann_remove_row" hidden>
+            <input type="checkbox" id="ann_remove_image">
+            <label for="ann_remove_image">Remove current image</label>
           </div>
-          <div class="upload-progress-container" id="editAnnImageProgress"></div>
+          <div class="upload-progress-container" id="annImageProgress"></div>
         </div>
-
       </div>
     </div>
     <div class="records-modal-footer">
-      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="editAnnouncementModal">Cancel</button>
-      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="editAnnouncementSave">
+      <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="announcementModal">Cancel</button>
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" data-cm-submit="announcement">
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#check-icon" />
         </svg>
-        Save Changes
+        <span data-cm-save-label>Post Announcement</span>
       </button>
     </div>
   </div>
 </div>
 
 <!-- ===== ADD / EDIT OFFICE MODAL (shared) ===== -->
-<div class="modal-backdrop" id="officeModal" data-static role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
+<div class="modal-backdrop" id="officeModal" data-cm-modal data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="officeModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header">
       <span class="modal-header-icon" aria-hidden="true">
@@ -435,8 +408,7 @@ include dirname(__DIR__) . '/includes/guide.php';
       </button>
     </div>
     <div class="records-modal-body">
-      <div class="alert error-messages" id="officeModalError" hidden></div>
-      <input type="hidden" id="office_id" value="">
+      <div class="alert error-messages" hidden></div>
       <div class="records-form-grid">
         <div class="records-form-group records-form-full">
           <label class="field-label" for="office_name">Office Name *</label>
@@ -486,18 +458,18 @@ include dirname(__DIR__) . '/includes/guide.php';
     </div>
     <div class="records-modal-footer">
       <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="officeModal">Cancel</button>
-      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="officeModalSave">
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" data-cm-submit="office">
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#check-icon" />
         </svg>
-        Save Office
+        <span data-cm-save-label>Save Office</span>
       </button>
     </div>
   </div>
 </div>
 
 <!-- ===== ADD / EDIT FAQ MODAL (shared) ===== -->
-<div class="modal-backdrop" id="faqModal" data-static role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
+<div class="modal-backdrop" id="faqModal" data-cm-modal data-static data-confirm-discard role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
   <div class="modal-card records-modal-card">
     <div class="modal-header">
       <span class="modal-header-icon" aria-hidden="true">
@@ -513,8 +485,7 @@ include dirname(__DIR__) . '/includes/guide.php';
       </button>
     </div>
     <div class="records-modal-body">
-      <div class="alert error-messages" id="faqModalError" hidden></div>
-      <input type="hidden" id="faq_id" value="">
+      <div class="alert error-messages" hidden></div>
       <div class="records-form-grid">
         <div class="records-form-group records-form-full">
           <label class="field-label" for="faq_question">Question *</label>
@@ -528,615 +499,128 @@ include dirname(__DIR__) . '/includes/guide.php';
     </div>
     <div class="records-modal-footer">
       <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="faqModal">Cancel</button>
-      <button type="button" class="confirm-modal-btn confirm-modal-ok" id="faqModalSave">
+      <button type="button" class="confirm-modal-btn confirm-modal-ok" data-cm-submit="faq">
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#check-icon" />
         </svg>
-        Save FAQ
+        <span data-cm-save-label>Save FAQ</span>
       </button>
     </div>
   </div>
 </div>
 
+<?php
+// What js/content-manager.js needs to know about this page's lists
+$cmConfig = [
+  'root' => ROOT,
+  'csrf' => $csrf,
+  'entities' => [
+    'announcement' => [
+      'modal'     => 'announcementModal',
+      'title'     => 'announcementModalTitle',
+      'refresh'   => ['annListWrap'],
+      'fields'    => ['title' => 'ann_title', 'body' => 'ann_body'],
+      'image'     => [
+        'field'      => 'image',
+        'column'     => 'image_path',
+        'base'       => '/assets/uploads/announcements/',
+        'input'      => 'ann_image',
+        'previewWrap' => 'ann_image_preview_wrap',
+        'preview'    => 'ann_image_preview',
+        'zoom'       => 'ann_image_zoom_btn',
+        'removeRow'  => 'ann_remove_row',
+        'remove'     => 'ann_remove_image',
+        'progress'   => 'annImageProgress',
+      ],
+      'endpoints' => [
+        'get'    => '/personnel/announcements_get',
+        'add'    => '/personnel/announcements_add',
+        'edit'   => '/personnel/announcements_edit',
+        'delete' => '/personnel/announcements_delete',
+      ],
+      'validate'  => ['any' => ['body'], 'anyImage' => true, 'anyMessage' => 'Add either content or an image.'],
+      'text'      => [
+        'addTitle'      => 'Add Announcement',
+        'editTitle'     => 'Edit Announcement',
+        'addButton'     => 'Post Announcement',
+        'editButton'    => 'Save Changes',
+        'confirmAdd'    => 'Post this announcement?',
+        'confirmEdit'   => 'Save changes to this announcement?',
+        'addOk'         => 'Post',
+        'editOk'        => 'Save',
+        'confirmDelete' => 'Delete "{name}"? This cannot be undone.',
+      ],
+    ],
+    'office' => [
+      'modal'     => 'officeModal',
+      'title'     => 'officeModalTitle',
+      'refresh'   => ['officeListWrap'],
+      'fields'    => [
+        'name'           => 'office_name',
+        'address'        => 'office_address',
+        'phone'          => 'office_phone',
+        'email'          => 'office_email',
+        'facebook_url'   => 'office_facebook_url',
+        'facebook_label' => 'office_facebook_label',
+        'website_url'    => 'office_website_url',
+        'website_label'  => 'office_website_label',
+        'director_name'  => 'office_director_name',
+        'director_role'  => 'office_director_role',
+        'director_email' => 'office_director_email',
+      ],
+      'endpoints' => [
+        'get'    => '/personnel/site_content_office_get',
+        'add'    => '/personnel/site_content_office_add',
+        'edit'   => '/personnel/site_content_office_edit',
+        'delete' => '/personnel/site_content_office_delete',
+        'move'   => '/personnel/site_content_office_move',
+      ],
+      'validate'  => ['all' => ['name'], 'allMessage' => 'Office name is required.'],
+      'text'      => [
+        'addTitle'      => 'Add Office',
+        'editTitle'     => 'Edit Office',
+        'addButton'     => 'Save Office',
+        'editButton'    => 'Save Office',
+        'confirmAdd'    => 'Add this office to the Contact page?',
+        'confirmEdit'   => 'Save changes to this office?',
+        'addOk'         => 'Save',
+        'editOk'        => 'Save',
+        'confirmDelete' => 'Delete "{name}"? This removes it from the public Contact page.',
+      ],
+    ],
+    'faq' => [
+      'modal'     => 'faqModal',
+      'title'     => 'faqModalTitle',
+      'refresh'   => ['faqListWrap'],
+      'fields'    => ['question' => 'faq_question', 'answer' => 'faq_answer'],
+      'endpoints' => [
+        'get'    => '/personnel/site_content_faq_get',
+        'add'    => '/personnel/site_content_faq_add',
+        'edit'   => '/personnel/site_content_faq_edit',
+        'delete' => '/personnel/site_content_faq_delete',
+      ],
+      'validate'  => ['all' => ['question', 'answer'], 'allMessage' => 'Both a question and an answer are required.'],
+      'text'      => [
+        'addTitle'      => 'Add FAQ',
+        'editTitle'     => 'Edit FAQ',
+        'addButton'     => 'Save FAQ',
+        'editButton'    => 'Save FAQ',
+        'confirmAdd'    => 'Add this FAQ to the homepage?',
+        'confirmEdit'   => 'Save changes to this FAQ?',
+        'addOk'         => 'Save',
+        'editOk'        => 'Save',
+        'confirmDelete' => 'Delete "{name}"? This removes it from the public homepage.',
+      ],
+    ],
+  ],
+];
+?>
+<script type="application/json" id="cmConfig">
+  <?= json_encode($cmConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?>
+</script>
+
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
-
-<script>
-  (function() {
-    const ROOT = '<?= ROOT ?>';
-    const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
-
-    // ===== Modal helpers (same pattern as personnel/personnel-records.view.php) =====
-    function openModal(id) {
-      const modal = document.getElementById(id);
-      modal.classList.add('open');
-      const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (focusable) focusable.focus();
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('open');
-    }
-
-    document.querySelectorAll('#addAnnouncementModal [data-close], #editAnnouncementModal [data-close]').forEach(btn => {
-      btn.addEventListener('click', () => closeModal(btn.dataset.close));
-    });
-
-    function post(url, body, onProgress) {
-      body.csrf_token = CSRF;
-      const fd = new FormData();
-      Object.entries(body).forEach(([k, v]) => {
-        if (v === undefined || v === null) return;
-        fd.append(k, v);
-      });
-      if (onProgress) {
-        return uploadWithProgress(ROOT + url, fd, {
-          onProgress
-        });
-      }
-      return fetch(ROOT + url, {
-          method: 'POST',
-          body: fd
-        })
-        .then(r => r.json());
-    }
-
-    function showErr(id, msg) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = msg;
-      el.hidden = false;
-    }
-
-    function hideErr(id) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.hidden = true;
-        el.textContent = '';
-      }
-    }
-
-    function setPreviewImage(imgId, zoomBtnId, src) {
-      document.getElementById(imgId).src = src;
-      const zoomBtn = document.getElementById(zoomBtnId);
-      if (zoomBtn) zoomBtn.dataset.zoomSrc = src;
-    }
-
-    function wireImagePreview(inputId, wrapId, imgId, zoomBtnId) {
-      const input = document.getElementById(inputId);
-      if (!input) return;
-      input.addEventListener('change', () => {
-        const file = input.files && input.files[0];
-        const wrap = document.getElementById(wrapId);
-        if (!file) {
-          wrap.hidden = true;
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = e => {
-          setPreviewImage(imgId, zoomBtnId, e.target.result);
-          wrap.hidden = false;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    wireImagePreview('add_ann_image', 'add_ann_image_preview_wrap', 'add_ann_image_preview', 'add_ann_image_zoom_btn');
-    wireImagePreview('edit_ann_image', 'edit_ann_image_preview_wrap', 'edit_ann_image_preview', 'edit_ann_image_zoom_btn');
-
-    // ===== ADD =====
-    const addBtn = document.getElementById('addAnnouncementBtn');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        hideErr('addAnnouncementError');
-        document.getElementById('add_ann_title').value = '';
-        document.getElementById('add_ann_body').value = '';
-        document.getElementById('add_ann_image').value = '';
-        document.getElementById('add_ann_image_preview_wrap').hidden = true;
-        openModal('addAnnouncementModal');
-      });
-    }
-
-    const addSave = document.getElementById('addAnnouncementSave');
-    if (addSave) {
-      addSave.addEventListener('click', async () => {
-        hideErr('addAnnouncementError');
-        const title = document.getElementById('add_ann_title').value.trim();
-        const body = document.getElementById('add_ann_body').value.trim();
-        const imageFile = document.getElementById('add_ann_image').files[0];
-        if (!body && !imageFile) {
-          showErr('addAnnouncementError', 'Add either content or an image.');
-          return;
-        }
-
-        const confirmed = await confirmAction(
-          'Post this announcement?', {
-            okText: 'Post',
-            cancelText: 'Cancel'
-          }
-        );
-        if (!confirmed) return;
-
-        setButtonBusy(addSave, true, imageFile ? 'Uploading...' : 'Posting...');
-
-        const addProgressContainer = document.getElementById('addAnnImageProgress');
-        addProgressContainer.innerHTML = '';
-        const addBar = imageFile ? createUploadProgressBar(addProgressContainer) : null;
-
-        post('/personnel/announcements_add', {
-          title,
-          body,
-          image: imageFile
-        }, addBar ? (pct => addBar.update(pct)) : undefined).then(data => {
-          if (data.ok) {
-            closeModal('addAnnouncementModal');
-            sessionStorage.setItem('announcements_flash', 'Announcement added.');
-            location.reload();
-          } else {
-            setButtonBusy(addSave, false);
-            if (addBar) addBar.remove();
-            showErr('addAnnouncementError', data.message || 'Add failed.');
-          }
-        }).catch(err => {
-          setButtonBusy(addSave, false);
-          if (addBar) addBar.remove();
-          showErr('addAnnouncementError', err.message || 'Network error. Please try again.');
-        });
-      });
-    }
-
-    // ===== EDIT =====
-    document.querySelectorAll('.edit-announcement-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        hideErr('editAnnouncementError');
-        const id = btn.dataset.id;
-        fetch(ROOT + '/personnel/announcements_get?id=' + encodeURIComponent(id))
-          .then(r => r.json())
-          .then(data => {
-            if (!data.ok) {
-              showToast(data.message || 'Could not load announcement.', 'error');
-              return;
-            }
-            document.getElementById('edit_ann_id').value = data.data.id;
-            document.getElementById('edit_ann_title').value = data.data.title ?? '';
-            document.getElementById('edit_ann_body').value = data.data.body ?? '';
-
-            document.getElementById('edit_ann_image').value = '';
-            const previewWrap = document.getElementById('edit_ann_image_preview_wrap');
-            const removeRow = document.getElementById('edit_ann_remove_row');
-            const removeCheckbox = document.getElementById('edit_ann_remove_image');
-            removeCheckbox.checked = false;
-            previewWrap.style.opacity = '';
-            if (data.data.image_path) {
-              setPreviewImage('edit_ann_image_preview', 'edit_ann_image_zoom_btn',
-                ROOT + '/assets/uploads/announcements/' + encodeURIComponent(data.data.image_path));
-              previewWrap.hidden = false;
-              removeRow.hidden = false;
-            } else {
-              previewWrap.hidden = true;
-              removeRow.hidden = true;
-            }
-
-            openModal('editAnnouncementModal');
-          })
-          .catch(() => showToast('Network error. Please try again.', 'error'));
-      });
-    });
-
-    const editSave = document.getElementById('editAnnouncementSave');
-    if (editSave) {
-      editSave.addEventListener('click', async () => {
-        hideErr('editAnnouncementError');
-        const title = document.getElementById('edit_ann_title').value.trim();
-        const body = document.getElementById('edit_ann_body').value.trim();
-        const imageFile = document.getElementById('edit_ann_image').files[0];
-        const removeImage = document.getElementById('edit_ann_remove_image').checked;
-        const previewWrap = document.getElementById('edit_ann_image_preview_wrap');
-        const keepingExistingImage = !previewWrap.hidden && !removeImage;
-        if (!body && !imageFile && !keepingExistingImage) {
-          showErr('editAnnouncementError', 'Add either content or an image.');
-          return;
-        }
-
-        const confirmed = await confirmAction(
-          'Save changes to this announcement?', {
-            okText: 'Save',
-            cancelText: 'Cancel'
-          }
-        );
-        if (!confirmed) return;
-
-        setButtonBusy(editSave, true, imageFile ? 'Uploading...' : 'Saving...');
-
-        const editProgressContainer = document.getElementById('editAnnImageProgress');
-        editProgressContainer.innerHTML = '';
-        const editBar = imageFile ? createUploadProgressBar(editProgressContainer) : null;
-
-        post('/personnel/announcements_edit', {
-          id: document.getElementById('edit_ann_id').value,
-          title,
-          body,
-          image: imageFile,
-          remove_image: removeImage ? '1' : '0'
-        }, editBar ? (pct => editBar.update(pct)) : undefined).then(data => {
-          if (data.ok) {
-            closeModal('editAnnouncementModal');
-            sessionStorage.setItem('announcements_flash', 'Announcement updated.');
-            location.reload();
-          } else {
-            setButtonBusy(editSave, false);
-            if (editBar) editBar.remove();
-            showErr('editAnnouncementError', data.message || 'Update failed.');
-          }
-        }).catch(err => {
-          setButtonBusy(editSave, false);
-          if (editBar) editBar.remove();
-          showErr('editAnnouncementError', err.message || 'Network error. Please try again.');
-        });
-      });
-    }
-
-    // ===== DELETE =====
-    document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const title = btn.dataset.title || '#' + btn.dataset.id;
-        const confirmed = await confirmAction(
-          'Delete "' + title + '"? This cannot be undone.', {
-            okText: 'Delete',
-            cancelText: 'Cancel',
-            danger: true
-          }
-        );
-        if (!confirmed) return;
-
-        setButtonBusy(btn, true, 'Deleting...');
-
-        post('/personnel/announcements_delete', {
-          id: btn.dataset.id
-        }).then(data => {
-          if (data.ok) {
-            sessionStorage.setItem('announcements_flash', 'Announcement deleted.');
-            location.reload();
-          } else {
-            setButtonBusy(btn, false);
-            showToast(data.message || 'Delete failed.', 'error');
-          }
-        }).catch(() => {
-          setButtonBusy(btn, false);
-          showToast('Network error. Please try again.', 'error');
-        });
-      });
-    });
-
-    // ===== sessionStorage flash (after reload) =====
-    const pendingFlash = sessionStorage.getItem('announcements_flash');
-    if (pendingFlash) {
-      sessionStorage.removeItem('announcements_flash');
-      showToast(pendingFlash);
-    }
-  })();
-</script>
-
-<script>
-  (function() {
-    const ROOT = '<?= ROOT ?>';
-    const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
-
-    // ===== Modal helpers =====
-    function openModal(id) {
-      const modal = document.getElementById(id);
-      modal.classList.add('open');
-      const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if (focusable) focusable.focus();
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.remove('open');
-    }
-
-    document.querySelectorAll('#officeModal [data-close]').forEach(btn => {
-      btn.addEventListener('click', () => closeModal(btn.dataset.close));
-    });
-
-    document.querySelectorAll('#faqModal [data-close]').forEach(btn => {
-      btn.addEventListener('click', () => closeModal(btn.dataset.close));
-    });
-
-    function post(url, body) {
-      body.csrf_token = CSRF;
-      const fd = new FormData();
-      Object.entries(body).forEach(([k, v]) => {
-        if (v === undefined || v === null) return;
-        fd.append(k, v);
-      });
-      return fetch(ROOT + url, {
-          method: 'POST',
-          body: fd
-        })
-        .then(r => r.json());
-    }
-
-    function showErr(msg) {
-      const el = document.getElementById('officeModalError');
-      el.textContent = msg;
-      el.hidden = false;
-    }
-
-    function hideErr() {
-      const el = document.getElementById('officeModalError');
-      el.hidden = true;
-      el.textContent = '';
-    }
-
-    function fillOfficeForm(data) {
-      document.getElementById('office_id').value = data.id ?? '';
-      document.getElementById('office_name').value = data.name ?? '';
-      document.getElementById('office_address').value = data.address ?? '';
-      document.getElementById('office_phone').value = data.phone ?? '';
-      document.getElementById('office_email').value = data.email ?? '';
-      document.getElementById('office_facebook_url').value = data.facebook_url ?? '';
-      document.getElementById('office_facebook_label').value = data.facebook_label ?? '';
-      document.getElementById('office_website_url').value = data.website_url ?? '';
-      document.getElementById('office_website_label').value = data.website_label ?? '';
-      document.getElementById('office_director_name').value = data.director_name ?? '';
-      document.getElementById('office_director_role').value = data.director_role ?? '';
-      document.getElementById('office_director_email').value = data.director_email ?? '';
-    }
-
-    // ===== ADD =====
-    const addBtn = document.getElementById('addOfficeBtn');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        hideErr();
-        fillOfficeForm({});
-        document.getElementById('officeModalTitle').textContent = 'Add Office';
-        openModal('officeModal');
-      });
-    }
-
-    // ===== EDIT =====
-    document.querySelectorAll('.edit-office-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        hideErr();
-        const id = btn.dataset.id;
-        const res = await fetch(ROOT + '/personnel/site_content_office_get?id=' + id).then(r => r.json());
-        if (!res.ok) {
-          showToast(res.message || 'Could not load office.', 'error');
-          return;
-        }
-        fillOfficeForm(res.data);
-        document.getElementById('officeModalTitle').textContent = 'Edit Office';
-        openModal('officeModal');
-      });
-    });
-
-    // ===== SAVE (add or edit, depending on office_id) =====
-    const saveBtn = document.getElementById('officeModalSave');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', async () => {
-        hideErr();
-        const id = document.getElementById('office_id').value;
-        const name = document.getElementById('office_name').value.trim();
-        if (!name) {
-          showErr('Office name is required.');
-          return;
-        }
-
-        const confirmed = await confirmAction(
-          id ? 'Save changes to this office?' : 'Add this office to the Contact page?', {
-            okText: 'Save',
-            cancelText: 'Cancel'
-          }
-        );
-        if (!confirmed) return;
-
-        setButtonBusy(saveBtn, true, 'Saving...');
-
-        const payload = {
-          name,
-          address: document.getElementById('office_address').value.trim(),
-          phone: document.getElementById('office_phone').value.trim(),
-          email: document.getElementById('office_email').value.trim(),
-          facebook_url: document.getElementById('office_facebook_url').value.trim(),
-          facebook_label: document.getElementById('office_facebook_label').value.trim(),
-          website_url: document.getElementById('office_website_url').value.trim(),
-          website_label: document.getElementById('office_website_label').value.trim(),
-          director_name: document.getElementById('office_director_name').value.trim(),
-          director_role: document.getElementById('office_director_role').value.trim(),
-          director_email: document.getElementById('office_director_email').value.trim(),
-        };
-        if (id) payload.id = id;
-
-        post(id ? '/personnel/site_content_office_edit' : '/personnel/site_content_office_add', payload)
-          .then(data => {
-            if (data.ok) {
-              closeModal('officeModal');
-              location.reload();
-            } else {
-              setButtonBusy(saveBtn, false);
-              showErr(data.message || 'Save failed.');
-            }
-          }).catch(err => {
-            setButtonBusy(saveBtn, false);
-            showErr(err.message || 'Network error. Please try again.');
-          });
-      });
-    }
-
-    // ===== MOVE =====
-    const officeList = document.getElementById('office-list');
-
-    function refreshMoveButtons() {
-      const rows = [...officeList.children];
-      rows.forEach((row, index) => {
-        row.querySelector('[data-direction="up"]').disabled = index === 0;
-        row.querySelector('[data-direction="down"]').disabled = index === rows.length - 1;
-      });
-    }
-
-    document.querySelectorAll('.move-office-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const row = btn.closest('.ann-row');
-        post('/personnel/site_content_office_move', {
-          id: btn.dataset.id,
-          direction: btn.dataset.direction
-        }).then(data => {
-          if (!data.ok) {
-            showToast(data.message || 'Move failed.', 'error');
-            return;
-          }
-          if (btn.dataset.direction === 'up') {
-            row.previousElementSibling.before(row);
-          } else {
-            row.nextElementSibling.after(row);
-          }
-          refreshMoveButtons();
-          showToast(data.message);
-        });
-      });
-    });
-
-    // ===== DELETE =====
-    document.querySelectorAll('.delete-office-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const confirmed = await confirmAction(
-          `Delete "${btn.dataset.name}"? This removes it from the public Contact page.`, {
-            okText: 'Delete',
-            cancelText: 'Cancel',
-            danger: true
-          }
-        );
-        if (!confirmed) return;
-
-        post('/personnel/site_content_office_delete', {
-          id
-        }).then(data => {
-          if (data.ok) {
-            location.reload();
-          } else {
-            showToast(data.message || 'Delete failed.', 'error');
-          }
-        });
-      });
-    });
-
-    // ===== FAQ: shared helpers =====
-    function showFaqErr(msg) {
-      const el = document.getElementById('faqModalError');
-      el.textContent = msg;
-      el.hidden = false;
-    }
-
-    function hideFaqErr() {
-      const el = document.getElementById('faqModalError');
-      el.hidden = true;
-      el.textContent = '';
-    }
-
-    function fillFaqForm(data) {
-      document.getElementById('faq_id').value = data.id ?? '';
-      document.getElementById('faq_question').value = data.question ?? '';
-      document.getElementById('faq_answer').value = data.answer ?? '';
-    }
-
-    // ===== FAQ: ADD =====
-    const addFaqBtn = document.getElementById('addFaqBtn');
-    if (addFaqBtn) {
-      addFaqBtn.addEventListener('click', () => {
-        hideFaqErr();
-        fillFaqForm({});
-        document.getElementById('faqModalTitle').textContent = 'Add FAQ';
-        openModal('faqModal');
-      });
-    }
-
-    // ===== FAQ: EDIT =====
-    document.querySelectorAll('.edit-faq-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        hideFaqErr();
-        const id = btn.dataset.id;
-        const res = await fetch(ROOT + '/personnel/site_content_faq_get?id=' + id).then(r => r.json());
-        if (!res.ok) {
-          showToast(res.message || 'Could not load FAQ.', 'error');
-          return;
-        }
-        fillFaqForm(res.data);
-        document.getElementById('faqModalTitle').textContent = 'Edit FAQ';
-        openModal('faqModal');
-      });
-    });
-
-    // ===== FAQ: SAVE (add or edit, depending on faq_id) =====
-    const faqSaveBtn = document.getElementById('faqModalSave');
-    if (faqSaveBtn) {
-      faqSaveBtn.addEventListener('click', async () => {
-        hideFaqErr();
-        const id = document.getElementById('faq_id').value;
-        const question = document.getElementById('faq_question').value.trim();
-        const answer = document.getElementById('faq_answer').value.trim();
-        if (!question || !answer) {
-          showFaqErr('Both a question and an answer are required.');
-          return;
-        }
-
-        const confirmed = await confirmAction(
-          id ? 'Save changes to this FAQ?' : 'Add this FAQ to the homepage?', {
-            okText: 'Save',
-            cancelText: 'Cancel'
-          }
-        );
-        if (!confirmed) return;
-
-        setButtonBusy(faqSaveBtn, true, 'Saving...');
-
-        const payload = {
-          question,
-          answer
-        };
-        if (id) payload.id = id;
-
-        post(id ? '/personnel/site_content_faq_edit' : '/personnel/site_content_faq_add', payload)
-          .then(data => {
-            if (data.ok) {
-              closeModal('faqModal');
-              location.reload();
-            } else {
-              setButtonBusy(faqSaveBtn, false);
-              showFaqErr(data.message || 'Save failed.');
-            }
-          }).catch(err => {
-            setButtonBusy(faqSaveBtn, false);
-            showFaqErr(err.message || 'Network error. Please try again.');
-          });
-      });
-    }
-
-    // ===== FAQ: DELETE =====
-    document.querySelectorAll('.delete-faq-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const confirmed = await confirmAction(
-          `Delete "${btn.dataset.question}"? This removes it from the public homepage.`, {
-            okText: 'Delete',
-            cancelText: 'Cancel',
-            danger: true
-          }
-        );
-        if (!confirmed) return;
-
-        post('/personnel/site_content_faq_delete', {
-          id
-        }).then(data => {
-          if (data.ok) {
-            location.reload();
-          } else {
-            showToast(data.message || 'Delete failed.', 'error');
-          }
-        });
-      });
-    });
-  })();
-</script>
+<script src="<?= asset_js('content-manager.js') ?>" defer></script>
 
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

@@ -230,6 +230,7 @@
 }
 
 .protocol-meta {
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -242,6 +243,9 @@
   color: var(--primary-text);
   line-height: 1.4;
   margin-bottom: 6px;
+  /* wrap very long / unbroken titles instead of overflowing into the actions */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .payment-badge {

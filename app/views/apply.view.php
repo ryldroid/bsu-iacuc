@@ -60,6 +60,7 @@ include 'includes/guide.php';
     const STEPS = ['Requirements', 'Terms', 'Documents', 'Download form', 'Upload and submit', 'Done'];
     const DRAFT_CSRF = NOTIF_CSRF_TOKEN;
     const PREVIOUS_DETAILS = <?= json_encode($previousDetails ?? []) ?>;
+    window.EMOJI_PATTERN = new RegExp(<?= json_encode('[' . emoji_class_body('\\u') . ']') ?>, 'gu');
 
     // ===== STATE =====
     let state = {
@@ -221,16 +222,6 @@ include 'includes/guide.php';
         el.innerHTML = html;
     }
 
-    // ===== HELPERS =====
-    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-    function formatFileSize(bytes) {
-        if (bytes === null || bytes === undefined) return '';
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
     // ===== TERMS / PRIVACY MODAL =====
     function openDocModal(e, id) {
         if (e) e.preventDefault();
@@ -270,7 +261,7 @@ include 'includes/guide.php';
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#check-circle-icon" />
             </svg>
-            <span class="file-badge-name">${esc(name)}${size ? ` <span class="file-badge-size">(${size})</span>` : ''}</span>
+            <span class="file-badge-name">${escapeHtml(name)}${size ? ` <span class="file-badge-size">(${size})</span>` : ''}</span>
             <button class="file-badge-remove" onclick="removeFile('${key}')" title="Remove">
                 <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -292,9 +283,20 @@ include 'includes/guide.php';
     function docRow(key, opts) {
         const name = state[key + 'Name'];
         const accept = key === 'protocol' ? '.pdf,.doc,.docx' : '.pdf,.jpg,.jpeg,.png';
-        const checkSvg = `<svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <use href="#check-circle-icon" />
-        </svg>`;
+        const title = `${opts.title}${opts.required ? ' <span class="req">*</span>' : ''}`;
+
+        if (name && !uploadProgress[key] && !opts.alreadyOnFile) {
+            return uploadedDocRow({
+                key,
+                title: opts.title,
+                required: opts.required,
+                name,
+                size: state[key + 'Size'],
+                accept,
+                uploadHandler: 'handleUpload',
+                removeHandler: 'removeFile'
+            });
+        }
 
         let subLine, action;
 
@@ -304,16 +306,11 @@ include 'includes/guide.php';
             action = '';
         } else if (opts.alreadyOnFile) {
             subLine = `<span class="doc-row-sub done">${opts.alreadyNote}</span>`;
-            action = `<div class="doc-row-done">${checkSvg}<span>Submitted</span></div>`;
-        } else if (name) {
-            const size = formatFileSize(state[key + 'Size']);
-            subLine = `<span class="doc-row-sub done">${esc(name)}${size ? ` · ${size}` : ''}</span>`;
             action = `<div class="doc-row-done">
-            ${checkSvg}
-            <label class="doc-row-replace">
-                Replace
-                <input type="file" accept="${accept}" onchange="handleUpload(event,'${key}')">
-            </label>
+            <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#check-circle-icon" />
+            </svg>
+            <span>Submitted</span>
         </div>`;
         } else {
             subLine = `<span class="doc-row-sub">${opts.subtitle}</span>`;
@@ -326,12 +323,14 @@ include 'includes/guide.php';
         </label>`;
         }
 
-        return `<div class="doc-row">
-        <div class="doc-row-info">
-            <div class="doc-row-title">${opts.title}${opts.required ? ' <span class="req">*</span>' : ''}</div>
-            ${subLine}
+        return `<div class="doc-list">
+        <div class="doc-row">
+            <div class="doc-row-info">
+                <div class="doc-row-title">${title}</div>
+                ${subLine}
+            </div>
+            <div class="doc-row-action">${action}</div>
         </div>
-        <div class="doc-row-action">${action}</div>
     </div>`;
     }
 
@@ -561,7 +560,7 @@ include 'includes/guide.php';
         If you haven't completed this training yet, contact the IACUC office before continuing.
     </p>` : ''}
 
-    <div class="doc-list">${rows.join('')}</div>
+    ${rows.join('')}
 
     <div id="doc-error" class="error-messages is-hidden"></div>
 
@@ -634,7 +633,8 @@ include 'includes/guide.php';
             key: 'title',
             label: 'Protocol title',
             attrs: 'maxlength="255" placeholder="e.g. Effects of X on Y in Z model"',
-            hint: 'Type the title as plain text. Do not surround with quotation marks ("").',
+            hint: 'Do not surround with quotation marks ("").',
+            limit: 255,
         },
         {
             id: 'inp-animal-type',
@@ -667,9 +667,9 @@ include 'includes/guide.php';
         return `
     <div class="field">
         <label for="${f.id}">${f.label} <span class="req">*</span></label>
-        <input type="${f.type || 'text'}" id="${f.id}" value="${esc(state[f.key])}" ${f.attrs}>
+        <input type="${f.type || 'text'}" id="${f.id}" value="${escapeHtml(state[f.key])}" ${f.attrs}>
     </div>
-    ${f.hint ? `<p class="helper field-hint">${f.hint}</p>` : ''}`;
+    ${f.hint ? `<p class="helper field-hint">${f.hint}${f.limit ? ` <span id="${f.id}-count">${[...state[f.key]].length}/${f.limit}</span>` : ''}</p>` : ''}`;
     }
 
     function captureDetails() {
@@ -692,13 +692,11 @@ include 'includes/guide.php';
     <div class="section-label">Part 1: Upload completed form</div>
     <p class="step-intro-text">Print, sign, and scan the updated protocol, then upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
 
-    <div class="doc-list">
     ${docRow('protocol', {
         title: 'Completed IACUC protocol form',
         subtitle: 'PDF, DOC, or DOCX · max 10 MB',
         required: true
     })}
-    </div>
 
     <div id="protocol-error" class="error-messages is-hidden"></div>
 
@@ -776,7 +774,11 @@ include 'includes/guide.php';
         DETAIL_FIELDS.forEach(f => {
             const el = document.getElementById(f.id);
             if (el) el.addEventListener('input', e => {
-                state[f.key] = e.target.value;
+                const clean = e.target.value.replace(window.EMOJI_PATTERN, '');
+                if (clean !== e.target.value) e.target.value = clean;
+                state[f.key] = clean;
+                const count = document.getElementById(f.id + '-count');
+                if (count) count.textContent = `${[...clean].length}/${f.limit}`;
                 saveState();
             });
         });
@@ -801,25 +803,28 @@ include 'includes/guide.php';
 
     function proceedFromDocs() {
         const errBox = document.getElementById('doc-error');
-        const showErr = msg => {
-            errBox.textContent = msg;
-            errBox.style.display = 'flex';
-        };
-        errBox.style.display = 'none';
+        hideError(errBox);
 
         if (!state.certAlready && !state.certName) {
-            showErr('Please upload your IACUC training certificate.');
+            showError(errBox, 'Please upload your IACUC training certificate.');
             return;
         }
 
         goTo(3);
     }
 
-    function showUploadError(key, msg) {
-        const box = document.getElementById(key === 'protocol' ? 'protocol-error' : 'doc-error');
+    function showError(box, msg) {
         box.textContent = msg;
         box.classList.remove('is-hidden');
         box.style.display = 'flex';
+    }
+
+    function hideError(box) {
+        box.classList.add('is-hidden');
+    }
+
+    function showUploadError(key, msg) {
+        showError(document.getElementById(key === 'protocol' ? 'protocol-error' : 'doc-error'), msg);
     }
 
     async function handleUpload(event, key) {
@@ -828,7 +833,7 @@ include 'includes/guide.php';
 
         ['protocol-error', 'doc-error'].forEach(id => {
             const box = document.getElementById(id);
-            if (box) box.style.display = 'none';
+            if (box) hideError(box);
         });
 
         const isWord = key === 'protocol' && !file.name.toLowerCase().endsWith('.pdf');
@@ -941,32 +946,36 @@ include 'includes/guide.php';
         const spinner = document.getElementById('submit-spinner');
         const btn = document.getElementById('btn-submit');
 
-        errBox.style.display = 'none';
+        const failSubmit = msg => {
+            showError(errBox, msg);
+            btn.disabled = false;
+            btnLabel.classList.remove('is-hidden');
+            spinner.classList.add('is-hidden');
+        };
+
+        hideError(errBox);
 
         captureDetails();
 
         const missing = DETAIL_FIELDS.find(f => !state[f.key]);
         if (missing) {
-            errBox.textContent = `Please enter the ${missing.label.toLowerCase()}.`;
-            errBox.style.display = 'flex';
+            failSubmit(`Please enter the ${missing.label.toLowerCase()}.`);
             return;
         }
 
         if (!Number.isInteger(Number(state.animalCount)) || Number(state.animalCount) < 1) {
-            errBox.textContent = 'Animal count must be a whole number of 1 or more.';
-            errBox.style.display = 'flex';
+            failSubmit('Animal count must be a whole number of 1 or more.');
             return;
         }
 
         if (!state.protocolName) {
-            errBox.textContent = 'Please upload your completed IACUC protocol form.';
-            errBox.style.display = 'flex';
+            failSubmit('Please upload your completed IACUC protocol form.');
             return;
         }
 
         btn.disabled = true;
-        btnLabel.style.display = 'none';
-        spinner.style.display = 'inline';
+        btnLabel.classList.add('is-hidden');
+        spinner.classList.remove('is-hidden');
 
         clearTimeout(_saveTimer);
         await pushDraftFields();
@@ -978,11 +987,7 @@ include 'includes/guide.php';
             const json = await res.json();
 
             if (!res.ok || json.error) {
-                errBox.textContent = json.error ?? 'Submission failed. Please try again.';
-                errBox.style.display = 'flex';
-                btn.disabled = false;
-                btnLabel.style.display = 'inline-flex';
-                spinner.style.display = 'none';
+                failSubmit(json.error ?? 'Submission failed. Please try again.');
                 return;
             }
 
@@ -997,11 +1002,7 @@ include 'includes/guide.php';
             });
 
         } catch (err) {
-            errBox.textContent = 'Network error. Please check your connection and try again.';
-            errBox.style.display = 'flex';
-            btn.disabled = false;
-            btnLabel.style.display = 'inline-flex';
-            spinner.style.display = 'none';
+            failSubmit('Network error. Please check your connection and try again.');
         }
     }
 

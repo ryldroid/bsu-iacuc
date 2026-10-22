@@ -1,4 +1,4 @@
-/* ===== Shared look for the three header panels (notifications, more menu, account) ===== */
+/* ===== Shared look for the header panels (notifications, account) ===== */
 :root {
     --panel-width: 500px;
     --panel-pad-x: 1.1rem;
@@ -18,7 +18,7 @@ header {
     color: var(--text-on-brand);
     box-shadow: 0 2px 4px var(--shadow-color);
 
-    padding: 0 10px;
+    padding: 0 14px;
     height: 52px;
 
     top: 0;
@@ -149,7 +149,6 @@ header nav a:hover::after {
     left: 0;
 }
 
-/* Account panel: a dropdown like #notif-dropdown and #header-menu */
 #account-drawer {
     position: absolute;
     top: calc(100% + 8px);
@@ -241,7 +240,6 @@ header nav a:hover::after {
 /* ===== Theme toggle ===== */
 .theme-toggle-wrapper {
     position: relative;
-    /* margin-right: .5em; */
     margin-left: .5em;
 }
 
@@ -268,9 +266,7 @@ header nav a:hover::after {
 }
 
 .theme-toggle:hover {
-    /* background-color: var(--tint-on-brand); */
     background-color: rgb(255 255 255 / 0.12);
-    /* background-color: red; */
 }
 
 .theme-toggle:active {
@@ -357,7 +353,6 @@ header nav a:hover::after {
     margin-right: -0.3em;
     flex-shrink: 0;
     visibility: hidden;
-    /* width: 20px; */
 }
 
 #theme-menu button[aria-checked="true"] .theme-menu-check {
@@ -419,7 +414,6 @@ header [data-tooltip].tooltip-show::after {
     transition: opacity .15s ease, visibility 0s;
 }
 
-/* Don't cover the dropdown/menu the button just opened */
 header [data-tooltip][aria-expanded="true"]::after {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -493,96 +487,27 @@ header [data-tooltip][aria-expanded="true"]::after {
     background: var(--brand-tint-active);
 }
 
-.header-auth .btn-header-logout {
-    margin-left: 0;
-}
-
 .header-auth img {
     width: 26px;
     height: 26px;
     border-radius: 50%;
 }
 
-/* ===== Header menu ===== */
+/* ===== Header buttons ===== */
 .header-account:hover,
-.header-more:hover,
 .header-help:hover {
     background-color: var(--tint-on-brand);
 }
 
-#header-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-
-    background-color: var(--card-background);
-    color: var(--primary-text);
-
-    min-width: 160px;
-
-    display: none;
-    overflow: hidden;
-
-    font-size: 1rem;
-
-    border-radius: var(--btn-radius);
-    box-shadow: 0 4px 12px var(--shadow-color-soft);
-}
-
-#header-menu.active {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-#header-menu a,
-#header-menu button {
-    padding: .75em var(--panel-pad-x);
-    text-decoration: none;
-    width: 100%;
-    white-space: nowrap;
-
-    display: flex;
-    align-items: center;
-    gap: .5em;
-
-    background: none;
-    border: none;
-    box-shadow: none;
-    color: inherit;
-    font-size: 1em;
-    font-family: inherit;
-    cursor: pointer;
-    margin-left: 0;
-}
-
-#header-menu form {
-    width: 100%;
-    margin: 0;
-}
-
-#header-menu a svg,
-#header-menu button svg {
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-}
-
-#header-menu a:hover,
-#header-menu button:hover {
-    background-color: var(--hover-surface);
-}
-
-/* Theme row: label plus a three-way icon switch */
+/* ===== Theme options ===== */
 .dropdown-theme {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1em;
 
-    width: 100%;
-    padding: .5em var(--panel-pad-x);
-    border-block: 1px solid var(--divider-color-subtle);
+    font-size: .95em;
+    color: var(--secondary-text);
 }
 
 .theme-options {
@@ -593,19 +518,19 @@ header [data-tooltip][aria-expanded="true"]::after {
     border-radius: var(--radius);
 }
 
-#header-menu .theme-options button {
+#account-drawer .theme-options button {
     width: auto;
     padding: .35em .5em;
     border-radius: calc(var(--radius) - 2px);
     color: var(--secondary-text);
 }
 
-#header-menu .theme-options button:hover {
+#account-drawer .theme-options button:hover {
     background-color: transparent;
     color: var(--primary-text);
 }
 
-#header-menu .theme-options button[aria-checked="true"] {
+#account-drawer .theme-options button[aria-checked="true"] {
     background-color: var(--card-background);
     color: var(--primary-text);
     box-shadow: 0 1px 3px var(--shadow-color-soft);
@@ -631,7 +556,6 @@ header [data-tooltip][aria-expanded="true"]::after {
         display: none;
     }
 
-    /* One shared size and one shared gap for every header icon button on mobile */
     .header-auth {
         --header-icon-size: 24px;
         gap: .25em;
@@ -662,7 +586,6 @@ header [data-tooltip][aria-expanded="true"]::after {
         height: 24px;
     }
 
-    /* Icon-only buttons on mobile: no chevron, so every button is the same square */
     .header-auth .chev-icon,
     header .theme-toggle .chev-icon {
         display: none;

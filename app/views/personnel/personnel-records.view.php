@@ -35,8 +35,6 @@ $stats           = $stats           ?? [
     'clearances_returned' => 0,
     'total_records' => 0,
     'total_records_all' => 0,
-    'active_clearances' => 0,
-    'expiring_soon' => 0,
     'total_animals' => 0,
     'avg_animals_per_record' => 0,
     'species_breakdown' => [],
@@ -58,7 +56,7 @@ $flash_error     = $flash_error     ?? '';
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
 $isStaff = $role === 'staff';
-$colCount = 16;
+$colCount = 17;
 
 // ===== Chart helpers =====
 function pluralize(int $count, string $singular, ?string $plural = null): string
@@ -115,22 +113,64 @@ function renderBarList(array $rows, string $emptyText, bool $showShare = true, b
     echo '</ul>';
 }
 
-function statChangeText(int $difference): string
+function statDelta(int|float $value, ?int $previous): string
 {
-    if ($difference === 0) return 'No change vs previous period';
-    return ($difference > 0 ? '↑ ' : '↓ ') . number_format(abs($difference)) . ' vs previous period';
+    if ($previous === null) return '';
+    $diff = $value - $previous;
+    if ($diff === 0) {
+        return '<span class="stat-delta stat-delta--flat" title="Same as the previous period (' . number_format($previous) . ')">No change</span>';
+    }
+    $dir   = $diff > 0 ? 'up' : 'down';
+    $arrow = $diff > 0 ? '↑' : '↓';
+    $label = $previous > 0
+        ? number_format(round(abs($diff) / $previous * 100)) . '%'
+        : number_format(abs($diff)) . ' new';
+    $title = number_format($previous) . ' in the previous period, ' . number_format(abs($diff)) . ($diff > 0 ? ' more' : ' fewer') . ' now';
+    return '<span class="stat-delta stat-delta--' . $dir . '" title="' . htmlspecialchars($title, ENT_QUOTES) . '">'
+        . '<span aria-hidden="true">' . $arrow . '</span> ' . $label
+        . '<span class="sr-only"> ' . ($diff > 0 ? 'up' : 'down') . ' from ' . number_format($previous) . ' in the previous period</span></span>';
 }
 
-function renderStatCard(string $label, int $value, ?int $previous, string $hint, string $href = ''): void
+function statCompare(int|float $value, ?int $previous): string
 {
-    $tag        = $href !== '' ? 'a' : 'div';
-    $attributes = $href !== '' ? ' class="metric-card records-stat-link" href="' . htmlspecialchars($href, ENT_QUOTES) . '"' : ' class="metric-card"';
-    echo '<' . $tag . $attributes . '>';
+    if ($previous === null) return '';
+    $max  = max($value, $previous, 1);
+    $row  = function (string $name, int $n, string $mod) use ($max): string {
+        return '<div class="stat-compare-row"><span class="stat-compare-name">' . $name . '</span>'
+            . '<span class="stat-compare-track"><span class="stat-compare-fill stat-compare-fill--' . $mod . '" style="--w: ' . round($n / $max * 100) . '%"></span></span>'
+            . '<span class="stat-compare-num">' . number_format($n) . '</span></div>';
+    };
+    return '<div class="stat-compare" aria-hidden="true">' . $row('Before', $previous, 'before') . $row('Now', $value, 'now') . '</div>';
+}
+
+function renderStatCard(string $label, int|float $value, ?int $previous, string $hint, string $href = '', string $tone = 'neutral', string $icon = '', string $title = ''): void
+{
+    $tag     = $href !== '' ? 'a' : 'div';
+    $classes = 'metric-card' . ($href !== '' ? ' records-stat-link' : '') . ($value == 0 ? ' is-zero' : '');
+    $attrs   = ' class="' . $classes . '" data-tone="' . htmlspecialchars($tone, ENT_QUOTES) . '"' . ($href !== '' ? ' href="' . htmlspecialchars($href, ENT_QUOTES) . '"' : '') . ($title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '');
+    echo '<' . $tag . $attrs . '>';
+    echo '<div class="records-stat-head">';
+    if ($icon !== '') {
+        echo '<span class="records-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . htmlspecialchars($icon, ENT_QUOTES) . '"></use></svg></span>';
+    }
     echo '<div class="metric-card-label">' . htmlspecialchars($label) . '</div>';
-    echo '<div class="metric-card-value">' . number_format($value) . '</div>';
-    if ($previous !== null) echo '<div class="records-stat-change">' . statChangeText($value - $previous) . '</div>';
+    echo '</div>';
+    echo '<div class="records-stat-main">';
+    echo '<div class="metric-card-value">' . number_format($value, is_float($value) ? 1 : 0) . '</div>';
+    echo statDelta($value, $previous);
+    echo '</div>';
+    echo statCompare($value, $previous);
     echo '<div class="records-stat-hint">' . htmlspecialchars($hint) . '</div>';
     echo '</' . $tag . '>';
+}
+
+function renderDataNote(string $text, string $href, string $linkLabel): void
+{
+    echo '<div class="records-data-note">'
+        . '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#info-icon"></use></svg>'
+        . '<p>' . $text . '</p>'
+        . '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . htmlspecialchars($linkLabel) . '</a>'
+        . '</div>';
 }
 
 function renderColumnChart(array $rows, string $emptyText, string $unit): void
@@ -188,11 +228,11 @@ function renderDonut(array $rows, string $centerLabel, string $emptyText): void
     echo '</div>';
 }
 
-$speciesRows        = statBarRows($stats['species_breakdown']);
+$speciesRows        = statBarRows($stats['species_breakdown'], count($stats['species_breakdown']), false);
 $schoolRows         = statBarRows($stats['school_breakdown']);
 $researcherRows     = statBarRows($stats['researcher_type_breakdown']);
 $sexRows            = statBarRows($stats['sex_breakdown']);
-$revisionProtoRows  = statBarRows($stats['revisions_by_protocol'], 8, false);
+$revisionProtoRows  = statBarRows($stats['revisions_by_protocol'], count($stats['revisions_by_protocol']), false);
 $revisionPiRows     = statBarRows($stats['revisions_by_pi'], 8, false);
 
 $periodLabel  = $period['label'] ?? 'All time';
@@ -378,7 +418,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                 Sort:
                             </p>
                             <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
-                                <?php foreach (RecordModel::SORT_OPTIONS as $key => $opt): ?>
+                                <?php foreach (RecordModel::sortOptions() as $key => $opt): ?>
                                     <option value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($opt['label']) ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -403,27 +443,53 @@ function formatDurationRange(?string $start, ?string $end): string
 
                 <p class="pagination-info records-count"><?= number_format($total) ?> <?= pluralize($total, 'record') ?></p>
 
+                <?php
+                // ===== Clickable column headers =====
+                // Column key => header class. Clicking toggles asc/desc; labels come from RecordModel::SORT_COLUMNS.
+                $sortColumns = [
+                    'ipn' => 'col-ref',
+                    'ar' => 'col-ar',
+                    'title' => 'col-title',
+                    'school' => 'col-school',
+                    'animal' => 'col-animal',
+                    'count' => 'col-count',
+                    'researcher' => 'col-pi',
+                    'sex' => 'col-sex',
+                    'rtype' => 'col-rtype',
+                    'adviser' => 'col-adviser',
+                    'vet' => 'col-vet',
+                    'duration' => 'col-duration',
+                    'date_released' => 'col-date',
+                    'date_added' => 'col-date',
+                    'received' => 'col-recv',
+                    'status' => 'col-status',
+                ];
+                $sortHeader = function (string $col, string $class) use ($sort, $search, $school, $animalType, $sex, $researcherType, $status): string {
+                    $label     = RecordModel::SORT_COLUMNS[$col][1];
+                    $active    = in_array($sort, [$col . '_asc', $col . '_desc'], true);
+                    $nextSort  = match ($sort) {
+                        $col . '_asc'  => $col . '_desc',
+                        $col . '_desc' => 'newest',
+                        default        => $col . '_asc',
+                    };
+                    $ariaSort  = $active ? ($sort === $col . '_asc' ? 'ascending' : 'descending') : 'none';
+                    $icon      = $sort === $col . '_desc' ? 'chev-down-icon' : 'chev-up-icon';
+                    $href      = htmlspecialchars(pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $nextSort, $status), ENT_QUOTES);
+                    $iconHtml  = $active ? '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . $icon . '" /></svg>' : '';
+                    return '<th class="' . $class . '" aria-sort="' . $ariaSort . '"><a class="records-sort-link' . ($active ? ' is-active' : '') . '" href="' . $href . '">'
+                        . htmlspecialchars($label) . $iconHtml . '</a></th>';
+                };
+                ?>
+
                 <!-- ===== Table ===== -->
                 <div class="protocol-table-wrap records-table-wrap">
                     <div class="protocol-table-scroll">
                         <table class="protocol-table records-table data-table">
                             <thead>
                                 <tr>
-                                    <th class="col-ref">IPN</th>
-                                    <th class="col-ar">AR No.</th>
-                                    <th class="col-title">Title of Research</th>
-                                    <th class="col-school">School</th>
-                                    <th class="col-animal">Animal Type</th>
-                                    <th class="col-count">Count</th>
-                                    <th class="col-pi">Researcher</th>
-                                    <th class="col-sex">Researcher Sex</th>
-                                    <th class="col-rtype">Researcher Type</th>
-                                    <th class="col-adviser">Research Adviser</th>
-                                    <th class="col-vet">Veterinarian</th>
-                                    <th class="col-duration">Duration</th>
-                                    <th class="col-date">Date Released</th>
-                                    <th class="col-recv">Received By</th>
-                                    <th class="col-status">Status</th>
+                                    <?php foreach ($sortColumns as $col => $class): ?>
+                                        <?= $sortHeader($col, $class) ?>
+                                    <?php endforeach; ?>
                                     <th class="col-actions" aria-label="Actions"></th>
                                 </tr>
                             </thead>
@@ -460,6 +526,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                             <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
                                             <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
                                             <td class="records-detail date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
+                                            <td class="records-detail date-cell" data-label="Date Added"><?= !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '' ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                             <?php $rowStatus = in_array($r['status'] ?? '', RecordModel::STATUSES, true) ? $r['status'] : RecordModel::DEFAULT_STATUS; ?>
                                             <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
@@ -566,28 +633,28 @@ function formatDurationRange(?string $start, ?string $end): string
                     </a>
                 </div>
 
+                <?php
+                $previousTotals  = $comparison['totals'] ?? null;
+                $inboxUrl        = ROOT . '/personnel/home?status=';
+                $recordsUrl      = ROOT . '/personnel/records?' . http_build_query($period ? array_merge(['tab' => 'records', 'in_period' => 1], $periodParams) : ['tab' => 'records']);
+                $excludedCount   = $period ? (int) $stats['excluded_by_period'] : 0;
+                $incompleteCount = (int) $stats['incomplete_count'];
+                $periodRecords   = (int) $stats['total_records'];
+                ?>
+
                 <!-- ===== Period filter ===== -->
-                <form method="GET" action="" class="records-filters-row records-filters-row--sticky" id="statsPeriodForm">
+                <form method="GET" action="" class="records-period-bar" id="statsPeriodForm">
                     <input type="hidden" name="tab" value="statistics">
 
-                    <p class="sort-filter-label">
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#calendar-icon" />
-                        </svg>
-                        Period:
-                    </p>
-                    <select name="period" id="statsPeriod" class="records-filter-select" aria-label="Statistics period">
+                    <fieldset class="records-period-presets">
+                        <legend class="sr-only">Statistics period</legend>
                         <?php foreach (RecordModel::PERIOD_PRESETS as $key => $label): ?>
-                            <option value="<?= $key ?>" <?= $periodPreset === $key ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                            <label class="records-period-chip">
+                                <input type="radio" name="period" value="<?= $key ?>" <?= $periodPreset === $key ? 'checked' : '' ?>>
+                                <span><?= htmlspecialchars($label) ?></span>
+                            </label>
                         <?php endforeach; ?>
-                    </select>
-
-                    <?php if ($period && $periodPreset !== 'custom'): ?>
-                        <span class="records-period-range"><?= htmlspecialchars($periodLabel) ?></span>
-                    <?php endif; ?>
-                    <?php if ($comparison): ?>
-                        <span class="records-period-range">Compared with <?= htmlspecialchars($comparison['period']['label']) ?></span>
-                    <?php endif; ?>
+                    </fieldset>
 
                     <span class="records-period-custom" id="statsPeriodCustom" <?= $periodPreset === 'custom' ? '' : 'hidden' ?>>
                         <input type="date" name="from" class="records-filter-select" aria-label="From date" value="<?= htmlspecialchars($periodFrom, ENT_QUOTES) ?>">
@@ -596,76 +663,91 @@ function formatDurationRange(?string $start, ?string $end): string
                         <button type="submit" class="row-btn records-period-apply">Apply</button>
                     </span>
 
-                    <?php if ($periodPreset !== RecordModel::DEFAULT_PERIOD): ?>
-                        <a href="<?= ROOT ?>/personnel/records?tab=statistics" class="row-btn records-clear-btn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#close-icon" />
-                            </svg>
-                            Back to this month
-                        </a>
+                    <?php if (($period && $periodPreset !== 'custom') || $comparison): ?>
+                        <div class="records-period-summary">
+                            <?php if ($period && $periodPreset !== 'custom'): ?>
+                                <span class="records-period-range records-period-range--current">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#calendar-icon" />
+                                    </svg>
+                                    <?= htmlspecialchars($periodLabel) ?>
+                                </span>
+                            <?php endif; ?>
+                            <?php if ($comparison): ?>
+                                <span class="records-period-range">Compared with <?= htmlspecialchars($comparison['period']['label']) ?></span>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </form>
 
-                <?php
-                $previousTotals = $comparison['totals'] ?? null;
-                $inboxUrl       = ROOT . '/personnel/home?status=';
-                $recordsUrl     = ROOT . '/personnel/records?' . http_build_query($period ? array_merge(['tab' => 'records', 'in_period' => 1], $periodParams) : ['tab' => 'records']);
-                ?>
+                <?php if ($excludedCount > 0) {
+                    renderDataNote(
+                        number_format($excludedCount) . ' ' . pluralize($excludedCount, 'record has', 'records have') . ' no release or review date, so ' . ($excludedCount === 1 ? 'it is' : 'they are') . ' not counted in this period.',
+                        ROOT . '/personnel/records?tab=records',
+                        'View all records'
+                    );
+                } ?>
 
                 <!-- ===== Review activity ===== -->
-                <h2 class="records-section-title">Review activity</h2>
+                <div class="records-section-head">
+                    <h2 class="records-section-title">Review activity</h2>
+                    <p class="records-section-sub">What the committee handled in this period</p>
+                </div>
                 <div class="metrics-row records-metrics">
                     <?php
-                    renderStatCard('Protocols Reviewed', $stats['reviewed'], $previousTotals['reviewed'] ?? null, 'Finished review', $inboxUrl . 'reviewed');
+                    renderStatCard('Protocols Reviewed', $stats['reviewed'], $previousTotals['reviewed'] ?? null, 'Finished review', $inboxUrl . 'reviewed', 'reviewed', 'review-icon');
                     renderStatCard(
                         'Protocols Revised',
                         $stats['revised'],
                         $previousTotals['revised'] ?? null,
                         $stats['revised'] > 0
-                            ? number_format($stats['revision_submissions']) . ' ' . pluralize($stats['revision_submissions'], 'resubmission') . ', avg ' . number_format($stats['avg_revisions'], 1) . ' per protocol'
+                            ? number_format($stats['revision_submissions']) . ' ' . pluralize($stats['revision_submissions'], 'resubmission') . ' in total'
                             : 'No resubmissions',
-                        $inboxUrl . 'returned-for-revision'
+                        $inboxUrl . 'returned-for-revision',
+                        'revised',
+                        'undo-icon',
+                        'One protocol can be resubmitted several times, so resubmissions can be higher than protocols revised.'
                     );
-                    renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', $inboxUrl . 'endorsed');
-                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed');
+                    renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', $inboxUrl . 'endorsed', 'endorsed', 'timeline-endorse-icon');
+                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed', 'signed', 'shield-check-icon');
                     ?>
                 </div>
 
                 <!-- ===== Records and clearances ===== -->
-                <h2 class="records-section-title">Records and clearances</h2>
+                <div class="records-section-head">
+                    <h2 class="records-section-title">Records and clearances</h2>
+                    <p class="records-section-sub">Filed records, clearances, and animal use</p>
+                </div>
                 <div class="metrics-row records-metrics">
                     <?php
-                    renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', $recordsUrl);
-                    renderStatCard(
-                        'Active Clearances',
-                        $stats['active_clearances'],
-                        null,
-                        'As of today, ' . number_format($stats['expiring_soon']) . ' ending within 30 days'
-                    );
-                    renderStatCard('Clearances Returned', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', $inboxUrl . 'approved');
-                    renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', $recordsUrl);
+                    renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', $recordsUrl, 'neutral', 'protocols-icon');
+                    renderStatCard('Average Revisions per Protocol', $stats['avg_revisions'], null, 'Resubmissions per revised protocol', $inboxUrl . 'returned-for-revision', 'revised', 'undo-icon');
+                    renderStatCard('Clearances Received', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', $inboxUrl . 'approved', 'signed', 'clearance-page-icon');
+                    renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', $recordsUrl, 'animals', 'beaker-icon');
                     ?>
                 </div>
 
-                <h2 class="records-section-title">Breakdowns</h2>
                 <!-- ===== Breakdowns ===== -->
+                <div class="records-section-head">
+                    <h2 class="records-section-title">Breakdowns</h2>
+                    <p class="records-section-sub">Who submitted, and what they are working with</p>
+                </div>
+                <?php if ($incompleteCount > 0) {
+                    renderDataNote(
+                        number_format($incompleteCount) . ' of ' . number_format($periodRecords) . ' ' . pluralize($periodRecords, 'record') . ' in this period ' . pluralize($incompleteCount, 'is', 'are') . ' missing an animal count, species, or researcher type, so those charts only show what has been filled in.',
+                        $recordsUrl,
+                        'View records'
+                    );
+                } ?>
                 <div class="records-charts-grid">
-                    <div class="metric-card records-bar-card records-chart-wide">
-                        <div class="metric-card-label">Revisions per Protocol</div>
-                        <p class="records-card-hint">Most resubmitted protocols in this period</p>
-                        <?php renderBarList($revisionProtoRows, 'No revisions in this period.', false, true); ?>
-                    </div>
-
-                    <div class="metric-card records-bar-card">
-                        <div class="metric-card-label">Revisions per PI</div>
-                        <p class="records-card-hint">Resubmissions by principal investigator</p>
-                        <?php renderBarList($revisionPiRows, 'No revisions in this period.', false); ?>
-                    </div>
-
                     <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Animals Used by Species</div>
                         <p class="records-card-hint">Total animals across records in this period</p>
-                        <?php renderColumnChart($speciesRows, 'No animal data in this period.', 'animal'); ?>
+                        <?php if (count($speciesRows) > 5): ?>
+                            <?php renderBarList($speciesRows, 'No animal counts recorded in this period.'); ?>
+                        <?php else: ?>
+                            <?php renderColumnChart($speciesRows, 'No animal counts recorded in this period.', 'animal'); ?>
+                        <?php endif; ?>
                     </div>
 
                     <div class="metric-card records-bar-card records-chart-wide">
@@ -685,28 +767,25 @@ function formatDurationRange(?string $start, ?string $end): string
                         <p class="records-card-hint">Student, faculty, staff, or researcher</p>
                         <?php renderDonut($researcherRows, 'protocols', 'No researcher type data in this period.'); ?>
                     </div>
-                </div>
 
-                <?php if (($period && $stats['excluded_by_period'] > 0) || $stats['incomplete_count'] > 0): ?>
-                    <?php
-                    $excludedCount   = (int) $stats['excluded_by_period'];
-                    $incompleteCount = (int) $stats['incomplete_count'];
-                    $periodRecords   = (int) $stats['total_records'];
-                    ?>
-                    <div class="records-data-note">
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#info-icon"></use>
-                        </svg>
-                        <ul>
-                            <?php if ($period && $excludedCount > 0): ?>
-                                <li><?= number_format($excludedCount) ?> <?= pluralize($excludedCount, 'record has', 'records have') ?> no release or review date and can't be placed in this period, so the record counts and charts leave <?= $excludedCount === 1 ? 'it' : 'them' ?> out.</li>
-                            <?php endif; ?>
-                            <?php if ($incompleteCount > 0): ?>
-                                <li><?= number_format($incompleteCount) ?> of <?= number_format($periodRecords) ?> <?= pluralize($periodRecords, 'record') ?> in this period <?= pluralize($incompleteCount, 'is', 'are') ?> missing an animal count, species, or researcher type. The animal and researcher type figures only count what has been filled in.</li>
-                            <?php endif; ?>
-                        </ul>
+                    <div class="metric-card records-bar-card records-chart-wide" data-tone="revised">
+                        <div class="metric-card-label">Revisions per Protocol</div>
+                        <p class="records-card-hint">Protocols reviewed or resubmitted in this period, most resubmitted first</p>
+                        <?php renderBarList(array_slice($revisionProtoRows, 0, 8), 'No protocols in this period.', false, true); ?>
+                        <?php if (count($revisionProtoRows) > 8): ?>
+                            <details class="records-more">
+                                <summary>Show <?= number_format(count($revisionProtoRows) - 8) ?> more</summary>
+                                <?php renderBarList(array_slice($revisionProtoRows, 8), '', false, true); ?>
+                            </details>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
+
+                    <div class="metric-card records-bar-card" data-tone="revised">
+                        <div class="metric-card-label">Revisions per PI</div>
+                        <p class="records-card-hint">Resubmissions by principal investigator</p>
+                        <?php renderBarList($revisionPiRows, 'No revisions in this period.', false); ?>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -722,7 +801,7 @@ $guideSteps = [
 if ($isStaff) {
     $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
 }
-$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort**. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, and status.', '.records-table-wrap'];
     $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or open its protocol file with the eye icon.' : 'Open the protocol file of a record with the eye icon.', '.records-table .row-actions:first-visible'];
@@ -737,8 +816,8 @@ $guideId    = 'statistics';
 $guideSteps = [
     ['Statistics', 'See review activity and record totals for a period you choose. Let us walk through it.'],
     ['Period', 'Choose the period to report on, including a custom date range. When available, the figures are compared with the previous period.', '#statsPeriodForm'],
-    ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, active clearances, clearances returned, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
-    ['Breakdowns', 'Charts break the period down by resubmissions, animals used, school, researcher sex, and researcher type.', '.records-charts-grid'],
+    ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, average revisions, clearances received, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
+    ['Breakdowns', 'Charts break the period down by animals used, school, researcher sex, researcher type, and resubmissions.', '.records-charts-grid'],
     ['Download as Excel', 'Download the statistics and records for the chosen period as an Excel file.', '.records-export-btn'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
@@ -1240,11 +1319,11 @@ include dirname(__DIR__) . '/includes/guide.php';
         (function() {
             const form = document.getElementById('statsPeriodForm');
             if (!form) return;
-            const period = document.getElementById('statsPeriod');
             const custom = document.getElementById('statsPeriodCustom');
 
-            period.addEventListener('change', () => {
-                const isCustom = period.value === 'custom';
+            form.addEventListener('change', e => {
+                if (e.target.name !== 'period') return;
+                const isCustom = e.target.value === 'custom';
                 custom.hidden = !isCustom;
                 if (isCustom) {
                     custom.querySelector('input').focus();

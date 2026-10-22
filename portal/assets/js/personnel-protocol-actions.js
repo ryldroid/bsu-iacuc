@@ -109,6 +109,11 @@ window.protocolRowActions = {
       () => submitStatusChange(id, "Reviewed", btn),
     ),
 
+  "revert-endorsed-to-review": (id) =>
+    openDeleteModal(id, rowProtocol(id)?.research_title ?? "", {
+      mode: "revert",
+    }),
+
   "mark-approved": (id, btn) =>
     confirmThen(
       "Mark this protocol as approved? Double-check that the attached clearance is correct before proceeding.",

@@ -45,7 +45,10 @@ class ProtocolModel extends Model
 
     public function insertProtocol(int $userId, string $title, array $details): int | false
     {
-        $title = mb_substr(trim($title), 0, 255) ?: 'Untitled Protocol';
+        $title        = mb_substr(normalize_pasted_text($title), 0, 255) ?: 'Untitled Protocol';
+        $animalType   = normalize_pasted_text($details['animal_type']);
+        $adviser      = normalize_pasted_text($details['research_adviser']);
+        $veterinarian = normalize_pasted_text($details['veterinarian']);
 
         $stmt = $this->connection->prepare(
             "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, status)
@@ -55,7 +58,7 @@ class ProtocolModel extends Model
             return false;
         }
 
-        $stmt->bind_param('ississ', $userId, $title, $details['animal_type'], $details['animal_count'], $details['research_adviser'], $details['veterinarian']);
+        $stmt->bind_param('ississ', $userId, $title, $animalType, $details['animal_count'], $adviser, $veterinarian);
         if (! $stmt->execute()) {
             return false;
         }

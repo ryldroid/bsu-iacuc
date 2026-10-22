@@ -28,10 +28,10 @@ class DraftModel extends Model
     string $title,
     array $details
   ): bool {
-    $title       = mb_substr(trim($title), 0, 255);
-    $animalType  = mb_substr(trim($details['animal_type'] ?? ''), 0, 100);
-    $adviser     = mb_substr(trim($details['research_adviser'] ?? ''), 0, 255);
-    $veterinarian = mb_substr(trim($details['veterinarian'] ?? ''), 0, 255);
+    $title       = mb_substr(normalize_pasted_text($title), 0, 255);
+    $animalType  = mb_substr(normalize_pasted_text($details['animal_type'] ?? ''), 0, 100);
+    $adviser     = mb_substr(normalize_pasted_text($details['research_adviser'] ?? ''), 0, 255);
+    $veterinarian = mb_substr(normalize_pasted_text($details['veterinarian'] ?? ''), 0, 255);
     $countText   = trim((string) ($details['animal_count'] ?? ''));
     $animalCount = ctype_digit($countText) ? min((int) $countText, 1000000) : null;
     $agreedT     = $agreedTerms ? 1 : 0;
