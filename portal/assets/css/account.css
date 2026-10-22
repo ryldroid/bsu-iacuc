@@ -1,715 +1,266 @@
-/* ===== Accounts card & tab panel ===== */
-.accounts-card {
-    /* margin: 1.5rem 0; */
-    margin: 0;
-    padding: 1.5rem;
-    max-width: 800px;
-    background: var(--card-background);
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    box-shadow: 0 1px 3px var(--shadow-color-soft);
-}
-
-.tab-panel .accounts-card {
-    background: var(--card-background);
-    border: none;
-    border-radius: var(--radius);
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1rem;
-}
-
-.tab-panel .accounts-card:last-child {
-    margin-bottom: 0;
-}
-
-/* ===== Font sizes: 1.1rem headings, 0.9rem content, 0.8rem secondary ===== */
-.accounts-card .data-table thead th {
-    font-size: 0.8rem;
-}
-
-.accounts-card .data-table tbody td {
-    font-size: 0.9rem;
-}
-
-.accounts-card .pagination-info {
-    font-size: 0.8rem;
-}
-
-.pending-box,
-.invite-form label,
-.audit-description {
-    font-size: 0.9rem;
-}
-
-.accounts-card h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: var(--brand-text);
-}
-
-/* ===== Section layout ===== */
-.audit-viewer-header h2 {
-    margin-bottom: 0;
-}
-
-.sections {
-    display: flex;
-    gap: 2em;
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.sections>.accounts-card,
-.sections>.sections-column {
-    flex: 1 1 420px;
-    min-width: 0;
-    max-width: 100%;
-}
-
-.sections-column {
-    /* margin-top: 1.5em; */
-    display: flex;
-    flex-direction: column;
-    /* gap: 1.5em; */
-}
-
-.sections .accounts-card {
-    max-width: 100%;
-}
-
-.pending-section,
-.invite-section,
-.personnel-manage-section,
-.audit-viewer-section,
-.audit-section {
-    max-width: 100%;
-}
-
-@media (max-width: 900px) {
-    .sections {
-        flex-direction: column;
-        gap: 0;
-    }
-
-    .sections>.accounts-card,
-    .sections>.sections-column {
-        flex: 1 1 auto;
-        width: 100%;
-        gap: 0;
-    }
-}
-
-/* ===== Invite form ===== */
-.invite-form {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.invite-form select {
-    padding: 0.5rem 0.8rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    background: var(--card-background);
-    color: var(--primary-text);
-    margin-left: .3em;
-}
-
-.invite-form select:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
-/* ===== Account buttons ===== */
-.accounts-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    padding: 10px 20px;
-    background: var(--brand-color);
-    color: var(--text-on-brand);
-    border: none;
-    border-radius: var(--btn-radius);
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-family: var(--font-body);
-    cursor: pointer;
-    box-shadow: 0 1px 3px var(--shadow-color-soft);
-    margin: 0;
-    transition: background 150ms ease;
-}
-
-.accounts-btn-primary:hover {
-    background: var(--brand-color-hover);
-    color: var(--text-on-brand);
-}
-
-.accounts-btn-primary:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 2px var(--shadow-color-soft);
-}
-
-/* ===== Invite link ===== */
-.invite-link-container {
-    margin-top: 0.5rem;
-}
-
-.invite-link-container label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--secondary-text);
-    margin-top: 1.5em;
-}
-
-.invite-link-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.invite-link-row input {
-    flex: 1;
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-family: monospace;
-    background: var(--card-background);
-    margin: 0;
-    min-width: 0;
-}
-
-.invite-link-row input:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
-#copy-message {
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--brand-text);
-    min-height: 1.5em;
-}
-
-/* ===== Pending accounts ===== */
-.pending-count {
-    color: var(--muted-text);
-    font-size: 0.8rem;
-    margin-bottom: .75rem;
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: .5em;
-    margin: 30px auto;
-    padding: 40px 20px;
-    border-radius: var(--btn-radius);
-    background-color: var(--brand-surface-faint);
-}
-
-.empty-state h3 {
-    display: flex;
-    align-items: center;
-    gap: .5em;
-    font-family: var(--font-default);
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--brand-text);
-}
-
-.empty-state h3 svg {
-    flex-shrink: 0;
-}
-
-.empty-state p {
-    color: var(--muted-text);
-    font-size: 0.9rem;
-}
-
-.pending-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: .6rem 1rem;
-    background: var(--divider-color-subtle);
-    border: 1px solid var(--divider-color);
-    border-radius: var(--btn-radius);
-    padding: .65rem .9rem;
-    margin: .5rem 0;
-}
-
-.pending-box .username {
-    color: var(--secondary-text);
-}
-
-.pending-meta {
-    margin-top: 2px;
-    font-size: 0.8rem;
-    color: var(--muted-text);
-    overflow-wrap: anywhere;
-}
-
-.pending-box .actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.pending-box .accounts-btn-primary,
-.pending-box .reject-btn {
-    padding: 7px 16px;
-}
-
-.reject-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-family: var(--font-body);
-    border: 1px solid var(--danger-color);
-    border-radius: var(--btn-radius);
-    background: none;
-    color: var(--danger-color);
-    box-shadow: none;
-    margin: 0;
-    cursor: pointer;
-}
-
-.reject-btn:hover {
-    background-color: var(--danger-solid);
-    color: var(--text-on-brand);
-}
-
-@media (max-width: 768px) {
-    form .accounts-btn-primary {
-        width: 100%;
-    }
-
-    .form-section {
-        width: 100%;
-        display: flex;
-        gap: .5em;
-        align-items: center;
-    }
-
-    .pending-box {
-        padding: .6rem;
-        margin: .6rem 0;
-    }
-
-    .pending-box .actions {
-        width: 100%;
-        gap: 0.4rem;
-    }
-
-    .pending-box .actions form {
-        flex: 1;
-    }
-
-    .pending-box .actions .accounts-btn-primary,
-    .pending-box .actions .reject-btn {
-        width: 100%;
-        padding: 7px 10px;
-    }
-}
-
-/* ===== MANAGE PERSONNEL & ROLES ===== */
-
-.personnel-name {
-    display: block;
-    font-weight: 600;
-    color: var(--primary-text);
-}
-
-.personnel-username {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--muted-text);
-}
-
-.personnel-role-form {
-    margin: 0;
-}
-
-.personnel-role-select {
-    padding: 0.4rem 0.6rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    background: var(--card-background);
-    color: var(--primary-text);
-    margin: 0;
-}
-
-.personnel-role-select:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
-.personnel-role-select:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.personnel-status-pill {
-    display: inline-block;
-    padding: 2px 9px;
-    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.personnel-status-active {
-    color: var(--status-success-text);
-}
-
-.personnel-status-inactive {
-    color: var(--status-danger-text);
-}
-
-.personnel-status-btn {
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
-
-.personnel-you-tag {
-    margin-left: .4em;
-}
-
-@media (max-width: 768px) {
-    .personnel-role-select {
-        padding: 0.35rem 0.4rem;
-    }
-
-    .personnel-status-btn {
-        padding: 6px 10px;
-    }
-}
-
-/* ===== Role change confirmation ===== */
-.role-confirm-field {
-    margin: 0;
-    text-align: left;
-}
-
-.role-confirm-field label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--secondary-text);
-    margin-bottom: 0.4rem;
-}
-
-.role-confirm-field .password-field-wrap {
+/* ===== Page layout ===== */
+body {
     position: relative;
-    width: 100%;
+    overflow-x: hidden;
+    background-color: transparent;
 }
 
-.role-confirm-password {
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    padding-right: 2.6rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    background: var(--card-background);
-    color: var(--primary-text);
-    margin: 0;
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+
+    background-image: url("../images/background.webp");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+    z-index: -1;
 }
 
-.role-confirm-password:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
-.role-confirm-field .password-toggle-btn {
-    position: absolute;
-    width: fit-content;
-    height: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    right: 4px;
+.body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 6px;
-    margin: 0;
-    color: var(--muted-text);
-    cursor: pointer;
+    width: 100%;
+    margin: 0 auto;
 }
 
-.role-confirm-field .password-toggle-btn:hover {
-    background: transparent;
-    color: var(--brand-color-hover);
+main {
+    position: relative;
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 500px;
+    margin: 36px auto;
+    background-color: var(--card-background);
+    padding: 40px 24px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px var(--shadow-color-modal);
 }
 
-.role-confirm-field .password-toggle-btn:active {
-    transform: translateY(calc(-50% + 1px));
-    box-shadow: none;
+main.wide {
+    max-width: 700px;
 }
 
-.role-confirm-field .password-toggle-btn svg {
-    pointer-events: none;
-}
-
-/* ===== AUDIT LOG VIEWER ===== */
-
-.audit-viewer-section {
-    scroll-margin-top: 70px;
-}
-
-.audit-viewer-section h2 {
-    display: flex;
-    align-items: center;
-    gap: .5em;
-}
-
-.audit-viewer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.audit-jump-to-date {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.audit-jump-to-date label {
-    display: flex;
-    color: var(--secondary-text);
-}
-
-.audit-jump-to-date input[type="date"] {
-    padding: 0.5rem 0.7rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    background: var(--card-background);
-    color: var(--primary-text);
-}
-
-.audit-jump-to-date input[type="date"]:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-}
-
-.audit-jump-clear {
-    border: none;
-    background: none;
-    color: var(--brand-color);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0.25rem 0;
-    margin-top: 0;
-}
-
-#audit-jump-date {
-    margin-bottom: 0;
-}
-
-.audit-refresh-btn {
-    display: flex;
-    border: none;
-    box-shadow: none;
-    color: var(--secondary-text);
-    cursor: pointer;
-    padding: 0.25rem;
-    margin: 0;
-    border-radius: 50%;
-    background: var(--hover-surface-soft);
-}
-
-.audit-refresh-btn:hover {
-    color: var(--brand-text);
-    background: var(--brand-surface-faint);
-}
-
-.audit-jump-clear:hover {
-    text-decoration: underline;
-}
-
-#audit-log-results {
-    transition: opacity 0.15s ease;
-}
-
-#audit-log-results.is-loading {
-    opacity: 0.4;
-    pointer-events: none;
-}
-
-.audit-viewer-table tbody td:first-child,
-.audit-viewer-table tbody td:last-child {
-    font-family: monospace;
-    font-size: 0.8rem;
-}
-
-.audit-viewer-table tbody td:nth-child(2) {
-    color: var(--primary-text);
-    font-weight: 600;
-}
-
-.audit-viewer-table tbody td:nth-child(4),
-.audit-viewer-table tbody td:nth-child(5) {
-    white-space: normal;
-    min-width: 220px;
-}
-
-.audit-viewer-table tbody td:nth-child(4) {
-    max-width: 320px;
-}
-
-.audit-viewer-role {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: var(--muted-text);
-}
-
-.audit-viewer-time {
-    display: block;
-    color: var(--muted-text);
-}
-
-.audit-viewer-section .pagination-btn.disabled {
-    opacity: .35;
-    cursor: default;
-}
-
-.audit-viewer-section .pagination-bar {
-    margin-top: 1rem;
-}
-
-/* ===== AUDIT LOGS ===== */
-
-.audit-section .audit-description {
-    color: var(--secondary-text);
-    margin-bottom: 1rem;
-}
-
-.audit-form {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-
-.audit-form .form-section {
+main form {
+    width: 100%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-}
-
-.audit-form .form-section label {
-    font-size: 0.9rem;
-    color: var(--secondary-text);
-}
-
-.audit-form input {
-    margin-bottom: 0;
-}
-
-.audit-form input[type="date"] {
-    padding: 0.6rem 0.8rem;
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    background: var(--card-background);
-    color: var(--primary-text);
-}
-
-.audit-form input[type="date"]:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-}
-
-.audit-form input[type="date"]:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.audit-checkbox-label {
-    display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
+}
+
+.main-content--pinned-nav h1 {
+    margin-top: 44px;
+}
+
+/* ===== Headings & inputs ===== */
+h1 {
+    font-family: var(--font-title);
+    font-weight: lighter;
+    margin: 20px;
+    text-align: center;
+    color: var(--brand-text);
+}
+
+label,
+input {
+    width: 80%;
+}
+
+label {
+    text-align: left;
+    margin: .5em 0 .3em;
+    font-size: 1em;
     color: var(--primary-text);
-    white-space: nowrap;
+}
+
+input {
+    padding: 12px 10px;
+    border-radius: 4px;
+    border: none;
+    margin-bottom: 1em;
+    box-shadow: 0 1px 4px var(--shadow-color-soft);
+    font-size: .9em;
+}
+
+input:focus-visible {
+    box-shadow: 0 1px 4px var(--shadow-color-soft);
+}
+
+select {
+    width: 80%;
+    padding: 8px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--input-border);
     margin-bottom: 1em;
 }
 
-.audit-full-history {
+form>a {
+    width: 60%;
+    text-align: left;
+    margin-bottom: 1em;
+}
+
+main button {
+    width: 200px;
+    margin-bottom: .4em;
+    font-size: 1em;
+    background-color: var(--brand-color-hover);
+    color: var(--text-on-brand);
+}
+
+main .btn-login {
+    width: 160px;
+    margin-top: 0;
+}
+
+main button:hover {
+    color: var(--text-on-brand);
+}
+
+/* ===== Action buttons ===== */
+.btn-back {
+    margin-left: 10px;
+    background: transparent;
+}
+
+.btn-deactivate {
+    margin-top: 0;
+}
+
+/* ===== Success message ===== */
+.success-message {
+    text-align: center;
     justify-content: center;
+    border-radius: 8px;
+    padding: 10px 15px;
+    background-color: var(--success-background);
+    color: var(--success-text);
+    margin: 1.5em auto 20px;
+    width: 80%;
 }
 
-.audit-section .accounts-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+/* ===== Labels & helper text ===== */
+.form-label {
+    color: var(--secondary-text);
+    margin: auto 16px 1rem;
 }
 
-@media (max-width: 768px) {
-    .audit-form {
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: stretch;
-    }
-
-    .audit-form .form-section:not(.audit-full-history) {
-        flex: 1 1 calc(50% - 0.5rem);
-    }
-
-    .audit-form input[type="date"] {
-        padding: 0.5rem 0.4rem;
-    }
-
-    .audit-form .audit-full-history,
-    .audit-form .accounts-btn-primary {
-        flex: 1 1 100%;
-        width: 100%;
-    }
-
-    .audit-checkbox-label {
-        margin-bottom: 0;
-    }
+.helper-label {
+    margin-top: 1em;
+    text-align: center;
 }
 
-#roleConfirmBackdrop .error-messages,
-#backupRestoreBackdrop .error-messages {
+.underlined-p {
+    margin: .5em auto .1em;
+}
+
+/* ===== Personnel login link ===== */
+.personnel-login-link {
+    position: fixed;
+    bottom: 20px;
+    right: 25px;
+    color: var(--text-on-image);
+}
+
+.personnel-login-link a.underlined {
+    color: var(--brand-color-light);
+}
+
+/* ===== Label groups ===== */
+.label-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 1em;
+    width: 80%;
+    margin-bottom: 1.2em;
+}
+
+.label-group div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.label-group input {
+    width: 100%;
+}
+
+.label-group label {
+    margin: .5em 0 .3em;
+}
+
+.label-group .input-group {
+    width: 100%;
     margin: 0;
 }
 
-#backup-manager .error-messages {
-    margin: 0 0 1em;
+.label-group .input-group label {
+    margin: 0;
 }
 
-.backup-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: .5em;
+/* ===== Responsive ===== */
+@media (max-width: 760px) {
+    main {
+        margin: 24px;
+        padding: 32px 20px;
+        border-radius: 6px;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .btn-back.btn-back--pinned {
+        background-color: var(--backdrop-color);
+    }
+
+    form .helper {
+        text-align: center;
+    }
+
+    label,
+    input,
+    select,
+    form>a,
+    form .helper,
+    .password-requirements,
+    .password-field-wrap {
+        width: 90%;
+    }
+
+    .label-group {
+        flex-direction: column;
+        width: 90%;
+        gap: 1.4em;
+    }
+
+    .label-group div {
+        width: 100%;
+    }
+
+    .label-group input {
+        width: 100%;
+    }
+
+    .personnel-login-link {
+        position: static;
+        margin-top: 1.5em;
+        color: inherit;
+    }
+
+    .personnel-login-link a.underlined {
+        color: var(--brand-text);
+    }
+}
+
+.hidden-login-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: text;
+}
+
+.create-acc-helper {
+    text-align: center;
 }
