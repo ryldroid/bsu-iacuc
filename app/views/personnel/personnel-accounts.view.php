@@ -5,7 +5,10 @@ include dirname(__DIR__) . '/includes/scroll-top.php';
 
 $user   = $user ?? $_SESSION['user'] ?? [];
 $csrf   = $csrf ?? '';
+$pending   = $pending ?? [];
+$personnel = $personnel ?? [];
 $isStaff = ($user['role'] ?? '') === 'staff';
+$roleLabels = ['staff' => 'Administrative Staff', 'reviewer' => 'Reviewer'];
 $auditDateRange = $auditDateRange ?? ['earliest' => null, 'latest' => null];
 $auditDefaults  = $auditDefaults ?? ['from' => '', 'to' => ''];
 $auditLogs      = $auditLogs      ?? [];
@@ -27,6 +30,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('content-manager.css') ?>">
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -146,12 +150,15 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                 data-tab-panel="accounts" <?= $activeTab === 'accounts' ? '' : 'hidden' ?>>
                 <?php if ($isStaff): ?>
                     <!-- PENDING ACCOUNTS -->
-                    <section class="accounts-card pending-section">
+                    <section class="accounts-card pending-section<?= empty($pending) ? '' : ' pending-waiting' ?>">
                         <h2>
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#clock-icon" />
                             </svg>
                             Pending Personnel Approvals
+                            <?php if (!empty($pending)): ?>
+                                <span class="cm-count cm-count-warning"><?= count($pending) ?></span>
+                            <?php endif; ?>
                         </h2>
 
                         <?php if (empty($pending)): ?>
@@ -166,17 +173,18 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                             </div>
 
                         <?php else: ?>
-                            <p class="pending-count"><?= count($pending); ?> pending application(s)</p>
-
                             <?php foreach ($pending as $applicant): ?>
                                 <div class="pending-box">
-                                    <div>
-                                        <span class="bold"><?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?></span>
-                                        <span class="username">@<?= htmlspecialchars($applicant['username']); ?></span>
+                                    <span class="personnel-avatar" aria-hidden="true"><?= htmlspecialchars(mb_strtoupper(mb_substr($applicant['first_name'], 0, 1) . mb_substr($applicant['last_name'], 0, 1))) ?></span>
+                                    <div class="pending-info">
+                                        <span class="personnel-name">
+                                            <?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?>
+                                            <span class="personnel-status-pill personnel-role-<?= htmlspecialchars($applicant['role']) ?> personnel-you-tag"><?= htmlspecialchars($roleLabels[$applicant['role']] ?? $applicant['role']) ?></span>
+                                        </span>
+                                        <span class="personnel-username">@<?= htmlspecialchars($applicant['username']); ?></span>
                                         <div class="pending-meta">
                                             <?= htmlspecialchars($applicant['email']); ?>
-                                            &middot; <?= htmlspecialchars($applicant['role']); ?>
-                                            &middot; <?= date(DATETIME_FORMAT, strtotime($applicant['created_at'])) ?>
+                                            &middot; Applied <?= date(DATETIME_FORMAT, strtotime($applicant['created_at'])) ?>
                                         </div>
                                     </div>
 
@@ -220,8 +228,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                             <div class="form-section">
                                 <label for="invite-role">Select Role:</label>
                                 <select name="invite_role" id="invite-role">
-                                    <option value="staff">Administrative Staff</option>
-                                    <option value="reviewer">Reviewer</option>
+                                    <?php foreach ($roleLabels as $roleValue => $roleLabel): ?>
+                                        <option value="<?= $roleValue ?>"><?= $roleLabel ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
 
@@ -257,68 +266,73 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                 <!-- MANAGE PERSONNEL & ROLES -->
                 <section class="accounts-card personnel-manage-section">
-                    <h2>
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#shield-check-icon" />
-                        </svg>
-                        CCARD Personnel
-                    </h2>
+                    <div class="personnel-manage-header">
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#shield-check-icon" />
+                            </svg>
+                            CCARD Personnel
+                            <span class="cm-count" data-cm-count="personnelListWrap" aria-live="polite"><?= count($personnel) ?></span>
+                        </h2>
+                        <div class="cm-tools">
+                            <?php $cmSearchTarget = 'personnelListWrap';
+                            $cmSearchPlaceholder = 'Search personnel...';
+                            include dirname(__DIR__) . '/includes/cm-search.php'; ?>
+                        </div>
+                    </div>
 
-                    <?php if (empty($personnel)): ?>
-                        <div class="empty-state">
-                            <h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#check-circle-icon" />
-                                </svg>
-                                No personnel yet
-                            </h3>
-                            <p>Approved staff and reviewers will appear here.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="data-table-wrap">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($personnel as $p): ?>
-                                        <?php
-                                        $isSelf = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
-                                        ?>
-                                        <tr>
-                                            <td>
-                                                <span class="personnel-name">
-                                                    <?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>
-                                                    <?php if ($isSelf): ?>
-                                                        <span class="personnel-status-pill personnel-status-active personnel-you-tag">You</span>
-                                                    <?php endif; ?>
-                                                </span>
-                                                <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
-                                            </td>
-                                            <td>
-                                                <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
-                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                    <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                    <input type="hidden" name="password" class="personnel-role-password">
-                                                    <select name="role" class="personnel-role-select"
-                                                        data-username="<?= htmlspecialchars($p['username']) ?>"
-                                                        data-original-role="<?= htmlspecialchars($p['role']) ?>"
-                                                        <?= $isSelf ? 'disabled' : '' ?>
-                                                        onchange="handleRoleChange(this)">
-                                                        <option value="staff" <?= $p['role'] === 'staff' ? 'selected' : '' ?>>Administrative Staff</option>
-                                                        <option value="reviewer" <?= $p['role'] === 'reviewer' ? 'selected' : '' ?>>Reviewer</option>
-                                                    </select>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                    <div class="cm-list-wrap" id="personnelListWrap">
+                        <?php if (empty($personnel)): ?>
+                            <div class="empty-state">
+                                <h3>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#check-circle-icon" />
+                                    </svg>
+                                    No personnel yet
+                                </h3>
+                                <p>Approved staff and reviewers will appear here.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="personnel-list">
+                                <?php foreach ($personnel as $p): ?>
+                                    <?php
+                                    $isSelf   = (int) $p['id'] === (int) ($user['user_id'] ?? 0);
+                                    $initials = mb_strtoupper(mb_substr($p['first_name'], 0, 1) . mb_substr($p['last_name'], 0, 1));
+                                    ?>
+                                    <div class="personnel-row cm-row">
+                                        <span class="personnel-avatar" aria-hidden="true"><?= htmlspecialchars($initials) ?></span>
+                                        <div class="personnel-info">
+                                            <span class="personnel-name">
+                                                <?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>
+                                                <?php if ($isSelf): ?>
+                                                    <span class="personnel-status-pill personnel-status-active personnel-you-tag">You</span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
+                                        </div>
+                                        <span class="personnel-status-pill personnel-role-<?= htmlspecialchars($p['role']) ?>"><?= htmlspecialchars($roleLabels[$p['role']] ?? $p['role']) ?></span>
+                                        <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                            <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
+                                            <input type="hidden" name="password" class="personnel-role-password">
+                                            <select name="role" class="personnel-role-select" hidden
+                                                aria-label="New role for <?= htmlspecialchars($p['username']) ?>"
+                                                data-username="<?= htmlspecialchars($p['username']) ?>"
+                                                data-original-role="<?= htmlspecialchars($p['role']) ?>"
+                                                onchange="handleRoleChange(this)">
+                                                <?php foreach ($roleLabels as $roleValue => $roleLabel): ?>
+                                                    <option value="<?= $roleValue ?>" <?= $p['role'] === $roleValue ? 'selected' : '' ?>><?= $roleLabel ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <?php if (!$isSelf): ?>
+                                                <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-role-edit">Change role</button>
+                                            <?php endif; ?>
+                                        </form>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </section>
             </div>
 
@@ -336,11 +350,11 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                 Backups
                             </h2>
                             <div class="backup-actions">
-                                <button type="button" id="backup-upload" class="accounts-btn-primary">
+                                <button type="button" id="backup-upload" class="accounts-btn-primary accounts-btn-outline">
                                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#upload-icon" />
                                     </svg>
-                                    Upload Backup
+                                    Restore from a file
                                 </button>
                                 <button type="button" id="backup-create" class="accounts-btn-primary">
                                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -351,7 +365,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                 <input type="file" id="backup-upload-input" accept=".zip,application/zip" hidden>
                             </div>
                         </div>
-                        <p class="audit-description" id="backup-status">Each backup holds the database, protocol files and site uploads. The 10 newest are kept.</p>
+                        <p class="audit-description" id="backup-status">A backup is a saved copy of everything in the portal: its records, protocol files and site uploads. The 10 newest are kept.</p>
                         <div id="backup-health"></div>
                         <div class="upload-progress-container" id="backup-progress"></div>
                         <div class="alert error-messages" id="backup-error" hidden></div>
@@ -394,10 +408,10 @@ $guideId    = 'backups';
 $guideSteps = [
     ['Backups', 'Create and download copies of the database and uploaded files. Let us walk through it.'],
     ['Create a backup', 'Press **Create Backup**. It runs in steps, so keep this page open until the bar reaches 100%.', '#backup-create'],
-    ['Upload a backup', 'Press **Upload Backup** and choose a backup ZIP you downloaded earlier. It is sent in small pieces and checked before it appears in the list. Then use **Restore** to bring it back.', '#backup-upload'],
-    ['Backup health', 'This line shows the last backup time and the limits of the server. A red notice appears when the newest backup is 3 days old or more, or when none exists.', '#backup-health'],
-    ['Saved backups', '**Download** a backup to keep a copy off the server, **Verify** it to check that it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
-    ['Restore', '**Restore** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
+    ['Upload a backup', 'Press **Restore from a file** and choose a backup ZIP you saved earlier. It is sent in small pieces and checked before it appears in the list. Then press **Restore this backup** on it to bring it back.', '#backup-upload'],
+    ['Backup health', 'This line shows when the last backup was made. It turns into a warning when the newest backup is 3 days old or more, or when none exists. Open **Technical details** for server limits.', '#backup-health'],
+    ['Saved backups', '**Save a copy** to keep a backup off the server, **Check this backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
+    ['Restore', '**Restore this backup** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
@@ -492,6 +506,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
 <script src="<?= asset_js('backups.js') ?>" defer></script>
+<script src="<?= asset_js('content-manager.js') ?>" defer></script>
 
 <script>
     // ===== Copy invite link =====
@@ -523,6 +538,25 @@ include dirname(__DIR__) . '/includes/guide.php';
 
     // ===== Role change: confirm with password =====
     (function() {
+        function toggleRoleSelect(select, editing) {
+            select.hidden = !editing;
+            select.closest('.personnel-row').querySelector('.js-role-edit').hidden = editing;
+        }
+
+        document.addEventListener('click', (e) => {
+            const edit = e.target.closest('.js-role-edit');
+            if (!edit) return;
+
+            const select = edit.closest('form').querySelector('.personnel-role-select');
+            toggleRoleSelect(select, true);
+            select.focus();
+        });
+
+        document.addEventListener('focusout', (e) => {
+            const select = e.target.closest('.personnel-role-select');
+            if (select && select.value === select.dataset.originalRole) toggleRoleSelect(select, false);
+        });
+
         const backdrop = document.getElementById('roleConfirmBackdrop');
         const text = document.getElementById('roleConfirmText');
         const error = document.getElementById('roleConfirmError');
@@ -551,6 +585,7 @@ include dirname(__DIR__) . '/includes/guide.php';
             backdrop.classList.remove('open');
             if (pendingSelect) {
                 pendingSelect.value = pendingSelect.dataset.originalRole;
+                toggleRoleSelect(pendingSelect, false);
                 pendingSelect = null;
             }
         };

@@ -89,6 +89,24 @@
   transform: scale(1.08);
 }
 
+#annListWrap .ann-row {
+  align-items: center;
+}
+
+#annListWrap .ann-row-thumb {
+  width: 80px;
+  height: 80px;
+  margin-top: 0;
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  #annListWrap .ann-row-thumb {
+    width: 56px;
+    height: 56px;
+  }
+}
+
 /* A row that was just added, edited or moved glows briefly */
 .cm-row-flash {
   animation: cm-row-flash 1.6s ease-out;

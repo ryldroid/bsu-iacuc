@@ -923,19 +923,6 @@ foreach ($protocols as $p) {
             </div>
         </div>
     </div>
-
-    <!-- Image zoom lightbox -->
-    <div class="modal-backdrop clearance-zoom-backdrop" id="clearanceZoomBackdrop">
-        <div class="clearance-zoom-card">
-            <button type="button" class="image-zoom-close" onclick="closeZoom()" title="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-            <img id="clearanceZoomImg" src="" alt="">
-            <p class="clearance-zoom-caption" id="clearanceZoomCaption"></p>
-        </div>
-    </div>
 <?php endif; ?>
 
 <!-- ===== JavaScript ===== -->
@@ -1892,6 +1879,8 @@ include dirname(__DIR__) . '/includes/guide.php';
             const img = document.createElement('img');
             img.src = latest.file_url;
             img.alt = 'Proof of payment';
+            img.dataset.zoomSrc = latest.file_url;
+            img.dataset.zoomAlt = img.alt;
             img.onerror = () => {
                 frame.innerHTML = '<p class="review-payment-note">Could not load the proof of payment image.</p>';
             };
@@ -2010,7 +1999,8 @@ include dirname(__DIR__) . '/includes/guide.php';
         }
 
         function thumbHtml(item, {
-            allowDelete = true
+            allowDelete = true,
+            zoomImage = false
         } = {}) {
             const deleteBtn = allowDelete ? `
             <button type="button" class="clearance-delete-btn" title="Delete" aria-label="Delete"
@@ -2024,13 +2014,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                     ${deleteBtn}
                 </div>`;
             }
-            const safeName = escapeHtml(item.original_name).replace(/'/g, "\\'");
+            const zoomAttrs = `${zoomImage ? 'data-zoom-src' : 'data-preview-src'}="${escapeHtml(item.file_url)}" data-zoom-alt="${escapeHtml(item.original_name)}"`;
             return `<div class="clearance-thumb-media">
-                <img src="${item.file_url}" alt="${escapeHtml(item.original_name)}" loading="lazy">
-                <button type="button" class="clearance-zoom-btn" title="Preview Image" aria-label="Preview Image"
-                    onclick="openZoom(event, '${item.file_url}', '${safeName}')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#search-icon" /></svg>
-                </button>
+                <img src="${item.file_url}" alt="${escapeHtml(item.original_name)}" loading="lazy" ${zoomAttrs}>
                 ${deleteBtn}
             </div>`;
         }
@@ -2150,7 +2136,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 if (p && staged) {
                     html = `
                         <div class="clearance-thumb clearance-thumb--staged">
-                            ${thumbHtml(staged, { allowDelete: false })}
+                            ${thumbHtml(staged, { allowDelete: false, zoomImage: true })}
                             <button type="button" class="clearance-unstage-btn" data-pool-id="${staged.id}" title="Remove" aria-label="Remove">
                                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg>
                             </button>
@@ -2617,30 +2603,10 @@ include dirname(__DIR__) . '/includes/guide.php';
             setButtonBusy(btn, false);
         }
 
-        const zoomBackdrop = document.getElementById('clearanceZoomBackdrop');
-        const zoomImg = document.getElementById('clearanceZoomImg');
-        const zoomCaption = document.getElementById('clearanceZoomCaption');
-
-        // ===== Image zoom =====
-        function openZoom(e, url, caption) {
-            e.stopPropagation();
-            zoomImg.src = url;
-            zoomImg.alt = caption;
-            zoomCaption.textContent = caption;
-            zoomBackdrop.classList.add('open');
-        }
-
-        function closeZoom() {
-            zoomBackdrop.classList.remove('open');
-            zoomImg.src = '';
-        }
-
-        zoomBackdrop.addEventListener('click', e => {
-            if (e.target === zoomBackdrop) closeZoom();
-        });
-
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape' && zoomBackdrop.classList.contains('open')) closeZoom();
+        // ===== Double-click an unsorted screenshot to enlarge it =====
+        document.getElementById('trayGrid')?.addEventListener('dblclick', e => {
+            const img = e.target.closest('img[data-preview-src]');
+            if (img) openImageZoom(img.dataset.previewSrc, img.dataset.zoomAlt);
         });
 
         if (activeFilter === 'endorsed') ensureClearanceBoard();

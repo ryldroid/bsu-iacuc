@@ -162,6 +162,18 @@
     box-shadow: 0 1px 2px var(--shadow-color-soft);
 }
 
+.accounts-btn-outline {
+    background: none;
+    color: var(--brand-text);
+    border: 1px solid var(--brand-color);
+    box-shadow: none;
+}
+
+.accounts-btn-outline:hover {
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+}
+
 /* ===== Invite link ===== */
 .invite-link-container {
     margin-top: 0.5rem;
@@ -208,10 +220,13 @@
 }
 
 /* ===== Pending accounts ===== */
-.pending-count {
-    color: var(--muted-text);
-    font-size: 0.8rem;
-    margin-bottom: .75rem;
+.pending-waiting {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning-text) 40%, transparent);
+}
+
+.cm-count-warning {
+    background: var(--status-warning-bg);
+    color: var(--status-warning-text);
 }
 
 .empty-state {
@@ -248,18 +263,24 @@
 .pending-box {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     flex-wrap: wrap;
-    gap: .6rem 1rem;
-    background: var(--divider-color-subtle);
+    gap: .75rem 1rem;
+    background: var(--card-background);
     border: 1px solid var(--divider-color);
     border-radius: var(--btn-radius);
-    padding: .65rem .9rem;
-    margin: .5rem 0;
+    box-shadow: 0 1px 3px var(--shadow-color-soft);
+    padding: .85rem 1rem;
+    margin: .6rem 0;
 }
 
-.pending-box .username {
-    color: var(--secondary-text);
+.pending-box .personnel-avatar {
+    background: var(--status-warning-bg);
+    color: var(--status-warning-text);
+}
+
+.pending-info {
+    flex: 1 1 14rem;
+    min-width: 0;
 }
 
 .pending-meta {
@@ -272,6 +293,7 @@
 .pending-box .actions {
     display: flex;
     gap: 0.5rem;
+    margin-left: auto;
 }
 
 .pending-box .accounts-btn-primary,
@@ -318,6 +340,7 @@
     .pending-box .actions {
         width: 100%;
         gap: 0.4rem;
+        margin-left: 0;
     }
 
     .pending-box .actions form {
@@ -333,6 +356,59 @@
 
 /* ===== MANAGE PERSONNEL & ROLES ===== */
 
+.personnel-manage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.personnel-manage-header h2 {
+    margin-bottom: 0;
+}
+
+.personnel-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.personnel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.7rem 0.25rem;
+    border-bottom: 1px solid var(--divider-color-subtle);
+}
+
+.personnel-row:last-child {
+    border-bottom: none;
+}
+
+.personnel-row[hidden] {
+    display: none;
+}
+
+.personnel-avatar {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--brand-color);
+    color: var(--text-on-brand);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.personnel-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .personnel-name {
     display: block;
     font-weight: 600;
@@ -345,7 +421,22 @@
     color: var(--muted-text);
 }
 
+.personnel-role-staff {
+    color: var(--brand-text);
+}
+
+.personnel-role-reviewer {
+    color: var(--status-purple-text);
+}
+
+.personnel-role-form [hidden] {
+    display: none;
+}
+
 .personnel-role-form {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 11rem;
     margin: 0;
 }
 
@@ -371,13 +462,21 @@
 }
 
 .personnel-status-pill {
-    display: inline-block;
-    padding: 2px 9px;
-    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
     font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.personnel-status-pill::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
 }
 
 .personnel-status-active {
@@ -399,6 +498,15 @@
 }
 
 @media (max-width: 768px) {
+    .personnel-row {
+        flex-wrap: wrap;
+    }
+
+    .personnel-role-form {
+        min-width: 0;
+        margin-left: auto;
+    }
+
     .personnel-role-select {
         padding: 0.35rem 0.4rem;
     }
@@ -750,4 +858,48 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: .5em;
+}
+
+/* ===== Backup health ===== */
+.backup-health-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0.25rem;
+    font-weight: 600;
+}
+
+.backup-health-line svg {
+    flex-shrink: 0;
+}
+
+.backup-health-ok {
+    color: var(--status-success-text);
+}
+
+.backup-health-warning {
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--btn-radius);
+    background: var(--status-warning-bg);
+    color: var(--status-warning-text);
+}
+
+.backup-health-date {
+    font-weight: 400;
+    color: var(--muted-text);
+}
+
+.backup-technical {
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--muted-text);
+}
+
+.backup-technical summary {
+    width: fit-content;
+    cursor: pointer;
+}
+
+.backup-actions .js-backup-delete {
+    margin-left: 1.25rem;
 }

@@ -573,6 +573,8 @@ include 'includes/guide.php';
             const img = document.createElement('img');
             img.src = latest.file_url;
             img.alt = 'Submitted proof of payment';
+            img.dataset.zoomSrc = latest.file_url;
+            img.dataset.zoomAlt = img.alt;
             img.onerror = () => showNote('Could not load the submitted proof of payment.');
             frame.appendChild(img);
         } catch (err) {

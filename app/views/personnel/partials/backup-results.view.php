@@ -38,7 +38,7 @@ $backups = $backups ?? [];
             <td><?= htmlspecialchars($backup['created_by']) ?></td>
             <td>
               <?php if ($backup['valid']): ?>
-                <?= number_format($backup['rows']) ?> rows &middot; <?= number_format($backup['files']) ?> files
+                Database + <?= number_format($backup['files']) ?> files
               <?php else: ?>
                 <span class="personnel-status-pill personnel-status-inactive">Unreadable</span>
               <?php endif; ?>
@@ -47,27 +47,27 @@ $backups = $backups ?? [];
             <td>
               <div class="backup-actions">
                 <?php if ($backup['valid']): ?>
-                  <button type="button" class="accounts-btn-primary personnel-status-btn js-backup-restore"
+                  <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-backup-restore"
                     data-name="<?= htmlspecialchars($backup['name']) ?>"
                     data-created="<?= date(DATETIME_FORMAT, strtotime($backup['created_at'])) ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#undo-icon" />
                     </svg>
-                    Restore
+                    Restore this backup
                   </button>
-                  <button type="button" class="accounts-btn-primary personnel-status-btn js-backup-download"
+                  <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-backup-download"
                     data-name="<?= htmlspecialchars($backup['name']) ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#download-icon" />
                     </svg>
-                    Download
+                    Save a copy
                   </button>
-                  <button type="button" class="accounts-btn-primary personnel-status-btn js-backup-verify"
+                  <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-backup-verify"
                     data-name="<?= htmlspecialchars($backup['name']) ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#shield-check-icon" />
                     </svg>
-                    Verify
+                    Check this backup
                   </button>
                 <?php endif; ?>
                 <button type="button" class="reject-btn personnel-status-btn js-backup-delete"

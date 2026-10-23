@@ -457,6 +457,10 @@ html:has(.modal-backdrop.open.guide-targeting) {
     margin-top: 0;
 }
 
+img[data-zoom-src] {
+    cursor: zoom-in;
+}
+
 /* ===== File preview popup (extends .modal-card) ===== */
 .file-popup-card {
     max-width: 1200px;

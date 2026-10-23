@@ -441,8 +441,6 @@ function formatDurationRange(?string $start, ?string $end): string
                     </div>
                 <?php endif; ?>
 
-                <p class="pagination-info records-count"><?= number_format($total) ?> <?= pluralize($total, 'record') ?></p>
-
                 <?php
                 // ===== Clickable column headers =====
                 // Column key => header class. Clicking toggles asc/desc; labels come from RecordModel::SORT_COLUMNS.
@@ -480,6 +478,30 @@ function formatDurationRange(?string $start, ?string $end): string
                         . htmlspecialchars($label) . $iconHtml . '</a></th>';
                 };
                 ?>
+
+                <div class="records-table-toolbar">
+                    <p class="pagination-info records-count"><?= number_format($total) ?> <?= pluralize($total, 'record') ?></p>
+                    <div class="records-columns">
+                        <button type="button" class="records-columns-toggle" id="recordsColumnsToggle" aria-expanded="false" aria-controls="recordsColumnsMenu">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <rect width="18" height="18" x="3" y="3" rx="2" />
+                                <path d="M9 3v18" />
+                                <path d="M15 3v18" />
+                            </svg>
+                            Columns
+                        </button>
+                        <div class="records-columns-menu" id="recordsColumnsMenu" hidden>
+                            <?php foreach (array_keys($sortColumns) as $columnIndex => $col): ?>
+                                <?php if ($col === 'title') continue; ?>
+                                <label class="records-columns-option">
+                                    <input type="checkbox" value="<?= $col ?>" data-column-index="<?= $columnIndex ?>" checked>
+                                    <?= htmlspecialchars(RecordModel::SORT_COLUMNS[$col][1]) ?>
+                                </label>
+                            <?php endforeach; ?>
+                            <button type="button" class="records-columns-reset" id="recordsColumnsReset">Show all columns</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ===== Table ===== -->
                 <div class="protocol-table-wrap records-table-wrap">
@@ -797,6 +819,7 @@ if ($isStaff) {
     $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
 }
 $guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, and status.', '.records-table-wrap'];
     $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or open its protocol file with the eye icon.' : 'Open the protocol file of a record with the eye icon.', '.records-table .row-actions:first-visible'];
@@ -1326,6 +1349,64 @@ include dirname(__DIR__) . '/includes/guide.php';
                 }
                 form.submit();
             });
+        })();
+
+        // ===== Column visibility =====
+        (function() {
+            const table = document.querySelector('.records-table');
+            const toggle = document.getElementById('recordsColumnsToggle');
+            const menu = document.getElementById('recordsColumnsMenu');
+            if (!table || !toggle || !menu || table.querySelector('.inbox-no-results')) return;
+
+            const storageKey = 'recordsHiddenColumns';
+            const boxes = [...menu.querySelectorAll('input[type="checkbox"]')];
+            let hidden = [];
+
+            try {
+                hidden = JSON.parse(localStorage.getItem(storageKey)) || [];
+            } catch (e) {}
+
+            function applyColumns() {
+                boxes.forEach(box => {
+                    const hide = hidden.includes(box.value);
+                    box.checked = !hide;
+                    table.querySelectorAll('tr > :nth-child(' + (Number(box.dataset.columnIndex) + 1) + ')')
+                        .forEach(cell => cell.classList.toggle('is-column-hidden', hide));
+                });
+
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(hidden));
+                } catch (e) {}
+            }
+
+            function setMenu(open) {
+                menu.hidden = !open;
+                toggle.setAttribute('aria-expanded', open);
+            }
+
+            toggle.addEventListener('click', () => setMenu(menu.hidden));
+
+            menu.addEventListener('change', e => {
+                hidden = boxes.filter(box => !box.checked).map(box => box.value);
+                applyColumns();
+            });
+
+            document.getElementById('recordsColumnsReset').addEventListener('click', () => {
+                hidden = [];
+                applyColumns();
+            });
+
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.records-columns')) setMenu(false);
+            });
+
+            document.addEventListener('keydown', e => {
+                if (e.key !== 'Escape' || menu.hidden) return;
+                setMenu(false);
+                toggle.focus();
+            });
+
+            applyColumns();
         })();
 
         // ===== Drag-to-scroll table =====
