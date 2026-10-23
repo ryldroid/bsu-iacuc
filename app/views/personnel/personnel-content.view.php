@@ -140,7 +140,7 @@ $activeTab     = $activeTab     ?? 'announcements';
           <!-- HOMEPAGE CONTENT -->
           <section class="accounts-card">
             <h2>Homepage Content</h2>
-            <p class="audit-description">Controls the banner title and the first two "What is IACUC?" paragraphs on the public homepage.</p>
+            <p class="audit-description">These texts on the public homepage.</p>
             <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings" data-cm-dirty
               data-confirm-message="Save changes to the homepage content?" data-confirm-ok-text="Save">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
@@ -151,12 +151,24 @@ $activeTab     = $activeTab     ?? 'announcements';
                     value="<?= htmlspecialchars($settings['banner_title'] ?? '', ENT_QUOTES) ?>">
                 </div>
                 <div class="records-form-group records-form-full">
-                  <label class="field-label" for="about_paragraph_1">About IACUC &ndash; Paragraph 1</label>
-                  <textarea id="about_paragraph_1" name="about_paragraph_1" rows="5"><?= htmlspecialchars($settings['about_paragraph_1'] ?? '', ENT_QUOTES) ?></textarea>
-                </div>
-                <div class="records-form-group records-form-full">
-                  <label class="field-label" for="about_paragraph_2">About IACUC &ndash; Paragraph 2</label>
-                  <textarea id="about_paragraph_2" name="about_paragraph_2" rows="3"><?= htmlspecialchars($settings['about_paragraph_2'] ?? '', ENT_QUOTES) ?></textarea>
+                  <div class="cm-paragraph-list" data-cm-paragraphs="about_paragraph">
+                    <?php foreach (array_values($settings['about_paragraphs'] ?? []) as $paragraphKey => $paragraph): ?>
+                      <?php $number = $paragraphKey + 1;
+                      include __DIR__ . '/partials/about-paragraph.php'; ?>
+                    <?php endforeach; ?>
+                  </div>
+                  <button type="button" class="cm-link-btn" data-cm-paragraph-add>
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <use href="#add-icon" />
+                    </svg>
+                    Add Paragraph
+                  </button>
+                  <template data-cm-paragraph-template>
+                    <?php $paragraphKey = 'new';
+                    $paragraph = '';
+                    $number = 1;
+                    include __DIR__ . '/partials/about-paragraph.php'; ?>
+                  </template>
                 </div>
               </div>
               <div class="cm-savebar">
@@ -263,7 +275,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                 </div>
               <?php else: ?>
                 <div class="ann-list">
-                  <?php foreach ($faqs as $f): ?>
+                  <?php foreach ($faqs as $index => $f): ?>
                     <div class="ann-row cm-row" data-cm-entity="faq" data-id="<?= (int) $f['id'] ?>"
                       data-cm-label="<?= htmlspecialchars($f['question'], ENT_QUOTES) ?>">
                       <div class="ann-row-body">
@@ -271,6 +283,16 @@ $activeTab     = $activeTab     ?? 'announcements';
                         <div class="ann-row-snippet"><?= htmlspecialchars($f['answer'], ENT_QUOTES) ?></div>
                       </div>
                       <div class="ann-row-actions">
+                        <button type="button" class="row-btn" data-cm-action="move" data-direction="up" aria-label="Move FAQ up" <?= $index === 0 ? 'disabled' : '' ?>>
+                          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-up-icon" />
+                          </svg>
+                        </button>
+                        <button type="button" class="row-btn" data-cm-action="move" data-direction="down" aria-label="Move FAQ down" <?= $index === count($faqs) - 1 ? 'disabled' : '' ?>>
+                          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#chev-down-icon" />
+                          </svg>
+                        </button>
                         <button type="button" class="row-btn" data-cm-action="edit" aria-label="Edit FAQ">
                           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#edit-icon" />
@@ -312,7 +334,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 $guideId    = 'site-homepage';
 $guideSteps = [
   ['Homepage', 'Edit what visitors see on the public homepage and Contact page. Let us walk through it.'],
-  ['Homepage Content', 'Change the banner title and the first two "What is IACUC?" paragraphs. **Save Changes** turns on once you change something. Press it and confirm to apply your edits, or press **Discard** to undo them.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
+  ['Homepage Content', 'Change the banner title and the "What is IACUC?" paragraphs. Use **Add Paragraph** for a new one, or the bin button to remove one. **Save Changes** turns on once you change something. Press it and confirm to apply your edits, or press **Discard** to undo them.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
   ['Add Office', 'Add an office card to the public Contact page.', '#addOfficeBtn'],
 ];
 if ($offices) {
@@ -321,7 +343,7 @@ if ($offices) {
 $guideSteps[] = ['Add FAQ', 'Add a question and answer to the FAQ on the public homepage.', '#addFaqBtn'];
 if ($faqs) {
   $guideSteps[] = ['Search FAQ', 'Type to find a question or answer in the list.', '#panel-site_content .sections > .accounts-card:nth-child(3) .inbox-search-wrap'];
-  $guideSteps[] = ['FAQ list', 'Edit or delete a question. Changes show on the homepage right away.', '#panel-site_content .sections > .accounts-card:nth-child(3) .ann-row-actions:first-visible'];
+  $guideSteps[] = ['FAQ list', 'Use the arrows to change the order the questions appear in, or edit and delete a question. Changes show on the homepage right away.', '#panel-site_content .sections > .accounts-card:nth-child(3) .ann-row-actions:first-visible'];
 }
 $guideSteps[] = ['Announcements tab', 'Switch to **Announcements** to post and manage announcements.', '#tab-announcements'];
 include dirname(__DIR__) . '/includes/guide.php';
@@ -598,6 +620,7 @@ $cmConfig = [
         'add'    => '/personnel/site_content_faq_add',
         'edit'   => '/personnel/site_content_faq_edit',
         'delete' => '/personnel/site_content_faq_delete',
+        'move'   => '/personnel/site_content_faq_move',
       ],
       'validate'  => ['all' => ['question', 'answer'], 'allMessage' => 'Both a question and an answer are required.'],
       'text'      => [

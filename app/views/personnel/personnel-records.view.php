@@ -288,6 +288,10 @@ function formatDurationRange(?string $start, ?string $end): string
     <!-- ===== Records page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
+        <div class="dashboard-page-header">
+            <h1 class="dashboard-page-title">Records and Statistics</h1>
+        </div>
+
         <?php
         $toastSuccess = $flash_success;
         $toastError   = $flash_error;
@@ -315,10 +319,6 @@ function formatDurationRange(?string $start, ?string $end): string
                 data-tab-panel="records" <?= $activeTab === 'records' ? '' : 'hidden' ?>>
                 <!-- ===== Page header ===== -->
                 <div class="dashboard-page-header records-page-header">
-                    <div>
-                        <h1 class="dashboard-page-title">Records</h1>
-                    </div>
-
                     <div class="inbox-search-wrap">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#search-icon">
@@ -620,19 +620,6 @@ function formatDurationRange(?string $start, ?string $end): string
 
             <div class="tab-panel" id="panel-statistics" role="tabpanel" aria-labelledby="tab-statistics"
                 data-tab-panel="statistics" <?= $activeTab === 'statistics' ? '' : 'hidden' ?>>
-                <div class="dashboard-page-header">
-                    <div>
-                        <h1 class="dashboard-page-title">Statistics</h1>
-                    </div>
-                    <a class="row-btn records-export-btn"
-                        href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($periodParams) ?>">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#download-icon">
-                        </svg>
-                        Download as Excel
-                    </a>
-                </div>
-
                 <?php
                 $previousTotals  = $comparison['totals'] ?? null;
                 $inboxUrl        = ROOT . '/personnel/home?status=';
@@ -678,6 +665,14 @@ function formatDurationRange(?string $start, ?string $end): string
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
+
+                    <a class="row-btn records-export-btn"
+                        href="<?= ROOT ?>/personnel/records_export?<?= http_build_query($periodParams) ?>">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#download-icon">
+                        </svg>
+                        Download as Excel
+                    </a>
                 </form>
 
                 <?php if ($excludedCount > 0) {

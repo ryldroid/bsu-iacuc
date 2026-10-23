@@ -614,10 +614,14 @@ class Personnel extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(true);
 
+        $paragraphs = array_values(array_filter(array_map(
+            fn($text) => normalize_pasted_text(trim((string) $text)),
+            (array) ($_POST['about_paragraphs'] ?? [])
+        ), 'strlen'));
+
         $this->settingsModel->setMany([
-            'banner_title'      => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
-            'about_paragraph_1' => normalize_pasted_text(trim($_POST['about_paragraph_1'] ?? '')),
-            'about_paragraph_2' => normalize_pasted_text(trim($_POST['about_paragraph_2'] ?? '')),
+            'banner_title'     => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
+            'about_paragraphs' => json_encode($paragraphs, JSON_UNESCAPED_UNICODE),
         ]);
 
         $actor = $this->actor();
@@ -726,6 +730,18 @@ class Personnel extends Controller
     // ===== SITE CONTENT: MOVE OFFICE =====
     public function site_content_office_move(): void
     {
+        $this->moveContentItem($this->officeModel, 'Office', 'name', 'contact_office_moved', 'contact_office');
+    }
+
+    // ===== SITE CONTENT: MOVE FAQ =====
+    public function site_content_faq_move(): void
+    {
+        $this->moveContentItem($this->faqModel, 'FAQ', 'question', 'faq_moved', 'faq');
+    }
+
+    // ===== SITE CONTENT: MOVE ITEM (shared) =====
+    private function moveContentItem(Model $model, string $label, string $nameKey, string $event, string $targetType): void
+    {
         $this->requireStaff(true);
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
@@ -733,20 +749,20 @@ class Personnel extends Controller
 
         $id        = (int) ($_POST['id'] ?? 0);
         $direction = $_POST['direction'] ?? '';
-        $office    = $id > 0 ? $this->officeModel->getById($id) : null;
+        $item      = $id > 0 ? $model->getById($id) : null;
 
-        if (! $office || ! in_array($direction, ['up', 'down'], true)) {
-            $this->jsonError(404, 'Office not found.');
+        if (! $item || ! in_array($direction, ['up', 'down'], true)) {
+            $this->jsonError(404, "$label not found.");
         }
 
-        $ok = $this->officeModel->move($id, $direction);
+        $ok = $model->move($id, $direction);
 
         if ($ok) {
             $actor = $this->actor();
-            $this->officeModel->logAudit('contact_office_moved', $actor['id'], $actor['name'], $actor['role'], 'contact_office', $id, "Contact office moved {$direction}: {$office['name']}");
+            $model->logAudit($event, $actor['id'], $actor['name'], $actor['role'], $targetType, $id, "$label moved {$direction}: {$item[$nameKey]}");
         }
 
-        echo json_encode(['ok' => $ok, 'message' => $ok ? 'Office moved.' : 'Move failed.']);
+        echo json_encode(['ok' => $ok, 'message' => $ok ? "$label moved." : 'Move failed.']);
         exit;
     }
 
@@ -811,7 +827,7 @@ class Personnel extends Controller
             $this->jsonError(422, 'Both a question and an answer are required.');
         }
 
-        $ok = $this->faqModel->insert($data['sort_order'], $data['question'], $data['answer']);
+        $ok = $this->faqModel->insert($data['question'], $data['answer']);
 
         if ($ok) {
             $actor = $this->actor();
@@ -857,7 +873,7 @@ class Personnel extends Controller
             $this->jsonError(422, 'Both a question and an answer are required.');
         }
 
-        $ok = $this->faqModel->update($id, $data['sort_order'], $data['question'], $data['answer']);
+        $ok = $this->faqModel->update($id, $data['question'], $data['answer']);
 
         if ($ok) {
             $actor = $this->actor();
@@ -893,9 +909,8 @@ class Personnel extends Controller
     private function sanitizeFaqPost(): array
     {
         return [
-            'sort_order' => (int) ($_POST['sort_order'] ?? 0),
-            'question'   => normalize_pasted_text(trim($_POST['question'] ?? '')),
-            'answer'     => normalize_pasted_text(trim($_POST['answer'] ?? '')),
+            'question' => normalize_pasted_text(trim($_POST['question'] ?? '')),
+            'answer'   => normalize_pasted_text(trim($_POST['answer'] ?? '')),
         ];
     }
 
@@ -1527,6 +1542,12 @@ class Personnel extends Controller
         $this->handleResetPassword('personnel/reset_password', 'personnel/login');
     }
 
+    // ===== ANNOUNCEMENT BODY HELPER =====
+    private function announcementBody(string $raw): string
+    {
+        return preg_replace('/\s*\R\s*/', "\n", normalize_pasted_text(trim($raw)));
+    }
+
     // ===== ANNOUNCEMENT IMAGE HELPERS =====
     private function announcementImageDir(): string
     {
@@ -1636,7 +1657,7 @@ class Personnel extends Controller
         header('Content-Type: application/json');
 
         $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
-        $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
+        $body  = $this->announcementBody($_POST['body'] ?? '');
 
         $imageReason = null;
         $imageName   = $this->saveAnnouncementImage('image', $imageReason);
@@ -1689,7 +1710,7 @@ class Personnel extends Controller
 
         $id    = (int) ($_POST['id'] ?? 0);
         $title = normalize_pasted_text(trim($_POST['title'] ?? ''));
-        $body  = normalize_pasted_text(trim($_POST['body'] ?? ''));
+        $body  = $this->announcementBody($_POST['body'] ?? '');
 
         $existing = $id > 0 ? $this->announcementModel->getById($id) : null;
         if (!$existing) {

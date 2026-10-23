@@ -29,8 +29,11 @@
 }
 
 .announcements-sections h2 {
-  text-align: left;
   margin: 0;
+  padding-bottom: 0.6em;
+  font-size: 1.15em;
+  text-align: left;
+  border-bottom: 1px solid var(--divider-color);
 }
 
 /* Too narrow for two columns: partner pages go below the office cards, side by side */
@@ -56,13 +59,13 @@ h2 {
   flex-direction: column;
   align-items: center;
   gap: 1.5em;
-  margin-top: 1em;
+  margin-top: 1.25em;
   justify-content: center;
 }
 
 .fb-page-section {
   border: 1px solid var(--divider-color);
-  border-radius: var(--btn-radius);
+  border-radius: 12px;
   overflow: hidden;
   background: var(--card-background);
   box-shadow: 0 1px 4px var(--shadow-color-soft);
@@ -103,8 +106,8 @@ h2 {
 .office-announcements-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.25em;
-  margin-top: 1em;
+  gap: 1.5em;
+  margin-top: 1.25em;
   min-width: 0;
 }
 
@@ -116,7 +119,7 @@ h2 {
   min-width: 0;
   padding: 0;
   border: 1px solid var(--divider-color);
-  border-radius: var(--btn-radius);
+  border-radius: 12px;
   background: var(--card-background);
   box-shadow: 0 1px 4px var(--shadow-color-soft);
   overflow: hidden;
@@ -137,9 +140,17 @@ h2 {
 .office-announcement-thumb {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   background-color: var(--brand-surface-tint);
   overflow: hidden;
+}
+
+.office-announcement-thumb.is-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-text);
+  background: linear-gradient(135deg, var(--brand-surface-tint), var(--brand-surface-faint));
 }
 
 .office-announcement-thumb img {
@@ -153,16 +164,17 @@ h2 {
 .office-announcement-body-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.3em;
-  padding: 1em 1.15em 1.15em;
+  gap: 0.4em;
+  padding: 1.1em 1.25em 1.25em;
   min-width: 0;
   flex: 1;
 }
 
 .office-announcement-title {
   margin: 0;
-  font-size: 1.1em;
+  font-size: 1.05em;
   font-weight: 700;
+  line-height: 1.3;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -182,18 +194,115 @@ h2 {
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-height: 1.45;
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 .office-announcement-date {
   display: block;
-  margin-top: auto;
-  padding-top: 0.3em;
   font-size: 0.75em;
-  color: var(--secondary-text);
-  opacity: 0.85;
+  font-weight: 600;
+  color: var(--muted-text);
+}
+
+/* Card footer: date on the left, "Read more" on the right */
+.office-announcement-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  margin-top: auto;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--divider-color-subtle);
+}
+
+.office-announcement-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.78em;
+  font-weight: 700;
+  color: var(--brand-text);
+}
+
+.office-announcement-more svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.office-announcement-card:hover .office-announcement-more svg {
+  transform: translateX(3px);
+}
+
+/* Latest announcement: wide card with the image beside the text */
+.office-announcement-kicker {
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-text);
+}
+
+.office-announcement-card--featured {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  min-height: 300px;
+}
+
+.office-announcement-card--featured .office-announcement-thumb {
+  flex: 0 0 52%;
+  aspect-ratio: auto;
+}
+
+.office-announcement-card--featured .office-announcement-thumb img {
+  position: absolute;
+  inset: 0;
+}
+
+.office-announcement-card--featured .office-announcement-body-wrap {
+  justify-content: center;
+  gap: 0.7em;
+  padding: 2em 2.25em;
+}
+
+.office-announcement-card--featured .office-announcement-title {
+  font-size: 1.7em;
+  -webkit-line-clamp: 3;
+}
+
+.office-announcement-card--featured .office-announcement-snippet {
+  font-size: 0.95em;
+  -webkit-line-clamp: 4;
+}
+
+.office-announcement-card--featured .office-announcement-foot {
+  margin-top: 0.8em;
+}
+
+@media (max-width: 900px) {
+  .office-announcement-card--featured {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .office-announcement-card--featured .office-announcement-thumb {
+    flex: none;
+    aspect-ratio: 16 / 9;
+  }
+
+  .office-announcement-card--featured .office-announcement-body-wrap {
+    padding: 1.25em;
+  }
+
+  .office-announcement-card--featured .office-announcement-title {
+    font-size: 1.3em;
+  }
 }
 
 .office-announcement-card--photo {
@@ -230,6 +339,59 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+}
+
+/* ===== Office announcement cards: badge and icon polish (hover lives in body.css) ===== */
+.office-announcement-card:focus-visible {
+  outline: 2px solid var(--brand-text);
+  outline-offset: 2px;
+}
+
+.office-announcement-thumb {
+  position: relative;
+}
+
+.office-announcement-thumb.is-placeholder svg {
+  width: 64px;
+  height: 64px;
+  padding: 16px;
+  border-radius: 50%;
+  background: var(--card-background);
+  box-shadow: 0 1px 4px var(--shadow-color-soft);
+  transition: transform 0.3s ease;
+}
+
+.office-announcement-card:hover .office-announcement-thumb.is-placeholder svg {
+  transform: rotate(-8deg) scale(1.15);
+}
+
+/* "New" pill on announcements posted in the last 7 days */
+.office-announcement-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--brand-color);
+  color: var(--text-on-brand);
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px var(--shadow-color-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .office-announcement-thumb.is-placeholder svg,
+  .office-announcement-more svg {
+    transition: none;
+  }
+
+  .office-announcement-card:hover .office-announcement-thumb.is-placeholder svg,
+  .office-announcement-card:hover .office-announcement-more svg {
+    transform: none;
+  }
 }
 
 /* ===== Manage Announcements list (admin) ===== */

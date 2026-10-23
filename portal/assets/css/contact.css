@@ -4,15 +4,14 @@ main h1 {
 }
 
 .contact-grid {
-    /* display: flex; */
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
+    align-items: stretch;
     gap: 20px;
 }
 
 .contact-card {
-    margin: 1.5em 0;
     padding: 20px 24px;
-    max-width: 840px;
     background-color: var(--card-background);
     border-radius: 8px;
     box-shadow: 0 1px 4px var(--shadow-color-soft);

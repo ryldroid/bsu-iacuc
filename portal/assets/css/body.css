@@ -274,10 +274,63 @@ body {
 }
 
 main {
+    --main-gutter: 40px;
+    --banner-bleed: calc(var(--main-gutter) + max(0px, 4vw - var(--sidebar-width) / 2));
     max-width: 92%;
     margin: 0 auto;
-    padding: 80px 40px;
+    padding: 80px var(--main-gutter);
     flex: 1;
+}
+
+/* ===== Page banner ===== */
+main:has(> .page-banner) {
+    padding-top: 0;
+}
+
+.page-banner {
+    display: flex;
+    align-items: center;
+    gap: .6em;
+    margin: 0 calc(-1 * var(--banner-bleed)) 2rem;
+    padding: 1.5rem var(--banner-bleed);
+    background:
+        linear-gradient(90deg, var(--brand-color), var(--brand-tint-strong)),
+        url("../images/background.webp") center / cover;
+    box-shadow: 0 2px 8px var(--shadow-color-soft);
+}
+
+.page-banner h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 2vw, 2.2rem);
+    line-height: 1.15;
+    color: var(--text-on-brand);
+    text-shadow: none;
+}
+
+.page-banner .guide-disc svg {
+    stroke: var(--brand-color);
+}
+
+.page-banner .guide-disc .guide-disc-fill,
+.page-banner .guide-disc:hover .guide-disc-fill {
+    fill: var(--text-on-brand);
+}
+
+.page-banner .guide-disc:hover {
+    opacity: .85;
+}
+
+/* ===== Page fade: content eases in on load (opacity only, no movement) ===== */
+@keyframes pageIn {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    main {
+        animation: pageIn 0.2s ease-out backwards;
+    }
 }
 
 /* ===== Headings & buttons ===== */
@@ -731,6 +784,7 @@ main a.underlined:hover {
 }
 
 .status-card {
+    --status-tone: var(--status-color-neutral);
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -763,20 +817,47 @@ main a.underlined:hover {
     transform: none;
 }
 
+.status-card[data-status="under-review"],
+.status-card[data-filter="to-review"] {
+    --status-tone: var(--status-color-under-review);
+}
+
+.status-card[data-status="needs-revision"],
+.status-card[data-filter="returned-for-revision"] {
+    --status-tone: var(--status-color-needs-revision);
+}
+
+.status-card[data-status="reviewed"],
+.status-card[data-filter="reviewed"] {
+    --status-tone: var(--status-color-reviewed);
+}
+
+.status-card[data-status="endorsed"],
+.status-card[data-filter="endorsed"] {
+    --status-tone: var(--status-color-endorsed);
+}
+
+.status-card[data-status="approved"],
+.status-card[data-filter="approved"] {
+    --status-tone: var(--status-color-approved);
+}
+
 .status-card .status-count {
     display: inline-block;
-    background: none;
-    color: var(--muted-text);
-    border-radius: 0;
-    padding: 0;
+    min-width: 1.8em;
+    text-align: center;
+    background: color-mix(in srgb, var(--status-tone) 20%, transparent);
+    color: var(--primary-text);
+    border-radius: 999px;
+    padding: 1px 7px;
     font-size: 0.8em;
-    font-weight: 400;
+    font-weight: 600;
     margin-left: 0;
 }
 
 .status-card.active .status-count {
-    background: none;
-    color: var(--secondary-text);
+    background: color-mix(in srgb, var(--status-tone) 40%, transparent);
+    color: var(--primary-text);
 }
 
 .dashboard-filter-row {
@@ -847,8 +928,9 @@ main a.underlined:hover {
     }
 
     main {
+        --main-gutter: 16px;
         max-width: 100%;
-        padding: 40px 16px;
+        padding: 40px var(--main-gutter);
     }
 
     .status-card.active {
@@ -933,14 +1015,13 @@ main a.underlined:hover {
 
 /* ===== Announcement card hover ===== */
 :is(.home-announcement-cont, .office-announcement-card) {
-    transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s, background-color 0.15s;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, background-color 0.15s;
 }
 
 :is(.home-announcement-cont, .office-announcement-card):is(:hover, :focus-visible) {
-    border-color: var(--brand-color-hover);
     background-color: var(--hover-surface-soft);
-    box-shadow: 0 6px 16px var(--shadow-color-soft);
-    transform: translateY(-2px);
+    box-shadow: 0 12px 28px var(--shadow-color-soft), 0 2px 6px var(--shadow-color-soft);
+    transform: translateY(-3px);
 }
 
 :is(.home-announcement-cont, .office-announcement-card) img {

@@ -105,22 +105,7 @@ class ContactOfficeModel extends Model
   // ===== MOVE OFFICE =====
   public function move(int $id, string $direction): bool
   {
-    $ids  = array_map('intval', array_column($this->getAll(), 'id'));
-    $from = array_search($id, $ids, true);
-    if ($from === false) return false;
-
-    $to = $direction === 'up' ? $from - 1 : $from + 1;
-    if (! isset($ids[$to])) return true;
-
-    [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
-
-    $stmt = $this->connection->prepare("UPDATE `contact_offices` SET sort_order = ? WHERE id = ?");
-    if (! $stmt) return false;
-    foreach ($ids as $position => $officeId) {
-      $stmt->bind_param('ii', $position, $officeId);
-      $stmt->execute();
-    }
-    return true;
+    return $this->moveInOrder('contact_offices', $id, $direction);
   }
 
   // ===== DELETE OFFICE =====

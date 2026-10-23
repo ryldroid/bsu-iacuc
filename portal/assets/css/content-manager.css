@@ -106,14 +106,48 @@
   }
 }
 
+/* ===== Reordering is hidden while a search is filtering the list ===== */
+.cm-list-wrap.is-filtered [data-cm-action="move"] {
+  display: none;
+}
+
+/* ===== Paragraph editor: add and delete paragraphs inside a form ===== */
+.audit-description+form[data-cm-dirty] {
+  margin-top: 1rem;
+}
+
+.cm-paragraph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cm-paragraph-list:not(:empty) {
+  margin-bottom: .5rem;
+}
+
+.cm-paragraph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.cm-paragraph-head .ann-row-actions {
+  opacity: 1;
+  padding: 0;
+}
+
 /* ===== Row action buttons: quiet until hovered ===== */
-.cm-list-wrap .ann-row-actions .row-btn {
+.cm-list-wrap .ann-row-actions .row-btn,
+.cm-paragraph-head .ann-row-actions .row-btn {
   background: transparent;
   border-color: var(--divider-color);
   color: var(--secondary-text);
 }
 
-.cm-list-wrap .ann-row-actions .row-btn:hover {
+.cm-list-wrap .ann-row-actions .row-btn:hover,
+.cm-paragraph-head .ann-row-actions .row-btn:hover {
   background: var(--brand-color);
   border-color: var(--brand-color);
   color: var(--text-on-brand);
@@ -210,6 +244,9 @@
 }
 
 .cm-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
   margin: 0;
   padding: 8px 12px;
   background: none;

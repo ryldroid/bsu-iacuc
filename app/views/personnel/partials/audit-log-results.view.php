@@ -6,6 +6,12 @@ $auditTotal      = $auditTotal      ?? 0;
 $auditPerPage    = $auditPerPage    ?? 10;
 $auditOffset     = $auditOffset     ?? 0;
 $auditFilterDate = $auditFilterDate ?? null;
+$auditToneKeywords = [
+  'danger'  => ['delete', 'fail', 'lock', 'denied', 'reject'],
+  'warning' => ['restore', 'edit', 'update', 'change', 'reset', 'unassign', 'return'],
+  'success' => ['success', 'approve', 'verified', 'confirm', 'reactivated', 'claimed'],
+  'info'    => ['creat', 'add', 'upload', 'download', 'submit', 'request'],
+];
 ?>
 <?php if (empty($auditLogs)): ?>
   <div class="empty-state">
@@ -31,7 +37,17 @@ $auditFilterDate = $auditFilterDate ?? null;
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($auditLogs as $log): ?>
+        <?php foreach ($auditLogs as $log):
+          $auditTone = 'neutral';
+          foreach ($auditToneKeywords as $tone => $words) {
+            foreach ($words as $word) {
+              if (str_contains($log['action'], $word)) {
+                $auditTone = $tone;
+                break 2;
+              }
+            }
+          }
+        ?>
           <tr>
             <td data-label="Timestamp">
               <?php $logTime = strtotime($log['created_at']); ?>
@@ -42,7 +58,7 @@ $auditFilterDate = $auditFilterDate ?? null;
               <?= htmlspecialchars($log['username']) ?>
               <span class="audit-viewer-role"><?= htmlspecialchars(ucfirst($log['role'])) ?></span>
             </td>
-            <td data-label="Action"><?= htmlspecialchars($log['action_label']) ?></td>
+            <td data-label="Action"><span class="audit-action audit-action--<?= $auditTone ?>"><?= htmlspecialchars($log['action_label']) ?></span></td>
             <td data-label="Target"><?= htmlspecialchars($log['target_label']) ?></td>
             <td data-label="Details"><?= htmlspecialchars($log['details']) ?></td>
             <td data-label="IP Address"><?= htmlspecialchars($log['ip_address']) ?></td>

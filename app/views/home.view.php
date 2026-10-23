@@ -7,8 +7,7 @@ $pubRoot     = $previewMode ? ROOT . '/preview' : ROOT;
 
 $siteSettings    = $siteSettings ?? [];
 $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - Institutional Animal Care and Use Committee';
-$aboutParagraph1 = $siteSettings['about_paragraph_1'] ?? '';
-$aboutParagraph2 = $siteSettings['about_paragraph_2'] ?? '';
+$aboutParagraphs = $siteSettings['about_paragraphs'] ?? [];
 
 $ccardMapEmbed = 'https://www.google.com/maps?cid=10697978370393166203&z=18&output=embed';
 $ccardMapLink  = 'https://www.google.com/maps/place/Cordillera+Center+for+Animal+Research+and+Development+(CCARD)/data=!4m2!3m1!1s0x0:0x9476daa5c618d17b';
@@ -25,7 +24,7 @@ include "includes/scroll-top.php";
 
     <main class="main-content" id="main-content" tabindex="-1">
         <!-- BANNER -->
-        <div class="banner">
+        <div class="banner page-banner">
             <div class="logos">
                 <img src="<?= IMGPATH ?>/bsu.webp" alt="BSU logo">
                 <img src="<?= IMGPATH ?>/ovpre.webp" alt="OVPRE logo">
@@ -42,12 +41,11 @@ include "includes/scroll-top.php";
                 <article class="iacuc-section">
                     <div class="home-iacuc">
                         <h2>What is IACUC?</h2>
-                        <p>
-                            <?= nl2br(htmlspecialchars($aboutParagraph1, ENT_QUOTES)) ?>
-                        </p>
-                        <p>
-                            <?= nl2br(htmlspecialchars($aboutParagraph2, ENT_QUOTES)) ?>
-                        </p>
+                        <?php foreach ($aboutParagraphs as $aboutParagraph): ?>
+                            <p>
+                                <?= nl2br(htmlspecialchars($aboutParagraph, ENT_QUOTES)) ?>
+                            </p>
+                        <?php endforeach; ?>
                         <p>
                             The IACUC reviews and endorses animal research protocols in accordance with
                             <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank" rel="noopener noreferrer">Republic Act No. 8485</a></strong> (Animal Welfare Act of 1998), as amended by
@@ -218,7 +216,7 @@ include "includes/scroll-top.php";
                                     <?php endif; ?>
                                     <time class="announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
                                     <?php if ($hasBody): ?>
-                                        <p class="announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
+                                        <p class="announcement-modal-text"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></p>
                                     <?php endif; ?>
                                 </template>
                             <?php endforeach; ?>

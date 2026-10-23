@@ -12,6 +12,10 @@
     min-width: 0;
 }
 
+:root {
+    --sidebar-width: 64px;
+}
+
 /* ===== Sidebar container ===== */
 aside {
     position: sticky;
@@ -23,7 +27,7 @@ aside {
     display: flex;
     flex-direction: column;
     height: calc(100vh - var(--header-offset, 52px));
-    width: 64px;
+    width: var(--sidebar-width);
     flex-shrink: 0;
 
     background-color: var(--sidebar-background);
@@ -150,8 +154,8 @@ aside a.active-link svg {
 }
 
 /* ===== Expanded sidebar (saved preference) ===== */
-html[data-sidebar="expanded"] aside {
-    width: 220px;
+html[data-sidebar="expanded"] {
+    --sidebar-width: 220px;
 }
 
 html[data-sidebar="expanded"] aside li>div {

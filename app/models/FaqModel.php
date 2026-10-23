@@ -22,25 +22,32 @@ class FaqModel extends Model
   }
 
   // ===== ADD FAQ =====
-  public function insert(int $sortOrder, string $question, string $answer): bool
+  public function insert(string $question, string $answer): bool
   {
     $stmt = $this->connection->prepare(
-      "INSERT INTO `faqs` (sort_order, question, answer) VALUES (?, ?, ?)"
+      "INSERT INTO `faqs` (sort_order, question, answer)
+             SELECT COALESCE(MAX(sort_order), -1) + 1, ?, ? FROM `faqs`"
     );
     if (! $stmt) return false;
-    $stmt->bind_param('iss', $sortOrder, $question, $answer);
+    $stmt->bind_param('ss', $question, $answer);
     return $stmt->execute();
   }
 
   // ===== EDIT FAQ =====
-  public function update(int $id, int $sortOrder, string $question, string $answer): bool
+  public function update(int $id, string $question, string $answer): bool
   {
     $stmt = $this->connection->prepare(
-      "UPDATE `faqs` SET sort_order = ?, question = ?, answer = ? WHERE id = ?"
+      "UPDATE `faqs` SET question = ?, answer = ? WHERE id = ?"
     );
     if (! $stmt) return false;
-    $stmt->bind_param('issi', $sortOrder, $question, $answer, $id);
+    $stmt->bind_param('ssi', $question, $answer, $id);
     return $stmt->execute();
+  }
+
+  // ===== MOVE FAQ =====
+  public function move(int $id, string $direction): bool
+  {
+    return $this->moveInOrder('faqs', $id, $direction);
   }
 
   // ===== DELETE FAQ =====

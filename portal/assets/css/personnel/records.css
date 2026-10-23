@@ -23,13 +23,32 @@
   box-shadow: 0 2px 6px var(--shadow-color-soft);
 }
 
-/* ===== Export button ===== */
+/* ===== Records search row: the search fills the space beside Add Record ===== */
+.records-page-header .inbox-search-wrap {
+  max-width: none;
+  margin-left: 0;
+}
+
+/* ===== Export button (sits at the end of the period bar) ===== */
 .records-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 auto;
+  padding: 7px 14px;
+  font-size: .82em;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: var(--btn-radius);
   background: var(--card-background);
   color: var(--brand-text);
   border: 1px solid var(--divider-color);
   box-shadow: none;
   text-decoration: none;
+}
+
+.records-period-summary+.records-export-btn {
+  margin-left: 0;
 }
 
 .records-export-btn:hover {

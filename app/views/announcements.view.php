@@ -33,13 +33,15 @@ include "includes/scroll-top.php";
                 <?php else: ?>
                     <!-- ===== Office announcement cards ===== -->
                     <div class="office-announcements-list">
-                        <?php foreach ($officeAnnouncements as $post):
+                        <?php $annIndex = 0;
+                        foreach ($officeAnnouncements as $post):
                             $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
                             $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
                             $hasImage = !empty($post['image_path']);
                             $hasTitle = $annTitle !== '';
                             $hasBody = $annBody !== '';
-                            $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody;
+                            $isFeatured = $annIndex++ === 0;
+                            $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody && !$isFeatured;
 
                             if ($hasTitle) {
                                 $annHeading = $annTitle;
@@ -55,26 +57,44 @@ include "includes/scroll-top.php";
                             $annTimestamp = strtotime($post['created_at']);
                             $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
                             $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+                            $isNew = $annTimestamp && $annTimestamp >= strtotime('-7 days');
                             $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
                         ?>
                             <button type="button"
-                                class="office-announcement-card<?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
+                                class="office-announcement-card<?= $isFeatured ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
                                 data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
                                 aria-haspopup="dialog">
 
                                 <?php if ($hasImage): ?>
                                     <span class="office-announcement-thumb">
                                         <img src="<?= $annImgUrl ?>" alt="">
+                                        <?php if ($isNew): ?><span class="office-announcement-badge">New</span><?php endif; ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="office-announcement-thumb is-placeholder">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#announcement-icon" />
+                                        </svg>
+                                        <?php if ($isNew): ?><span class="office-announcement-badge">New</span><?php endif; ?>
                                     </span>
                                 <?php endif; ?>
 
                                 <?php if (!$isPhotoOnly): ?>
                                     <span class="office-announcement-body-wrap">
+                                        <?php if ($isFeatured): ?><span class="office-announcement-kicker">Latest</span><?php endif; ?>
                                         <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
                                         <?php if ($annSnippet !== ''): ?>
                                             <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
                                         <?php endif; ?>
-                                        <time class="office-announcement-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                        <span class="office-announcement-foot">
+                                            <time class="office-announcement-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                            <span class="office-announcement-more" aria-hidden="true">
+                                                Read more
+                                                <svg width="14" height="14" viewBox="0 0 24 24" focusable="false">
+                                                    <use href="#arrow-right-icon" />
+                                                </svg>
+                                            </span>
+                                        </span>
                                     </span>
                                 <?php else: ?>
                                     <time class="office-announcement-date office-announcement-date--photo" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
@@ -100,7 +120,7 @@ include "includes/scroll-top.php";
                                 <?php endif; ?>
                                 <time class="announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
                                 <?php if ($hasBody): ?>
-                                    <p class="announcement-modal-text"><?= nl2br(htmlspecialchars($annBody, ENT_QUOTES)) ?></p>
+                                    <p class="announcement-modal-text"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></p>
                                 <?php endif; ?>
                             </template>
                         <?php endforeach; ?>
@@ -204,7 +224,12 @@ include "includes/scroll-top.php";
         const list = document.querySelector('.office-announcements-list');
         if (!list) return;
 
-        const cards = [...list.querySelectorAll('.office-announcement-card')];
+        // The featured (latest) card stays pinned, so only the rest is paginated
+        const cards = [...list.querySelectorAll('.office-announcement-card:not(.office-announcement-card--featured)')];
+        if (!cards.length) {
+            document.getElementById('paginationBar').classList.add('is-hidden');
+            return;
+        }
         let firstRender = true;
 
         const pager = createPagination({
@@ -212,7 +237,7 @@ include "includes/scroll-top.php";
             buttons: document.getElementById('paginationButtons'),
             rowsSelect: document.getElementById('rowsPerPageSelect'),
             defaultRows: 12,
-            noun: 'announcements',
+            noun: 'earlier announcements',
             storageKey: 'announcements',
             onChange: render
         });

@@ -11,6 +11,9 @@ class SiteSettingModel extends Model
     foreach ($rows as $row) {
       $settings[$row['setting_key']] = $row['setting_value'];
     }
+    $settings['about_paragraphs'] = isset($settings['about_paragraphs'])
+      ? (json_decode($settings['about_paragraphs'], true) ?: [])
+      : array_values(array_filter([$settings['about_paragraph_1'] ?? '', $settings['about_paragraph_2'] ?? ''], 'strlen'));
     return $settings;
   }
 

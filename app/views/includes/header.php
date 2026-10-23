@@ -255,33 +255,6 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                   </div>
                 </div>
 
-                <!-- ===== Preferences ===== -->
-                <section class="account-card">
-                  <h2>Preferences</h2>
-                  <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
-                    <span>Theme</span>
-                    <div class="theme-options">
-                      <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
-                        <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
-                          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#<?= $themeIcon ?>" />
-                          </svg>
-                        </button>
-                      <?php endforeach; ?>
-                    </div>
-                  </div>
-                  <?php if ($canPreviewSite): ?>
-                    <div class="account-actions">
-                      <a class="button" href="<?= ROOT ?>/preview/home" target="_blank" rel="noopener">
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                          <use href="#eye-icon" />
-                        </svg>
-                        Preview public site
-                      </a>
-                    </div>
-                  <?php endif; ?>
-                </section>
-
                 <?php if ($role === 'researcher' && !empty($accountUser['cert_path'])): ?>
                   <!-- ===== Training certificate ===== -->
                   <section class="account-card account-card-row">
@@ -418,10 +391,22 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                   </details>
                 </form>
 
-                <!-- ===== Email notifications ===== -->
+                <!-- ===== Preferences ===== -->
                 <form id="email-notifications-form" class="account-card" method="POST" action="<?= ROOT ?>/user/notifications">
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                  <h2>Email Notifications</h2>
+                  <h2>Preferences</h2>
+                  <div class="dropdown-theme" role="radiogroup" aria-label="Theme">
+                    <span>Theme</span>
+                    <div class="theme-options">
+                      <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
+                        <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
+                          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#<?= $themeIcon ?>" />
+                          </svg>
+                        </button>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
                   <label class="switch-toggle" for="email_notifications">
                     <span>Email me about protocol updates</span>
                     <span class="switch-toggle-control">
@@ -433,6 +418,16 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                   <p class="helper">
                     <span class="provider-blocked-note" <?= empty($accountUser['email_provider_blocked']) ? 'hidden' : '' ?>>You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</span>
                   </p>
+                  <?php if ($canPreviewSite): ?>
+                    <div class="account-actions">
+                      <a class="button" href="<?= ROOT ?>/preview/home" target="_blank" rel="noopener">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#eye-icon" />
+                        </svg>
+                        Preview public site
+                      </a>
+                    </div>
+                  <?php endif; ?>
                 </form>
 
                 <!-- ===== Account actions ===== -->

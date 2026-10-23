@@ -1,9 +1,5 @@
 /* ===== PERSONNEL DASHBOARD:  personnel-home.css ===== */
 
-main {
-    padding: 52px 16px;
-}
-
 /* ===== Dashboard card (formerly the tab panel; the tab strip is gone, so it stands alone) ===== */
 .dashboard-panel {
     /* background: var(--card-background); */
@@ -42,7 +38,7 @@ main {
 }
 
 .dashboard-page-header .row-btn {
-    margin: 0;
+    margin: 0 0 0 auto;
     background: var(--brand-color);
     color: var(--text-on-brand);
 

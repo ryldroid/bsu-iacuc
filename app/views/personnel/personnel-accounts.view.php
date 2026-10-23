@@ -97,7 +97,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                     <!-- DOWNLOAD AUDIT LOGS -->
                     <section class="accounts-card audit-section">
-                        <h2>Download Audit Logs</h2>
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#calendar-icon" />
+                            </svg>
+                            Download Audit Logs
+                        </h2>
                         <p class="audit-description">Export system activity logs to Excel (default at 90 days selection)</p>
 
                         <form method="POST" action="<?= ROOT ?>/personnel/downloadAuditLogs" class="audit-form" id="auditForm">
@@ -142,7 +147,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                 <?php if ($isStaff): ?>
                     <!-- PENDING ACCOUNTS -->
                     <section class="accounts-card pending-section">
-                        <h2>Pending Personnel Approvals</h2>
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#clock-icon" />
+                            </svg>
+                            Pending Personnel Approvals
+                        </h2>
 
                         <?php if (empty($pending)): ?>
                             <div class="empty-state">
@@ -195,7 +205,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                     <!-- GENERATE INVITE LINK -->
                     <section class="accounts-card invite-section">
-                        <h2>Personnel Registration Link</h2>
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#website-icon" />
+                            </svg>
+                            Personnel Registration Link
+                        </h2>
 
                         <form class="invite-form" action="<?= ROOT ?>/personnel/generate_invite" method="POST">
                             <input type="hidden"

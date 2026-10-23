@@ -100,6 +100,30 @@ class Model
         );
     }
 
+    // ===== MOVE ROW IN SORT ORDER =====
+    protected function moveInOrder(string $table, int $id, string $direction): bool
+    {
+        $result = $this->connection->query("SELECT id FROM `$table` ORDER BY sort_order ASC, id ASC");
+        if (! $result) return false;
+
+        $ids  = array_map('intval', array_column($result->fetch_all(MYSQLI_ASSOC), 'id'));
+        $from = array_search($id, $ids, true);
+        if ($from === false) return false;
+
+        $to = $direction === 'up' ? $from - 1 : $from + 1;
+        if (! isset($ids[$to])) return true;
+
+        [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
+
+        $stmt = $this->connection->prepare("UPDATE `$table` SET sort_order = ? WHERE id = ?");
+        if (! $stmt) return false;
+        foreach ($ids as $position => $rowId) {
+            $stmt->bind_param('ii', $position, $rowId);
+            $stmt->execute();
+        }
+        return true;
+    }
+
     // ===== FATAL ERROR =====
     private function fatalError(string $message): void
     {

@@ -105,6 +105,7 @@ class Access
       'site_content_faq_get' => 'staff',
       'site_content_faq_edit' => 'staff',
       'site_content_faq_delete' => 'staff',
+      'site_content_faq_move' => 'staff',
       'accounts' => 'staff',
       'auditlogresults' => 'staff',
       'downloadauditlogs' => 'staff',
