@@ -1,6 +1,6 @@
 <?php
 
-/** @var bool        $isBsuResearcher */
+/** @var bool        $mustPayInPerson */
 /** @var string|null $paymentModalTitle */
 ?>
 <!-- ===== Payment modal (shared by the submissions list and the protocol viewer) ===== -->
@@ -27,7 +27,7 @@
 
       <div id="paymentModalError" class="alert error-messages" hidden></div>
 
-      <?php if (!$isBsuResearcher): ?>
+      <?php if (!$mustPayInPerson): ?>
         <div class="consent-list">
           <label class="consent-item">
             <input type="radio" class="consent-radio" name="payment_method" value="in_person"

@@ -67,7 +67,7 @@ $paymentMethod     = $protocol['payment_method'] ?? null;
 $canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
-$isBsuResearcher   = UserModel::isBsuSchool($protocol['submitter_school'] ?? '');
+$mustPayInPerson   = UserModel::mustPayInPerson($protocol['submitter_school'] ?? '');
 
 $fileUrl    = ROOT . '/apply/file/' . (int) $version['id'];
 $annotApi   = ROOT . '/apply/annotate';
@@ -713,7 +713,7 @@ endif; ?>
                                 ]) : 'null' ?>;
     const BACK_URL = <?= json_encode($backUrl) ?>;
     const SIGNED_SCAN_VIEWER_URL = <?= json_encode($latestSignedScanViewerUrl ?: null) ?>;
-    const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
+    const MUST_PAY_IN_PERSON = <?= $mustPayInPerson ? 'true' : 'false' ?>;
 </script>
 <script src="<?= asset_js('viewer.js') ?>"></script>
 <?php if ($canConfirmPayment): ?>

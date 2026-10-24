@@ -34,7 +34,7 @@ class Submissions extends Controller
 
         $cert          = $this->userModel->getCert($userId);
         $currentUser   = $this->userModel->getUser($userId);
-        $isBsuResearcher = UserModel::isBsuSchool($currentUser['school'] ?? '');
+        $mustPayInPerson = UserModel::mustPayInPerson($currentUser['school'] ?? '');
 
         $statuses = [
             'Under Review',
@@ -52,7 +52,7 @@ class Submissions extends Controller
             'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'cert'            => $cert,
-            'isBsuResearcher' => $isBsuResearcher,
+            'mustPayInPerson' => $mustPayInPerson,
             'csrf'            => $this->generateCsrfToken(),
             'updatesEndpoint' => 'submissions/checkupdates',
             'updatesBaseline' => $updatesBaseline,

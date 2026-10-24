@@ -3,7 +3,7 @@
 /** @var array $protocols */
 /** @var array $statuses  */
 /** @var array|null $cert */
-/** @var bool  $isBsuResearcher */
+/** @var bool  $mustPayInPerson */
 /** @var string $csrf */
 /** @var array $actor */
 
@@ -38,7 +38,7 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'Your protocol passed CCARD review. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. BSU researchers must pay in person, while researchers outside BSU may pay in person or online by contacting the CCARD director. Once CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
+        'desc'  => 'Your protocol passed CCARD review. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while everyone else may pay in person or online by contacting the CCARD director. Once CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division.',
     ],
     'endorsed' => [
         'label' => 'Endorsed',
@@ -489,7 +489,7 @@ include 'includes/guide.php';
 <!-- ===== Page config and hard copy claim ===== -->
 <script>
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
-    const IS_BSU_RESEARCHER = <?= $isBsuResearcher ? 'true' : 'false' ?>;
+    const MUST_PAY_IN_PERSON = <?= $mustPayInPerson ? 'true' : 'false' ?>;
     const HARD_COPY_CLAIM_API = <?= json_encode(ROOT . '/apply/hard_copy_claim') ?>;
 
     // ===== Hard copy claim =====

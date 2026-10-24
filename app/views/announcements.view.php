@@ -4,6 +4,101 @@ $title = 'Announcements';
 include "includes/header.php";
 include "includes/scroll-top.php";
 
+$officeAnnouncements = $officeAnnouncements ?? [];
+$carouselSlideCount = 5;
+$carouselPosts = array_slice($officeAnnouncements, 0, $carouselSlideCount);
+$earlierPosts = array_slice($officeAnnouncements, $carouselSlideCount);
+
+// ===== One announcement card plus its modal template =====
+$renderAnnouncement = function (array $post, bool $isSlide) {
+    $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
+    $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
+    $hasImage = !empty($post['image_path']);
+    $hasTitle = $annTitle !== '';
+    $hasBody = $annBody !== '';
+    $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody && !$isSlide;
+
+    if ($hasTitle) {
+        $annHeading = $annTitle;
+        $annSnippet = $hasBody ? $annBody : '';
+    } elseif ($hasBody) {
+        $annHeading = $annBody;
+        $annSnippet = '';
+    } else {
+        $annHeading = 'Photo update';
+        $annSnippet = '';
+    }
+    $isUntitled = !$hasTitle && !$hasBody;
+    $annTimestamp = strtotime($post['created_at']);
+    $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
+    $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+    $isNew = $annTimestamp && $annTimestamp >= strtotime('-' . ANNOUNCEMENT_NEW_DAYS . ' days');
+    $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
+?>
+    <button type="button"
+        class="office-announcement-card<?= $isSlide ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isNew ? ' is-new' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
+        data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
+        aria-haspopup="dialog">
+
+        <?php if ($hasImage): ?>
+            <span class="office-announcement-thumb">
+                <img src="<?= $annImgUrl ?>" alt="">
+                <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
+            </span>
+        <?php else: ?>
+            <span class="office-announcement-thumb is-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#announcement-icon" />
+                </svg>
+                <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
+            </span>
+        <?php endif; ?>
+
+        <?php if (!$isPhotoOnly): ?>
+            <span class="office-announcement-body-wrap">
+                <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
+                <?php if ($annSnippet !== ''): ?>
+                    <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
+                <?php endif; ?>
+                <span class="office-announcement-foot">
+                    <time class="office-announcement-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                    <span class="office-announcement-more" aria-hidden="true">
+                        Read more
+                        <svg width="14" height="14" viewBox="0 0 24 24" focusable="false">
+                            <use href="#arrow-right-icon" />
+                        </svg>
+                    </span>
+                </span>
+            </span>
+        <?php else: ?>
+            <time class="office-announcement-date office-announcement-date--photo" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+        <?php endif; ?>
+    </button>
+
+    <!-- ===== Announcement modal template ===== -->
+    <template id="annModalTpl-<?= (int) $post['id'] ?>">
+        <?php if ($hasImage): ?>
+            <div class="announcement-modal-image-wrap">
+                <img class="announcement-modal-image"
+                    src="<?= $annImgUrl ?>" alt="">
+                <button type="button" class="image-zoom-btn" title="Zoom image" aria-label="Zoom image"
+                    data-zoom-src="<?= $annImgUrl ?>" data-zoom-alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#search-icon" />
+                    </svg>
+                </button>
+            </div>
+        <?php endif; ?>
+        <?php if ($hasTitle): ?>
+            <h2 class="announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
+        <?php endif; ?>
+        <time class="announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+        <?php if ($hasBody): ?>
+            <p class="announcement-modal-text"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></p>
+        <?php endif; ?>
+    </template>
+<?php
+};
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('announcements.css') ?>">
@@ -22,108 +117,48 @@ include "includes/scroll-top.php";
 
         <div class="announcements-header">
             <h1 class="announcements-title">Announcements</h1>
+            <p class="page-subtitle">News and trainings from CCARD and our partners</p>
         </div>
+
+        <?php if (empty($officeAnnouncements)): ?>
+            <p class="announcements-empty">No announcements yet. Check back soon.</p>
+        <?php else: ?>
+            <!-- ===== Latest announcements carousel ===== -->
+            <section class="announcement-carousel" aria-roledescription="carousel" aria-label="Latest announcements">
+                <div class="announcement-carousel-track" id="announcementTrack">
+                    <?php foreach ($carouselPosts as $post) {
+                        $renderAnnouncement($post, true);
+                    } ?>
+                </div>
+
+                <div class="announcement-carousel-controls is-hidden" id="announcementControls">
+                    <button type="button" class="carousel-arrow" id="announcementPrev" aria-label="Previous announcement">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#back-icon" />
+                        </svg>
+                    </button>
+                    <div class="carousel-dots" id="announcementDots"></div>
+                    <button type="button" class="carousel-arrow" id="announcementNext" aria-label="Next announcement">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#arrow-right-icon" />
+                        </svg>
+                    </button>
+                </div>
+            </section>
+        <?php endif; ?>
 
         <div class="announcements-sections">
             <section class="announcements">
-                <h2>From Our Office</h2>
+                <h2>Earlier Announcements</h2>
 
-                <?php if (empty($officeAnnouncements)): ?>
-                    <p class="announcements-empty">No announcements yet. Check back soon.</p>
+                <?php if (empty($earlierPosts)): ?>
+                    <p class="announcements-empty">No earlier announcements.</p>
                 <?php else: ?>
-                    <!-- ===== Office announcement cards ===== -->
+                    <!-- ===== Earlier announcement cards ===== -->
                     <div class="office-announcements-list">
-                        <?php $annIndex = 0;
-                        foreach ($officeAnnouncements as $post):
-                            $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
-                            $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
-                            $hasImage = !empty($post['image_path']);
-                            $hasTitle = $annTitle !== '';
-                            $hasBody = $annBody !== '';
-                            $isFeatured = $annIndex++ === 0;
-                            $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody && !$isFeatured;
-
-                            if ($hasTitle) {
-                                $annHeading = $annTitle;
-                                $annSnippet = $hasBody ? $annBody : '';
-                            } elseif ($hasBody) {
-                                $annHeading = $annBody;
-                                $annSnippet = '';
-                            } else {
-                                $annHeading = 'Photo update';
-                                $annSnippet = '';
-                            }
-                            $isUntitled = !$hasTitle && !$hasBody;
-                            $annTimestamp = strtotime($post['created_at']);
-                            $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
-                            $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
-                            $isNew = $annTimestamp && $annTimestamp >= strtotime('-' . ANNOUNCEMENT_NEW_DAYS . ' days');
-                            $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
-                        ?>
-                            <button type="button"
-                                class="office-announcement-card<?= $isFeatured ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isNew ? ' is-new' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
-                                data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
-                                aria-haspopup="dialog">
-
-                                <?php if ($hasImage): ?>
-                                    <span class="office-announcement-thumb">
-                                        <img src="<?= $annImgUrl ?>" alt="">
-                                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="office-announcement-thumb is-placeholder">
-                                        <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#announcement-icon" />
-                                        </svg>
-                                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
-                                    </span>
-                                <?php endif; ?>
-
-                                <?php if (!$isPhotoOnly): ?>
-                                    <span class="office-announcement-body-wrap">
-                                        <!-- <?php if ($isFeatured): ?><span class="office-announcement-kicker">Latest</span><?php endif; ?> -->
-                                        <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
-                                        <?php if ($annSnippet !== ''): ?>
-                                            <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
-                                        <?php endif; ?>
-                                        <span class="office-announcement-foot">
-                                            <time class="office-announcement-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
-                                            <span class="office-announcement-more" aria-hidden="true">
-                                                Read more
-                                                <svg width="14" height="14" viewBox="0 0 24 24" focusable="false">
-                                                    <use href="#arrow-right-icon" />
-                                                </svg>
-                                            </span>
-                                        </span>
-                                    </span>
-                                <?php else: ?>
-                                    <time class="office-announcement-date office-announcement-date--photo" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
-                                <?php endif; ?>
-                            </button>
-
-                            <!-- ===== Announcement modal templates ===== -->
-                            <template id="annModalTpl-<?= (int) $post['id'] ?>">
-                                <?php if ($hasImage): ?>
-                                    <div class="announcement-modal-image-wrap">
-                                        <img class="announcement-modal-image"
-                                            src="<?= $annImgUrl ?>" alt="">
-                                        <button type="button" class="image-zoom-btn" title="Zoom image" aria-label="Zoom image"
-                                            data-zoom-src="<?= $annImgUrl ?>" data-zoom-alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                <use href="#search-icon" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if ($hasTitle): ?>
-                                    <h2 class="announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>
-                                <?php endif; ?>
-                                <time class="announcement-modal-date" datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
-                                <?php if ($hasBody): ?>
-                                    <p class="announcement-modal-text"><?= htmlspecialchars($annBody, ENT_QUOTES) ?></p>
-                                <?php endif; ?>
-                            </template>
-                        <?php endforeach; ?>
+                        <?php foreach ($earlierPosts as $post) {
+                            $renderAnnouncement($post, false);
+                        } ?>
                     </div>
 
                     <!-- ===== Pagination ===== -->
@@ -140,7 +175,9 @@ include "includes/scroll-top.php";
                             </select>
                         </div>
                     </div>
+                <?php endif; ?>
 
+                <?php if (!empty($officeAnnouncements)): ?>
                     <!-- ===== Announcement modal ===== -->
                     <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
                         <div class="modal-card announcement-modal-card">
@@ -153,7 +190,6 @@ include "includes/scroll-top.php";
                         </div>
                     </div>
                 <?php endif; ?>
-
             </section>
 
             <section class="fb-cards">
@@ -220,16 +256,67 @@ include "includes/scroll-top.php";
             closeId: 'officeAnnouncementModalClose'
         });
 
-        // ===== Pagination for the office announcement cards =====
+        // ===== Carousel for the latest announcements =====
+        const track = document.getElementById('announcementTrack');
+        if (track) {
+            const slides = [...track.querySelectorAll('.office-announcement-card')];
+            const controls = document.getElementById('announcementControls');
+            const dotsWrap = document.getElementById('announcementDots');
+            const prevButton = document.getElementById('announcementPrev');
+            const nextButton = document.getElementById('announcementNext');
+            const scrollBehavior = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+            const dots = slides.map((slide, index) => {
+                const dot = document.createElement('button');
+                dot.type = 'button';
+                dot.className = 'carousel-dot';
+                dot.setAttribute('aria-label', 'Go to announcement ' + (index + 1));
+                dot.addEventListener('click', () => track.scrollTo({
+                    left: slide.offsetLeft,
+                    behavior: scrollBehavior()
+                }));
+                dotsWrap.appendChild(dot);
+                return dot;
+            });
+
+            function updateCarousel() {
+                const atStart = track.scrollLeft <= 1;
+                const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+                let active = slides.reduce((best, slide, index) =>
+                    Math.abs(slide.offsetLeft - track.scrollLeft) < Math.abs(slides[best].offsetLeft - track.scrollLeft) ? index : best, 0);
+                if (atEnd) active = slides.length - 1;
+
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('is-active', index === active);
+                    if (index === active) dot.setAttribute('aria-current', 'true');
+                    else dot.removeAttribute('aria-current');
+                });
+                prevButton.disabled = atStart;
+                nextButton.disabled = atEnd;
+            }
+
+            prevButton.addEventListener('click', () => track.scrollBy({
+                left: -slides[0].offsetWidth,
+                behavior: scrollBehavior()
+            }));
+            nextButton.addEventListener('click', () => track.scrollBy({
+                left: slides[0].offsetWidth,
+                behavior: scrollBehavior()
+            }));
+            track.addEventListener('scroll', updateCarousel, {
+                passive: true
+            });
+            window.addEventListener('resize', updateCarousel);
+
+            controls.classList.toggle('is-hidden', slides.length < 2);
+            updateCarousel();
+        }
+
+        // ===== Pagination for the earlier announcement cards =====
         const list = document.querySelector('.office-announcements-list');
         if (!list) return;
 
-        // The featured (latest) card stays pinned, so only the rest is paginated
-        const cards = [...list.querySelectorAll('.office-announcement-card:not(.office-announcement-card--featured)')];
-        if (!cards.length) {
-            document.getElementById('paginationBar').classList.add('is-hidden');
-            return;
-        }
+        const cards = [...list.querySelectorAll('.office-announcement-card')];
         let firstRender = true;
 
         const pager = createPagination({

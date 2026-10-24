@@ -8,12 +8,6 @@
   margin: 0 0 0.2em;
 }
 
-.announcements-subtitle {
-  font-size: 0.85em;
-  color: var(--secondary-text);
-  margin-bottom: 1em;
-}
-
 /* ===== Sections & Facebook embeds ===== */
 /* The office announcements fill all the width the partner column leaves over */
 .announcements-sections {
@@ -30,10 +24,8 @@
 
 .announcements-sections h2 {
   margin: 0;
-  padding-bottom: 0.6em;
   font-size: 1.15em;
   text-align: left;
-  border-bottom: 1px solid var(--divider-color);
 }
 
 /* Too narrow for two columns: partner pages go below the office cards, side by side */
@@ -64,7 +56,6 @@ h2 {
 }
 
 .fb-page-section {
-  border: 1px solid var(--divider-color);
   border-radius: 12px;
   overflow: hidden;
   background: var(--card-background);
@@ -81,7 +72,6 @@ h2 {
   font-size: 0.8em;
   font-weight: 600;
   color: var(--brand-text);
-  border-bottom: 1px solid var(--divider-color);
   background: var(--divider-color-subtle);
 }
 
@@ -118,7 +108,6 @@ h2 {
   width: 100%;
   min-width: 0;
   padding: 0;
-  border: 1px solid var(--divider-color);
   border-radius: 12px;
   background: var(--card-background);
   box-shadow: 0 1px 4px var(--shadow-color-soft);
@@ -150,7 +139,7 @@ h2 {
   align-items: center;
   justify-content: center;
   color: var(--brand-text);
-  background: linear-gradient(135deg, var(--brand-surface-tint), var(--brand-surface-faint));
+  background: var(--brand-surface-tint);
 }
 
 .office-announcement-thumb img {
@@ -215,7 +204,6 @@ h2 {
   gap: 0.75em;
   margin-top: auto;
   padding-top: 0.75em;
-  border-top: 1px solid var(--divider-color-subtle);
 }
 
 .office-announcement-more {
@@ -240,17 +228,8 @@ h2 {
   transform: translateX(3px);
 }
 
-/* Latest announcement: wide card with the image beside the text */
-.office-announcement-kicker {
-  font-size: 0.72em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brand-text);
-}
-
+/* Carousel slides: wide card with the image beside the text */
 .office-announcement-card--featured {
-  grid-column: 1 / -1;
   flex-direction: row;
   min-height: 300px;
 }
@@ -339,6 +318,107 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+}
+
+/* ===== Latest announcements carousel (page-wide) ===== */
+.announcement-carousel {
+  margin-bottom: 2.5em;
+}
+
+.announcement-carousel-track {
+  position: relative;
+  display: flex;
+  gap: 1.5em;
+  padding: 0.5em 0.25em 1.75em;
+  margin: -0.5em -0.25em -1em;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0.25em;
+  scrollbar-width: none;
+}
+
+.announcement-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Each slide stops short of the full width so the next one peeks in */
+.announcement-carousel-track>.office-announcement-card {
+  flex: 0 0 calc(100% - 8rem);
+  scroll-snap-align: start;
+}
+
+.announcement-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+}
+
+.carousel-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--card-background);
+  color: var(--brand-text);
+  box-shadow: 0 2px 8px var(--shadow-color-soft);
+}
+
+.carousel-arrow:hover:not(:disabled) {
+  background: var(--brand-color-hover);
+  color: var(--text-on-brand);
+}
+
+.carousel-arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.carousel-dots {
+  display: flex;
+  align-items: center;
+}
+
+.carousel-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.carousel-dot::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--muted-text);
+  opacity: 0.5;
+  transition: width 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.carousel-dot.is-active::before {
+  width: 30px;
+  opacity: 1;
+  background: var(--brand-text);
+}
+
+@media (max-width: 900px) {
+  .announcement-carousel-track>.office-announcement-card {
+    flex-basis: calc(100% - 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-dot::before {
+    transition: none;
+  }
 }
 
 /* ===== Office announcement cards: badge and icon polish (hover lives in body.css) ===== */

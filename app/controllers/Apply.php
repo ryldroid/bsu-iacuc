@@ -1751,8 +1751,8 @@ class Apply extends Controller
             $this->jsonError(422, 'Payment can only be confirmed once a protocol has been reviewed.');
         }
 
-        $isBsu  = UserModel::isBsuSchool($protocol['submitter_school'] ?? '');
-        $method = $isBsu ? 'in_person' : ($_POST['payment_method'] ?? '');
+        $mustPayInPerson = UserModel::mustPayInPerson($protocol['submitter_school'] ?? '');
+        $method = $mustPayInPerson ? 'in_person' : ($_POST['payment_method'] ?? '');
         if (!in_array($method, ['in_person', 'online'], true)) {
             $this->jsonError(400, 'Please choose a payment method.');
         }

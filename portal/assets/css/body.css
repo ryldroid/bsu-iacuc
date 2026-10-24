@@ -333,6 +333,13 @@ main:has(> .page-banner) {
     }
 }
 
+/* ===== Page subtitle (one line under a page title) ===== */
+.page-subtitle {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--secondary-text);
+}
+
 /* ===== Headings & buttons ===== */
 h1,
 h2 {

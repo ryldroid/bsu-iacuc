@@ -6,10 +6,15 @@ class UserModel extends Model
 
   public const RESEARCHER_TYPES = ['Student', 'Faculty', 'Staff', 'Researcher'];
 
-  // True for any Benguet State University campus
-  public static function isBsuSchool(?string $school): bool
+  // Schools whose researchers must pay the clearance fee in person
+  public const IN_PERSON_ONLY_SCHOOLS = [
+    'Benguet State University - La Trinidad Campus',
+    'Benguet State University - Secondary Laboratory School',
+  ];
+
+  public static function mustPayInPerson(?string $school): bool
   {
-    return stripos(trim($school ?? ''), 'Benguet State University') !== false;
+    return in_array(trim($school ?? ''), self::IN_PERSON_ONLY_SCHOOLS, true);
   }
 
   // ===== GETTING USERS =====

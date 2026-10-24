@@ -1,12 +1,12 @@
 // ===== Payment modal =====
 // Shared by the submissions list and the protocol viewer. The page defines
-// CSRF_TOKEN, ROOT_URL and IS_BSU_RESEARCHER; the viewer also defines PROTOCOL_ID.
+// CSRF_TOKEN, ROOT_URL and MUST_PAY_IN_PERSON; the viewer also defines PROTOCOL_ID.
 
 const paymentModal = document.getElementById("paymentModalBackdrop");
 let currentPaymentProtocolId = null;
 
 function getSelectedPaymentMethod() {
-  if (IS_BSU_RESEARCHER) return "in_person";
+  if (MUST_PAY_IN_PERSON) return "in_person";
   const checked = document.querySelector(
     'input[name="payment_method"]:checked',
   );
@@ -32,7 +32,7 @@ function openPaymentModal(protocolId = PROTOCOL_ID) {
   document.getElementById("payment_proof_file").value = "";
   resetPaymentFilePicker();
   document.getElementById("confirm_in_person_paid").checked = false;
-  if (!IS_BSU_RESEARCHER) {
+  if (!MUST_PAY_IN_PERSON) {
     document.querySelector(
       'input[name="payment_method"][value="in_person"]',
     ).checked = true;
