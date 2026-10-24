@@ -70,6 +70,10 @@ let annotationsFailed = false;
 let pendingBox = null;
 let dragState = null;
 let editingAnnotId = null;
+let zoom = 1;
+let renderToken = 0;
+let renderedWidth = 0;
+let renderTimer = null;
 
 // ===== Load PDF =====
 async function loadPdf() {
@@ -79,59 +83,7 @@ async function loadPdf() {
   }
   try {
     pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-    const col = document.getElementById("pdfColumn");
-    col.innerHTML = "";
-
-    for (let p = 1; p <= pdfDoc.numPages; p++) {
-      const page = await pdfDoc.getPage(p);
-      const scale = Math.min(
-        1.5,
-        (col.clientWidth - 48) /
-          page.getViewport({
-            scale: 1,
-          }).width,
-      );
-      const vp = page.getViewport({
-        scale,
-      });
-      const outputScale = window.devicePixelRatio || 1;
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "page-wrapper";
-      wrapper.dataset.page = p;
-      wrapper.style.width = vp.width + "px";
-
-      const canvas = document.createElement("canvas");
-      canvas.className = "pdf-canvas";
-      canvas.width = Math.floor(vp.width * outputScale);
-      canvas.height = Math.floor(vp.height * outputScale);
-      canvas.style.width = vp.width + "px";
-      canvas.style.height = vp.height + "px";
-      wrapper.appendChild(canvas);
-
-      const overlay = document.createElement("div");
-      overlay.className = "annot-overlay";
-      overlay.dataset.origW = vp.width;
-      overlay.dataset.origH = vp.height;
-      overlay.dataset.page = p;
-
-      if (CAN_REVIEW) {
-        overlay.style.cursor = "crosshair";
-        attachDrawListeners(overlay, p, canvas);
-      }
-      wrapper.appendChild(overlay);
-      col.appendChild(wrapper);
-
-      await page.render({
-        canvasContext: canvas.getContext("2d"),
-        viewport: vp,
-        transform:
-          outputScale !== 1
-            ? [outputScale, 0, 0, outputScale, 0, 0]
-            : undefined,
-      }).promise;
-      document.getElementById("viewerLoading")?.remove();
-    }
+    await renderPages();
 
     const pageIndicator = document.getElementById("pageIndicator");
     pageIndicator.textContent =
@@ -152,8 +104,127 @@ async function loadPdf() {
   await loadAnnotations();
 }
 
+// ===== Render pages (first load, window resize and zoom) =====
+const MAX_CANVAS_PIXELS = 16e6;
+
+async function renderPages() {
+  const token = ++renderToken;
+  const col = document.getElementById("pdfColumn");
+  const isFirst = !col.querySelector(".page-wrapper");
+  renderedWidth = col.clientWidth;
+  const wrappers = [];
+
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const page = await pdfDoc.getPage(p);
+    if (token !== renderToken) return;
+
+    const fitScale = Math.min(
+      1.5,
+      (renderedWidth - 48) / page.getViewport({ scale: 1 }).width,
+    );
+    const vp = page.getViewport({ scale: fitScale * zoom });
+    const outputScale = Math.min(
+      window.devicePixelRatio || 1,
+      Math.sqrt(MAX_CANVAS_PIXELS / (vp.width * vp.height)),
+    );
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "page-wrapper";
+    wrapper.dataset.page = p;
+    wrapper.style.width = vp.width + "px";
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "pdf-canvas";
+    canvas.width = Math.floor(vp.width * outputScale);
+    canvas.height = Math.floor(vp.height * outputScale);
+    canvas.style.width = vp.width + "px";
+    canvas.style.height = vp.height + "px";
+    wrapper.appendChild(canvas);
+
+    const overlay = document.createElement("div");
+    overlay.className = "annot-overlay";
+    overlay.dataset.origW = vp.width;
+    overlay.dataset.origH = vp.height;
+    overlay.dataset.page = p;
+
+    if (CAN_REVIEW) {
+      overlay.style.cursor = "crosshair";
+      attachDrawListeners(overlay, p, canvas);
+    }
+    wrapper.appendChild(overlay);
+    wrappers.push(wrapper);
+    if (isFirst) col.appendChild(wrapper);
+
+    await page.render({
+      canvasContext: canvas.getContext("2d"),
+      viewport: vp,
+      transform:
+        outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+    }).promise;
+    if (token !== renderToken) return;
+    document.getElementById("viewerLoading")?.remove();
+  }
+
+  if (isFirst) return;
+  const scroller = scrollingContainer(col);
+  const ratio = scroller.scrollTop / (scroller.scrollHeight || 1);
+  closeAnnotPopup();
+  col.replaceChildren(...wrappers);
+  scroller.scrollTop = ratio * scroller.scrollHeight;
+  renderAnnotations();
+}
+
+function scrollingContainer(col) {
+  return (
+    [col, document.querySelector(".viewer-layout"), document.scrollingElement]
+      .filter(Boolean)
+      .find((el) => el.scrollHeight > el.clientHeight + 1) || col
+  );
+}
+
+function scheduleRender(delay = 200) {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    if (dragState) return scheduleRender();
+    renderPages();
+  }, delay);
+}
+
+// ===== Resize: re-fit the pages when the column width changes =====
+new ResizeObserver(() => {
+  const col = document.getElementById("pdfColumn");
+  if (pdfDoc && Math.abs(col.clientWidth - renderedWidth) >= 2)
+    scheduleRender();
+}).observe(document.getElementById("pdfColumn"));
+
+// ===== Zoom =====
+const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5];
+const zoomOutBtn = document.getElementById("zoomOut");
+const zoomInBtn = document.getElementById("zoomIn");
+
+function setZoom(next) {
+  zoom = next;
+  document.getElementById("zoomLevel").textContent =
+    Math.round(zoom * 100) + "%";
+  zoomOutBtn.disabled = zoom === ZOOM_STEPS[0];
+  zoomInBtn.disabled = zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1];
+  document.getElementById("pdfColumn").classList.toggle("is-zoomed", zoom > 1);
+  updateToolbarHint();
+  if (pdfDoc) scheduleRender(0);
+}
+
+function stepZoom(direction) {
+  const index = ZOOM_STEPS.indexOf(zoom) + direction;
+  setZoom(ZOOM_STEPS[Math.min(Math.max(index, 0), ZOOM_STEPS.length - 1)]);
+}
+
+zoomOutBtn.addEventListener("click", () => stepZoom(-1));
+zoomInBtn.addEventListener("click", () => stepZoom(1));
+document.getElementById("zoomFit").addEventListener("click", () => setZoom(1));
+
 // Older signed scans were uploaded as JPG/PNG, which PDF.js can't open.
 function showScanImage() {
+  document.getElementById("zoomControls").hidden = true;
   const img = document.createElement("img");
   img.className = "scan-image";
   img.alt = "Signed scan";
@@ -589,15 +660,19 @@ function scrollToAnnotation(annotId) {
 
 // ===== Comment popup (small screens) =====
 const MOBILE_MQ = window.matchMedia("(max-width: 767px)");
+const TOUCH_MQ = window.matchMedia("(pointer: coarse)");
 const annotPopup = document.getElementById("annotPopup");
 
 // ===== Toolbar hint =====
 function updateToolbarHint() {
   const hint = document.getElementById("toolbarHint");
   if (!hint) return;
-  hint.textContent = MOBILE_MQ.matches
-    ? "Tap and drag on the document to add a comment."
-    : "Click and drag on the document to add a comment.";
+  hint.textContent =
+    zoom > 1 && TOUCH_MQ.matches
+      ? "Zoomed in: drag to move around. Press Fit width to add a comment."
+      : MOBILE_MQ.matches
+        ? "Tap and drag on the document to add a comment."
+        : "Click and drag on the document to add a comment.";
 }
 updateToolbarHint();
 MOBILE_MQ.addEventListener("change", updateToolbarHint);

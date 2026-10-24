@@ -415,7 +415,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <use href="#sort-icon" />
                                 </svg>
-                                Sort:
+                                Sort by:
                             </p>
                             <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
                                 <?php foreach (RecordModel::sortOptions() as $key => $opt): ?>

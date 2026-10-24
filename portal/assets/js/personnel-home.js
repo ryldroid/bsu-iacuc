@@ -16,6 +16,9 @@ const filterPills = document.querySelectorAll(
 const mobileSortTrigger = document.querySelector(".mobile-sort-trigger");
 const mobileSortOptions = document.getElementById("mobileSortOptions");
 const mobileSortLabel = document.getElementById("mobileSortLabel");
+const mobileFilterTrigger = document.querySelector(".mobile-filter-trigger");
+const mobileFilterOptions = document.getElementById("mobileFilterOptions");
+const mobileFilterLabel = document.getElementById("mobileFilterLabel");
 const searchInput = document.getElementById("inboxSearchInput");
 const searchClearBtn = document.getElementById("inboxSearchClear");
 const resultsSummary = document.getElementById("resultsSummary");
@@ -373,12 +376,14 @@ mobileSortTrigger?.addEventListener("click", (e) => {
 });
 
 document.addEventListener("click", (e) => {
-  if (
-    !mobileSortOptions?.contains(e.target) &&
-    !mobileSortTrigger?.contains(e.target)
-  ) {
-    closeDropdown(mobileSortTrigger, mobileSortOptions);
-  }
+  [
+    [mobileSortTrigger, mobileSortOptions],
+    [mobileFilterTrigger, mobileFilterOptions],
+  ].forEach(([trigger, panel]) => {
+    if (!panel?.contains(e.target) && !trigger?.contains(e.target)) {
+      closeDropdown(trigger, panel);
+    }
+  });
 });
 
 // ===== Mobile sort dropdown mirrors the desktop <select> =====
@@ -389,6 +394,39 @@ mobileSortBtns.forEach((btn) => {
     sortSelect.value = btn.dataset.sort;
     sortSelect.dispatchEvent(new Event("change"));
     closeDropdown(mobileSortTrigger, mobileSortOptions);
+  });
+});
+
+// ===== Mobile status dropdown mirrors the filter pills =====
+function syncMobileFilter() {
+  mobileFilterOptions
+    ?.querySelectorAll(".status-card")
+    .forEach((btn) =>
+      btn.classList.toggle("active", btn.dataset.mobileFilter === activeFilter),
+    );
+  if (mobileFilterLabel) {
+    mobileFilterLabel.textContent =
+      [...filterPills].find((pill) => pill.dataset.filter === activeFilter)
+        ?.dataset.label ?? "";
+  }
+}
+
+mobileFilterTrigger?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeDropdown(mobileSortTrigger, mobileSortOptions);
+  openDropdown(mobileFilterTrigger, mobileFilterOptions);
+});
+
+mobileFilterOptions?.querySelectorAll(".status-card").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    closeDropdown(mobileFilterTrigger, mobileFilterOptions);
+    if (btn.dataset.mobileFilter === "certificates") {
+      document.getElementById("certQueueBtn").click();
+      return;
+    }
+    [...filterPills]
+      .find((pill) => pill.dataset.filter === btn.dataset.mobileFilter)
+      ?.click();
   });
 });
 
@@ -406,6 +444,7 @@ filterPills.forEach((pill) => {
     });
 
     updateStatusGuide(activeFilter);
+    syncMobileFilter();
 
     const url = new URL(window.location);
     url.searchParams.set("status", activeFilter);
@@ -463,6 +502,7 @@ searchClearBtn?.addEventListener("click", () => {
     history.replaceState(null, "", url);
   }
   updateStatusGuide(activeFilter);
+  syncMobileFilter();
   updateBulkActionsBarVisibility();
 })();
 

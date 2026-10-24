@@ -89,7 +89,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  const item = e.target.closest(".protocol-menu-item, .protocol-menu-action");
+  const item = e.target.closest(".protocol-menu-item");
   if (!item) {
     if (!e.target.closest(".protocol-menu-panel")) closeProtocolMenus();
     return;

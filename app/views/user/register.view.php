@@ -4,10 +4,6 @@ $hideHeader = true;
 include dirname(__DIR__) . '/includes/header.php';
 ?>
 
-<?php if (!empty($success)): ?>
-    <meta http-equiv="refresh" content="2; url=<?= ROOT ?>/user/login">
-<?php endif; ?>
-
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
 
@@ -26,15 +22,6 @@ include dirname(__DIR__) . '/includes/header.php';
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? ''); ?>">
 
             <h1>Create Account</h1>
-
-            <?php
-            if (!empty($success)) {
-                $alertType = 'success';
-                $alertMessages = 'Account created successfully! Check your email to verify your account. Redirecting...';
-                $alertAutoDismiss = 0;
-                include dirname(__DIR__) . '/includes/alert.php';
-            }
-            ?>
 
             <?php
             $alertType = 'error';
@@ -126,26 +113,11 @@ include dirname(__DIR__) . '/includes/header.php';
                 </ul>
             </div>
 
-            <button type="submit">Register</button>
+            <button type="submit" class="register-btn">Register</button>
             <p class="underlined-p">Already have an account? <a class="underlined" href="<?= ROOT ?>/user/login">Log in here</a></p>
         </form>
     </main>
 </div>
-
-<!-- ===== Success script ===== -->
-<?php if (!empty($success)): ?>
-    <script>
-        let seconds = 1;
-        const el = document.getElementById('countdown');
-        if (el) {
-            const timer = setInterval(() => {
-                seconds--;
-                if (seconds > 0) el.textContent = seconds;
-                else clearInterval(timer);
-            }, 1000);
-        }
-    </script>
-<?php endif; ?>
 
 </body>
 

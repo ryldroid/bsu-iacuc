@@ -55,13 +55,14 @@ class Access
       'reset_password' => 'public',
       'email_preferences' => 'public', // signed email link
       'verify_email' => 'public',      // emailed token
+      'verification_status' => 'public', // polled while waiting for the emailed link
       'logout' => 'public',
       // any signed-in user (own account only)
       'account' => 'auth',
       'update' => 'auth',
       'notifications' => 'auth',
       'ping' => 'auth',
-      'resend_verification' => 'auth',
+      'resend_verification' => 'public', // signed-in users, or a sign-in blocked until the email is verified
       'school_options' => 'auth',
       // researchers only
       'delete' => 'researcher',

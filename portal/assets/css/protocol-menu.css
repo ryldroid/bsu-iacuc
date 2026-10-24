@@ -35,29 +35,6 @@
   text-decoration: none;
 }
 
-.protocol-menu--labeled {
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.protocol-menu-action {
-  position: relative;
-}
-
-.protocol-menu-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.protocol-menu-action--danger,
-.protocol-menu-action--danger:hover {
-  color: var(--danger-color);
-}
-
-.protocol-menu-action--danger {
-  margin-left: 0.5rem;
-}
-
 .protocol-menu-panel {
   display: none;
   position: fixed;
@@ -133,8 +110,7 @@
 }
 
 .protocol-menu-trigger.has-update::after,
-.protocol-menu-item.has-update::after,
-.protocol-menu-action.has-update::after {
+.protocol-menu-item.has-update::after {
   content: "";
   position: absolute;
   top: 1px;
@@ -144,4 +120,44 @@
   border-radius: 50%;
   background: var(--danger-color);
   border: 1.5px solid var(--card-background);
+}
+
+/* ===== Protocol menu: viewer (labeled) ===== */
+.protocol-menu--labeled .protocol-menu-trigger {
+  gap: 0.4rem;
+  box-shadow: 0 0 0 1px var(--divider-color);
+}
+
+.protocol-menu--labeled .protocol-menu-item {
+  padding: 12px 14px;
+  font-size: 0.9rem;
+}
+
+@media (min-width: 1101px) {
+  .protocol-menu--labeled .protocol-menu-trigger {
+    display: none;
+  }
+
+  .protocol-menu--labeled .protocol-menu-panel {
+    display: flex;
+    position: static;
+    min-width: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    gap: 0.25rem;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .protocol-menu--labeled .protocol-menu-item {
+    width: auto;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .protocol-menu--labeled .protocol-menu-item--danger {
+    margin-left: 0.5rem;
+  }
 }

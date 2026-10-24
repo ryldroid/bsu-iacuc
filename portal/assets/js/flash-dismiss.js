@@ -20,8 +20,13 @@
 
   document.querySelectorAll(".form-alert").forEach(setupAlert);
 
-  window.showToast = function (message, type = "success") {
-    const stack = document.getElementById("toast-stack");
+  // `into` puts the alert inside a form instead of the toast stack; `autodismiss: 0` keeps it until dismissed
+  window.showToast = function (
+    message,
+    type = "success",
+    { into, autodismiss } = {},
+  ) {
+    const stack = into ?? document.getElementById("toast-stack");
     const messages = [].concat(message).filter(Boolean);
     if (!stack || !messages.length) return;
 
@@ -30,7 +35,7 @@
     el.className = "form-alert form-alert--" + (isError ? "error" : "success");
     el.setAttribute("role", isError ? "alert" : "status");
     // Same delays as includes/alert.php: 5s for errors, 4s for success
-    el.dataset.autodismiss = isError ? 5000 : 4000;
+    el.dataset.autodismiss = autodismiss ?? (isError ? 5000 : 4000);
     el.innerHTML =
       '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' +
       (isError ? "alert-triangle-icon" : "check-circle-icon") +

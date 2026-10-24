@@ -144,7 +144,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#sort-icon" />
                     </svg>
-                    Sort:
+                    Sort by:
                 </p>
 
                 <div class="sort-wrapper">

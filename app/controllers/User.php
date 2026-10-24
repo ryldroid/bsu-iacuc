@@ -122,8 +122,20 @@ class User extends Controller
     $prefill = $_SESSION['new_username'] ?? $_SESSION['new_email'] ?? '';
     unset($_SESSION['new_username'], $_SESSION['new_email']);
 
+    if (isset($_GET['switch'])) {
+      unset($_SESSION['pending_verification']);
+      $this->redirect('user/login');
+    }
+
+    $pending = !empty($_SESSION['pending_verification']) ? $this->userModel->getUser((int) $_SESSION['pending_verification']) : null;
+    if (!$pending || !empty($pending['email_verified'])) {
+      unset($_SESSION['pending_verification']);
+      $pending = null;
+    }
+
     $this->view('user/login', [
       'prefill' => $prefill,
+      'pendingEmail' => $pending['email'] ?? '',
       'error'   => $_SESSION['flash_error'] ?? '',
       'csrf'    => $this->generateCsrfToken(),
     ]);
@@ -137,6 +149,7 @@ class User extends Controller
     }
 
     $this->verifyCsrfToken(true);
+    unset($_SESSION['pending_verification']);
 
     // ===== READ INPUT =====
     $input    = trim($_POST['username'] ?? '');
@@ -200,6 +213,22 @@ class User extends Controller
       $this->redirect('user/login');
     }
 
+    // ===== EMAIL MUST BE VERIFIED FIRST =====
+    if (empty($user['email_verified'])) {
+      $_SESSION['pending_verification'] = (int) $user['id'];
+      $this->userModel->logAudit('login_blocked_unverified', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Login blocked until the email address is verified');
+      $_SESSION['flash_error'] = 'Please verify your email before logging in. Use the link we emailed you, or request a new one below.';
+      $this->redirect('user/login');
+    }
+
+    $this->startResearcherSession($user);
+
+    $this->redirect('submissions');
+  }
+
+  // Signs a researcher in: reactivates a deactivated account, starts the session, queues the welcome guide, and logs it
+  private function startResearcherSession(array $user): void
+  {
     $reactivated = false;
     if (($user['status'] ?? 'active') === 'deactivated') {
       $this->userModel->reactivateUser((int) $user['id']);
@@ -237,8 +266,6 @@ class User extends Controller
       $this->userModel->logAudit('account_reactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Account reactivated by logging in');
       $_SESSION['flash_success'] = 'Welcome back! Your account has been reactivated.';
     }
-
-    $this->redirect('submissions');
   }
 
   // Welcome guide shows once, after the researcher has set sex and researcher type and verified their email
@@ -307,14 +334,11 @@ class User extends Controller
     $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex, $researcher_type);
 
     if ($ok) {
-      $this->sendEmailVerification($this->userModel->getUserByEmail($email));
-      $_SESSION['new_username'] = $username;
-      $this->view('user/register', [
-        'errors'  => [],
-        'old'     => [],
-        'csrf'    => $this->generateCsrfToken(),
-        'success' => true,
-      ]);
+      // No email goes out yet: the verify page lets the person send the link when they are ready
+      $newUser = $this->userModel->getUserByEmail($email);
+      $_SESSION['pending_verification'] = (int) $newUser['id'];
+      $_SESSION['flash_success']        = 'Account created! Send the verification link below to activate it.';
+      $this->redirect('user/login');
     } else {
       $errors[] = 'Registration failed. Please try again.';
       $this->view('user/register', [
@@ -659,29 +683,70 @@ class User extends Controller
     $this->userModel->logAudit('email_verified', $userId, '', '', 'user', $userId, 'Email verified');
 
     $verified = $this->userModel->getUser($userId);
-    if ($this->isLoggedIn() && (int) $_SESSION['user']['user_id'] === $userId && !empty($verified['sex']) && !empty($verified['researcher_type'])) {
+    $isSelf   = $this->isLoggedIn() && (int) $_SESSION['user']['user_id'] === $userId;
+    if ($isSelf && !empty($verified['sex']) && !empty($verified['researcher_type'])) {
       $this->showWelcomeOnce($verified);
     }
 
-    $_SESSION['flash_success'] = 'Your email has been verified!';
+    // The browser that registered (or was blocked at login) is signed in as soon as the link is opened
+    if (!$this->isLoggedIn() && (int) ($_SESSION['pending_verification'] ?? 0) === $userId && $verified['role'] === 'researcher') {
+      unset($_SESSION['pending_verification']);
+      $this->startResearcherSession($verified);
+    }
+
+    // The tab that asked for the link reloads itself and shows this message
+    $_SESSION['flash_success'] = $this->isLoggedIn() ? 'Your email has been verified!' : 'Your email has been verified! You can now log in.';
     $home = ($_SESSION['user']['role'] ?? '') === 'researcher' ? 'home' : 'personnel/home';
-    $this->redirect($this->isLoggedIn() ? $home : 'user/login');
+
+    $this->view('user/email_verified', [
+      'user'        => null,
+      'continueUrl' => ROOT . '/' . ($this->isLoggedIn() ? $home : 'user/login'),
+    ]);
+  }
+
+  // Polled by the tab waiting on a verification link (signed in, or blocked at login until verified)
+  public function verification_status(): void
+  {
+    $id   = (int) ($_SESSION['user']['user_id'] ?? $_SESSION['pending_verification'] ?? 0);
+    $user = $id ? $this->userModel->getUser($id) : null;
+    $ok   = !empty($user['email_verified']);
+
+    // Verified on another device or browser: this one is the one that registered, so it signs in here
+    if ($ok && !$this->isLoggedIn()) {
+      unset($_SESSION['pending_verification']);
+      if ($user['role'] === 'researcher') {
+        $this->startResearcherSession($user);
+        $_SESSION['flash_success'] = 'Your email has been verified!';
+      }
+    }
+
+    $this->jsonResponse(['verified' => $ok]);
   }
 
   public function resend_verification(): void
   {
-    $this->requireLogin();
+    if ($this->isLoggedIn()) {
+      $this->requireLogin();
+    } elseif (empty($_SESSION['pending_verification'])) {
+      $this->redirect('user/login');
+    }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('user/account');
+      $this->redirect($this->isLoggedIn() ? 'user/account' : 'user/login');
     }
 
     $this->verifyCsrfToken();
 
-    $id   = (int) $_SESSION['user']['user_id'];
+    $id   = (int) ($_SESSION['user']['user_id'] ?? $_SESSION['pending_verification']);
     $user = $this->userModel->getUser($id);
 
+    if (!$user) {
+      unset($_SESSION['pending_verification']);
+      $this->redirect('user/login');
+    }
+
     if (!empty($user['email_verified'])) {
+      unset($_SESSION['pending_verification']);
       $this->verificationResult(true, 'Your email is already verified.');
     }
 
@@ -699,8 +764,10 @@ class User extends Controller
 
       $this->userModel->updateEmail($id, $email);
       $this->userModel->logAudit('email_changed', $id, $user['username'], $user['role'], 'user', $id, 'Email changed, re-verification sent');
-      $_SESSION['user']['email'] = $email;
-      $user['email']             = $email;
+      if ($this->isLoggedIn()) {
+        $_SESSION['user']['email'] = $email;
+      }
+      $user['email'] = $email;
     }
 
     // The cooldown only guards repeat sends to the same address
@@ -728,7 +795,7 @@ class User extends Controller
     }
 
     $_SESSION[$ok ? 'flash_success' : 'flash_error'] = $message;
-    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? (ROOT . '/user/account')));
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? (ROOT . ($this->isLoggedIn() ? '/user/account' : '/user/login'))));
     exit;
   }
 }

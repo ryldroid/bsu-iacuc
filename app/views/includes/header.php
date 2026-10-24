@@ -22,10 +22,10 @@ $themeModes = [
 
 $showWelcome = $user && !empty($user['show_welcome']);
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
-$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute, and you can replay it anytime with the question mark button at the top of the page.'];
+$guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'];
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
-$guideContact = ['Contact Us', 'Find CCARD\'s and related offices\' details and how to reach them.', ...$navLink('/contact')];
+$guideContact = ['Contact Us', 'Find how to reach relevant offices.', ...$navLink('/contact')];
 $guideSidebar = ['Expand the sidebar', 'On a computer, use this button to show the page names beside the icons, or hide them again.', '#sidebar-toggle', '', true];
 $guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
 $guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
@@ -35,7 +35,7 @@ $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     $guideHome,
     ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
@@ -43,11 +43,12 @@ if ($role === 'researcher') {
     $guideContact,
     $guideNotifications,
     $guideAccount,
+    $guideHelp,
   ];
 } elseif ($role === 'staff') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
@@ -55,22 +56,24 @@ if ($role === 'researcher') {
     ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
     $guideNotifications,
     $guideAccount,
+    $guideHelp,
   ];
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard** and **Records**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **Dashboard** and **Records**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,
+    $guideHelp,
   ];
 } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
   $welcomeSteps = [
     ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
-    ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
-    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**. On a phone, tap the menu icon at the top left to open them.', 'aside nav ul', '.mobile-menu'],
+    ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You will need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
+    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     $guideHome,
     $guideAnnouncements,
@@ -120,6 +123,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
 
   <script src="<?= asset_js('utils.js') ?>"></script>
   <script src="<?= asset_js('protocol-sort.js') ?>"></script>
+  <script src="<?= asset_js('email-verification.js') ?>" defer></script>
   <script src="<?= asset_js('header.js') ?>" defer></script>
   <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
   <script src="<?= asset_js('modals.js') ?>" defer></script>
@@ -615,6 +619,6 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
     $guideShowOnce = !$user;
     include __DIR__ . '/guide.php';
   } ?>
-  <?php unset($_SESSION['user']['show_welcome']); ?>
+  <?php if ($showWelcome) unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>

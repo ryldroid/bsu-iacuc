@@ -237,6 +237,7 @@
 /* ===== Annotation hint bar ===== */
 .annot-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 1.2rem;
@@ -253,6 +254,47 @@
 .toolbar-hint {
   font-size: 0.8rem;
   color: var(--secondary-text);
+}
+
+/* ===== Zoom controls ===== */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.zoom-controls .tool-btn {
+  justify-content: center;
+  min-width: 2.2rem;
+  font-size: 1rem;
+}
+
+.zoom-controls .tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.zoom-controls[hidden] {
+  display: none;
+}
+
+.pdf-column>.error-msg {
+  margin-inline: auto;
+}
+
+.zoom-level {
+  min-width: 3.2rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--secondary-text);
+}
+
+@media (pointer: coarse) {
+  .pdf-column.is-zoomed .annot-overlay {
+    touch-action: pan-x pan-y;
+  }
 }
 
 /* ===== Viewer notes (amendment, CCARD and deletion notes above the document) ===== */
@@ -393,26 +435,6 @@
   background: color-mix(in srgb, var(--warning-background) 80%, #000);
 }
 
-.tool-btn--urgent {
-  animation: urgentPulse 1.8s ease-in-out infinite;
-}
-
-.tool-btn--urgent:hover {
-  animation: none;
-}
-
-@keyframes urgentPulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger-solid) 55%, transparent);
-  }
-
-  50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger-solid) 0%, transparent);
-  }
-}
-
 /* ===== Main layout: PDF column + sidebar ===== */
 .viewer-layout {
   position: relative;
@@ -451,13 +473,15 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.5rem;
 }
 
 /* ===== Per-page wrapper ===== */
 .page-wrapper {
   position: relative;
+  flex-shrink: 0;
+  margin-inline: auto;
   box-shadow: 0 4px 16px var(--shadow-color);
   display: block;
   line-height: 0;
@@ -472,6 +496,7 @@
 
 .scan-image {
   display: block;
+  margin-inline: auto;
   max-width: 100%;
   height: auto;
   box-shadow: 0 4px 16px var(--shadow-color);
@@ -728,25 +753,86 @@
     gap: 0.4rem;
   }
 
-  .viewer-topbar-left {
-    flex: 1;
-    min-width: 0;
+  .viewer-topbar-left,
+  .viewer-topbar-right {
+    display: contents;
+  }
+
+  .viewer-topbar-left>.tool-btn {
+    order: 1;
+  }
+
+  .protocol-menu {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .viewer-review-actions .tool-btn,
+  .download-clearance-btn {
+    order: 3;
+    font-weight: 600;
   }
 
   .viewer-title {
-    flex: 1 1 calc(100% - 140px);
+    order: 4;
+    flex: 1 1 100%;
     min-width: 0;
     max-width: none;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
+  }
+
+  .status-badge {
+    order: 5;
+    font-size: 0.8rem;
+  }
+
+  .version-switcher {
+    order: 6;
+  }
+
+  .page-indicator {
+    display: none;
+  }
+
+  .tool-btn--urgent {
+    order: 8;
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
   .tool-btn {
+    min-height: 34px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .version-nav-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .version-dropdown-menu {
+    left: 26px;
+  }
+
+  .ver-badge--dropdown {
+    min-height: 28px;
+    padding: 2px 8px;
     font-size: 0.78rem;
-    padding: 0.3rem 0.6rem;
   }
 
   .annot-toolbar {
     padding: 0.4rem 0.75rem;
+  }
+
+  .zoom-controls {
+    margin-left: 0;
+  }
+
+  .zoom-controls .tool-btn {
+    min-height: 30px;
+    min-width: 34px;
+    font-size: 0.85rem;
   }
 
   .viewer-layout {
@@ -780,10 +866,6 @@
     height: auto;
     min-height: 100vh;
     overflow: auto;
-  }
-
-  .viewer-topbar-right {
-    width: 100%;
   }
 
   .viewer-review-actions {

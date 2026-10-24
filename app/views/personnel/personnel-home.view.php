@@ -219,8 +219,36 @@ foreach ($protocols as $p) {
                                 <p>Approved <span class="status-count"><?= $approvedCount ?></span></p>
                             </button>
                             <button class="status-card" type="button" id="certQueueBtn" data-label="Certificates to verify">
-                                <p>Certificates to verify <span class="status-count" id="certQueueCount"><?= count($pendingCerts) ?></span></p>
+                                <p>Certificates to verify <span class="status-count cert-queue-count"><?= count($pendingCerts) ?></span></p>
                             </button>
+                        </div>
+
+                        <div class="dashboard-field-group mobile-filter-group">
+                            <p class="sort-filter-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#filter-icon" />
+                                </svg>
+                                Status:
+                            </p>
+
+                            <div class="sort-wrapper">
+                                <button type="button" class="mobile-filter-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                                    <span id="mobileFilterLabel">To review</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#chev-down-icon" />
+                                    </svg>
+                                </button>
+
+                                <div class="dropdown-panel" id="mobileFilterOptions">
+                                    <button class="status-card" type="button" data-mobile-filter="all">All</button>
+                                    <button class="status-card" type="button" data-mobile-filter="to-review">To review <span class="status-count"><?= $toReviewCount ?></span></button>
+                                    <button class="status-card" type="button" data-mobile-filter="returned-for-revision">Returned for revision <span class="status-count"><?= $revisionCount ?></span></button>
+                                    <button class="status-card" type="button" data-mobile-filter="reviewed">Reviewed <span class="status-count"><?= $reviewedCount ?></span></button>
+                                    <button class="status-card" type="button" data-mobile-filter="endorsed">Endorsed <span class="status-count"><?= $endorsedCount ?></span></button>
+                                    <button class="status-card" type="button" data-mobile-filter="approved">Approved <span class="status-count"><?= $approvedCount ?></span></button>
+                                    <button class="status-card" type="button" data-mobile-filter="certificates">Certificates to verify <span class="status-count cert-queue-count"><?= count($pendingCerts) ?></span></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -229,7 +257,7 @@ foreach ($protocols as $p) {
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#sort-icon" />
                             </svg>
-                            Sort:
+                            Sort by:
                         </p>
 
                         <div class="sort-wrapper">
@@ -960,7 +988,7 @@ $guideSteps = [
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
         : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
     ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
-    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status. The last pill, **Certificates to verify**, lists researchers whose training certificate is waiting for verification.', '#filterPillsRow'],
+    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status. The last pill, **Certificates to verify**, lists researchers whose training certificate is waiting for verification.', '#filterPillsRow, .mobile-filter-group'],
     ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means for you. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];

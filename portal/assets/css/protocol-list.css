@@ -5,6 +5,10 @@
   display: none;
 }
 
+.mobile-filter-group {
+  display: none;
+}
+
 /* ===== Mobile dropdown option panels (filter + sort) ===== */
 .dropdown-panel {
   display: none;
@@ -594,38 +598,33 @@
     max-width: 100%;
   }
 
+  .dashboard-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .status-filters {
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin: 12px 0;
-    border-bottom: none;
-  }
-
-  .status-filters .status-card {
-    align-items: center;
-    margin: 0;
-    padding: 6px 12px;
-    border: 1px solid var(--divider-color);
-    border-radius: 999px;
-    background: var(--card-background);
-    font-size: 0.85em;
-    white-space: nowrap;
-  }
-
-  .status-filters .status-card.active {
-    background: var(--brand-color);
-    border-color: var(--brand-color);
-    color: var(--text-on-brand);
-    font-weight: 600;
-  }
-
-  .status-filters .status-card.active .status-count {
-    color: var(--text-on-brand);
-  }
-
-  .status-underline {
     display: none;
+  }
+
+  .mobile-filter-group {
+    display: flex;
+  }
+
+  .dashboard-filter-row .sort-filter-label {
+    min-width: 5.5em;
+  }
+
+  .dashboard-filter-row .sort-wrapper {
+    flex: 1;
+  }
+
+  .dashboard-filter-row .mobile-dropdown-trigger {
+    width: 100%;
+  }
+
+  .dashboard-filter-row .dropdown-panel {
+    min-width: 100%;
   }
 
   /* ===== Sort dropdown (box styling shared via .dashboard-select-trigger) ===== */
@@ -708,6 +707,7 @@
 
   .protocol {
     position: relative;
+    align-items: flex-start;
     padding: 14px 16px;
     gap: 12px;
   }
@@ -729,42 +729,27 @@
   }
 
   .actions {
-    align-items: stretch;
+    align-items: center;
     width: 100%;
-    gap: 4px;
-    /* flex-direction: column; */
+    gap: 4px 8px;
   }
 
   .actions .button {
-    flex: 1 1 auto;
-    justify-content: center;
-    padding: 10px 12px;
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 8px 14px;
   }
 
   .actions-secondary {
-    justify-content: center;
-    gap: 14px;
+    margin-left: auto;
+    gap: 4px;
   }
 
   .actions-secondary .action-link {
+    min-width: 40px;
+    min-height: 40px;
+    justify-content: center;
     padding: 8px 4px;
-  }
-
-  .actions-secondary .protocol-menu {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-  }
-
-  .actions-secondary .protocol-view-btn {
-    position: absolute;
-    top: 8px;
-    right: 44px;
-    padding: 6px;
-  }
-
-  .research-title {
-    padding-right: 118px;
   }
 
   .empty-state {

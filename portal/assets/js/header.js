@@ -172,6 +172,12 @@ verifyEmailForm?.addEventListener("submit", async (event) => {
     button.lastChild.textContent = " Resend link";
     button.dataset.originalHtml = button.innerHTML;
     verifyEmailForm.querySelector(".verify-email-continue").hidden = false;
+
+    watchEmailVerification(`${NOTIF_ROOT}/user/verification_status`, () => {
+      location.href = verifyEmailForm.querySelector(
+        ".verify-email-continue",
+      ).dataset.href;
+    });
   }
   showAccountResult(ok, data);
 });
@@ -308,6 +314,12 @@ resendVerificationForm?.addEventListener("submit", async (event) => {
   setButtonBusy(resendVerification, false);
   accountForm.elements.email.dispatchEvent(new Event("input"));
   showAccountResult(ok, data);
+
+  if (ok) {
+    watchEmailVerification(`${NOTIF_ROOT}/user/verification_status`, () =>
+      location.reload(),
+    );
+  }
 });
 
 emailNotificationsForm?.addEventListener("change", async (event) => {

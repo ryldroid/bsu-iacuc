@@ -182,7 +182,7 @@ class Controller
     // Researchers and personnel have different home pages, and the account panel opens on theirs
     $home  = $isResearcher ? 'home' : 'personnel/home';
     $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
-    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'personnel/logout', 'user/ping', 'user/email_preferences', 'user/verify_email', 'user/resend_verification', 'user/school_options'], true) || ($route === $home && isset($_GET['account']))) {
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'personnel/logout', 'user/ping', 'user/email_preferences', 'user/verify_email', 'user/verification_status', 'user/resend_verification', 'user/school_options'], true) || ($route === $home && isset($_GET['account']))) {
       return;
     }
 

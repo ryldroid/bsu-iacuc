@@ -293,8 +293,24 @@
         max-width: 100%;
     }
 
-    .dashboard-panel {
-        padding: 0 1rem;
+    .bulk-actions-bar {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .bulk-actions-bar .row-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-height: 38px;
+    }
+
+    .bulk-select-controls {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .bulk-select-count {
+        width: 100%;
     }
 }
 

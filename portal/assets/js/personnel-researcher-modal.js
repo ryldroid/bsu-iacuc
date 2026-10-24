@@ -187,20 +187,20 @@ function bindCertActions() {
   const rejectPanel = document.getElementById("certRejectPanel");
   const noteInput = document.getElementById("certRejectNote");
 
-  document
-    .getElementById("certVerifyBtn")
-    .addEventListener("click", (e) => {
-      confirmAction("Verify this training certificate?", {
-        okText: "Verify",
-        cancelText: "Cancel",
-      }).then((ok) => ok && submitCertReview("certverify", "", e.target));
-    });
-
-  document.getElementById("certRejectStartBtn").addEventListener("click", () => {
-    actions.hidden = true;
-    rejectPanel.hidden = false;
-    noteInput.focus();
+  document.getElementById("certVerifyBtn").addEventListener("click", (e) => {
+    confirmAction("Verify this training certificate?", {
+      okText: "Verify",
+      cancelText: "Cancel",
+    }).then((ok) => ok && submitCertReview("certverify", "", e.target));
   });
+
+  document
+    .getElementById("certRejectStartBtn")
+    .addEventListener("click", () => {
+      actions.hidden = true;
+      rejectPanel.hidden = false;
+      noteInput.focus();
+    });
 
   document.getElementById("certRejectBackBtn").addEventListener("click", () => {
     rejectPanel.hidden = true;
@@ -252,7 +252,9 @@ async function submitCertReview(endpoint, note, btn) {
 function removePendingCert(userId) {
   const index = pendingCerts.findIndex((c) => c.id == userId);
   if (index !== -1) pendingCerts.splice(index, 1);
-  document.getElementById("certQueueCount").textContent = pendingCerts.length;
+  document
+    .querySelectorAll(".cert-queue-count")
+    .forEach((count) => (count.textContent = pendingCerts.length));
 }
 
 function openCertQueue() {
@@ -282,7 +284,9 @@ function openCertQueue() {
   researcherBackdrop.classList.add("open");
 }
 
-document.getElementById("certQueueBtn")?.addEventListener("click", openCertQueue);
+document
+  .getElementById("certQueueBtn")
+  ?.addEventListener("click", openCertQueue);
 
 // ===== Close researcher modal =====
 function closeResearcherModal() {

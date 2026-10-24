@@ -19,10 +19,12 @@ include dirname(__DIR__) . '/includes/header.php';
             Back
         </a>
 
-        <form method="POST" action="<?= ROOT ?>/user/login_process">
+        <?php $isPending = !empty($pendingEmail); ?>
+        <form method="POST" action="<?= ROOT ?>/user/<?= $isPending ? 'resend_verification' : 'login_process' ?>"
+            <?= $isPending ? 'id="pending-verification-form" data-status-url="' . ROOT . '/user/verification_status"' : '' ?>>
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf ?? $_SESSION['csrf_token'] ?? ''); ?>">
 
-            <h1>Login</h1>
+            <h1><?= $isPending ? 'Verify Your Email' : 'Login' ?></h1>
 
             <?php
             $alertType = 'success';
@@ -37,35 +39,54 @@ include dirname(__DIR__) . '/includes/header.php';
             include dirname(__DIR__) . '/includes/alert.php';
             ?>
 
-            <div class="input-group">
-                <input type="text" id="username" name="username" placeholder=" " value="<?= htmlspecialchars($prefill ?? ''); ?>" required>
-                <label for="username">Username or Email</label>
-            </div>
+            <?php if ($isPending): ?>
+                <div id="verify-alerts" class="verify-alerts"></div>
+                <?php include dirname(__DIR__) . '/includes/alert-js.php'; ?>
 
-            <div class="input-group">
-                <input type="password" id="password" name="password" placeholder=" " minlength="8" required>
-                <label for="password">Password</label>
-            </div>
+                <p class="success-desc verify-desc">Send a verification link to your email, then open it to activate your account. This page continues on its own once you verify. If the address is wrong, correct it below first.</p>
 
-            <button type="submit" class="btn-login">Log In</button>
+                <div class="input-group">
+                    <input type="email" id="verify_email" name="email" placeholder=" " value="<?= htmlspecialchars($pendingEmail ?? ''); ?>" autocomplete="email" required>
+                    <label for="verify_email">Email</label>
+                </div>
 
-            <p class="underlined-p">
-                Don't have
-                <span aria-hidden="true">
-                    <a
-                        class="hidden-login-link"
-                        href="<?= ROOT ?>/personnel/login"
-                        tabindex="-1"
-                        aria-hidden="true">an</a>
-                </span>
-                account?
-                <a class="underlined" href="<?= ROOT ?>/user/register">Register here</a>
-            </p>
-            <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/user/forgot_password">Forgot Password</a></p>
+                <button type="submit" class="btn-login btn-login--fit">Send Verification Link</button>
 
+                <p class="underlined-p"><a class="underlined" href="<?= ROOT ?>/user/login?switch=1">Back to login</a></p>
+            <?php else: ?>
+                <div class="input-group">
+                    <input type="text" id="username" name="username" placeholder=" " value="<?= htmlspecialchars($prefill ?? ''); ?>" required>
+                    <label for="username">Username or Email</label>
+                </div>
+
+                <div class="input-group">
+                    <input type="password" id="password" name="password" placeholder=" " minlength="8" required>
+                    <label for="password">Password</label>
+                </div>
+
+                <button type="submit" class="btn-login">Log In</button>
+
+                <p class="underlined-p">
+                    Don't have
+                    <span aria-hidden="true">
+                        <a
+                            class="hidden-login-link"
+                            href="<?= ROOT ?>/personnel/login"
+                            tabindex="-1"
+                            aria-hidden="true">an</a>
+                    </span>
+                    account?
+                    <a class="underlined" href="<?= ROOT ?>/user/register">Register here</a>
+                </p>
+                <p class="underlined-p"><a class=" underlined" href="<?= ROOT ?>/user/forgot_password">Forgot Password</a></p>
+            <?php endif; ?>
         </form>
     </main>
 </div>
+
+<?php if ($isPending): ?>
+    <script src="<?= asset_js('login-verify.js') ?>" defer></script>
+<?php endif; ?>
 
 </body>
 

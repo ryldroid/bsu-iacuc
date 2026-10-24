@@ -7,6 +7,13 @@ const reviewDecisionBackdrop = document.getElementById(
 );
 
 function openReviewDecisionModal() {
+  const count = annotations.length;
+  document.getElementById("reviewDecisionSummary").textContent = count
+    ? "You have " +
+      count +
+      (count === 1 ? " comment" : " comments") +
+      ". Return for Revision sends them to the researcher. To complete the review, remove them first."
+    : "You have no comments. Complete Review marks this protocol as reviewed.";
   reviewDecisionBackdrop.classList.add("open");
 }
 

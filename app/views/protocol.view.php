@@ -300,15 +300,21 @@ include 'includes/header.php';
     include __DIR__ . '/includes/flash.php';
     ?>
 
-    <?php if ($canReview): ?>
-        <!-- ===== Annotation hint (personnel only, while under review, latest version only) ===== -->
-        <div class="annot-toolbar">
+    <!-- ===== Annotation hint and zoom ===== -->
+    <div class="annot-toolbar">
+        <?php if ($canReview): ?>
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#edit-icon" />
             </svg>
             <span class="toolbar-hint" id="toolbarHint">Click and drag on the document to add a comment.</span>
+        <?php endif; ?>
+        <div class="zoom-controls" id="zoomControls" role="group" aria-label="Zoom">
+            <button type="button" class="tool-btn" id="zoomOut" title="Zoom out" aria-label="Zoom out">&minus;</button>
+            <span class="zoom-level" id="zoomLevel" aria-live="polite">100%</span>
+            <button type="button" class="tool-btn" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+            <button type="button" class="tool-btn" id="zoomFit">Fit width</button>
         </div>
-    <?php endif; ?>
+    </div>
 
     <!-- ===== Layout: PDF + sidebar ===== -->
     <div class="viewer-layout">
@@ -427,7 +433,7 @@ include 'includes/header.php';
                 </button>
             </div>
             <div class="panel-modal-body">
-                <p class="panel-modal-intro">Choose what to do with this protocol.</p>
+                <p class="panel-modal-intro" id="reviewDecisionSummary">Choose what to do with this protocol.</p>
 
                 <div class="panel-modal-actions">
                     <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-warn" type="button"

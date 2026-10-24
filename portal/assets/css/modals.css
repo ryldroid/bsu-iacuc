@@ -641,8 +641,8 @@ img[data-zoom-src] {
 }
 
 .modal-file-picker svg {
-    width: 14px;
-    height: 14px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
 }
 
@@ -834,8 +834,8 @@ img[data-zoom-src] {
 }
 
 .confirm-modal-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 22px;
+    height: 22px;
     flex-shrink: 0;
 }
 
