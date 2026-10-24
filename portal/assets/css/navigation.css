@@ -33,7 +33,12 @@ aside {
     background-color: var(--sidebar-background);
     align-self: flex-start;
 
-    transition: top 0.3s ease, height 0.3s ease;
+    transition: top 0.3s ease, height 0.3s ease, width 0.25s ease;
+}
+
+/* Clips the labels to the sidebar edge only while it expands or collapses, so hover tooltips still show */
+aside.sidebar-animating {
+    overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -167,6 +172,7 @@ html[data-sidebar="expanded"] aside li>div {
     padding: 0;
     background-color: transparent;
     opacity: 1;
+    transition: opacity .2s ease .1s;
 }
 
 html[data-sidebar="expanded"] aside a.active-link+div {

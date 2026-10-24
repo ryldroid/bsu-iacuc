@@ -9,8 +9,6 @@
 /** @var string $csrf     */
 /** @var bool   $isPersonnel    */
 /** @var bool   $isStaff    */
-/** @var array|null $returnReason */
-/** @var array|null $latestCertVersion */
 /** @var array  $permissions */
 /** @var bool   $canRename */
 /** @var bool   $canRequestDeletion */
@@ -71,8 +69,6 @@ $canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'review
 $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
 $isBsuResearcher   = UserModel::isBsuSchool($protocol['submitter_school'] ?? '');
 
-$rrWrongCert          = !empty($returnReason['wrong_cert']);
-
 $fileUrl    = ROOT . '/apply/file/' . (int) $version['id'];
 $annotApi   = ROOT . '/apply/annotate';
 $statusApi  = ROOT . '/apply/status';
@@ -108,9 +104,6 @@ foreach ($versions as $i => $v) {
 }
 
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-$certRequired      = $rrWrongCert;
-$certUrl           = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
-$latestCertFileUrl = ! empty($latestCertVersion['id']) ? ROOT . '/apply/file/' . (int) $latestCertVersion['id'] : null;
 $latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($protocolId, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
 $amendRedirect = ROOT . '/apply/viewer/' . $protocolId . ($fromFilter !== '' ? '?from=' . urlencode($fromFilter) : '');
 
@@ -128,21 +121,11 @@ if ($isAmendment && !empty($version['note'])) {
 if (!$isPersonnel && !empty($reviewerNote['comment'])) {
     $viewerNotes[] = ['warning', 'info-icon', 'Note from CCARD', $reviewerNote['comment']];
 }
-if ($canResubmit && $certRequired) {
-    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate flagged', 'Upload a corrected one when you re-submit.'];
-}
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
-$flaggedDocAccept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png';
 $resubmitDocs      = [
     ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF, DOC, or DOCX · max 10 MB', 'accept' => '.pdf,.doc,.docx', 'required' => true],
 ];
-if ($certRequired) {
-    $resubmitDocs[] = ['key' => 'cert', 'title' => 'Training certificate', 'subtitle' => 'Flagged as wrong/incorrect by the reviewer · PDF, JPG, or PNG · max 10 MB', 'accept' => $flaggedDocAccept, 'required' => true];
-}
-$resubmitIntro = $certRequired
-    ? 'Upload your revised protocol file, plus your IACUC training certificate, as flagged by the reviewer.'
-    : 'Upload your revised protocol file below.';
 
 include 'includes/header.php';
 ?>
@@ -247,7 +230,6 @@ include 'includes/header.php';
 
             <?php
             $menu = ProtocolMenu::forViewer($protocol, $permissions, [
-                'certUrl'        => $latestCertFileUrl ?? $certUrl,
                 'download'       => ['url' => $fileUrl, 'name' => $version['original_name'] ?? 'protocol'],
                 'hasUpdate'      => $showTitleChangeBanner,
                 'deleteRedirect' => $canDelete ? $backUrl : null,
@@ -487,17 +469,7 @@ include 'includes/header.php';
                 </button>
             </div>
             <div class="panel-modal-body">
-                <p class="panel-modal-intro">Optionally select the issue(s) with this protocol. The researcher will see this feedback.</p>
-
-                <fieldset class="return-reasons-fieldset">
-                    <legend class="return-reasons-legend">Issues found <span class="return-comment-optional">(optional)</span></legend>
-
-                    <label class="return-reason-option">
-                        <input type="checkbox" name="return_reason" value="wrong_cert" id="returnReasonWrongCert">
-                        <span class="return-reason-label">Wrong / invalid IACUC training certificate</span>
-                    </label>
-
-                </fieldset>
+                <p class="panel-modal-intro">Tell the researcher what needs to change. They will see this feedback.</p>
 
                 <label class="return-comment-label" for="returnComment">
                     Additional details <span class="return-comment-optional">(optional)</span>
@@ -545,7 +517,7 @@ include 'includes/header.php';
                 </button>
             </div>
             <div class="panel-modal-body resub-body">
-                <p class="panel-modal-intro"><?= htmlspecialchars($resubmitIntro, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="panel-modal-intro">Upload your revised protocol file below.</p>
 
                 <div class="resub-summary" id="reuploadSummary" aria-live="polite"></div>
 

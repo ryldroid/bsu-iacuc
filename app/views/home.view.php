@@ -1,7 +1,5 @@
 <?php
 
-$title = "Home";
-
 $previewMode = $previewMode ?? false;
 $pubRoot     = $previewMode ? ROOT . '/preview' : ROOT;
 
@@ -160,20 +158,22 @@ include "includes/scroll-top.php";
                                 $annTimestamp = strtotime($post['created_at']);
                                 $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
                                 $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
+                                $isNew = $annTimestamp && $annTimestamp >= strtotime('-' . ANNOUNCEMENT_NEW_DAYS . ' days');
                             ?>
                                 <?php if ($isPhotoOnly): ?>
                                     <button type="button"
-                                        class="home-announcement-cont home-announcement-cont--photo"
+                                        class="home-announcement-cont home-announcement-cont--photo<?= $isNew ? ' is-new' : '' ?>"
                                         data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
                                         aria-haspopup="dialog">
                                         <span class="home-announcement-photo">
                                             <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
                                             <time datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
+                                            <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
                                         </span>
                                     </button>
                                 <?php else: ?>
                                     <button type="button"
-                                        class="home-announcement-cont<?= $isUntitled ? ' is-untitled' : '' ?>"
+                                        class="home-announcement-cont<?= $isUntitled ? ' is-untitled' : '' ?><?= $isNew ? ' is-new' : '' ?>"
                                         data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
                                         aria-haspopup="dialog">
                                         <span class="home-announcement-thumb<?= $hasImage ? '' : ' is-placeholder' ?>">
@@ -185,6 +185,7 @@ include "includes/scroll-top.php";
                                                 </svg>
                                             <?php endif; ?>
                                         </span>
+                                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
                                         <span class="home-announcement-text">
                                             <span class="home-announcement-top-row">
                                                 <span class="home-announcement-teaser-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>

@@ -25,8 +25,6 @@ const PROTOCOL_MENU_ACTIONS = {
     openPaymentHistoryModal(id, title, {
       resubmit: window.protocolMenuHooks?.paymentResubmit?.(),
     }),
-  "training-certificate": (id, title, item) =>
-    openFilePopup(item.dataset.fileUrl, "IACUC Training Certificate"),
   rename: (id, title) => openRenameModal(id, title),
   amendments: (id, title) => openAmendmentsModal(id, title),
   "submit-amendment": (id, title, item, menu) =>

@@ -24,6 +24,7 @@ if ($isLocal) {
 // ===== APP CONSTANTS & PATHS =====
 define('DATE_FORMAT', 'M j, Y');
 define('DATETIME_FORMAT', "M j, Y \xC2\xB7 g:i A");
+define('ANNOUNCEMENT_NEW_DAYS', 7);
 define('VIEWSPATH', dirname(__DIR__) . '/views/');
 define('CSSPATH', ROOT . '/assets/css');
 define('JSPATH', ROOT . '/assets/js');

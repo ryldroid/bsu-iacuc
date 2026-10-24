@@ -26,9 +26,15 @@ class Notifier
     'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
     'protocol_deletion_requested' => 'Open it to approve or reject the request.',
     'payment_proof_uploaded'      => 'Open it to verify the payment.',
+    'cert_verification_reviewer'  => 'Open the researcher profile to verify the certificate.',
+    'cert_verification_staff'     => 'Open the researcher profile to verify the certificate.',
   ];
 
   public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to DA-CARFU.';
+
+  public const CERT_VERIFIED_NEXT_STEP = 'No action needed. You can now submit protocols.';
+
+  public const CERT_REJECTED_NEXT_STEP = 'Open My Account and upload a new certificate.';
 
   public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
 
@@ -89,6 +95,20 @@ class Notifier
         'to'   => $user['email'],
         'name' => $user['first_name'],
       ]));
+    }
+  }
+
+  // ===== SEND TO STAFF AND REVIEWERS =====
+  public static function sendToPersonnel(
+    string $type,
+    string $title,
+    string $message,
+    string $nextStepKey,
+    ?string $link = null,
+    array $email = []
+  ): void {
+    foreach (['staff', 'reviewer'] as $role) {
+      self::sendToRole($role, $type, $title, $message . ' ' . self::NEXT_STEPS[$nextStepKey . '_' . $role], $link, $email);
     }
   }
 

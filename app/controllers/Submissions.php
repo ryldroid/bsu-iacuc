@@ -32,7 +32,7 @@ class Submissions extends Controller
         $userId    = (int) $_SESSION['user']['user_id'];
         $protocols = $this->protocolModel->getByUser($userId);
 
-        $hasCertOnFile = $this->userModel->hasCert($userId);
+        $cert          = $this->userModel->getCert($userId);
         $currentUser   = $this->userModel->getUser($userId);
         $isBsuResearcher = UserModel::isBsuSchool($currentUser['school'] ?? '');
 
@@ -51,7 +51,7 @@ class Submissions extends Controller
             'protocols'       => $protocols,
             'actor'           => $this->actor(),
             'statuses'        => $statuses,
-            'hasCertOnFile'   => $hasCertOnFile,
+            'cert'            => $cert,
             'isBsuResearcher' => $isBsuResearcher,
             'csrf'            => $this->generateCsrfToken(),
             'updatesEndpoint' => 'submissions/checkupdates',

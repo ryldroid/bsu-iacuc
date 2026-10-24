@@ -365,20 +365,11 @@ h2 {
   transform: rotate(-8deg) scale(1.15);
 }
 
-/* "New" pill on announcements posted in the last 7 days */
-.office-announcement-badge {
+/* "New" badge position on the thumbnail (style lives in body.css) */
+.office-announcement-thumb .new-badge {
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--brand-color);
-  color: var(--text-on-brand);
-  font-size: 0.7em;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  box-shadow: 0 2px 6px var(--shadow-color-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

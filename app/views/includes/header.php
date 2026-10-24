@@ -256,12 +256,19 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                 </div>
 
                 <?php if ($role === 'researcher' && !empty($accountUser['cert_path'])): ?>
+                  <?php
+                  $certStatus      = $accountUser['cert_status'] ?? 'pending';
+                  $certStatusLabel = ['pending' => 'Pending', 'verified' => 'Verified', 'rejected' => 'Rejected'][$certStatus] ?? 'Pending';
+                  ?>
                   <!-- ===== Training certificate ===== -->
                   <section class="account-card account-card-row">
                     <div>
-                      <h2>IACUC Training Certificate</h2>
+                      <h2>IACUC Training Certificate <span class="email-badge <?= $certStatus === 'verified' ? 'email-badge-verified' : 'email-badge-unverified' ?>"><?= $certStatusLabel ?></span></h2>
                       <?php if (!empty($accountUser['cert_uploaded_at'])): ?>
                         <p class="helper">Uploaded <?= htmlspecialchars(date(DATE_FORMAT, strtotime($accountUser['cert_uploaded_at'])), ENT_QUOTES, 'UTF-8') ?></p>
+                      <?php endif; ?>
+                      <?php if ($certStatus === 'rejected' && !empty($accountUser['cert_note'])): ?>
+                        <p class="helper">Reviewer note: <?= htmlspecialchars($accountUser['cert_note'], ENT_QUOTES, 'UTF-8') ?></p>
                       <?php endif; ?>
                     </div>
                     <a class="button" href="<?= ROOT ?>/apply/cert/<?= (int) $accountUser['id'] ?>" target="_blank" rel="noopener">
@@ -271,6 +278,22 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                       Open
                     </a>
                   </section>
+
+                  <?php if ($certStatus === 'rejected'): ?>
+                    <!-- ===== Resubmit training certificate ===== -->
+                    <form class="account-card account-card-row" method="POST" action="<?= ROOT ?>/apply/reuploadcert" enctype="multipart/form-data"
+                      data-confirm-message="Submit this certificate for verification?" data-confirm-ok-text="Submit">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <p class="helper">Upload a new certificate (PDF, JPG or PNG, max 10 MB).</p>
+                      <input type="file" id="cert-reupload-input" name="cert_file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="this.form.requestSubmit()">
+                      <button type="button" class="button" onclick="document.getElementById('cert-reupload-input').click()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#upload-icon" />
+                        </svg>
+                        Upload new
+                      </button>
+                    </form>
+                  <?php endif; ?>
                 <?php endif; ?>
 
                 <!-- ===== Resend verification form ===== -->
@@ -399,10 +422,11 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     <span>Theme</span>
                     <div class="theme-options">
                       <?php foreach ($themeModes as [$themeMode, $themeLabel, $themeIcon]): ?>
-                        <button type="button" role="radio" data-mode="<?= $themeMode ?>" aria-label="<?= $themeLabel ?>" title="<?= $themeLabel ?>">
+                        <button type="button" role="radio" data-mode="<?= $themeMode ?>">
                           <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#<?= $themeIcon ?>" />
                           </svg>
+                          <?= $themeLabel ?>
                         </button>
                       <?php endforeach; ?>
                     </div>

@@ -81,13 +81,24 @@
       removeRow: $(cfg.removeRow),
       remove: $(cfg.remove),
       progress: $(cfg.progress),
+      pickerLabel: $(cfg.input).parentElement.querySelector(
+        "[data-picker-label]",
+      ),
     };
+  }
+
+  function syncPickerLabel(els) {
+    if (els.pickerLabel)
+      els.pickerLabel.textContent = els.wrap.hidden
+        ? "Choose image"
+        : "Replace image";
   }
 
   function showPreview(els, src) {
     els.img.src = src;
     els.zoom.dataset.zoomSrc = src;
     els.wrap.hidden = false;
+    syncPickerLabel(els);
   }
 
   function clearImage(els) {
@@ -98,6 +109,7 @@
     els.removeRow.hidden = true;
     els.remove.checked = false;
     els.progress.innerHTML = "";
+    syncPickerLabel(els);
   }
 
   function wireImage(entity) {
@@ -108,6 +120,7 @@
       const file = els.input.files && els.input.files[0];
       if (!file) {
         els.wrap.hidden = true;
+        syncPickerLabel(els);
         return;
       }
       const reader = new FileReader();

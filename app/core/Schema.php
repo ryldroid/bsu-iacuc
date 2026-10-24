@@ -42,6 +42,7 @@ class Schema
         $this->ensureColumn('users', 'sex', "varchar(20) DEFAULT NULL AFTER `phone_number`");
         $this->ensureColumn('users', 'welcome_seen', "tinyint(1) NOT NULL DEFAULT 0 AFTER `status`");
         $this->ensureIndex('users', 'unique_email', "(`email`)", true);
+        $this->addCertVerification();
 
         // ===== RECORDS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `records` (
@@ -450,6 +451,42 @@ class Schema
                    AND al.target_id = r.protocol_id
                    AND al.details = 'Status changed to: Reviewed')"
         );
+    }
+
+    // ===== TRAINING CERTIFICATE VERIFICATION =====
+    private function addCertVerification(): void
+    {
+        $c = $this->connection;
+
+        $c->query("CREATE TABLE IF NOT EXISTS `cert_history` (
+                    `id`            int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`       int(11)      NOT NULL,
+                    `file_path`     varchar(255) NOT NULL,
+                    `original_name` varchar(255) DEFAULT NULL,
+                    `action`        enum('submitted','verified','rejected') NOT NULL,
+                    `note`          varchar(500) DEFAULT NULL,
+                    `actor_id`      int(11)      DEFAULT NULL,
+                    `created_at`    timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    KEY `idx_cert_history_user` (`user_id`),
+                    FOREIGN KEY (`user_id`)  REFERENCES `users`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`actor_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
+        $statusIsNew = $c->query("SHOW COLUMNS FROM `users` LIKE 'cert_status'")->num_rows === 0;
+
+        $this->ensureColumn('users', 'cert_status', "enum('pending','verified','rejected') DEFAULT NULL AFTER `cert_uploaded_at`");
+        $this->ensureColumn('users', 'cert_reviewed_by', "int(11) DEFAULT NULL AFTER `cert_status`");
+        $this->ensureColumn('users', 'cert_reviewed_at', "timestamp NULL DEFAULT NULL AFTER `cert_reviewed_by`");
+        $this->ensureColumn('users', 'cert_note', "varchar(500) DEFAULT NULL AFTER `cert_reviewed_at`");
+
+        if ($statusIsNew) {
+            $c->query("UPDATE `users` SET cert_status = 'verified' WHERE cert_path IS NOT NULL");
+            $c->query(
+                "INSERT INTO `cert_history` (user_id, file_path, original_name, action, created_at)
+                 SELECT id, cert_path, cert_original_name, 'submitted', COALESCE(cert_uploaded_at, NOW())
+                 FROM `users` WHERE cert_path IS NOT NULL"
+            );
+        }
     }
 
     // ===== ONE-TIME DATA MIGRATIONS =====

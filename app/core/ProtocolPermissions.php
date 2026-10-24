@@ -36,7 +36,6 @@ class ProtocolPermissions
       'hasPaymentHistory'  => false,
       'hasRenames'         => false,
       'amendmentCount'     => 0,
-      'hasTrainingCertificate' => false,
     ];
 
     $protocolId = (int) ($protocol['protocol_id'] ?? $protocol['id'] ?? 0);
@@ -47,7 +46,6 @@ class ProtocolPermissions
         'has_payment_rejections'          => $model->getPaymentRejections($protocolId) !== [],
         'title_history_count'             => count($model->getTitleHistory($protocolId)),
         'amendment_count'                 => count($model->getVersions($protocolId, 'amendment')),
-        'latest_cert_version_id'          => $isPersonnel ? ($model->getLatestVersion($protocolId, 'cert')['id'] ?? null) : null,
       ];
     }
 
@@ -64,8 +62,6 @@ class ProtocolPermissions
     $flags['hasRenames'] = (int) $protocol['title_history_count'] > 1;
 
     $flags['amendmentCount'] = (int) $protocol['amendment_count'];
-
-    $flags['hasTrainingCertificate'] = $isPersonnel && !empty($protocol['latest_cert_version_id']);
 
     return $flags;
   }

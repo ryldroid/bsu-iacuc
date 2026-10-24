@@ -9,19 +9,27 @@
   justify-content: center;
 }
 
-.protocol-menu--icon .protocol-menu-trigger {
+.protocol-menu--icon .protocol-menu-trigger,
+.protocol-view-btn {
   padding: 6px;
   border-radius: var(--btn-radius);
   color: var(--primary-text);
 }
 
-.protocol-menu--icon .protocol-menu-trigger svg {
+.protocol-menu--icon .protocol-menu-trigger svg,
+.protocol-view-btn svg {
   width: 20px;
   height: 20px;
 }
 
+.protocol-view-btn {
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .protocol-menu--icon .protocol-menu-trigger:hover,
-.protocol-menu--icon .protocol-menu-trigger[aria-expanded="true"] {
+.protocol-menu--icon .protocol-menu-trigger[aria-expanded="true"],
+.protocol-view-btn:hover {
   background: var(--table-row-hover);
   color: var(--primary-text);
   text-decoration: none;

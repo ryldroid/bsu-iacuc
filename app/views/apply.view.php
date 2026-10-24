@@ -68,6 +68,7 @@ include 'includes/guide.php';
         agreedTerms: false,
         agreedPrivacy: false,
         certAlready: false,
+        certStatus: null,
         certName: null,
         certSize: null,
         protocolName: null,
@@ -360,10 +361,13 @@ include 'includes/guide.php';
 
         const requirements = [{
             title: 'IACUC training certificate',
-            subtitle: state.certAlready ?
-                'You have already submitted your certificate.' : 'Required for first-time submitters.',
-            pill: state.certAlready ?
-                `<span class="status-pill status-pill-done">${checkSvgSm}Submitted</span>` : `<span class="status-pill status-pill-required">Required</span>`,
+            subtitle: !state.certAlready ?
+                'Required for first-time submitters.' : state.certStatus === 'verified' ?
+                'Your certificate is verified.' : state.certStatus === 'rejected' ?
+                'Your certificate was rejected. Upload a new one from My Account before submitting.' :
+                'Your certificate is waiting for verification. You can submit once it is verified.',
+            pill: state.certStatus === 'verified' ?
+                `<span class="status-pill status-pill-done">${checkSvgSm}Verified</span>` : `<span class="status-pill status-pill-required">${!state.certAlready ? 'Required' : state.certStatus === 'rejected' ? 'Resubmit' : 'Pending'}</span>`,
         }, ];
 
         const process = [
@@ -1018,6 +1022,7 @@ include 'includes/guide.php';
         .then(r => r.json())
         .then(d => {
             state.certAlready = !!d.has_cert;
+            state.certStatus = d.cert_status;
             render();
         })
         .catch(() => {

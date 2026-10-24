@@ -64,6 +64,8 @@ function showSidebar() {
 
 // ===== Desktop sidebar expand / collapse (saved preference) =====
 const sidebarToggle = document.querySelector("#sidebar-toggle");
+const desktopSidebar = document.querySelector("aside");
+let sidebarAnimationTimer;
 
 function setSidebarExpanded(expanded) {
   if (expanded) {
@@ -87,6 +89,12 @@ if (sidebarToggle) {
     } else {
       localStorage.removeItem("sidebar");
     }
+    desktopSidebar.classList.add("sidebar-animating");
+    clearTimeout(sidebarAnimationTimer);
+    sidebarAnimationTimer = setTimeout(
+      () => desktopSidebar.classList.remove("sidebar-animating"),
+      300,
+    );
     setSidebarExpanded(expanded);
   });
 }

@@ -82,6 +82,7 @@ class Personnel extends Controller
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'protocols'       => $protocols,
+            'pendingCerts'    => $this->userModel->getPendingCerts(),
             'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'updatesEndpoint' => 'personnel/checkupdates',
@@ -114,6 +115,7 @@ class Personnel extends Controller
         }
 
         $protocols     = $this->protocolModel->getByUser($id);
+        $cert          = $this->userModel->getCert($id);
 
         echo json_encode([
             'ok'   => true,
@@ -128,6 +130,20 @@ class Personnel extends Controller
                 'status'         => $user['status'],
                 'created_at'     => $user['created_at'],
                 'protocol_count' => count($protocols),
+                'cert'           => $cert ? [
+                    'status'      => $cert['cert_status'],
+                    'uploaded_at' => $cert['cert_uploaded_at'],
+                    'note'        => $cert['cert_note'],
+                    'file_url'    => ROOT . '/apply/cert/' . $id,
+                    'history'     => array_map(fn($h) => [
+                        'action'        => $h['action'],
+                        'note'          => $h['note'],
+                        'original_name' => $h['original_name'],
+                        'created_at'    => $h['created_at'],
+                        'actor_name'    => $h['actor_name'],
+                        'file_url'      => ROOT . '/personnel/cert_file/' . $h['id'],
+                    ], $this->userModel->getCertHistory($id)),
+                ] : null,
                 'protocols'      => array_map(fn($p) => [
                     'reference_no'   => $p['reference_no'],
                     'research_title' => $p['research_title'],
@@ -137,6 +153,95 @@ class Personnel extends Controller
             ],
         ]);
         exit;
+    }
+
+    // ===== TRAINING CERTIFICATE VERIFICATION =====
+    public function cert_file(int $historyId = 0): void
+    {
+        $this->requirePersonnel(true);
+
+        $entry = $this->userModel->getCertHistoryEntry($historyId);
+        $path  = $entry ? dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $entry['file_path'] : '';
+
+        if (!$entry || !is_file($path)) {
+            $this->jsonError(404, 'The certificate file could not be found.');
+        }
+
+        $this->streamFile($path, $entry['original_name'] ?: basename($path));
+    }
+
+    public function certverify(): void
+    {
+        $this->reviewCert('verified');
+    }
+
+    public function certreject(): void
+    {
+        $this->reviewCert('rejected');
+    }
+
+    private function reviewCert(string $outcome): void
+    {
+        $this->requirePersonnel(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+        header('Content-Type: application/json');
+
+        $id   = (int) ($_POST['user_id'] ?? 0);
+        $note = trim((string) ($_POST['note'] ?? ''));
+        $user = $id > 0 ? $this->userModel->getUser($id) : null;
+
+        if (!$user || $user['role'] !== 'researcher') {
+            $this->jsonError(404, 'Researcher not found.');
+        }
+        if ($outcome === 'rejected' && $note === '') {
+            $this->jsonError(422, 'Please tell the researcher what is wrong with the certificate.');
+        }
+        if (mb_strlen($note) > 500) {
+            $this->jsonError(422, 'The note is too long. Keep it under 500 characters.');
+        }
+
+        $actor = $this->actor();
+
+        if (!$this->userModel->setCertStatus($id, $outcome, $actor['id'], $note)) {
+            $this->jsonError(409, 'This certificate is no longer waiting for verification.');
+        }
+
+        $this->userModel->addCertHistory($id, $outcome, $actor['id'], $outcome === 'rejected' ? $note : null);
+
+        $name   = trim($user['first_name'] . ' ' . $user['last_name']);
+        $detail = $outcome === 'verified'
+            ? "Verified training certificate of $name"
+            : "Rejected training certificate of $name";
+        $this->userModel->logAudit('cert_' . $outcome, $actor['id'], $actor['name'], $actor['role'], 'user', $id, $detail);
+
+        $this->notifyCertReviewed($user, $outcome, $note);
+
+        echo json_encode(['ok' => true, 'message' => $outcome === 'verified' ? 'Certificate verified.' : 'Resubmission requested.']);
+        exit;
+    }
+
+    private function notifyCertReviewed(array $user, string $outcome, string $note): void
+    {
+        $verified = $outcome === 'verified';
+        $title    = $verified ? 'Training Certificate Verified' : 'Training Certificate Rejected';
+
+        Notifier::send(
+            (int) $user['id'],
+            'cert_' . $outcome,
+            $title,
+            $verified
+                ? 'Your training certificate was ' . Notifier::bold('verified') . '. ' . Notifier::CERT_VERIFIED_NEXT_STEP
+                : 'Your training certificate was ' . Notifier::bold('rejected') . ". Reason: $note. " . Notifier::CERT_REJECTED_NEXT_STEP,
+            'submissions',
+            [
+                'template' => 'cert_' . $outcome,
+                'vars'     => ['first_name' => $user['first_name'] ?? '', 'reason' => $note],
+                'to'       => $user['email'] ?? '',
+                'name'     => $user['first_name'] ?? '',
+                'subject'  => $title,
+            ]
+        );
     }
 
     // ===== CLEARANCES REDIRECT =====

@@ -756,8 +756,15 @@
     right: 10px;
   }
 
+  .actions-secondary .protocol-view-btn {
+    position: absolute;
+    top: 8px;
+    right: 44px;
+    padding: 6px;
+  }
+
   .research-title {
-    padding-right: 32px;
+    padding-right: 118px;
   }
 
   .empty-state {

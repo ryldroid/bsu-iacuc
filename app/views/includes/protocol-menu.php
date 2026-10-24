@@ -8,9 +8,6 @@ $menuTitle    = htmlspecialchars((string) $menu['title'], ENT_QUOTES, 'UTF-8');
 $menuItems    = [];
 $menuHasUpdate = !empty($menu['hasUpdate']) && $menuFlags['hasRenames'];
 
-if (!empty($menu['certUrl'])) {
-  $menuItems[] = ['action' => 'training-certificate', 'label' => 'Training Certificate', 'icon' => 'review-icon', 'fileUrl' => $menu['certUrl']];
-}
 $menuItems[] = ['action' => 'version-history', 'label' => 'Version History', 'icon' => 'history-icon', 'update' => $menuHasUpdate, 'compact' => true];
 if ($menuFlags['hasPaymentHistory']) {
   $menuItems[] = ['action' => 'payment-history', 'label' => 'Payment History', 'icon' => 'history-icon'];

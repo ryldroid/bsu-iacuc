@@ -519,6 +519,9 @@ header [data-tooltip][aria-expanded="true"]::after {
 }
 
 #account-drawer .theme-options button {
+    display: flex;
+    align-items: center;
+    gap: .35em;
     width: auto;
     padding: .35em .5em;
     border-radius: calc(var(--radius) - 2px);

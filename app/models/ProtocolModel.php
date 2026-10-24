@@ -492,12 +492,6 @@ class ProtocolModel extends Model
                        AND pv1.file_type = 'protocol'
                      ORDER BY pv1.version_number DESC
                      LIMIT 1) AS latest_protocol_version_id,
-                    (SELECT pv2.id
-                     FROM `protocol_versions` pv2
-                     WHERE pv2.protocol_id = p.id
-                       AND pv2.file_type = 'cert'
-                     ORDER BY pv2.version_number DESC
-                     LIMIT 1) AS latest_cert_version_id,
                     (SELECT pv5.id
                      FROM `protocol_versions` pv5
                      WHERE pv5.protocol_id = p.id
@@ -516,7 +510,6 @@ class ProtocolModel extends Model
                        AND pv7.file_type = 'clearance'
                      ORDER BY pv7.version_number DESC
                      LIMIT 1) AS latest_clearance_version_id,
-                    (u.cert_path IS NOT NULL) AS has_account_cert,
                     (SELECT COUNT(*) FROM `protocol_title_history` h
                      WHERE h.protocol_id = p.id) AS title_history_count,
                     (SELECT COUNT(*) FROM `protocol_versions` pva
@@ -610,7 +603,6 @@ class ProtocolModel extends Model
                         p.updated_at
                     )
                 ) AS last_activity_at,
-                rr.wrong_cert   AS rr_wrong_cert,
                 rr.other_reason AS rr_other_reason,
                 rr.comment      AS rr_comment,
                 rr.created_at   AS rr_created_at,
@@ -1079,24 +1071,21 @@ class ProtocolModel extends Model
     public function insertReturnReason(
         int $protocolId,
         int $reviewerId,
-        array $reasons,
         string $comment,
         ?int $versionId = null
     ): bool {
-        $wrongCert  = in_array('wrong_cert',  $reasons, true) ? 1 : 0;
-        $otherFlag  = in_array('other',       $reasons, true) ? 1 : 0;
-        $comment    = mb_substr(trim($comment), 0, 1000);
+        $comment = mb_substr(trim($comment), 0, 1000);
 
         $stmt = $this->connection->prepare(
             "INSERT INTO `protocol_return_reasons`
-                (protocol_id, reviewer_id, wrong_cert, other_reason, comment, version_id)
-             VALUES (?, ?, ?, ?, ?, ?)"
+                (protocol_id, reviewer_id, comment, version_id)
+             VALUES (?, ?, ?, ?)"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('iiiisi', $protocolId, $reviewerId, $wrongCert, $otherFlag, $comment, $versionId);
+        $stmt->bind_param('iisi', $protocolId, $reviewerId, $comment, $versionId);
         return $stmt->execute();
     }
 
@@ -1105,7 +1094,6 @@ class ProtocolModel extends Model
         $author = $withAuthor ? ', ' . self::AUTHOR_SQL . ' AS returned_by' : '';
         $stmt = $this->connection->prepare(
             "SELECT
-                r.wrong_cert,
                 r.other_reason,
                 r.comment,
                 r.created_at$author
@@ -1133,7 +1121,6 @@ class ProtocolModel extends Model
         $author = $withAuthor ? ', ' . self::AUTHOR_SQL . ' AS returned_by' : '';
         $stmt = $this->connection->prepare(
             "SELECT
-                r.wrong_cert,
                 r.other_reason,
                 r.comment,
                 r.created_at$author

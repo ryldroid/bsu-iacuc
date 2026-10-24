@@ -2,7 +2,7 @@
 
 /** @var array $protocols */
 /** @var array $statuses  */
-/** @var bool  $hasCertOnFile */
+/** @var array|null $cert */
 /** @var bool  $isBsuResearcher */
 /** @var string $csrf */
 /** @var array $actor */
@@ -105,6 +105,19 @@ function statusIconSvg(string $iconId, int $size = 14): string
             : ($_SESSION['flash_success'] ?? '');
         include __DIR__ . '/includes/flash.php';
         ?>
+
+        <?php if (!empty($cert) && $cert['cert_status'] !== 'verified'): ?>
+            <div class="notice notice-warning">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#alert-triangle-icon" />
+                </svg>
+                <?php if ($cert['cert_status'] === 'rejected'): ?>
+                    <span>Your training certificate was rejected<?= !empty($cert['cert_note']) ? ': ' . htmlspecialchars($cert['cert_note'], ENT_QUOTES, 'UTF-8') : '' ?>. Open My Account to upload a new one.</span>
+                <?php else: ?>
+                    <span>Your training certificate is waiting for verification. Until it is verified, you cannot submit new protocols and your protocols cannot be marked as Reviewed.</span>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Status filter bar -->
         <div class="dashboard-filter-row">
@@ -226,7 +239,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $needsRevision  = strtolower($protocol['status']) === 'needs revision';
                     $returnIssues   = [];
                     if ($needsRevision) {
-                        if (!empty($protocol['rr_wrong_cert']))  $returnIssues[] = 'Wrong / invalid training certificate';
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
                     $isApproved    = strtolower($protocol['status']) === 'approved';
@@ -352,9 +364,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
                                 <div class="actions-secondary">
                                     <?php if (!$needsRevision): ?>
-                                        <a class="action-link" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                        <a class="action-link protocol-view-btn" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                            title="View Protocol" aria-label="View Protocol"
                                             onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
-                                            View Protocol
+                                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <use href="#eye-icon" />
+                                            </svg>
+                                            View
                                         </a>
                                     <?php endif; ?>
                                     <?php $menu = ProtocolMenu::forRow($protocol, $actor);
@@ -405,8 +421,8 @@ foreach (array_values($statusMeta) as $index => $meta) {
 }
 $guideSteps = array_merge($guideSteps, [
     ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-    ['Actions', '**View Protocol** opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), **View rejection and resubmit** (if your payment proof is rejected), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
-    ['More actions', '**Actions** is the three dots beside View Protocol. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
+    ['Actions', 'The **eye button** (View Protocol) opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), **View rejection and resubmit** (if your payment proof is rejected), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
+    ['More actions', '**Actions** is the three dots beside the eye button. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],
 ]);
 include 'includes/guide.php';

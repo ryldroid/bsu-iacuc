@@ -57,31 +57,31 @@ include "includes/scroll-top.php";
                             $annTimestamp = strtotime($post['created_at']);
                             $annDateDisplay = $annTimestamp ? date(DATETIME_FORMAT, $annTimestamp) : htmlspecialchars($post['created_at'], ENT_QUOTES);
                             $annDateIso = $annTimestamp ? date('c', $annTimestamp) : '';
-                            $isNew = $annTimestamp && $annTimestamp >= strtotime('-7 days');
+                            $isNew = $annTimestamp && $annTimestamp >= strtotime('-' . ANNOUNCEMENT_NEW_DAYS . ' days');
                             $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
                         ?>
                             <button type="button"
-                                class="office-announcement-card<?= $isFeatured ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
+                                class="office-announcement-card<?= $isFeatured ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isNew ? ' is-new' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
                                 data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
                                 aria-haspopup="dialog">
 
                                 <?php if ($hasImage): ?>
                                     <span class="office-announcement-thumb">
                                         <img src="<?= $annImgUrl ?>" alt="">
-                                        <?php if ($isNew): ?><span class="office-announcement-badge">New</span><?php endif; ?>
+                                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="office-announcement-thumb is-placeholder">
                                         <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#announcement-icon" />
                                         </svg>
-                                        <?php if ($isNew): ?><span class="office-announcement-badge">New</span><?php endif; ?>
+                                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
                                     </span>
                                 <?php endif; ?>
 
                                 <?php if (!$isPhotoOnly): ?>
                                     <span class="office-announcement-body-wrap">
-                                        <?php if ($isFeatured): ?><span class="office-announcement-kicker">Latest</span><?php endif; ?>
+                                        <!-- <?php if ($isFeatured): ?><span class="office-announcement-kicker">Latest</span><?php endif; ?> -->
                                         <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
                                         <?php if ($annSnippet !== ''): ?>
                                             <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>

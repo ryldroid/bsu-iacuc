@@ -13,20 +13,10 @@ class ProtocolMenu
   {
     $flags      = ProtocolPermissions::flags($protocol, $actor);
     $latestFile = (int) ($protocol['latest_protocol_version_id'] ?? 0);
-    $certFile   = (int) ($protocol['latest_cert_version_id'] ?? 0);
-
-    $certUrl = null;
-    if ($certFile > 0) {
-      $certUrl = ROOT . '/apply/file/' . $certFile;
-    } elseif (!empty($protocol['has_account_cert'])) {
-      $certUrl = ROOT . '/apply/cert/' . (int) $protocol['user_id'];
-    }
-
     return self::base($protocol) + [
       'look'     => 'icon',
       'flags'    => $flags,
       'extraItems' => $extraItems,
-      'certUrl'  => $certUrl,
       'download' => $latestFile > 0
         ? ['url' => ROOT . '/apply/file/' . $latestFile . '?download=1', 'name' => '']
         : null,
@@ -35,7 +25,7 @@ class ProtocolMenu
 
   /**
    * The viewer already knows its flags, the version on screen and where to go
-   * after an action, so it passes those in $options (certUrl, download,
+   * after an action, so it passes those in $options (download,
    * hasUpdate, deleteRedirect, amendRedirect).
    */
   public static function forViewer(array $protocol, array $flags, array $options): array

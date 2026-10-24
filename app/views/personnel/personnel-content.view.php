@@ -382,7 +382,7 @@ include dirname(__DIR__) . '/includes/guide.php';
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <use href="#upload-icon" />
             </svg>
-            Choose image
+            <span data-picker-label>Choose image</span>
             <input type="file" id="ann_image" accept="image/png,image/jpeg,image/webp,image/gif">
           </label>
           <div class="ann-image-preview-wrap" id="ann_image_preview_wrap" hidden>

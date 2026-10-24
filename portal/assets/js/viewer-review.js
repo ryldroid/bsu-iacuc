@@ -49,9 +49,6 @@ const returnComment = document.getElementById("returnComment");
 const returnCharCount = document.getElementById("returnCharCount");
 
 function openReturnModal() {
-  document
-    .querySelectorAll('input[name="return_reason"]')
-    .forEach((cb) => (cb.checked = false));
   returnComment.value = "";
   returnCharCount.textContent = "0";
   document.getElementById("returnRevisionError").hidden = true;
@@ -82,9 +79,6 @@ async function submitReturnRevision() {
   );
   if (!ok) return;
 
-  const selectedReasons = [
-    ...document.querySelectorAll('input[name="return_reason"]:checked'),
-  ].map((cb) => cb.value);
   const commentText = returnComment.value.trim();
   const errBox = document.getElementById("returnRevisionError");
   const submitBtn = document.getElementById("returnRevisionSubmitBtn");
@@ -101,7 +95,6 @@ async function submitReturnRevision() {
       },
       body: JSON.stringify({
         protocol_id: PROTOCOL_ID,
-        reasons: selectedReasons,
         comment: commentText,
       }),
     });

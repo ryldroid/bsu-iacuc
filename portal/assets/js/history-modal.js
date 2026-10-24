@@ -131,36 +131,6 @@ function buildVersionRows(data) {
   return historySection("Protocol Submissions", rows);
 }
 
-function buildCertRows(data) {
-  const certs = data.cert_versions;
-  if (!certs || certs.length === 0) return "";
-
-  const rows = certs
-    .map((c, index) => {
-      const badge =
-        index === 0 ? ' <span class="history-latest-badge">Current</span>' : "";
-      const detail = c.flagged
-        ? '<span class="payment-event-detail">Flagged as wrong by the reviewer</span>'
-        : "";
-      const action = `<a class="button button-compact history-open" href="${escapeHtml(c.file_url)}" target="_blank" rel="noopener" aria-label="Open training certificate, ${formatDate(c.uploaded_at)}">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
-                Open
-            </a>`;
-
-      return historyEvent(
-        c.flagged ? "warning" : "info",
-        c.flagged ? "alert-triangle-icon" : "upload-icon",
-        "Training certificate" + badge,
-        `${escapeHtml(formatDate(c.uploaded_at))} &middot; ${escapeHtml(formatTime(c.uploaded_at))}`,
-        detail,
-        action,
-      );
-    })
-    .join("");
-
-  return historySection("Training Certificate", rows);
-}
-
 function buildTitleHistorySection(titleHistory) {
   if (!titleHistory || titleHistory.length === 0) return "";
 
@@ -197,7 +167,6 @@ function historySection(label, rows) {
 function renderHistory(data) {
   const sections = [
     buildVersionRows(data),
-    buildCertRows(data),
     buildTitleHistorySection(data.title_history),
   ].filter(Boolean);
 

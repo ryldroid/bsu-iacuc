@@ -523,7 +523,7 @@ class User extends Controller
       $this->userModel->logAudit('email_changed', $id, $username, $role, 'user', $id, 'Email changed, re-verification sent');
 
       $message = $verificationSent
-        ? 'Account updated successfully! A verification link was sent to ' . $email . '.'
+        ? 'Account updated successfully! A verification link was sent to your email.'
         : 'Account updated successfully! Use "Verify email" to get a verification link for your new email.';
     }
 
@@ -712,7 +712,7 @@ class User extends Controller
     }
 
     if ($this->sendEmailVerification($user)) {
-      $this->verificationResult(true, 'Verification link sent to ' . $user['email'] . '. Please check your inbox.');
+      $this->verificationResult(true, 'Verification link sent to your email. Please check your inbox.');
     }
 
     $this->verificationResult(false, $emailChanged

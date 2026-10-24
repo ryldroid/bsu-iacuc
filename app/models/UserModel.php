@@ -122,7 +122,7 @@ class UserModel extends Model
   public function getCert(int $userId): ?array
   {
     $stmt = $this->connection->prepare(
-      "SELECT cert_path, cert_original_name, cert_uploaded_at
+      "SELECT cert_path, cert_original_name, cert_uploaded_at, cert_status, cert_reviewed_by, cert_reviewed_at, cert_note
       FROM $this->table WHERE id = ? AND cert_path IS NOT NULL"
     );
     $stmt->bind_param('i', $userId);
@@ -139,11 +139,71 @@ class UserModel extends Model
   {
     $stmt = $this->connection->prepare(
       "UPDATE $this->table
-      SET cert_path = ?, cert_original_name = ?, cert_uploaded_at = NOW()
+      SET cert_path = ?, cert_original_name = ?, cert_uploaded_at = NOW(),
+          cert_status = 'pending', cert_reviewed_by = NULL, cert_reviewed_at = NULL, cert_note = NULL
       WHERE id = ?"
     );
     $stmt->bind_param('ssi', $relPath, $originalName, $userId);
+
+    return $stmt->execute() && $this->addCertHistory($userId, 'submitted', $userId);
+  }
+
+  public function setCertStatus(int $userId, string $status, ?int $actorId = null, ?string $note = null): bool
+  {
+    if (!in_array($status, ['pending', 'verified', 'rejected'], true)) return false;
+
+    $reviewedBy = $status === 'pending' ? null : $actorId;
+    $note       = $status === 'rejected' ? $note : null;
+    $guard      = $status === 'pending' ? '' : " AND cert_status = 'pending'";
+
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table
+      SET cert_status = ?, cert_reviewed_by = ?, cert_reviewed_at = IF(? = 'pending', NULL, NOW()), cert_note = ?
+      WHERE id = ?$guard"
+    );
+    $stmt->bind_param('sissi', $status, $reviewedBy, $status, $note, $userId);
+    $stmt->execute();
+
+    return $stmt->affected_rows > 0;
+  }
+
+  public function addCertHistory(int $userId, string $action, ?int $actorId = null, ?string $note = null): bool
+  {
+    $stmt = $this->connection->prepare(
+      "INSERT INTO cert_history (user_id, file_path, original_name, action, note, actor_id)
+      SELECT id, cert_path, cert_original_name, ?, ?, ? FROM $this->table WHERE id = ? AND cert_path IS NOT NULL"
+    );
+    $stmt->bind_param('ssii', $action, $note, $actorId, $userId);
     return $stmt->execute();
+  }
+
+  public function getCertHistory(int $userId): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT h.id, h.action, h.note, h.file_path, h.original_name, h.created_at, CONCAT(u.first_name, ' ', u.last_name) AS actor_name
+      FROM cert_history h LEFT JOIN $this->table u ON u.id = h.actor_id
+      WHERE h.user_id = ? ORDER BY h.id DESC"
+    );
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  public function getCertHistoryEntry(int $historyId): ?array
+  {
+    $stmt = $this->connection->prepare("SELECT file_path, original_name FROM cert_history WHERE id = ?");
+    $stmt->bind_param('i', $historyId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc() ?: null;
+  }
+
+  public function getPendingCerts(): array
+  {
+    return $this->connection->query(
+      "SELECT id, first_name, last_name, school, cert_uploaded_at
+      FROM $this->table WHERE cert_status = 'pending' AND status = 'active'
+      ORDER BY cert_uploaded_at"
+    )->fetch_all(MYSQLI_ASSOC);
   }
 
   // ===== WELCOME POPUP =====
@@ -241,10 +301,10 @@ class UserModel extends Model
   // ===== DELETE / DEACTIVATE ACCOUNT =====
   public function deleteUser(int $id): bool
   {
-    $stmt = $this->connection->prepare("SELECT cert_path FROM $this->table WHERE id = ?");
+    $stmt = $this->connection->prepare("SELECT file_path FROM cert_history WHERE user_id = ?");
     $stmt->bind_param('i', $id);
     $stmt->execute();
-    $existing = $stmt->get_result()->fetch_assoc();
+    $certFiles = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'file_path');
 
     $anonUsername   = 'deleted_user_' . $id . '_' . bin2hex(random_bytes(3));
     $anonEmail      = $anonUsername . '@deleted.local';
@@ -255,14 +315,20 @@ class UserModel extends Model
           SET username = ?, first_name = 'Deleted', last_name = 'User',
               email = ?, phone_number = NULL, school = NULL, sex = NULL, researcher_type = NULL,
               password = ?, status = 'deleted',
-              cert_path = NULL, cert_original_name = NULL, cert_uploaded_at = NULL
+              cert_path = NULL, cert_original_name = NULL, cert_uploaded_at = NULL,
+              cert_status = NULL, cert_reviewed_by = NULL, cert_reviewed_at = NULL, cert_note = NULL
         WHERE id = ?"
     );
     $stmt->bind_param('sssi', $anonUsername, $anonEmail, $randomPassword, $id);
     $ok = $stmt->execute();
 
-    if ($ok && !empty($existing['cert_path'])) {
-      @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $existing['cert_path']);
+    if ($ok) {
+      foreach ($certFiles as $certFile) {
+        @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $certFile);
+      }
+      $stmt = $this->connection->prepare("DELETE FROM cert_history WHERE user_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
     }
 
     return $ok;

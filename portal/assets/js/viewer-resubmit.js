@@ -8,10 +8,6 @@ const RESUBMIT_ENDPOINTS = {
     path: "/apply/reupload",
     field: "protocol_file",
   },
-  cert: {
-    path: "/apply/reuploadcert",
-    field: "cert_file",
-  },
 };
 let resubmitFiles = {};
 let resubmitConverting = null;
