@@ -127,7 +127,14 @@
 }
 
 .bulk-payment-filter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-right: auto;
+}
+
+.bulk-payment-filter[hidden] {
+    display: none;
 }
 
 .bulk-actions-bar .row-btn-outline {
@@ -326,8 +333,16 @@
 }
 
 /* ===== Results summary ===== */
-.results-summary {
+.results-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
     margin: 12px 0 0;
+}
+
+.results-summary {
+    margin: 0;
     font-size: 0.9em;
     font-weight: 600;
     color: var(--primary-text);
@@ -399,4 +414,17 @@
 
 .consent-checkbox {
     margin-bottom: 0;
+}
+
+/* ===== Pagination pinned to the bottom ===== */
+main:has(> .dashboard-panel > .pagination-bar--pinned) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 1.5rem;
+}
+
+.dashboard-panel:has(> .pagination-bar--pinned) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
 }

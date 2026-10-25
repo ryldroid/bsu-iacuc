@@ -536,6 +536,7 @@
   border: none;
   border-radius: 8px;
   background: none;
+  box-shadow: none;
   font: inherit;
   font-size: .78rem;
   font-weight: 600;
@@ -553,7 +554,6 @@
 
 .resub-btn-link.is-danger {
   color: var(--danger-color);
-  box-shadow: none;
 }
 
 .resub-notes {

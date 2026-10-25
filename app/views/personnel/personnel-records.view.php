@@ -260,21 +260,6 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         'sort'   => $sort !== 'newest' ? $sort : '',
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)) + $periodFilter);
 }
-
-// ===== Duration helper =====
-function formatDurationRange(?string $start, ?string $end): string
-{
-    if ($start && $end) {
-        return date(DATE_FORMAT, strtotime($start)) . ' – ' . date(DATE_FORMAT, strtotime($end));
-    }
-    if ($start) {
-        return 'From ' . date(DATE_FORMAT, strtotime($start));
-    }
-    if ($end) {
-        return 'Until ' . date(DATE_FORMAT, strtotime($end));
-    }
-    return '';
-}
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
@@ -546,7 +531,7 @@ function formatDurationRange(?string $start, ?string $end): string
                                             <td class="records-detail date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars(formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars(RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
                                             <td class="records-detail date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
                                             <td class="records-detail date-cell" data-label="Date Added"><?= !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '' ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
@@ -602,7 +587,7 @@ function formatDurationRange(?string $start, ?string $end): string
 
                 <!-- ===== Pagination ===== -->
                 <?php if ($totalPages > 1): ?>
-                    <div class="pagination-bar">
+                    <div class="pagination-bar pagination-bar--pinned">
                         <div class="pagination-info">
                             Showing <?= $offset + 1 ?>–<?= min($offset + $perPage, $total) ?> of <?= $total ?> records
                         </div>
@@ -881,7 +866,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <input type="text" id="add_pi" name="principal_investigator" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_school">School / Department</label>
+                    <label class="field-label" for="add_school">School</label>
                     <input type="text" id="add_school" name="school" placeholder="e.g. College of Agriculture">
                 </div>
                 <div class="records-form-group">
@@ -918,11 +903,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_research_duration_start">Research Duration</label>
                     <div class="records-date-range">
-                        <input type="date" id="add_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
+                        <input type="month" id="add_research_duration_start" name="research_duration_start" aria-label="Research duration start month">
                         <span class="records-date-range-sep">to</span>
-                        <input type="date" id="add_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
+                        <input type="month" id="add_research_duration_end" name="research_duration_end" aria-label="Research duration end month">
                     </div>
-                    <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
+                    <span class="helper">The end month also serves as this clearance's expiry (valid until the last day of that month). Once it passes and the researcher has no other protocols being processed, their account is marked inactive automatically.</span>
                 </div>
                 <div class="records-form-group">
                     <label class="field-label" for="add_date_released">Date Released</label>
@@ -974,13 +959,31 @@ include dirname(__DIR__) . '/includes/guide.php';
             <div class="alert error-messages" id="editError" hidden></div>
             <div class="records-form-grid">
                 <input type="hidden" id="edit_id">
-                <div class="records-form-group records-form-full">
-                    <label class="field-label" for="edit_reference_no">IPN</label>
-                    <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
-                </div>
-                <div class="records-form-group records-form-full">
-                    <label class="field-label" for="edit_ar_number">AR Number</label>
-                    <input type="text" id="edit_ar_number" name="ar_number" placeholder="From the BAI clearance">
+                <div class="records-form-grid records-form-full records-form-staff">
+                    <div class="records-form-group records-form-full">
+                        <label class="field-label" for="edit_reference_no">IPN</label>
+                        <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
+                    </div>
+                    <div class="records-form-group records-form-full">
+                        <label class="field-label" for="edit_ar_number">AR Number</label>
+                        <input type="text" id="edit_ar_number" name="ar_number" placeholder="From the BAI clearance">
+                    </div>
+                    <div class="records-form-group">
+                        <label class="field-label" for="edit_date_released">Date Released</label>
+                        <input type="date" id="edit_date_released" name="date_released">
+                    </div>
+                    <div class="records-form-group">
+                        <label class="field-label" for="edit_status">Status</label>
+                        <select id="edit_status" name="status">
+                            <?php foreach (RecordModel::STATUSES as $st): ?>
+                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="records-form-group records-form-full">
+                        <label class="field-label" for="edit_received_by">Received By</label>
+                        <input type="text" id="edit_received_by" name="received_by">
+                    </div>
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="edit_title">Title of Research</label>
@@ -991,7 +994,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <input type="text" id="edit_pi" name="principal_investigator">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_school">School / Department</label>
+                    <label class="field-label" for="edit_school">School</label>
                     <input type="text" id="edit_school" name="school">
                 </div>
                 <div class="records-form-group">
@@ -1001,14 +1004,6 @@ include dirname(__DIR__) . '/includes/guide.php';
                 <div class="records-form-group">
                     <label class="field-label" for="edit_animal_count">Animal Count</label>
                     <input type="number" id="edit_animal_count" name="animal_count" min="0">
-                </div>
-                <div class="records-form-group">
-                    <label class="field-label" for="edit_sex">Researcher Sex</label>
-                    <select id="edit_sex" name="sex">
-                        <option value="">Select</option>
-                        <option>Male</option>
-                        <option>Female</option>
-                    </select>
                 </div>
                 <div class="records-form-group">
                     <label class="field-label" for="edit_researcher_type">Researcher Type</label>
@@ -1021,34 +1016,18 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <label class="field-label" for="edit_research_adviser">Research Adviser</label>
                     <input type="text" id="edit_research_adviser" name="research_adviser" list="adviser-options">
                 </div>
-                <div class="records-form-group">
+                <div class="records-form-group records-form-full">
                     <label class="field-label" for="edit_veterinarian">Veterinarian</label>
                     <input type="text" id="edit_veterinarian" name="veterinarian" list="veterinarian-options">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="edit_research_duration_start">Research Duration</label>
                     <div class="records-date-range">
-                        <input type="date" id="edit_research_duration_start" name="research_duration_start" aria-label="Research duration start date">
+                        <input type="month" id="edit_research_duration_start" name="research_duration_start" aria-label="Research duration start month">
                         <span class="records-date-range-sep">to</span>
-                        <input type="date" id="edit_research_duration_end" name="research_duration_end" aria-label="Research duration end date">
+                        <input type="month" id="edit_research_duration_end" name="research_duration_end" aria-label="Research duration end month">
                     </div>
-                    <span class="helper">The end date also serves as this clearance's expiry. Once it passes and the researcher has no other protocols being processed, their account is deactivated automatically.</span>
-                </div>
-                <div class="records-form-group">
-                    <label class="field-label" for="edit_date_released">Date Released</label>
-                    <input type="date" id="edit_date_released" name="date_released">
-                </div>
-                <div class="records-form-group">
-                    <label class="field-label" for="edit_status">Status</label>
-                    <select id="edit_status" name="status">
-                        <?php foreach (RecordModel::STATUSES as $st): ?>
-                            <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="records-form-group records-form-full">
-                    <label class="field-label" for="edit_received_by">Received By</label>
-                    <input type="text" id="edit_received_by" name="received_by">
+                    <span class="helper">The end month also serves as this clearance's expiry (valid until the last day of that month). Once it passes and the researcher has no other protocols being processed, their account is marked inactive automatically.</span>
                 </div>
             </div>
         </div>
@@ -1231,17 +1210,14 @@ include dirname(__DIR__) . '/includes/guide.php';
                         document.getElementById('edit_school').value = d.school ?? '';
                         document.getElementById('edit_animal_type').value = d.animal_type ?? '';
                         document.getElementById('edit_animal_count').value = d.animal_count ?? '';
-                        document.getElementById('edit_sex').value = d.sex ?? '';
-                        document.getElementById('edit_researcher_type').value = d.researcher_type ?? '';
-                        ['edit_sex', 'edit_researcher_type'].forEach(id => {
-                            const field = document.getElementById(id);
-                            field.disabled = !!d.user_id;
-                            field.title = d.user_id ? 'Set by the researcher on their account' : '';
-                        });
+                        const researcherTypeField = document.getElementById('edit_researcher_type');
+                        researcherTypeField.value = d.researcher_type ?? '';
+                        researcherTypeField.disabled = !!d.user_id;
+                        researcherTypeField.title = d.user_id ? 'Set by the researcher on their account' : '';
                         document.getElementById('edit_research_adviser').value = d.research_adviser ?? '';
                         document.getElementById('edit_veterinarian').value = d.veterinarian ?? '';
-                        document.getElementById('edit_research_duration_start').value = d.research_duration_start ?? '';
-                        document.getElementById('edit_research_duration_end').value = d.research_duration_end ?? '';
+                        document.getElementById('edit_research_duration_start').value = (d.research_duration_start ?? '').slice(0, 7);
+                        document.getElementById('edit_research_duration_end').value = (d.research_duration_end ?? '').slice(0, 7);
                         document.getElementById('edit_date_released').value = d.date_released ?? '';
                         document.getElementById('edit_received_by').value = d.received_by ?? '';
                         document.getElementById('edit_status').value = d.status || 'Ongoing';
@@ -1280,7 +1256,6 @@ include dirname(__DIR__) . '/includes/guide.php';
                 animal_type: document.getElementById('edit_animal_type').value,
                 animal_count: document.getElementById('edit_animal_count').value,
                 principal_investigator: document.getElementById('edit_pi').value,
-                sex: document.getElementById('edit_sex').value,
                 researcher_type: document.getElementById('edit_researcher_type').value,
                 research_adviser: document.getElementById('edit_research_adviser').value,
                 veterinarian: document.getElementById('edit_veterinarian').value,

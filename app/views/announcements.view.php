@@ -105,9 +105,6 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 
 <div id="fb-root"></div>
-<script async defer crossorigin="anonymous"
-    src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0&appId=1366404755375168">
-</script>
 
 <div class="body">
     <?php include "includes/navigation.php"; ?>
@@ -310,6 +307,23 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
 
             controls.classList.toggle('is-hidden', slides.length < 2);
             updateCarousel();
+        }
+
+        // ===== Load the Facebook SDK only when the partner pages come near the screen =====
+        const partnerPages = document.querySelector('.fb-cards');
+        if (partnerPages) {
+            const facebookObserver = new IntersectionObserver((entries) => {
+                if (!entries[0].isIntersecting) return;
+                facebookObserver.disconnect();
+                const sdk = document.createElement('script');
+                sdk.async = true;
+                sdk.crossOrigin = 'anonymous';
+                sdk.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v19.0&appId=1366404755375168';
+                document.body.appendChild(sdk);
+            }, {
+                rootMargin: '400px'
+            });
+            facebookObserver.observe(partnerPages);
         }
 
         // ===== Pagination for the earlier announcement cards =====

@@ -341,6 +341,7 @@ class Schema
         $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
         $this->backfillReturnReasonVersions();
         $this->backfillMissingRecords();
+        $this->backfillPendingRecordStatus();
 
         // ===== PAYMENT PROOF REJECTIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
@@ -394,11 +395,15 @@ class Schema
         $this->ensureColumn('protocol_drafts', 'animal_count', "int(11) DEFAULT NULL AFTER `animal_type`");
         $this->ensureColumn('protocol_drafts', 'research_adviser', "varchar(255) DEFAULT NULL AFTER `animal_count`");
         $this->ensureColumn('protocol_drafts', 'veterinarian', "varchar(255) DEFAULT NULL AFTER `research_adviser`");
+        $this->ensureColumn('protocol_drafts', 'research_duration_start', "date DEFAULT NULL AFTER `veterinarian`");
+        $this->ensureColumn('protocol_drafts', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
 
         $this->ensureColumn('protocols', 'animal_type', "varchar(100) DEFAULT NULL AFTER `title`");
         $this->ensureColumn('protocols', 'animal_count', "int(11) DEFAULT NULL AFTER `animal_type`");
         $this->ensureColumn('protocols', 'research_adviser', "varchar(255) DEFAULT NULL AFTER `animal_count`");
         $this->ensureColumn('protocols', 'veterinarian', "varchar(255) DEFAULT NULL AFTER `research_adviser`");
+        $this->ensureColumn('protocols', 'research_duration_start', "date DEFAULT NULL AFTER `veterinarian`");
+        $this->ensureColumn('protocols', 'research_duration_end', "date DEFAULT NULL AFTER `research_duration_start`");
 
         $this->ensureColumn('users', 'researcher_type', "varchar(50) DEFAULT NULL AFTER `sex`");
 
@@ -477,6 +482,7 @@ class Schema
         $this->ensureColumn('users', 'cert_status', "enum('pending','verified','rejected') DEFAULT NULL AFTER `cert_uploaded_at`");
         $this->ensureColumn('users', 'cert_reviewed_by', "int(11) DEFAULT NULL AFTER `cert_status`");
         $this->ensureColumn('users', 'cert_reviewed_at', "timestamp NULL DEFAULT NULL AFTER `cert_reviewed_by`");
+        $this->ensureColumn('users', 'expiry_warned_for', "date DEFAULT NULL");
         $this->ensureColumn('users', 'cert_note', "varchar(500) DEFAULT NULL AFTER `cert_reviewed_at`");
 
         if ($statusIsNew) {
@@ -665,6 +671,17 @@ class Schema
         );
     }
 
+    // Records default to Ongoing, but until the protocol is approved they are Pending
+    private function backfillPendingRecordStatus(): void
+    {
+        $this->connection->query(
+            "UPDATE `records` r
+             JOIN `protocols` p ON p.id = r.protocol_id
+             SET r.status = 'Pending'
+             WHERE r.status = 'Ongoing' AND p.status <> 'Approved'"
+        );
+    }
+
     // Adds a record for every Reviewed (or later) protocol that has none, e.g. when the
     // snapshot failed at review time. Reuses RecordModel so it matches the live behaviour.
     private function backfillMissingRecords(): void
@@ -673,7 +690,8 @@ class Schema
             "SELECT p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title, p.user_id,
                     u.first_name AS submitter_first_name, u.last_name AS submitter_last_name,
                     u.school AS submitter_school, u.sex AS submitter_sex, u.researcher_type AS submitter_researcher_type,
-                    p.animal_type, p.animal_count, p.research_adviser, p.veterinarian
+                    p.animal_type, p.animal_count, p.research_adviser, p.veterinarian,
+                    p.research_duration_start, p.research_duration_end, p.status
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.status IN ('Reviewed', 'Endorsed', 'Approved')

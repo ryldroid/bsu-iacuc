@@ -232,6 +232,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                         <option value="<?= $roleValue ?>"><?= $roleLabel ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <span class="helper">Reviewers only review protocols. Administrative Staff handle everything after the review. Both can verify training certificates.</span>
                             </div>
 
                             <button type="submit" class="accounts-btn-primary">

@@ -10,6 +10,6 @@ ob_start();
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
 <p>Your request to delete protocol <strong><?= htmlspecialchars($title) ?></strong> was rejected by <?= htmlspecialchars($actor_name) ?>.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
-<p>The protocol remains active. You can view it at: <a href="<?= ROOT ?>/submissions"><?= ROOT ?>/submissions</a></p>
+<p>The protocol remains active. You can <?= Mailer::link(ROOT . '/submissions', 'view it here') ?>.</p>
 <p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

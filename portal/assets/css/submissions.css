@@ -117,3 +117,10 @@
 #paymentRejectedModalBackdrop .modal-actions {
     margin-top: 0;
 }
+
+/* ===== Pagination pinned to the bottom ===== */
+main:has(> .pagination-bar--pinned) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 1.5rem;
+}

@@ -338,6 +338,7 @@ const amendmentError = document.getElementById("amendmentError");
 const amendmentConvertedNotice = document.getElementById(
   "amendmentConvertedNotice",
 );
+const amendmentPreviewBtn = document.getElementById("amendmentPreviewBtn");
 let amendmentStaged = null;
 let amendmentCtx = null;
 
@@ -352,6 +353,7 @@ function openAmendmentModal(protocolId, title, opts) {
   amendmentError.hidden = true;
   amendmentStaged = null;
   amendmentConvertedNotice.classList.add("is-hidden");
+  amendmentPreviewBtn.classList.add("is-hidden");
   document.getElementById("amendmentProgress").innerHTML = "";
   amendmentBackdrop.classList.add("open");
 }
@@ -370,6 +372,7 @@ async function handleAmendmentFile(event) {
 
   amendmentStaged = null;
   amendmentConvertedNotice.classList.add("is-hidden");
+  amendmentPreviewBtn.classList.add("is-hidden");
 
   const isPdf =
     file.type === "application/pdf" && file.name.toLowerCase().endsWith(".pdf");
@@ -388,7 +391,10 @@ async function handleAmendmentFile(event) {
     event.target.value = "";
     return;
   }
-  if (isPdf) return;
+  if (isPdf) {
+    amendmentPreviewBtn.classList.remove("is-hidden");
+    return;
+  }
 
   const submitBtn = document.getElementById("amendmentSubmitBtn");
   setButtonBusy(submitBtn, true, "Converting...");
@@ -398,6 +404,7 @@ async function handleAmendmentFile(event) {
     amendmentStaged = await stageWordFile(file, updateConversionOverlay);
     amendmentFileName.textContent = amendmentStaged.name;
     amendmentConvertedNotice.classList.remove("is-hidden");
+    amendmentPreviewBtn.classList.remove("is-hidden");
   } catch (err) {
     showProtocolModalError(
       amendmentError,
@@ -410,6 +417,13 @@ async function handleAmendmentFile(event) {
 
   hideBusyOverlay();
   setButtonBusy(submitBtn, false);
+}
+
+function previewAmendmentFile() {
+  openFilePopup(
+    amendmentStaged ? ROOT_URL + "/apply/stagedfile" : amendmentFile.files[0],
+    amendmentFileName.textContent,
+  );
 }
 
 async function submitAmendment() {

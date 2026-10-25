@@ -23,6 +23,7 @@ if ($isLocal) {
 
 // ===== APP CONSTANTS & PATHS =====
 define('DATE_FORMAT', 'M j, Y');
+define('MONTH_FORMAT', 'M Y');
 define('DATETIME_FORMAT', "M j, Y \xC2\xB7 g:i A");
 define('ANNOUNCEMENT_NEW_DAYS', 7);
 define('VIEWSPATH', dirname(__DIR__) . '/views/');
@@ -83,6 +84,9 @@ define('BREVO_WEBHOOK_SECRET', EnvLoader::get('BREVO_WEBHOOK_SECRET', ''));
 
 // ===== BACKUP SETTINGS =====
 define('BACKUP_CRON_SECRET', EnvLoader::get('BACKUP_CRON_SECRET', ''));
+
+// ===== CLEARANCE EXPIRY SETTINGS =====
+define('EXPIRY_CRON_SECRET', EnvLoader::get('EXPIRY_CRON_SECRET', ''));
 
 // ===== CLOUDCONVERT SETTINGS =====
 define('CLOUDCONVERT_API_KEY', EnvLoader::get('CLOUDCONVERT_API_KEY', ''));

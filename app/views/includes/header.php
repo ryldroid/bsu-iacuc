@@ -288,7 +288,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     <form class="account-card account-card-row" method="POST" action="<?= ROOT ?>/apply/reuploadcert" enctype="multipart/form-data"
                       data-confirm-message="Submit this certificate for verification?" data-confirm-ok-text="Submit">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                      <p class="helper">Upload a new certificate (PDF, JPG or PNG, max 10 MB).</p>
+                      <p class="helper">Upload a new certificate (PDF, JPG or PNG, max 10 MB). To also send a revised protocol, press Resubmit Certificate on the protocol itself.</p>
                       <input type="file" id="cert-reupload-input" name="cert_file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="this.form.requestSubmit()">
                       <button type="button" class="button" onclick="document.getElementById('cert-reupload-input').click()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -479,7 +479,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>"
                       data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                      <button type="submit" class="button">
+                      <button type="submit" class="button btn-account-logout">
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                           <use href="#log-out-icon" />
                         </svg>

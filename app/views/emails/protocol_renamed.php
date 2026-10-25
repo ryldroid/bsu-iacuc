@@ -10,6 +10,6 @@ ob_start();
 
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
 <p>Your protocol <strong><?= htmlspecialchars($old_title) ?></strong> was renamed to <strong><?= htmlspecialchars($new_title) ?></strong> by <?= htmlspecialchars($role_label) ?> - <?= htmlspecialchars($actor_name) ?>. No action needed.</p>
-<p>You can view the details at: <a href="<?= ROOT ?>/submissions?highlight=<?= $protocol_id ?>"><?= ROOT ?>/submissions?highlight=<?= $protocol_id ?></a></p>
+<p>You can <?= Mailer::link(ROOT . '/submissions?highlight=' . $protocol_id, 'view the details here') ?>.</p>
 <p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

@@ -2,6 +2,7 @@
 const researcherBackdrop = document.getElementById("researcherModalBackdrop");
 const researcherModalBody = document.getElementById("researcherModalBody");
 let currentResearcherId = null;
+let researcherModalLocked = false;
 
 const CERT_STATUS_LABELS = {
   pending: "Pending",
@@ -18,6 +19,18 @@ const CERT_ACTION_LABELS = {
   verified: "Verified",
   rejected: "Resubmission requested",
 };
+
+// ===== Lock (mandatory review: no way to dismiss until a decision is saved) =====
+function setResearcherModalLocked(locked) {
+  researcherModalLocked = locked;
+  researcherBackdrop.querySelector(".modal-close").hidden = locked;
+}
+
+function announceCertState(status) {
+  document.dispatchEvent(
+    new CustomEvent("cert-reviewed", { detail: { status } }),
+  );
+}
 
 // ===== Open & render researcher details =====
 function openResearcherModal(userId, fallbackName) {
@@ -112,6 +125,11 @@ function renderResearcherDetails(d) {
     `;
 
   bindCertActions();
+  document.dispatchEvent(
+    new CustomEvent("researcher-modal-rendered", {
+      detail: { status: d.cert ? d.cert.status : null },
+    }),
+  );
 }
 
 // ===== Training certificate =====
@@ -237,59 +255,26 @@ async function submitCertReview(endpoint, note, btn) {
     if (!data.ok) {
       setButtonBusy(btn, false);
       showToast(data.message ?? data.error ?? "Could not save.", "error");
+      if (data.cert_status) {
+        setResearcherModalLocked(false);
+        openResearcherModal(currentResearcherId);
+        announceCertState(data.cert_status);
+      }
       return;
     }
     showToast(data.message, "success");
-    removePendingCert(currentResearcherId);
+    setResearcherModalLocked(false);
     openResearcherModal(currentResearcherId);
+    announceCertState(data.cert_status);
   } catch (err) {
     setButtonBusy(btn, false);
     showToast("Network error. Please try again.", "error");
   }
 }
 
-// ===== Certificates to verify queue =====
-function removePendingCert(userId) {
-  const index = pendingCerts.findIndex((c) => c.id == userId);
-  if (index !== -1) pendingCerts.splice(index, 1);
-  document
-    .querySelectorAll(".cert-queue-count")
-    .forEach((count) => (count.textContent = pendingCerts.length));
-}
-
-function openCertQueue() {
-  currentResearcherId = null;
-  document.getElementById("researcherModalName").textContent =
-    "Certificates to verify";
-
-  researcherModalBody.innerHTML = pendingCerts.length
-    ? `<ul class="researcher-protocol-list">${pendingCerts
-        .map(
-          (c) => `
-            <li class="researcher-protocol-item">
-                <button type="button" class="researcher-name-link cert-queue-link" data-user-id="${Number(c.user_id)}" data-researcher-name="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>
-                <span class="researcher-protocol-meta">${escapeHtml(c.school || "")}${c.school ? " &middot; " : ""}${formatDateTime(c.cert_uploaded_at)}</span>
-            </li>
-        `,
-        )
-        .join("")}</ul>`
-    : '<p class="helper">No certificates are waiting for verification.</p>';
-
-  researcherModalBody.querySelectorAll(".cert-queue-link").forEach((btn) => {
-    btn.addEventListener("click", () =>
-      openResearcherModal(btn.dataset.userId, btn.dataset.researcherName),
-    );
-  });
-
-  researcherBackdrop.classList.add("open");
-}
-
-document
-  .getElementById("certQueueBtn")
-  ?.addEventListener("click", openCertQueue);
-
 // ===== Close researcher modal =====
 function closeResearcherModal() {
+  if (researcherModalLocked) return;
   researcherBackdrop.classList.remove("open");
 }
 

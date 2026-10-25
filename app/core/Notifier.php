@@ -19,22 +19,22 @@ class Notifier
     'protocol_renamed'            => 'No action needed.',
     'protocol_deleted'            => 'No action needed.',
     'protocol_deletion_rejected'  => 'Your protocol stays active, so no action is needed.',
-    'new_submission_reviewer'     => 'Open it to start the review.',
+    'new_submission_reviewer'     => 'Open it to start the review. Your part ends once it is marked Reviewed or returned for revision.',
     'new_submission_staff'        => 'No action needed for now. A reviewer will assess it first.',
     'protocol_resubmitted_reviewer' => 'Open it to review the revisions.',
     'protocol_resubmitted_staff'  => 'No action needed for now. A reviewer will assess the revisions first.',
     'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
     'protocol_deletion_requested' => 'Open it to approve or reject the request.',
     'payment_proof_uploaded'      => 'Open it to verify the payment.',
-    'cert_verification_reviewer'  => 'Open the researcher profile to verify the certificate.',
-    'cert_verification_staff'     => 'Open the researcher profile to verify the certificate.',
+    'cert_verification_reviewer'  => 'Open it to verify the certificate.',
+    'cert_verification_staff'     => 'Open it to verify the certificate.',
   ];
 
   public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to DA-CARFU.';
 
-  public const CERT_VERIFIED_NEXT_STEP = 'No action needed. You can now submit protocols.';
+  public const CERT_VERIFIED_NEXT_STEP = 'No action needed. Your protocol review continues and you can submit new protocols.';
 
-  public const CERT_REJECTED_NEXT_STEP = 'Open My Account and upload a new certificate.';
+  public const CERT_REJECTED_NEXT_STEP = 'Press Resubmit Certificate on My Protocols or on your protocol. If the protocol is still under review, you can attach a revised file too.';
 
   public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
 

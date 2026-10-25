@@ -32,6 +32,7 @@ function uploadedDocRow({
   hint,
   uploadHandler,
   removeHandler,
+  previewHandler,
 }) {
   const sizeText = formatFileSize(size);
   return `<div class="resub-doc is-done" data-doc-key="${key}">
@@ -41,6 +42,7 @@ function uploadedDocRow({
       <span class="resub-doc-sub is-file">${escapeHtml(name)}${sizeText ? ` &middot; ${sizeText}` : ""}${hint ? `<span class="resub-doc-hint">${hint}</span>` : ""}</span>
     </div>
     <div class="resub-doc-actions">
+      ${previewHandler ? `<button type="button" class="resub-btn-link" onclick="${previewHandler}('${key}')">Preview</button>` : ""}
       <label class="resub-btn-link">
         Replace
         <input type="file" accept="${accept}" onchange="${uploadHandler}(event,'${key}')">

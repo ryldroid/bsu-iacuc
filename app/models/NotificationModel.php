@@ -33,6 +33,7 @@ class NotificationModel extends Model
     'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
+    'clearance_expiring'             => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],
   ];
 

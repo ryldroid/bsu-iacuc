@@ -23,6 +23,9 @@ signedScanModal.addEventListener("click", (e) => {
 });
 
 function resetSignedScanFilePicker() {
+  document
+    .getElementById("signedScanFilePreviewBtn")
+    .classList.add("is-hidden");
   document.getElementById("signedScanFilePickerLabel").textContent = "Upload";
   const subtitle = document.getElementById("signedScanFileSubtitle");
   subtitle.textContent = "PDF only · max 10 MB";
@@ -30,6 +33,7 @@ function resetSignedScanFilePicker() {
 }
 
 function handleSignedScanFileChange(input) {
+  syncPreviewButton(input, "signedScanFilePreviewBtn");
   const subtitle = document.getElementById("signedScanFileSubtitle");
   if (input.files.length) {
     document.getElementById("signedScanFilePickerLabel").textContent =

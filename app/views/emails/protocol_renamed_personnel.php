@@ -9,6 +9,6 @@ ob_start();
 
 <p>Hi,</p>
 <p><?= htmlspecialchars($role_label) ?> <strong><?= htmlspecialchars($actor_name) ?></strong> renamed the protocol <strong><?= htmlspecialchars($old_title) ?></strong> to <strong><?= htmlspecialchars($new_title) ?></strong>.</p>
-<p>You can view it at: <a href="<?= ROOT ?>/apply/viewer/<?= $protocol_id ?>"><?= ROOT ?>/apply/viewer/<?= $protocol_id ?></a></p>
+<p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . $protocol_id, 'view it here') ?>.</p>
 <p>BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

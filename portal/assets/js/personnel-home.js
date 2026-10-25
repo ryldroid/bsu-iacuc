@@ -39,7 +39,7 @@ const selectAllBtn = document.getElementById("selectAllBtn");
 const bulkDownloadBtn = document.getElementById("bulkDownloadBtn");
 const bulkEndorseBtn = document.getElementById("bulkEndorseBtn");
 const sortSelect = document.getElementById("inboxSortSelect");
-const resetViewBtn = document.getElementById("resetViewBtn");
+const paymentClearBtn = document.getElementById("paymentClearBtn");
 
 const allRows = protocolsList
   ? [...protocolsList.querySelectorAll(".protocol")]
@@ -47,7 +47,6 @@ const allRows = protocolsList
 
 const DEFAULT_FILTER = "to-review";
 const DEFAULT_ROWS = 10;
-const DEFAULT_SORT = sortSelect?.value;
 
 let activeFilter = DEFAULT_FILTER;
 let searchQuery = "";
@@ -80,32 +79,6 @@ function saveView() {
   setUrlParam(url.searchParams, "page", pager.page > 1 ? pager.page : "");
   history.replaceState(null, "", url);
 }
-
-// ===== Reset view =====
-function updateResetViewVisibility() {
-  if (!resetViewBtn) return;
-  resetViewBtn.hidden =
-    sortSelect?.value === DEFAULT_SORT &&
-    pager.rows === DEFAULT_ROWS &&
-    !searchQuery &&
-    !paymentFilterSelect?.value &&
-    pager.page === 1;
-}
-
-resetViewBtn?.addEventListener("click", () => {
-  searchInput.value = "";
-  searchQuery = "";
-  searchClearBtn.classList.remove("visible");
-  if (paymentFilterSelect) paymentFilterSelect.value = "";
-  pager.setRows(DEFAULT_ROWS);
-
-  sortSelect.value = DEFAULT_SORT;
-  sortSelect.dispatchEvent(new Event("change"));
-
-  [...filterPills]
-    .find((pill) => pill.dataset.filter === DEFAULT_FILTER)
-    ?.click();
-});
 
 function applySort(mode) {
   allRows.sort(protocolSortComparator(mode));
@@ -420,10 +393,6 @@ mobileFilterTrigger?.addEventListener("click", (e) => {
 mobileFilterOptions?.querySelectorAll(".status-card").forEach((btn) => {
   btn.addEventListener("click", () => {
     closeDropdown(mobileFilterTrigger, mobileFilterOptions);
-    if (btn.dataset.mobileFilter === "certificates") {
-      document.getElementById("certQueueBtn").click();
-      return;
-    }
     [...filterPills]
       .find((pill) => pill.dataset.filter === btn.dataset.mobileFilter)
       ?.click();
@@ -458,6 +427,12 @@ filterPills.forEach((pill) => {
 paymentFilterSelect?.addEventListener("change", () => {
   pager.page = 1;
   renderTable();
+});
+
+paymentClearBtn?.addEventListener("click", () => {
+  paymentFilterSelect.value = "";
+  paymentFilterSelect.dispatchEvent(new Event("change"));
+  paymentFilterSelect.focus({ preventScroll: true });
 });
 
 // ===== Search =====
@@ -508,6 +483,7 @@ searchClearBtn?.addEventListener("click", () => {
 
 // ===== Main render =====
 function renderTable() {
+  let tabTotal = 0;
   const visibleRows = allRows.filter((row) => {
     const slug = row.dataset.filterSlug;
     const title =
@@ -515,6 +491,7 @@ function renderTable() {
     const researcher = row.dataset.researcher ?? "";
 
     const matchesFilter = activeFilter === "all" || slug === activeFilter;
+    if (matchesFilter) tabTotal++;
 
     const matchesSearch =
       !searchQuery ||
@@ -533,7 +510,7 @@ function renderTable() {
   const totalRows = visibleRows.length;
   const pageRows = pager.paginate(visibleRows);
   saveView();
-  updateResetViewVisibility();
+  if (paymentClearBtn) paymentClearBtn.hidden = !paymentFilterSelect.value;
 
   pageRows.forEach((row) => row.classList.remove("protocol-row-hidden"));
 
@@ -551,7 +528,7 @@ function renderTable() {
   }
 
   if (resultsSummary) {
-    resultsSummary.textContent = `Showing ${totalRows} protocol${totalRows === 1 ? "" : "s"}`;
+    resultsSummary.textContent = `Showing ${totalRows} of ${tabTotal} protocol${tabTotal === 1 ? "" : "s"}`;
   }
 }
 

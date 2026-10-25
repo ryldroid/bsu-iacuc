@@ -437,20 +437,42 @@ class Apply extends Controller
         return dirname(__DIR__, 2) . '/storage/uploads/protocols/certs/' . $userId . '/';
     }
 
-    private function notifyCertSubmitted(int $userId, string $submitterName): void
+    private function requireVerifiedCert(array $protocol): void
     {
+        $cert = $this->userModel->getCert((int) $protocol['user_id']);
+        if (($cert['cert_status'] ?? '') !== 'verified') {
+            $this->jsonError(422, "The researcher's training certificate must be verified before you can finish this review. Open the protocol again to see its status.");
+        }
+    }
+
+    // Personnel verify the certificate in the window that opens with the protocol, so the link
+    // always goes to a protocol: the one the certificate came with, else the researcher's newest.
+    private function notifyCertSubmitted(int $userId, string $submitterName, ?int $protocolId = null, bool $withRevision = false): void
+    {
+        $protocolId ??= (int) max([0, ...array_column($this->protocolModel->getByUser($userId), 'protocol_id')]);
+
         Notifier::sendToPersonnel(
             'cert_verification',
             'Training Certificate to Verify',
-            $submitterName . ' submitted a training certificate for verification.',
+            $submitterName . ' submitted a training certificate for verification' . ($withRevision ? ' along with a revised protocol.' : '.'),
             'cert_verification',
-            'personnel/home?open_researcher=' . $userId,
+            $protocolId > 0 ? 'apply/viewer/' . $protocolId : 'personnel/home',
             [
                 'template' => 'cert_verification_personnel',
-                'vars'     => ['submitter' => $submitterName, 'user_id' => $userId],
+                'vars'     => ['submitter' => $submitterName, 'protocol_id' => $protocolId, 'revised' => $withRevision],
                 'subject'  => 'Training Certificate to Verify',
             ]
         );
+    }
+
+    private function insertUploadedProtocolVersion(array $protocol, int $protocolId, array $docUpload, int $actorId): int|false
+    {
+        [$docPath, $docOriginalName] = $docUpload;
+        $docExt         = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
+        $researcherName = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
+        $displayName    = $this->protocolDisplayFilename($protocol['reference_no'] ?? null, $researcherName, $protocol['research_title'] ?? '', $docExt);
+
+        return $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $displayName, $actorId, 'protocol');
     }
 
     private function arNumberTaken(string $arNumber, ?array $protocol = null, ?array $record = null): bool
@@ -794,6 +816,16 @@ class Apply extends Controller
         }
         $details['animal_count'] = (int) $details['animal_count'];
 
+        foreach (['research_duration_start', 'research_duration_end'] as $column) {
+            $date = DateTime::createFromFormat('Y-m-d', $details[$column]);
+            if (!$date || $date->format('Y-m-d') !== $details[$column]) {
+                $this->jsonError(422, ProtocolModel::DETAIL_FIELDS[$column] . ' is not a valid month.');
+            }
+        }
+        if ($details['research_duration_end'] < $details['research_duration_start']) {
+            $this->jsonError(422, 'The research end month cannot be before the start month.');
+        }
+
         // ===== CHECK DRAFT FILES =====
         $draftDirAbs = dirname(__DIR__, 2) . '/storage/uploads/drafts/';
 
@@ -814,10 +846,8 @@ class Apply extends Controller
         if (!$existingCert && (!$certRelPath || !is_file($draftDirAbs . $certRelPath))) {
             $this->jsonError(422, 'Please upload your IACUC Training Certificate.');
         }
-        if ($existingCert && $existingCert['cert_status'] !== 'verified') {
-            $this->jsonError(422, $existingCert['cert_status'] === 'rejected'
-                ? 'Your training certificate was rejected. Please upload a new one from your account before submitting a protocol.'
-                : 'Your training certificate is still waiting for verification. You can submit protocols once it is verified.');
+        if ($certBlock = $this->certBlockMessage($existingCert)) {
+            $this->jsonError(422, $certBlock);
         }
         $certOriginalName = $draft['cert_file_name'];
 
@@ -886,11 +916,23 @@ class Apply extends Controller
         );
 
         if ($certSubmitted) {
-            $this->notifyCertSubmitted($actor['id'], $submitterName);
+            $this->notifyCertSubmitted($actor['id'], $submitterName, $protocolId);
         }
 
         echo json_encode(['success' => true, 'protocolId' => $protocolId]);
         exit;
+    }
+
+    // ===== CERTIFICATE BLOCK MESSAGE =====
+
+    private function certBlockMessage(?array $cert): ?string
+    {
+        if (!$cert || $cert['cert_status'] === 'verified') {
+            return null;
+        }
+        return $cert['cert_status'] === 'rejected'
+            ? 'Your training certificate was rejected. Please upload a new one from your account before submitting a protocol.'
+            : 'Your training certificate is still waiting for verification. You can submit protocols once it is verified.';
     }
 
     // ===== HAS-CERT CHECK  (GET /apply/hascert) =====
@@ -905,7 +947,11 @@ class Apply extends Controller
 
         $cert = $this->userModel->getCert($actor['id']);
 
-        echo json_encode(['has_cert' => $cert !== null, 'cert_status' => $cert['cert_status'] ?? null]);
+        echo json_encode([
+            'has_cert'    => $cert !== null,
+            'cert_status' => $cert['cert_status'] ?? null,
+            'cert_block'  => $this->certBlockMessage($cert),
+        ]);
         exit;
     }
 
@@ -949,6 +995,8 @@ class Apply extends Controller
             'animalCount'   => $row['animal_count'] ?? '',
             'researchAdviser' => $row['research_adviser'] ?? '',
             'veterinarian'  => $row['veterinarian'] ?? '',
+            'researchDurationStart' => substr((string) ($row['research_duration_start'] ?? ''), 0, 7),
+            'researchDurationEnd'   => substr((string) ($row['research_duration_end'] ?? ''), 0, 7),
             'protocol'      => $fileInfo('protocol'),
             'cert'          => $fileInfo('cert'),
         ]);
@@ -980,6 +1028,8 @@ class Apply extends Controller
                 'animal_count'     => (string) ($body['animalCount'] ?? ''),
                 'research_adviser' => $text('researchAdviser'),
                 'veterinarian'     => $text('veterinarian'),
+                'research_duration_start' => $text('researchDurationStart'),
+                'research_duration_end'   => $text('researchDurationEnd'),
             ]
         );
 
@@ -1221,15 +1271,8 @@ class Apply extends Controller
             $this->jsonError(422, $docReason ?? 'Upload failed. Please attach a PDF, DOC, or DOCX file (max 10 MB).');
         }
 
-        if ($docUpload !== null) {
-            [$docPath, $docOriginalName] = $docUpload;
-            $docExt = strtolower(pathinfo($docOriginalName, PATHINFO_EXTENSION)) ?: 'pdf';
-            $researcherName = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-            $docOriginalName = $this->protocolDisplayFilename($protocol['reference_no'] ?? null, $researcherName, $protocol['research_title'] ?? '', $docExt);
-            $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'protocol');
-            if (!$versionId) {
-                $this->jsonError(500, 'Could not record new version.');
-            }
+        if ($docUpload !== null && !$this->insertUploadedProtocolVersion($protocol, $protocolId, $docUpload, $actor['id'])) {
+            $this->jsonError(500, 'Could not record new version.');
         }
 
         $this->protocolModel->updateStatus($protocolId, 'Under Review');
@@ -1294,7 +1337,7 @@ class Apply extends Controller
         if (!$version) {
             $this->renderError(404, 'No File Found', [
                 'No protocol file has been uploaded for this submission yet.',
-                'If you believe this is a mistake, please contact the IACUC office or ask the researcher to re-upload their protocol file.',
+                'If you believe this is a mistake, please ask the researcher to re-upload their protocol file.',
             ]);
         }
 
@@ -1312,6 +1355,18 @@ class Apply extends Controller
         $backBase   = $isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
         $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
+
+        $cert       = $this->userModel->getCert((int) $protocol['user_id']);
+        $certReview = null;
+        if ($isPersonnel) {
+            foreach ($this->userModel->getCertHistory((int) $protocol['user_id']) as $entry) {
+                if ($entry['action'] !== 'submitted') {
+                    $certReview = $entry;
+                    break;
+                }
+            }
+        }
+        $isOriginalSubmission = $version['file_type'] === 'protocol' && (int) $version['version_number'] <= 1;
 
         $deletionRequested  = !empty($protocol['deletion_requested_at']);
         $deletionRequestedByYou = $this->isActor($protocol['deletion_requested_by'] ?? 0);
@@ -1340,6 +1395,9 @@ class Apply extends Controller
             'canRename'         => $perm['canRename'],
             'canRequestDeletion' => $perm['canRequestDeletion'],
             'canDelete'         => $perm['canDelete'],
+            'cert'              => $cert,
+            'certReview'        => $certReview,
+            'isOriginalSubmission' => $isOriginalSubmission,
             'deletionRequested' => $deletionRequested,
             'deletionRequestedByYou' => $deletionRequestedByYou,
             'showTitleChangeBanner' => $showTitleChangeBanner,
@@ -1667,11 +1725,11 @@ class Apply extends Controller
         // ===== CHECKS BEFORE REVIEWED / APPROVED =====
         $latestProtocolVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
 
+        if (in_array($newStatus, ['Reviewed', 'Needs Revision'], true) && !$isRevert) {
+            $this->requireVerifiedCert($protocol);
+        }
+
         if ($newStatus === 'Reviewed' && !$isRevert) {
-            $cert = $this->userModel->getCert((int) $protocol['user_id']);
-            if (($cert['cert_status'] ?? '') !== 'verified') {
-                $this->jsonError(422, "Verify the researcher's training certificate before marking this protocol as Reviewed. Press the researcher's name to open their profile and verify it.");
-            }
             if ($latestProtocolVersion && $this->protocolModel->getAnnotations((int) $latestProtocolVersion['id'])) {
                 $this->jsonError(422, 'This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.');
             }
@@ -1687,6 +1745,13 @@ class Apply extends Controller
         if ($ok) {
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
             $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus" . ($reason !== '' ? ". Reason: $reason" : ''));
+
+            // ===== KEEP RECORD STATUS IN STEP WITH APPROVAL =====
+            if ($newStatus === 'Approved') {
+                $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::PENDING_STATUS, RecordModel::DEFAULT_STATUS);
+            } elseif ($newStatus === 'Endorsed' && $isRevert) {
+                $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::DEFAULT_STATUS, RecordModel::PENDING_STATUS);
+            }
 
             // ===== SNAPSHOT RECORD ON REVIEWED =====
             // Runs before notifications so a mail or file problem can never skip it.
@@ -2826,6 +2891,7 @@ class Apply extends Controller
                 $this->recordModel->setArNumberByProtocolId($protocolId, $item['ar_number']);
             }
             $this->protocolModel->updateStatus($protocolId, 'Approved');
+            $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::PENDING_STATUS, RecordModel::DEFAULT_STATUS);
             $this->notifyStatusChange($protocol, 'Approved');
             $this->protocolModel->logAudit('clearance_confirmed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #{$item['id']} confirmed; marked Approved");
             $confirmed++;
@@ -2871,6 +2937,7 @@ class Apply extends Controller
 
         if ($protocol && strtolower($protocol['status']) === 'approved') {
             $this->protocolModel->updateStatus($protocolId, 'Endorsed');
+            $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::DEFAULT_STATUS, RecordModel::PENDING_STATUS);
             $this->notifyStatusChange($protocol, 'Endorsed');
         }
 
@@ -2917,6 +2984,7 @@ class Apply extends Controller
         if (strtolower($protocol['status']) !== 'under review') {
             $this->jsonError(422, 'Only protocols under review can be returned for revision.');
         }
+        $this->requireVerifiedCert($protocol);
 
         $currentVersion = $this->protocolModel->getLatestVersion($protocolId, 'protocol');
         $reasonSaved    = $this->protocolModel->insertReturnReason($protocolId, $actor['id'], $comment, $currentVersion['id'] ?? null);
@@ -2963,6 +3031,7 @@ class Apply extends Controller
     }
 
     // ===== RESUBMIT TRAINING CERTIFICATE  (POST /apply/reuploadcert) =====
+    // The certificate is required. A revised protocol can go with it while that protocol is under review.
 
     public function reuploadcert(): void
     {
@@ -2971,18 +3040,30 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
 
-        $actor = $this->actor();
-        $cert  = $this->userModel->getCert($actor['id']);
-        $error = null;
-        $upload = null;
+        $actor      = $this->actor();
+        $cert       = $this->userModel->getCert($actor['id']);
+        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
+        $protocol   = $protocolId > 0 ? $this->protocolModel->getById($protocolId) : null;
+        $error      = null;
+        $upload     = null;
+        $docUpload  = null;
 
         if (!$cert || $cert['cert_status'] !== 'rejected') {
             $error = 'You can upload a new certificate only after a reviewer requests a resubmission.';
+        } elseif ($protocolId > 0 && (!$protocol || !$this->isActor($protocol['user_id']) || strtolower($protocol['status']) !== 'under review')) {
+            $error = 'That protocol cannot be updated right now.';
         } else {
-            $reason = null;
-            $upload = $this->saveUpload('cert_file', $this->certDir($actor['id']), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
+            $reason    = null;
+            $docReason = null;
+            $upload    = $this->saveUpload('cert_file', $this->certDir($actor['id']), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
             if ($upload === false) {
                 $error = $reason ?? 'Upload failed. Accepted formats: PDF, JPG, PNG (max 10 MB).';
+            } elseif ($protocol) {
+                $docUpload = $this->saveProtocolUpload('protocol_file', $this->protocolDir($protocolId), false, $docReason);
+                if ($docUpload === false) {
+                    @unlink($upload[0]);
+                    $error = $docReason ?? 'Protocol upload failed. Please attach a PDF, DOC, or DOCX file (max 10 MB).';
+                }
             }
         }
 
@@ -2990,8 +3071,9 @@ class Apply extends Controller
             [$certPath, $certOriginalName] = $upload;
 
             if ($this->userModel->saveCert($actor['id'], 'certs/' . $actor['id'] . '/' . basename($certPath), $certOriginalName)) {
-                $this->userModel->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Researcher resubmitted training certificate');
-                $this->notifyCertSubmitted($actor['id'], $this->actorDisplayName($actor));
+                $withProtocol = $docUpload !== null && $this->insertUploadedProtocolVersion($protocol, $protocolId, $docUpload, $actor['id']);
+                $this->userModel->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Researcher resubmitted training certificate' . ($withProtocol ? " and a revised protocol (# $protocolId)" : ''));
+                $this->notifyCertSubmitted($actor['id'], $this->actorDisplayName($actor), $protocol ? $protocolId : null, $withProtocol);
                 $_SESSION['flash_success'] = 'Certificate submitted. You will be notified once it is reviewed.';
             } else {
                 $error = 'Could not save your certificate. Please try again.';

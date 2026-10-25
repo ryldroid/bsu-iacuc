@@ -1,5 +1,6 @@
 // ===== Shared file popup =====
 // openFilePopup(fileUrl, title, footer?, onClose?)
+//   fileUrl: a URL, or a File/Blob picked on this page (previewed before upload).
 //   footer (optional): { note, label, onAction } shows a note and one action
 //   button under the file (e.g. "Resubmit Payment" for a rejected proof).
 //   onClose (optional): runs when the popup is dismissed, e.g. to reopen the
@@ -72,19 +73,19 @@ async function openFilePopup(fileUrl, title, footer, onClose) {
   showFilePopupState("message");
 
   try {
-    const res = await fetch(fileUrl);
-    if (!res.ok) throw new Error("Failed to load file");
+    let blob = fileUrl;
+    if (!(blob instanceof Blob)) {
+      const res = await fetch(fileUrl);
+      if (!res.ok) throw new Error("Failed to load file");
+      blob = await res.blob();
+    }
 
-    const contentType = res.headers.get("content-type") || "";
-
-    if (contentType.includes("pdf")) {
-      await renderPopupPdf(await res.arrayBuffer());
+    if (blob.type.includes("pdf")) {
+      await renderPopupPdf(await blob.arrayBuffer());
       showFilePopupState("pdf");
       filePopupFrame.scrollTop = 0;
       return;
     }
-
-    const blob = await res.blob();
 
     if (filePopupObjectUrl) URL.revokeObjectURL(filePopupObjectUrl);
     filePopupObjectUrl = URL.createObjectURL(blob);
@@ -125,6 +126,30 @@ filePopupBackdrop.addEventListener("click", (e) => {
   if (e.target === filePopupBackdrop) closeFilePopup();
 });
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeFilePopup();
-});
+document.addEventListener(
+  "keydown",
+  (e) => {
+    if (e.key !== "Escape" || !filePopupBackdrop.classList.contains("open"))
+      return;
+    e.stopPropagation();
+    closeFilePopup();
+  },
+  true,
+);
+
+// ===== Preview a file picked in an <input type="file"> =====
+function isPreviewableFile(file) {
+  return file.type === "application/pdf" || file.type.startsWith("image/");
+}
+
+function syncPreviewButton(input, buttonId) {
+  const file = input.files[0];
+  document
+    .getElementById(buttonId)
+    .classList.toggle("is-hidden", !(file && isPreviewableFile(file)));
+}
+
+function previewPickedFile(inputId) {
+  const file = document.getElementById(inputId).files[0];
+  if (file) openFilePopup(file, file.name);
+}

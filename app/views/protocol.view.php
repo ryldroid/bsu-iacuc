@@ -20,6 +20,9 @@
 /** @var bool   $deletionRequested */
 /** @var bool   $deletionRequestedByYou */
 /** @var bool   $showTitleChangeBanner */
+/** @var array|null $cert */
+/** @var array|null $certReview */
+/** @var bool   $isOriginalSubmission */
 /** @var string $flashSuccess */
 /** @var string $flashError */
 
@@ -61,6 +64,9 @@ $statusBadgeLabel = match (true) {
 $canReview = $isPersonnel && !$isStaff && $statusKey === 'under review' && $isLatestVersion;
 
 $canResubmit = !$isPersonnel && $isLatestVersion && $statusKey === 'needs revision';
+
+$researcherCertStatus = $cert['cert_status'] ?? null;
+$canResubmitCert      = !$isPersonnel && $researcherCertStatus === 'rejected' && $isLatestVersion;
 
 $paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
 $paymentMethod     = $protocol['payment_method'] ?? null;
@@ -121,6 +127,17 @@ if ($isAmendment && !empty($version['note'])) {
 if (!$isPersonnel && !empty($reviewerNote['comment'])) {
     $viewerNotes[] = ['warning', 'info-icon', 'Note from CCARD', $reviewerNote['comment']];
 }
+if ($canResubmitCert) {
+    $viewerNotes[] = ['danger', 'alert-triangle-icon', 'Training certificate rejected', 'Your review is on hold until you resubmit it.' . (!empty($cert['cert_note']) ? ' Reason: ' . $cert['cert_note'] . '.' : '')];
+}
+if ($canReview) {
+    $viewerNotes[] = ['info', 'info-icon', 'Your role', ProtocolPermissions::REVIEWER_ROLE_NOTE];
+}
+if ($isPersonnel && $researcherCertStatus === 'rejected') {
+    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: ' . $certReview['note'] . '.' : '') . ' Finishing the review or returning the protocol is unavailable until it is verified.'];
+} elseif ($isPersonnel && $researcherCertStatus === 'verified' && $certReview) {
+    $viewerNotes[] = ['info', 'check-circle-icon', 'Training certificate verified', 'Verified by ' . trim($certReview['actor_name'] ?? '') . ' on ' . date(DATE_FORMAT, strtotime($certReview['created_at'])) . '.'];
+}
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $resubmitDocs      = [
@@ -134,6 +151,10 @@ include 'includes/header.php';
 <link rel="stylesheet" href="<?= asset_css('viewer.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
+<?php if ($isPersonnel): ?>
+    <link rel="stylesheet" href="<?= asset_css('payment-badge.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
+<?php endif; ?>
 <?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments || $hasPaymentHistory): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <?php endif; ?>
@@ -248,12 +269,21 @@ include 'includes/header.php';
             <?php endif; ?>
 
 
-            <?php if ($canReview || $canResubmit || $canConfirmPayment): ?>
+            <?php if ($canReview || $canResubmit || $canConfirmPayment || $canResubmitCert): ?>
                 <div class="viewer-review-actions">
                     <?php if ($canReview): ?>
                         <button class="tool-btn tool-btn--success" id="btnFinishReview"
-                            onclick="openReviewDecisionModal()">
+                            onclick="openReviewDecisionModal()"
+                            <?= $researcherCertStatus === 'verified' ? '' : 'disabled title="The researcher\'s training certificate must be verified first."' ?>>
                             Finish Review
+                        </button>
+                    <?php elseif ($canResubmitCert): ?>
+                        <button class="tool-btn tool-btn--success" id="btnResubmitCert" type="button"
+                            onclick="openCertResubmitModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            Resubmit Certificate
                         </button>
                     <?php elseif ($canResubmit): ?>
                         <button class="tool-btn tool-btn--success" id="btnResubmit"
@@ -534,7 +564,7 @@ include 'includes/header.php';
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#info-icon" />
                         </svg>
-                        <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
+                        <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly.</span>
                     </div>
 
                     <div class="notice notice-info">
@@ -685,6 +715,13 @@ endif; ?>
 
 <?php include __DIR__ . '/includes/protocol-modals.php'; ?>
 <?php include __DIR__ . '/includes/history-modal.php'; ?>
+<?php if ($isPersonnel): ?>
+    <?php include __DIR__ . '/includes/researcher-modal.php'; ?>
+<?php endif; ?>
+<?php if ($canResubmitCert):
+    $certResubmitProtocolId = $statusKey === 'under review' ? $protocolId : null;
+    include __DIR__ . '/includes/cert-resubmit-modal.php';
+endif; ?>
 
 <script src="<?= asset_js('history-modal.js') ?>"></script>
 <script src="<?= asset_js('protocol-menu.js') ?>"></script>
@@ -714,6 +751,10 @@ endif; ?>
     const BACK_URL = <?= json_encode($backUrl) ?>;
     const SIGNED_SCAN_VIEWER_URL = <?= json_encode($latestSignedScanViewerUrl ?: null) ?>;
     const MUST_PAY_IN_PERSON = <?= $mustPayInPerson ? 'true' : 'false' ?>;
+    const CERT_STATUS = <?= json_encode($researcherCertStatus) ?>;
+    const RESEARCHER_ID = <?= (int) $protocol['user_id'] ?>;
+    const RESEARCHER_NAME = <?= json_encode($submitterName) ?>;
+    const IS_ORIGINAL_SUBMISSION = <?= $isOriginalSubmission ? 'true' : 'false' ?>;
 </script>
 <script src="<?= asset_js('viewer.js') ?>"></script>
 <?php if ($canConfirmPayment): ?>
@@ -730,6 +771,12 @@ endif; ?>
 <?php endif; ?>
 <?php if ($canResubmit): ?>
     <script src="<?= asset_js('viewer-resubmit.js') ?>"></script>
+<?php endif; ?>
+<?php if ($isPersonnel): ?>
+    <script src="<?= asset_js('viewer-cert.js') ?>"></script>
+<?php endif; ?>
+<?php if ($canResubmitCert): ?>
+    <script src="<?= asset_js('cert-resubmit-modal.js') ?>"></script>
 <?php endif; ?>
 <script src="<?= asset_js('viewer-boot.js') ?>"></script>
 

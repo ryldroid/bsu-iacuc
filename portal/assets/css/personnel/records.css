@@ -701,7 +701,7 @@
   font-family: var(--font-body);
   border: 1px solid var(--input-border);
   border-radius: var(--radius);
-  background: var(--card-background);
+  background-color: var(--card-background);
   color: var(--secondary-text);
   cursor: pointer;
   margin: 0;
@@ -989,6 +989,10 @@
   background: currentColor;
 }
 
+.records-status-pending {
+  color: var(--status-warning-text);
+}
+
 .records-status-ongoing {
   color: var(--status-info-text);
 }
@@ -1172,6 +1176,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.records-form-staff {
+  padding: 1rem;
+  background: var(--divider-color-subtle);
+  border-radius: var(--radius);
 }
 
 .records-form-full {

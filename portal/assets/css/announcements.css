@@ -15,6 +15,10 @@
   grid-template-columns: minmax(0, 1fr) 340px;
   align-items: start;
   gap: 2.5em;
+  margin-top: 2.5em;
+  padding: 2em;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--brand-text) 12%, var(--page-background));
 }
 
 .announcements-sections>.announcements,

@@ -9,6 +9,6 @@ ob_start();
 <p>Hi,</p>
 <p><strong><?= htmlspecialchars($actor_name) ?></strong> submitted an amendment for the approved protocol <strong><?= htmlspecialchars($title) ?></strong>. It does not need to be reviewed again.</p>
 <p><strong>What changed:</strong><br><?= nl2br(htmlspecialchars($note)) ?></p>
-<p>You can view it at: <a href="<?= ROOT ?>/apply/viewer/<?= $protocol_id ?>"><?= ROOT ?>/apply/viewer/<?= $protocol_id ?></a></p>
+<p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . $protocol_id, 'view it here') ?>.</p>
 <p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

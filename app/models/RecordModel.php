@@ -3,7 +3,8 @@
 class RecordModel extends Model
 {
   // ===== STATUS OPTIONS =====
-  public const STATUSES = ['Ongoing', 'Completed', 'Cancelled'];
+  public const STATUSES = ['Pending', 'Ongoing', 'Completed', 'Cancelled'];
+  public const PENDING_STATUS = 'Pending';
   public const DEFAULT_STATUS = 'Ongoing';
 
   private function cleanStatus(?string $status): string
@@ -229,6 +230,21 @@ class RecordModel extends Model
     'number' => ['Low–High', 'High–Low'],
     'date'   => ['Oldest', 'Newest'],
   ];
+
+  // ===== DURATION LABEL =====
+  public static function formatDuration(?string $start, ?string $end): string
+  {
+    if ($start && $end) {
+      return date(MONTH_FORMAT, strtotime($start)) . ' – ' . date(MONTH_FORMAT, strtotime($end));
+    }
+    if ($start) {
+      return 'From ' . date(MONTH_FORMAT, strtotime($start));
+    }
+    if ($end) {
+      return 'Until ' . date(MONTH_FORMAT, strtotime($end));
+    }
+    return '';
+  }
 
   // Dropdown options: insertion order (id) plus both directions of every sortable column.
   public static function sortOptions(): array
@@ -661,12 +677,13 @@ class RecordModel extends Model
 
     $stmt = $this->connection->prepare(
       "INSERT INTO `records` (reference_no, title_of_research, principal_investigator, school, sex, researcher_type,
-              animal_type, animal_count, research_adviser, veterinarian, user_id, protocol_id, file_path, file_original_name)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              animal_type, animal_count, research_adviser, veterinarian, research_duration_start, research_duration_end,
+              user_id, protocol_id, file_path, file_original_name, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     if (! $stmt) return false;
     $stmt->bind_param(
-      'sssssssissiiss',
+      'sssssssissssiisss',
       $refNoOrNull,
       $d['title'],
       $d['principal_investigator'],
@@ -677,10 +694,13 @@ class RecordModel extends Model
       $d['animal_count'],
       $d['research_adviser'],
       $d['veterinarian'],
+      $d['research_duration_start'],
+      $d['research_duration_end'],
       $d['user_id'],
       $d['protocol_id'],
       $d['file_path'],
-      $d['file_original_name']
+      $d['file_original_name'],
+      $d['status']
     );
     return $stmt->execute();
   }
@@ -736,10 +756,13 @@ class RecordModel extends Model
       'animal_count'           => $protocol['animal_count'] ?? null,
       'research_adviser'       => $protocol['research_adviser'] ?? null,
       'veterinarian'           => $protocol['veterinarian'] ?? null,
+      'research_duration_start' => $protocol['research_duration_start'] ?? null,
+      'research_duration_end'   => $protocol['research_duration_end'] ?? null,
       'user_id'                => (int) $protocol['user_id'],
       'protocol_id'            => $protocolId,
       'file_path'              => $filePath,
       'file_original_name'     => $fileOriginal,
+      'status'                 => strtolower($protocol['status'] ?? '') === 'approved' ? self::DEFAULT_STATUS : self::PENDING_STATUS,
     ]);
   }
 
@@ -769,6 +792,15 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
+  // Moves a record between statuses only if it is still in $from, so manual changes are never overwritten
+  public function changeStatusByProtocolId(int $protocolId, string $from, string $to): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE `records` SET status = ? WHERE protocol_id = ? AND status = ?");
+    if (! $stmt) return false;
+    $stmt->bind_param('sis', $to, $protocolId, $from);
+    return $stmt->execute();
+  }
+
   // ===== FILL BLANKS FROM RESEARCHER PROFILE =====
   public function fillBlankDemographics(int $userId, string $sex, string $researcherType): bool
   {
@@ -795,7 +827,6 @@ class RecordModel extends Model
                animal_type              = ?,
                animal_count             = ?,
                principal_investigator   = ?,
-               sex                      = IF(user_id IS NULL, ?, sex),
                researcher_type          = IF(user_id IS NULL, ?, researcher_type),
                research_adviser         = ?,
                veterinarian             = ?,
@@ -817,7 +848,7 @@ class RecordModel extends Model
     $status       = $this->cleanStatus($d['status'] ?? null);
 
     $stmt->bind_param(
-      'sssssissssssssssi',
+      'sssssisssssssssi',
       $ref,
       $arNumber,
       $d['title_of_research'],
@@ -825,7 +856,6 @@ class RecordModel extends Model
       $d['animal_type'],
       $animalCount,
       $d['principal_investigator'],
-      $d['sex'],
       $d['researcher_type'],
       $d['research_adviser'],
       $d['veterinarian'],
@@ -863,6 +893,57 @@ class RecordModel extends Model
     if (! $stmt) return [];
     $stmt->execute();
     return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
+  }
+
+  public function getUsersWithClearancesExpiringSoon(int $daysAhead): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT u.id, u.first_name, u.email, MIN(r.research_duration_end) AS ends_on
+       FROM `records` r
+       JOIN `users` u ON u.id = r.user_id
+       WHERE r.research_duration_end BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+         AND u.status = 'active'
+       GROUP BY u.id, u.first_name, u.email, u.expiry_warned_for
+       HAVING u.expiry_warned_for IS NULL OR u.expiry_warned_for != ends_on"
+    );
+    if (! $stmt) return [];
+    $stmt->bind_param('i', $daysAhead);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  public function sendExpiryWarnings(int $daysAhead = 7): int
+  {
+    $protocolModel = new ProtocolModel();
+    $userModel     = new UserModel();
+
+    $sent = 0;
+    foreach ($this->getUsersWithClearancesExpiringSoon($daysAhead) as $user) {
+      $userId = (int) $user['id'];
+      if ($protocolModel->hasActiveProtocols($userId)) {
+        continue;
+      }
+
+      $expiryDate = date('F j, Y', strtotime($user['ends_on']));
+      Notifier::send(
+        $userId,
+        'clearance_expiring',
+        'Clearance Expiring Soon',
+        'Your animal research clearance expires on ' . Notifier::bold($expiryDate) . '. Your account will be marked inactive after that unless you have a pending protocol. No action needed. You may reactivate it at any time by logging in.',
+        'submissions',
+        [
+          'template' => 'clearance_expiring',
+          'vars'     => ['first_name' => $user['first_name'], 'expiry_date' => $expiryDate],
+          'to'       => $user['email'],
+          'name'     => $user['first_name'],
+          'subject'  => 'Clearance Expiring Soon',
+        ]
+      );
+      $userModel->markExpiryWarned($userId, $user['ends_on']);
+      $sent++;
+    }
+
+    return $sent;
   }
 
   public function runExpiryDeactivationSweep(): int

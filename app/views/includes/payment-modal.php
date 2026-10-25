@@ -63,15 +63,19 @@
             <div class="modal-file-title">Proof of payment <span class="required-asterisk">*</span></div>
             <div class="modal-file-subtitle" id="paymentFileSubtitle">PDF or image &middot; max 10 MB</div>
           </div>
-          <label class="modal-file-picker">
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <use href="#upload-icon" />
-            </svg>
-            <span id="paymentFilePickerLabel">Upload</span>
-            <input type="file" id="payment_proof_file" name="payment_proof_file"
-              accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
-              onchange="handlePaymentFileChange(this)">
-          </label>
+          <div class="resub-doc-actions">
+            <button type="button" class="resub-btn-link is-hidden" id="paymentFilePreviewBtn"
+              onclick="previewPickedFile('payment_proof_file')">Preview</button>
+            <label class="modal-file-picker">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#upload-icon" />
+              </svg>
+              <span id="paymentFilePickerLabel">Upload</span>
+              <input type="file" id="payment_proof_file" name="payment_proof_file"
+                accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
+                onchange="handlePaymentFileChange(this)">
+            </label>
+          </div>
         </div>
 
         <div class="upload-progress-container" id="paymentProofProgress"></div>

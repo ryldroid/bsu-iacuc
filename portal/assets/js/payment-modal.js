@@ -65,9 +65,11 @@ function resetPaymentFilePicker() {
   const subtitle = document.getElementById("paymentFileSubtitle");
   subtitle.textContent = "PDF or image · max 10 MB";
   subtitle.classList.remove("done");
+  document.getElementById("paymentFilePreviewBtn").classList.add("is-hidden");
 }
 
 function handlePaymentFileChange(input) {
+  syncPreviewButton(input, "paymentFilePreviewBtn");
   const subtitle = document.getElementById("paymentFileSubtitle");
   if (input.files.length) {
     document.getElementById("paymentFilePickerLabel").textContent = "Replace";

@@ -462,6 +462,10 @@ img[data-zoom-src] {
 }
 
 /* ===== File preview popup (extends .modal-card) ===== */
+#filePopupBackdrop {
+    z-index: 9100;
+}
+
 .file-popup-card {
     max-width: 1200px;
     width: 94vw;

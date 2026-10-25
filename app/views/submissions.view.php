@@ -26,7 +26,7 @@ $statusMeta = [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => 'No action needed. Your protocol is being reviewed by CCARD, and you will be notified for every feedback given.',
+        'desc'  => 'No action needed. Your protocol is being reviewed by CCARD, and you will be notified for every feedback given. The review waits until your training certificate is verified.',
     ],
     'needs-revision' => [
         'label' => 'Needs Revision',
@@ -50,7 +50,7 @@ $statusMeta = [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! You may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy. Note that your account will be automatically deactivated after your clearance expires and you have no pending protocols. You may reactivate at any time by logging in to this portal.',
+        'desc'  => 'Congratulations, your protocol has been approved! You may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.',
     ],
 ];
 
@@ -64,6 +64,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('payment-badge.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
@@ -112,9 +113,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <use href="#alert-triangle-icon" />
                 </svg>
                 <?php if ($cert['cert_status'] === 'rejected'): ?>
-                    <span>Your training certificate was rejected<?= !empty($cert['cert_note']) ? ': ' . htmlspecialchars($cert['cert_note'], ENT_QUOTES, 'UTF-8') : '' ?>. Open My Account to upload a new one.</span>
+                    <span>Your training certificate was rejected<?= !empty($cert['cert_note']) ? ': ' . htmlspecialchars($cert['cert_note'], ENT_QUOTES, 'UTF-8') : '' ?>. Your review is on hold until it is verified. <a href="#" class="underlined" onclick="openCertResubmitModal(); return false;">Resubmit Certificate</a></span>
                 <?php else: ?>
-                    <span>Your training certificate is waiting for verification. Until it is verified, you cannot submit new protocols and your protocols cannot be marked as Reviewed.</span>
+                    <span>Your training certificate is waiting for verification. Until it is verified, you cannot submit new protocols and your protocols cannot be marked as Reviewed or returned for revision.</span>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -227,7 +228,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     </svg>
                     No protocols yet
                 </h3>
-                <p>Submit your first IACUC protocol to get started.</p>
+                <p><a href="<?= ROOT ?>/apply" class="underlined">Click here to apply for your first IACUC protocol review.</a></p>
             </div>
 
         <?php else: ?>
@@ -391,7 +392,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
 
             <!-- ===== Pagination ===== -->
-            <div class="pagination-bar" id="paginationBar">
+            <div class="pagination-bar pagination-bar--pinned pagination-bar--on-page" id="paginationBar">
                 <span class="pagination-info" id="paginationInfo"></span>
                 <div class="pagination-buttons" id="paginationButtons"></div>
                 <div class="rows-per-page-wrap">
@@ -420,6 +421,7 @@ foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
 $guideSteps = array_merge($guideSteps, [
+    ['Training certificate', 'CCARD checks your IACUC training certificate once. If it is rejected, a notice appears at the top of this page with a **Resubmit Certificate** button. You can also attach a revised protocol file while your protocol is under review.'],
     ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
     ['Actions', 'The **eye button** (View Protocol) opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), **View rejection and resubmit** (if your payment proof is rejected), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
     ['More actions', '**Actions** is the three dots beside the eye button. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
@@ -429,6 +431,12 @@ include 'includes/guide.php';
 ?>
 
 <?php include 'includes/history-modal.php'; ?>
+
+<?php if (($cert['cert_status'] ?? '') === 'rejected'):
+    $certResubmitProtocolId = null;
+    include 'includes/cert-resubmit-modal.php'; ?>
+    <script src="<?= asset_js('cert-resubmit-modal.js') ?>"></script>
+<?php endif; ?>
 <script src="<?= asset_js('history-modal.js') ?>"></script>
 
 <?php include 'includes/protocol-modals.php'; ?>

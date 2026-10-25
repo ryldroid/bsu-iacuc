@@ -82,7 +82,6 @@ class Personnel extends Controller
             'user'            => $_SESSION['user'],
             'csrf'            => $this->generateCsrfToken(),
             'protocols'       => $protocols,
-            'pendingCerts'    => $this->userModel->getPendingCerts(),
             'actor'           => $this->actor(),
             'statuses'        => $statuses,
             'updatesEndpoint' => 'personnel/checkupdates',
@@ -204,7 +203,13 @@ class Personnel extends Controller
         $actor = $this->actor();
 
         if (!$this->userModel->setCertStatus($id, $outcome, $actor['id'], $note)) {
-            $this->jsonError(409, 'This certificate is no longer waiting for verification.');
+            http_response_code(409);
+            echo json_encode([
+                'ok'          => false,
+                'message'     => 'Another personnel already reviewed this certificate.',
+                'cert_status' => $this->userModel->getCert($id)['cert_status'] ?? null,
+            ]);
+            exit;
         }
 
         $this->userModel->addCertHistory($id, $outcome, $actor['id'], $outcome === 'rejected' ? $note : null);
@@ -217,7 +222,7 @@ class Personnel extends Controller
 
         $this->notifyCertReviewed($user, $outcome, $note);
 
-        echo json_encode(['ok' => true, 'message' => $outcome === 'verified' ? 'Certificate verified.' : 'Resubmission requested.']);
+        echo json_encode(['ok' => true, 'cert_status' => $outcome, 'message' => $outcome === 'verified' ? 'Certificate verified.' : 'Resubmission requested.']);
         exit;
     }
 
@@ -542,7 +547,7 @@ class Personnel extends Controller
                 $r['researcher_type'] ?? '',
                 $r['research_adviser'] ?? '',
                 $r['veterinarian'] ?? '',
-                $this->formatDurationRange($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
+                RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null),
                 $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '',
                 ! empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '',
                 $r['received_by'] ?? '',
@@ -647,25 +652,21 @@ class Personnel extends Controller
         return $row + 1;
     }
 
-    private function formatDurationRange(?string $start, ?string $end): string
+    // ===== MONTH INPUT TO DATE =====
+    private function monthToDate(string $value, bool $lastDay): string
     {
-        if ($start && $end) {
-            return date(DATE_FORMAT, strtotime($start)) . ' – ' . date(DATE_FORMAT, strtotime($end));
+        $date = DateTime::createFromFormat('!Y-m', $value);
+        if (!$date || $date->format('Y-m') !== $value) {
+            return '';
         }
-        if ($start) {
-            return 'From ' . date(DATE_FORMAT, strtotime($start));
-        }
-        if ($end) {
-            return 'Until ' . date(DATE_FORMAT, strtotime($end));
-        }
-        return '';
+        return $date->format($lastDay ? 'Y-m-t' : 'Y-m-01');
     }
 
     // ===== RECORD INPUT CLEANUP =====
     private function sanitizeRecordPost(): array
     {
         $str = fn(string $k) => trim($_POST[$k] ?? '');
-        return [
+        $d = [
             'reference_no'            => $str('reference_no'),
             'ar_number'               => $str('ar_number'),
             'title_of_research'       => $str('title_of_research'),
@@ -677,12 +678,18 @@ class Personnel extends Controller
             'researcher_type'         => $str('researcher_type'),
             'research_adviser'        => $str('research_adviser'),
             'veterinarian'            => $str('veterinarian'),
-            'research_duration_start' => $str('research_duration_start'),
-            'research_duration_end'   => $str('research_duration_end'),
+            'research_duration_start' => $this->monthToDate($str('research_duration_start'), false),
+            'research_duration_end'   => $this->monthToDate($str('research_duration_end'), true),
             'date_released'           => $str('date_released'),
             'received_by'             => $str('received_by'),
             'status'                  => in_array($str('status'), RecordModel::STATUSES, true) ? $str('status') : RecordModel::DEFAULT_STATUS,
         ];
+
+        if ($d['research_duration_start'] !== '' && $d['research_duration_end'] !== '' && $d['research_duration_end'] < $d['research_duration_start']) {
+            $this->jsonError(422, 'The research end month cannot be before the start month.');
+        }
+
+        return $d;
     }
 
     // ===== ANNOUNCEMENTS PAGE =====
@@ -845,7 +852,7 @@ class Personnel extends Controller
     }
 
     // ===== SITE CONTENT: MOVE ITEM (shared) =====
-    private function moveContentItem(Model $model, string $label, string $nameKey, string $event, string $targetType): void
+    private function moveContentItem(OrderableModel $model, string $label, string $nameKey, string $event, string $targetType): void
     {
         $this->requireStaff(true);
         $this->requirePostMethod();

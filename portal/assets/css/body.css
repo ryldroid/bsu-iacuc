@@ -894,7 +894,7 @@ main a.underlined:hover {
     font-family: var(--font-body);
     border: 1px solid var(--input-border);
     border-radius: var(--btn-radius);
-    background: var(--card-background);
+    background-color: var(--card-background);
     color: var(--secondary-text);
     cursor: pointer;
     margin: 0;
@@ -903,7 +903,7 @@ main a.underlined:hover {
 }
 
 .dashboard-select-trigger:hover {
-    background: var(--card-background);
+    background-color: var(--card-background);
     color: var(--secondary-text);
     border-color: var(--brand-color-hover);
 }
@@ -917,6 +917,23 @@ main a.underlined:hover {
     outline: none;
     border-color: var(--focus-ring-color);
     box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+/* ===== Dropdown arrow with space from the right edge (native selects) ===== */
+select.dashboard-select-trigger,
+select.records-filter-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 8l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px 14px;
+}
+
+[data-theme="dark"] select.dashboard-select-trigger,
+[data-theme="dark"] select.records-filter-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23bdc1c6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 8l5 5 5-5'/></svg>");
 }
 
 .dashboard-sort-select option:checked {

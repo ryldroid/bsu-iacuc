@@ -81,3 +81,41 @@
     align-items: flex-start;
   }
 }
+
+/* ===== Pinned to the bottom of the screen ===== */
+.pagination-bar--pinned {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 12px 0;
+  background: var(--card-background);
+}
+
+.pagination-bar--on-page {
+  margin-top: auto;
+  background: linear-gradient(var(--body-background-tint), var(--body-background-tint)), var(--page-background);
+}
+
+@media (max-width: 640px) {
+  .pagination-bar--pinned {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination-bar--pinned .pagination-info,
+  .pagination-bar--pinned .rows-per-page-wrap {
+    display: none;
+  }
+
+  .pagination-bar--pinned .pagination-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .pagination-bar--pinned .pagination-btn {
+    width: 30px;
+  }
+}

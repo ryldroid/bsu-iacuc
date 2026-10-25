@@ -351,6 +351,11 @@
   background-color: var(--danger-solid-hover);
 }
 
+#account-drawer .btn-account-logout {
+  background-color: color-mix(in srgb, var(--brand-text) 15%, var(--card-background));
+  color: var(--brand-text);
+}
+
 /* ===== Save bar (always visible while the panel scrolls) ===== */
 .account-panel-footer {
   flex-shrink: 0;

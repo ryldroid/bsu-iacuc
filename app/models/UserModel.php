@@ -202,15 +202,6 @@ class UserModel extends Model
     return $stmt->get_result()->fetch_assoc() ?: null;
   }
 
-  public function getPendingCerts(): array
-  {
-    return $this->connection->query(
-      "SELECT id, first_name, last_name, school, cert_uploaded_at
-      FROM $this->table WHERE cert_status = 'pending' AND status = 'active'
-      ORDER BY cert_uploaded_at"
-    )->fetch_all(MYSQLI_ASSOC);
-  }
-
   // ===== WELCOME POPUP =====
   public function markWelcomeSeen(int $id): bool
   {
@@ -343,6 +334,13 @@ class UserModel extends Model
   {
     $stmt = $this->connection->prepare("UPDATE $this->table SET status = 'deactivated' WHERE id = ?");
     $stmt->bind_param('i', $id);
+    return $stmt->execute();
+  }
+
+  public function markExpiryWarned(int $id, string $expiryDate): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE $this->table SET expiry_warned_for = ? WHERE id = ?");
+    $stmt->bind_param('si', $expiryDate, $id);
     return $stmt->execute();
   }
 

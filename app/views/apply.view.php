@@ -69,6 +69,7 @@ include 'includes/guide.php';
         agreedPrivacy: false,
         certAlready: false,
         certStatus: null,
+        certBlock: null,
         certName: null,
         certSize: null,
         protocolName: null,
@@ -79,6 +80,8 @@ include 'includes/guide.php';
         animalCount: '',
         researchAdviser: '',
         veterinarian: '',
+        researchDurationStart: '',
+        researchDurationEnd: '',
         submittedId: null,
     };
 
@@ -108,7 +111,9 @@ include 'includes/guide.php';
                     animalType: state.animalType,
                     animalCount: state.animalCount,
                     researchAdviser: state.researchAdviser,
-                    veterinarian: state.veterinarian
+                    veterinarian: state.veterinarian,
+                    researchDurationStart: state.researchDurationStart,
+                    researchDurationEnd: state.researchDurationEnd
                 })
             });
         } catch (e) {}
@@ -128,6 +133,8 @@ include 'includes/guide.php';
             state.animalCount = d.animalCount;
             state.researchAdviser = d.researchAdviser;
             state.veterinarian = d.veterinarian;
+            state.researchDurationStart = d.researchDurationStart;
+            state.researchDurationEnd = d.researchDurationEnd;
 
             ['protocol', 'cert'].forEach(key => {
                 const f = d[key];
@@ -295,7 +302,8 @@ include 'includes/guide.php';
                 size: state[key + 'Size'],
                 accept,
                 uploadHandler: 'handleUpload',
-                removeHandler: 'removeFile'
+                removeHandler: 'removeFile',
+                previewHandler: 'previewUpload'
             });
         }
 
@@ -349,7 +357,7 @@ include 'includes/guide.php';
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#info-icon" />
         </svg>
-        <span><strong>Converted to PDF:</strong> Word files are converted to PDF for submission. Please review the converted file, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewDraftFile(event,'protocol')">Preview PDF</a></span>
+        <span><strong>Converted to PDF:</strong> Word files are converted to PDF for submission. Please review the converted file, since conversion can shift the layout slightly.</span>
     </div>`;
     }
 
@@ -364,8 +372,7 @@ include 'includes/guide.php';
             subtitle: !state.certAlready ?
                 'Required for first-time submitters.' : state.certStatus === 'verified' ?
                 'Your certificate is verified.' : state.certStatus === 'rejected' ?
-                'Your certificate was rejected. Upload a new one from My Account before submitting.' :
-                'Your certificate is waiting for verification. You can submit once it is verified.',
+                'Your certificate was rejected. Upload a new one from My Account before submitting.' : 'Your certificate is waiting for verification. You can submit once it is verified.',
             pill: state.certStatus === 'verified' ?
                 `<span class="status-pill status-pill-done">${checkSvgSm}Verified</span>` : `<span class="status-pill status-pill-required">${!state.certAlready ? 'Required' : state.certStatus === 'rejected' ? 'Resubmit' : 'Pending'}</span>`,
         }, ];
@@ -386,6 +393,7 @@ include 'includes/guide.php';
         return `
     <div class="page-tag">Step 1 of 5</div>
     <div class="page-title">Requirements and process</div>
+    ${state.certBlock ? `<div class="error-messages">${escapeHtml(state.certBlock)}</div>` : ''}
 
     <div class="section-label">You'll need</div>
     <div class="doc-list">
@@ -561,7 +569,7 @@ include 'includes/guide.php';
     ${!state.certAlready ? `
     <p class="step-intro-text">
         The training certificate is issued upon completion of your IACUC (animal care and use) course or seminar.
-        If you haven't completed this training yet, contact the IACUC office before continuing.
+        If you haven't completed this training yet, contact CCARD for a schedule before continuing.
     </p>` : ''}
 
     ${rows.join('')}
@@ -665,6 +673,20 @@ include 'includes/guide.php';
             label: 'Veterinarian',
             attrs: 'list="veterinarian-options" maxlength="255" placeholder="Full name"'
         },
+        {
+            id: 'inp-duration-start',
+            key: 'researchDurationStart',
+            label: 'Research start month',
+            type: 'month',
+            attrs: ''
+        },
+        {
+            id: 'inp-duration-end',
+            key: 'researchDurationEnd',
+            label: 'Research end month',
+            type: 'month',
+            attrs: ''
+        },
     ];
 
     function detailField(f) {
@@ -723,13 +745,10 @@ include 'includes/guide.php';
             Back
         </button>
         <button class="btn-success" id="btn-submit" onclick="submitProtocol()">
-            <span id="submit-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#check-icon" />
-                </svg>
-                Submit protocol
-            </span>
-            <span id="submit-spinner" class="is-hidden">Submitting…</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#check-icon" />
+            </svg>
+            Submit protocol
         </button>
     </div>`;
     }
@@ -786,6 +805,30 @@ include 'includes/guide.php';
                 saveState();
             });
         });
+
+        const durationStart = document.getElementById('inp-duration-start');
+        const durationEnd = document.getElementById('inp-duration-end');
+        if (durationStart && durationEnd) {
+            const syncDurationBounds = () => {
+                durationEnd.min = durationStart.value;
+                durationStart.max = durationEnd.value;
+            };
+            const enforceDurationOrder = e => {
+                const errBox = document.getElementById('upload-error');
+                if (durationStart.value && durationEnd.value && durationEnd.value < durationStart.value) {
+                    e.target.value = '';
+                    state[DETAIL_FIELDS.find(f => f.id === e.target.id).key] = '';
+                    saveState();
+                    showError(errBox, 'The research end month cannot be before the start month.');
+                } else {
+                    hideError(errBox);
+                }
+                syncDurationBounds();
+            };
+            durationStart.addEventListener('change', enforceDurationOrder);
+            durationEnd.addEventListener('change', enforceDurationOrder);
+            syncDurationBounds();
+        }
     }
 
     // ===== STEP LOGIC =====
@@ -922,9 +965,8 @@ include 'includes/guide.php';
         removeDraftFile(key);
     }
 
-    function previewDraftFile(event, key) {
-        event.preventDefault();
-        openFilePopup(ROOT + '/apply/draftfile/' + key, 'Converted protocol form');
+    function previewUpload(key) {
+        openFilePopup(ROOT + '/apply/draftfile/' + key, state[key + 'Name']);
     }
 
     async function removeDraftFile(key) {
@@ -946,15 +988,12 @@ include 'includes/guide.php';
     // ===== SUBMIT =====
     async function submitProtocol() {
         const errBox = document.getElementById('upload-error');
-        const btnLabel = document.getElementById('submit-label');
-        const spinner = document.getElementById('submit-spinner');
         const btn = document.getElementById('btn-submit');
 
         const failSubmit = msg => {
+            hideBusyOverlay();
             showError(errBox, msg);
             btn.disabled = false;
-            btnLabel.classList.remove('is-hidden');
-            spinner.classList.add('is-hidden');
         };
 
         hideError(errBox);
@@ -972,14 +1011,22 @@ include 'includes/guide.php';
             return;
         }
 
+        if (state.researchDurationEnd < state.researchDurationStart) {
+            failSubmit('The research end month cannot be before the start month.');
+            return;
+        }
+
         if (!state.protocolName) {
             failSubmit('Please upload your completed IACUC protocol form.');
             return;
         }
 
         btn.disabled = true;
-        btnLabel.classList.add('is-hidden');
-        spinner.classList.remove('is-hidden');
+        showBusyOverlay({
+            title: 'Submitting your protocol\u2026',
+            text: 'Please don\u2019t close or refresh this page.',
+            percent: null
+        });
 
         clearTimeout(_saveTimer);
         await pushDraftFields();
@@ -998,6 +1045,7 @@ include 'includes/guide.php';
             state.submittedId = json.protocolId ?? null;
             disarmGuard();
 
+            hideBusyOverlay();
             state.step = 5;
             render();
             window.scrollTo({
@@ -1023,6 +1071,7 @@ include 'includes/guide.php';
         .then(d => {
             state.certAlready = !!d.has_cert;
             state.certStatus = d.cert_status;
+            state.certBlock = d.cert_block;
             render();
         })
         .catch(() => {

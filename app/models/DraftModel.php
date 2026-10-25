@@ -32,14 +32,16 @@ class DraftModel extends Model
     $animalType  = mb_substr(normalize_pasted_text($details['animal_type'] ?? ''), 0, 100);
     $adviser     = mb_substr(normalize_pasted_text($details['research_adviser'] ?? ''), 0, 255);
     $veterinarian = mb_substr(normalize_pasted_text($details['veterinarian'] ?? ''), 0, 255);
+    $durationStart = $this->monthToDate($details['research_duration_start'] ?? '', false);
+    $durationEnd   = $this->monthToDate($details['research_duration_end'] ?? '', true);
     $countText   = trim((string) ($details['animal_count'] ?? ''));
     $animalCount = ctype_digit($countText) ? min((int) $countText, 1000000) : null;
     $agreedT     = $agreedTerms ? 1 : 0;
     $agreedP     = $agreedPrivacy ? 1 : 0;
 
     $stmt = $this->connection->prepare(
-      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, title, animal_type, animal_count, research_adviser, veterinarian)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      "INSERT INTO `protocol_drafts` (user_id, step, agreed_terms, agreed_privacy, title, animal_type, animal_count, research_adviser, veterinarian, research_duration_start, research_duration_end)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 step = VALUES(step),
                 agreed_terms = VALUES(agreed_terms),
@@ -48,14 +50,25 @@ class DraftModel extends Model
                 animal_type = VALUES(animal_type),
                 animal_count = VALUES(animal_count),
                 research_adviser = VALUES(research_adviser),
-                veterinarian = VALUES(veterinarian)"
+                veterinarian = VALUES(veterinarian),
+                research_duration_start = VALUES(research_duration_start),
+                research_duration_end = VALUES(research_duration_end)"
     );
     if (! $stmt) {
       return false;
     }
 
-    $stmt->bind_param('iiiississ', $userId, $step, $agreedT, $agreedP, $title, $animalType, $animalCount, $adviser, $veterinarian);
+    $stmt->bind_param('iiiississss', $userId, $step, $agreedT, $agreedP, $title, $animalType, $animalCount, $adviser, $veterinarian, $durationStart, $durationEnd);
     return $stmt->execute();
+  }
+
+  private function monthToDate(string $value, bool $lastDay): ?string
+  {
+    $date = DateTime::createFromFormat('!Y-m', $value);
+    if (! $date || $date->format('Y-m') !== $value) {
+      return null;
+    }
+    return $date->format($lastDay ? 'Y-m-t' : 'Y-m-01');
   }
 
   // ===== SAVE FILE =====

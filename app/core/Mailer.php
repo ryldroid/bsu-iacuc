@@ -34,6 +34,7 @@ class Mailer
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body    = $body;
+            $mail->AltBody = self::toPlainText($body);
 
             $mail->send();
             return true;
@@ -41,6 +42,22 @@ class Mailer
             error_log("Mailer error: " . $mail->ErrorInfo);
             return false;
         }
+    }
+
+    // ===== EMAIL LINK =====
+    public static function link(string $url, string $text): string
+    {
+        return '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</a>';
+    }
+
+    // ===== HTML TO PLAIN TEXT =====
+    private static function toPlainText(string $html): string
+    {
+        $text = preg_replace('/<a\s[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/is', '$2 ($1)', $html);
+        $text = preg_replace('/<\/p>|<br\s*\/?>/i', "\n", $text);
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES, 'UTF-8');
+
+        return trim(preg_replace('/(\R[ \t]*){3,}/', "\n\n", $text));
     }
 
     // ===== SEND FROM TEMPLATE =====
@@ -118,7 +135,7 @@ class Mailer
     {
         $url = ROOT . '/user/email_preferences?email=' . rawurlencode($toEmail) . '&token=' . self::preferencesToken($toEmail);
         return '<p style="margin-top:16px;font-size:12px;color:#888;">'
-            . 'Click here to <a href="' . $url . '">manage your email preferences</a>.'
+            . 'Click here to ' . self::link($url, 'manage your email preferences') . '.'
             . '</p>';
     }
 

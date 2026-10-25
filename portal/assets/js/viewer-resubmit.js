@@ -57,6 +57,7 @@ function resubmitDocRow(doc) {
       hint: file.staged ? "Converted to PDF" : "",
       uploadHandler: "handleResubmitUpload",
       removeHandler: "removeResubmitFile",
+      previewHandler: "previewResubmitFile",
     });
   }
 
@@ -108,6 +109,11 @@ function renderResubmitDocs() {
       !(resubmitFiles.protocol && resubmitFiles.protocol.staged),
     );
   updateResubmitState();
+}
+
+function previewResubmitFile(key) {
+  const file = resubmitFiles[key];
+  openFilePopup(file.staged ? ROOT_URL + "/apply/stagedfile" : file, file.name);
 }
 
 function removeResubmitFile(key) {

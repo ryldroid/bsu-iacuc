@@ -11,6 +11,8 @@ class ProtocolModel extends Model
         'animal_count'     => 'Animal count',
         'research_adviser' => 'Research adviser',
         'veterinarian'     => 'Veterinarian',
+        'research_duration_start' => 'Research start month',
+        'research_duration_end'   => 'Research end month',
     ];
 
     // ===== PAYMENT STATUS LABELS =====
@@ -51,14 +53,14 @@ class ProtocolModel extends Model
         $veterinarian = normalize_pasted_text($details['veterinarian']);
 
         $stmt = $this->connection->prepare(
-            "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'Under Review')"
+            "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, research_duration_start, research_duration_end, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review')"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('ississ', $userId, $title, $animalType, $details['animal_count'], $adviser, $veterinarian);
+        $stmt->bind_param('ississss', $userId, $title, $animalType, $details['animal_count'], $adviser, $veterinarian, $details['research_duration_start'], $details['research_duration_end']);
         if (! $stmt->execute()) {
             return false;
         }
@@ -714,6 +716,8 @@ class ProtocolModel extends Model
                 p.animal_count,
                 p.research_adviser,
                 p.veterinarian,
+                p.research_duration_start,
+                p.research_duration_end,
                 p.status,
                 p.submitted_at,
                 p.updated_at,

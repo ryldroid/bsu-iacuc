@@ -13,7 +13,6 @@ include dirname(__DIR__) . '/includes/scroll-top.php';
 $user      = $user      ?? $_SESSION['user'] ?? [];
 $csrf      = $csrf      ?? '';
 $protocols = $protocols ?? [];
-$pendingCerts = $pendingCerts ?? [];
 
 // ===== Map internal status strings to human-readable display labels =====
 $statusDisplayMap = [
@@ -45,14 +44,14 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols. A reviewer can only mark a protocol Reviewed after the researcher\'s training certificate is verified, and you can verify it too by pressing the researcher\'s name.',
+        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. Only one personnel needs to do this. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
         'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**. Each card shows which of the five steps it is on and whether you or the researcher must act.",
         'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
-        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Before marking a protocol Reviewed, verify the researcher\'s training certificate by pressing the researcher\'s name.',
+        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. If it is rejected you can still read and comment, but you cannot finish the review or return the protocol until it is verified. Your part ends once you mark it Reviewed or return it for revision.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
         'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
@@ -135,6 +134,8 @@ foreach ($protocols as $p) {
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('payment-badge.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('history-modal.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
@@ -177,6 +178,15 @@ foreach ($protocols as $p) {
 
             <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
+            <?php if ($personnelRole === 'reviewer'): ?>
+                <div class="notice notice-info">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#info-icon" />
+                    </svg>
+                    <span><strong>Your role as a reviewer.</strong> <?= htmlspecialchars(ProtocolPermissions::REVIEWER_ROLE_NOTE, ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+            <?php endif; ?>
+
             <?php if (empty($protocols)): ?>
                 <!-- ===== Empty state ===== -->
                 <div class="empty-state">
@@ -218,9 +228,6 @@ foreach ($protocols as $p) {
                             <button class="status-card" data-filter="approved" data-label="Approved">
                                 <p>Approved <span class="status-count"><?= $approvedCount ?></span></p>
                             </button>
-                            <button class="status-card" type="button" id="certQueueBtn" data-label="Certificates to verify">
-                                <p>Certificates to verify <span class="status-count cert-queue-count"><?= count($pendingCerts) ?></span></p>
-                            </button>
                         </div>
 
                         <div class="dashboard-field-group mobile-filter-group">
@@ -246,7 +253,6 @@ foreach ($protocols as $p) {
                                     <button class="status-card" type="button" data-mobile-filter="reviewed">Reviewed <span class="status-count"><?= $reviewedCount ?></span></button>
                                     <button class="status-card" type="button" data-mobile-filter="endorsed">Endorsed <span class="status-count"><?= $endorsedCount ?></span></button>
                                     <button class="status-card" type="button" data-mobile-filter="approved">Approved <span class="status-count"><?= $approvedCount ?></span></button>
-                                    <button class="status-card" type="button" data-mobile-filter="certificates">Certificates to verify <span class="status-count cert-queue-count"><?= count($pendingCerts) ?></span></button>
                                 </div>
                             </div>
                         </div>
@@ -282,18 +288,13 @@ foreach ($protocols as $p) {
                                 <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
                             </div>
                         </div>
-
-                        <button type="button" class="action-link" id="resetViewBtn" hidden>
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#refresh-icon" />
-                            </svg>
-                            Reset view
-                        </button>
                     </div>
                 </div>
 
                 <!-- ===== Results summary ===== -->
-                <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
+                <div class="results-bar">
+                    <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
+                </div>
 
                 <!-- ===== Status legend ===== -->
                 <div class="status-legend-bar">
@@ -360,6 +361,12 @@ foreach ($protocols as $p) {
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <button type="button" class="action-link" id="paymentClearBtn" hidden>
+                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#close-icon" />
+                                </svg>
+                                Clear filter
+                            </button>
                         </div>
 
                         <div class="bulk-select-controls" id="bulkSelectControls" hidden>
@@ -828,7 +835,7 @@ foreach ($protocols as $p) {
                 </div><!-- /.clearance-layout -->
 
                 <!-- ===== Pagination ===== -->
-                <div class="pagination-bar" id="paginationBar">
+                <div class="pagination-bar pagination-bar--pinned pagination-bar--on-page" id="paginationBar">
                     <span class="pagination-info" id="paginationInfo"></span>
                     <div class="pagination-buttons" id="paginationButtons"></div>
                     <div class="rows-per-page-wrap">
@@ -973,7 +980,6 @@ foreach ($protocols as $p) {
     const ROOT_URL = <?= json_encode(ROOT) ?>;
     const USER_ROLE = <?= json_encode($user['role'] ?? '') ?>;
     const CSRF_TOKEN = <?= json_encode($csrf) ?>;
-    const pendingCerts = <?= json_encode($pendingCerts) ?>;
     // ===== Status metadata (mirrors My Protocols) =====
     const statusMeta = <?= json_encode($statusMeta) ?>;
     const REVIEWED_DOWNLOADABLE_COUNT = <?= (int) $reviewedDownloadableCount ?>;
@@ -986,9 +992,9 @@ $guideId    = 'inbox';
 $guideSteps = [
     ['Protocol Inbox', $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
-        : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
+        : 'This is where protocols waiting for your feedback show up. ' . ProtocolPermissions::REVIEWER_ROLE_NOTE . ' Let us walk through it.'],
     ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
-    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status. The last pill, **Certificates to verify**, lists researchers whose training certificate is waiting for verification.', '#filterPillsRow, .mobile-filter-group'],
+    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status.', '#filterPillsRow, .mobile-filter-group'],
     ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means for you. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];
@@ -996,6 +1002,7 @@ foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
 $guideSteps = array_merge($guideSteps, [
+    ['Training certificates', "Opening a protocol first shows a window with the researcher's details and training certificate. If nobody has checked the certificate yet, you must verify it or request a resubmission before you continue. Only one personnel needs to do this, and whoever does it first settles it for everyone. When it has already been checked, the window just tells you whether it was verified or rejected. If it was rejected, reviewers may still read and comment, but cannot finish the review or return the protocol until the researcher resubmits and it is verified."],
     ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details and verify or review their training certificate.", '.protocols-list .protocol:first-visible'],
     ['Actions', $personnelRole === 'staff'
         ? 'Protocols **To Review** are handled by the reviewers, so their cards only offer **View Protocol**. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. The **eye button** (View Protocol) is always available beside the three dots, and **View Clearance** appears once approved.'
@@ -1013,32 +1020,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 </script>
 <script src="<?= asset_js('history-modal.js') ?>"></script>
 
-<!-- ===== Researcher details modal ===== -->
-<div class="modal-backdrop" id="researcherModalBackdrop">
-    <div class="modal-card history-modal-card researcher-modal-card">
-        <div class="modal-header">
-            <span class="modal-header-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-                    <use href="#account-icon" />
-                </svg>
-            </span>
-            <div>
-                <p class="modal-label">Researcher</p>
-                <p class="modal-title" id="researcherModalName"></p>
-            </div>
-            <button class="modal-close" onclick="closeResearcherModal()" aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#close-icon" />
-                </svg>
-            </button>
-        </div>
-        <div id="researcherModalBody" class="history-modal-body researcher-modal-body">
-            <p class="helper history-loading">Loading&hellip;</p>
-        </div>
-    </div>
-</div>
-
-<script src="<?= asset_js('personnel-researcher-modal.js') ?>"></script>
+<?php include dirname(__DIR__) . '/includes/researcher-modal.php'; ?>
 
 <?php include dirname(__DIR__) . '/includes/protocol-modals.php'; ?>
 <script src="<?= asset_js('protocol-menu.js') ?>"></script>
@@ -1071,15 +1053,19 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <div class="modal-file-title">Signed protocol (scanned PDF) <span class="required-asterisk">*</span></div>
                     <div class="modal-file-subtitle" id="signedScanFileSubtitle">PDF only &middot; max 10 MB</div>
                 </div>
-                <label class="modal-file-picker">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#upload-icon" />
-                    </svg>
-                    <span id="signedScanFilePickerLabel">Upload</span>
-                    <input type="file" id="signed_scan_file" name="signed_scan_file"
-                        accept=".pdf,application/pdf" required
-                        onchange="handleSignedScanFileChange(this)">
-                </label>
+                <div class="resub-doc-actions">
+                    <button type="button" class="resub-btn-link is-hidden" id="signedScanFilePreviewBtn"
+                        onclick="previewPickedFile('signed_scan_file')">Preview</button>
+                    <label class="modal-file-picker">
+                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#upload-icon" />
+                        </svg>
+                        <span id="signedScanFilePickerLabel">Upload</span>
+                        <input type="file" id="signed_scan_file" name="signed_scan_file"
+                            accept=".pdf,application/pdf" required
+                            onchange="handleSignedScanFileChange(this)">
+                    </label>
+                </div>
             </div>
 
             <div class="upload-progress-container" id="signedScanProgress"></div>

@@ -1,6 +1,6 @@
 <?php
 
-class ContactOfficeModel extends Model
+class ContactOfficeModel extends OrderableModel
 {
   // ===== READ OFFICES =====
   public function getAll(): array

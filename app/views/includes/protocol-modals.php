@@ -146,6 +146,8 @@ include_once __DIR__ . '/file-popup.php';
             <div class="upload-progress-container" id="amendmentFileProgress"></div>
           </div>
           <div class="doc-row-action" id="amendmentFileAction">
+            <button type="button" class="resub-btn-link is-hidden" id="amendmentPreviewBtn"
+              onclick="previewAmendmentFile()">Preview</button>
             <label class="btn-upload-inline">
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#upload-icon" />
@@ -161,7 +163,7 @@ include_once __DIR__ . '/file-popup.php';
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#info-icon" />
         </svg>
-        <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly. <a href="#" class="underlined" onclick="previewStagedFile(event)">Preview PDF</a></span>
+        <span><strong>Converted to PDF:</strong> Please review the converted file before submitting, since conversion can shift the layout slightly.</span>
       </div>
 
       <div class="notice notice-info">

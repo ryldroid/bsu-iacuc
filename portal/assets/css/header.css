@@ -1,7 +1,7 @@
 /* ===== Shared look for the header panels (notifications, account) ===== */
 :root {
     --panel-width: 500px;
-    --panel-pad-x: 1.1rem;
+    --panel-pad-x: 1.8rem;
     --panel-header-pad-y: 1.2rem;
     --panel-header-size: .95rem;
 }

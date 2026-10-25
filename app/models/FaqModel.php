@@ -1,6 +1,6 @@
 <?php
 
-class FaqModel extends Model
+class FaqModel extends OrderableModel
 {
   // ===== READ FAQS =====
   public function getAll(): array
