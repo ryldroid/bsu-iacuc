@@ -166,24 +166,6 @@ foreach ($protocols as $p) {
 
         <div class="dashboard-panel">
 
-            <!-- ===== Search bar ===== -->
-            <div class="dashboard-search-row">
-                <div class="inbox-search-wrap">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input type="text" id="inboxSearchInput" class="inbox-search-input"
-                        placeholder="Search by title or researcher..." autocomplete="off">
-                    <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#close-icon" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
             <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
             <?php if (empty($protocols)): ?>
@@ -293,6 +275,20 @@ foreach ($protocols as $p) {
                 <!-- ===== Results summary ===== -->
                 <div class="results-bar">
                     <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
+                    <div class="inbox-search-wrap">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="inboxSearchInput" class="inbox-search-input"
+                            placeholder="Search by title or researcher..." autocomplete="off">
+                        <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#close-icon" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- ===== Status legend ===== -->

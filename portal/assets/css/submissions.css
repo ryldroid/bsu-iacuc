@@ -124,3 +124,7 @@ main:has(> .pagination-bar--pinned) {
     flex-direction: column;
     padding-bottom: 1.5rem;
 }
+
+.submission-header {
+    margin-bottom: 1em;
+}

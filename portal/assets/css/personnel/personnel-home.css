@@ -11,15 +11,6 @@
     /* padding: 0 1rem; */
 }
 
-/* ===== Search row (inside the dashboard card, right aligned) ===== */
-.dashboard-search-row {
-    display: flex;
-    align-items: center;
-    gap: .6em;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
 /* ===== Page header ===== */
 .dashboard-page-header {
     display: flex;
@@ -330,8 +321,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: space-between;
     gap: 4px 16px;
-    margin: 12px 0 0;
+    margin: 0 0 12px 0;
 }
 
 .results-summary {

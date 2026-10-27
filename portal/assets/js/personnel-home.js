@@ -531,7 +531,9 @@ function renderTable() {
   }
 
   if (resultsSummary) {
-    resultsSummary.textContent = `Showing ${totalRows} of ${tabTotal} protocol${tabTotal === 1 ? "" : "s"}`;
+    resultsSummary.textContent = searchQuery
+      ? `Showing ${totalRows} of ${tabTotal} protocol${tabTotal === 1 ? "" : "s"}`
+      : "";
   }
 }
 
