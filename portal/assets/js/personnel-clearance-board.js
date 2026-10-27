@@ -328,13 +328,14 @@ async function saveClearanceUpload() {
     const data = await res.json();
     setButtonBusy(btn, false);
 
-    if (!data.success) {
+    if (!data.success && !data.queued) {
       clearanceUploadError.textContent = data.error || "Upload failed.";
       clearanceUploadError.hidden = false;
       return;
     }
 
-    uploadedCount++;
+    if (data.queued) notifyQueued();
+    else uploadedCount++;
     uploadQueue.shift();
     showNextUpload();
   } catch (err) {

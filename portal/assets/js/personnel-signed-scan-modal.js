@@ -76,7 +76,12 @@ async function submitSignedScanUpload() {
       onProgress: (pct) => bar.update(pct),
     });
 
-    if (data.success) {
+    if (data.queued) {
+      closeSignedScanModal();
+      notifyQueued();
+      setButtonBusy(btn, false);
+      bar.remove();
+    } else if (data.success) {
       window.location.reload();
     } else {
       errBox.textContent = data.error ?? "Upload failed. Please try again.";

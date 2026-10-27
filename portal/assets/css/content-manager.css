@@ -213,12 +213,6 @@
   font-size: .9rem;
 }
 
-/* ===== Image preview in the add/edit modal ===== */
-.ann-image-preview-wrap.is-marked img {
-  opacity: .35;
-  filter: grayscale(1);
-}
-
 /* ===== Save bar for forms that track unsaved changes ===== */
 .cm-savebar {
   position: sticky;

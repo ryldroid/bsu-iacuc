@@ -297,11 +297,19 @@ function formatDateTime(value) {
 
   window.uploadWithProgress = function (url, formData, options) {
     options = options || {};
+    const queue = window._actionQueue;
+    const queueKey = queue && queue.intercepts(url) ? queue.newKey() : null;
+    const headers = Object.assign({}, options.headers);
+    const saveOffline = () =>
+      queue.capture(url, { method: "POST", headers }, formData, queueKey);
+
+    if (queueKey && !navigator.onLine) return saveOffline();
+    if (queueKey) headers["X-Idempotency-Key"] = queueKey;
+
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
 
-      const headers = options.headers || {};
       Object.keys(headers).forEach((key) => {
         xhr.setRequestHeader(key, headers[key]);
       });
@@ -326,6 +334,10 @@ function formatDateTime(value) {
       });
 
       xhr.addEventListener("error", () => {
+        if (queueKey) {
+          saveOffline().then(resolve);
+          return;
+        }
         reject(
           new Error(
             "Network error. Please check your connection and try again.",

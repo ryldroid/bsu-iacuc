@@ -398,7 +398,8 @@ html:has(.modal-backdrop.open.guide-targeting) {
 }
 
 /* ===== Image zoom lightbox (shared, built by modals.js) ===== */
-.image-zoom-btn {
+.image-zoom-btn,
+.image-remove-btn {
     position: absolute;
     bottom: 6px;
     right: 6px;
@@ -421,8 +422,17 @@ html:has(.modal-backdrop.open.guide-targeting) {
     left: 6px;
 }
 
-.image-zoom-btn:hover {
+.ann-image-preview-wrap .image-remove-btn {
+    left: 48px;
+}
+
+.image-zoom-btn:hover,
+.image-remove-btn:hover {
     background: rgba(0, 0, 0, 0.75);
+}
+
+.image-remove-btn:hover {
+    background: var(--danger-solid);
 }
 
 .image-zoom-backdrop .image-zoom-card {

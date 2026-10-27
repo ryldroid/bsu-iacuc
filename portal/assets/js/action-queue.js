@@ -34,7 +34,13 @@
   }
 
   function dequeue(id) {
-    var queue = loadQueue().filter(function (e) {
+    var all = loadQueue();
+    dropFiles(
+      all.filter(function (e) {
+        return e.id === id;
+      }),
+    );
+    var queue = all.filter(function (e) {
       return e.id !== id;
     });
     saveQueue(queue);
@@ -53,8 +59,73 @@
   }
 
   function clearQueue() {
+    dropFiles(loadQueue());
     localStorage.removeItem(STORAGE_KEY);
     syncPendingTags();
+  }
+
+  // ===== Queued file storage (IndexedDB) =====
+
+  var FILE_DB = "iacuc_queue_files";
+  var FILE_STORE = "files";
+
+  function fileKey(id, index) {
+    return id + ":" + index;
+  }
+
+  function fileRequest(mode, run) {
+    return new Promise(function (resolve, reject) {
+      var open = indexedDB.open(FILE_DB, 1);
+      open.onupgradeneeded = function () {
+        open.result.createObjectStore(FILE_STORE);
+      };
+      open.onerror = function () {
+        reject(open.error);
+      };
+      open.onsuccess = function () {
+        var db = open.result;
+        var tx = db.transaction(FILE_STORE, mode);
+        var request = run(tx.objectStore(FILE_STORE));
+        tx.oncomplete = function () {
+          db.close();
+          resolve(request && request.result);
+        };
+        tx.onerror = tx.onabort = function () {
+          db.close();
+          reject(tx.error);
+        };
+      };
+    });
+  }
+
+  function saveFiles(id, files) {
+    if (files.length === 0) return Promise.resolve();
+    return fileRequest("readwrite", function (store) {
+      files.forEach(function (file, i) {
+        store.put(file[1], fileKey(id, i));
+      });
+    });
+  }
+
+  function loadFile(id, index) {
+    return fileRequest("readonly", function (store) {
+      return store.get(fileKey(id, index));
+    });
+  }
+
+  function dropFiles(entries) {
+    var keys = [];
+    entries.forEach(function (entry) {
+      (entry.files || []).forEach(function (file, i) {
+        keys.push(fileKey(entry.id, i));
+      });
+    });
+    if (keys.length === 0) return;
+    fileRequest("readwrite", function (store) {
+      keys.forEach(function (key) {
+        store.delete(key);
+      });
+    }).catch(function () {});
   }
 
   // ===== Pending sync tags =====
@@ -106,6 +177,8 @@
     "/apply/assign_ipn": "Assign IPN",
     "/apply/rename": "Rename protocol",
     "/apply/delete": "Delete protocol",
+    "/apply/signed_scan_upload": "Upload signed scan",
+    "/apply/clearance_pool_upload": "Upload clearance screenshot",
     "/personnel/certverify": "Verify training certificate",
     "/personnel/certreject": "Reject training certificate",
     "/personnel/records_add": "Add record",
@@ -324,27 +397,34 @@
   function entryDetails(entry) {
     var data = parsePayload({ fields: entry.fields, text: entry.body });
     if (!data || typeof data !== "object") return "";
-    return Object.keys(data)
-      .filter(function (key) {
-        var unused = /^remove_/.test(key) && String(data[key]) === "0";
-        return HIDDEN_FIELDS.indexOf(key) === -1 && !unused;
-      })
-      .map(function (key) {
-        var value =
-          typeof data[key] === "object"
-            ? JSON.stringify(data[key])
-            : /^remove_/.test(key)
-              ? "Yes"
-              : String(data[key]);
-        return (
-          "<dt>" +
-          escapeHtml(fieldTitle(key)) +
-          "</dt><dd>" +
-          (value ? escapeHtml(value) : '<span class="helper">Empty</span>') +
-          "</dd>"
-        );
+    var attached = (entry.files || [])
+      .map(function (file) {
+        return "<dt>File</dt><dd>" + escapeHtml(file.name) + "</dd>";
       })
       .join("");
+    return (
+      Object.keys(data)
+        .filter(function (key) {
+          var unused = /^remove_/.test(key) && String(data[key]) === "0";
+          return HIDDEN_FIELDS.indexOf(key) === -1 && !unused;
+        })
+        .map(function (key) {
+          var value =
+            typeof data[key] === "object"
+              ? JSON.stringify(data[key])
+              : /^remove_/.test(key)
+                ? "Yes"
+                : String(data[key]);
+          return (
+            "<dt>" +
+            escapeHtml(fieldTitle(key)) +
+            "</dt><dd>" +
+            (value ? escapeHtml(value) : '<span class="helper">Empty</span>') +
+            "</dd>"
+          );
+        })
+        .join("") + attached
+    );
   }
 
   function renderPanel() {
@@ -488,19 +568,26 @@
 
   var _origFetch = window.fetch;
 
-  // JSON strings and text-only forms can be queued. Anything with a file cannot.
+  // JSON strings and forms can be queued. Files are kept in IndexedDB.
   function queueableBody(body) {
     if (typeof body === "string") return { text: body };
     if (typeof FormData === "undefined" || !(body instanceof FormData))
       return null;
 
     var fields = [];
-    var hasFile = false;
+    var files = [];
     body.forEach(function (value, name) {
       if (typeof value === "string") fields.push([name, value]);
-      else hasFile = true;
+      else files.push([name, value]);
     });
-    return hasFile ? null : { fields: fields };
+    return { fields: fields, files: files };
+  }
+
+  function asResponse(result) {
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   window.fetch = function (input, init) {
@@ -514,7 +601,9 @@
     if (!payload) return _origFetch.apply(this, arguments);
 
     var key = uid();
-    if (!navigator.onLine) return captureAndQueue(url, init, payload, key);
+    if (!navigator.onLine) {
+      return captureAndQueue(url, init, payload, key).then(asResponse);
+    }
 
     var headers = new Headers(init.headers || {});
     headers.set("X-Idempotency-Key", key);
@@ -522,7 +611,7 @@
       .call(this, input, Object.assign({}, init, { headers: headers }))
       .catch(function (err) {
         if (err instanceof TypeError) {
-          return captureAndQueue(url, init, payload, key);
+          return captureAndQueue(url, init, payload, key).then(asResponse);
         }
         return Promise.reject(err);
       });
@@ -578,42 +667,48 @@
       : protocolId
         ? String(protocolId)
         : null;
+    var files = payload.files || [];
     var detail =
       parsed.title_of_research ||
       parsed.question ||
       parsed.name ||
       parsed.title ||
-      "";
+      parsed.ar_number ||
+      (files.length ? files[0][1].name : "");
 
-    enqueue({
-      id: key,
-      protocolId: protocolId,
-      target: target,
-      url: url,
-      method: method,
-      headers: headers,
-      body: payload.text || null,
-      fields: payload.fields || null,
-      queuedAt: new Date().toISOString(),
-      label:
-        labelFor(url, parsed) +
-        (detail ? ": " + detail.slice(0, 40) : "") +
-        (protocolId ? " (protocol #" + protocolId + ")" : ""),
-    });
-    updateBanner();
+    return saveFiles(key, files).then(
+      function () {
+        enqueue({
+          id: key,
+          protocolId: protocolId,
+          target: target,
+          url: url,
+          method: method,
+          headers: headers,
+          body: payload.text || null,
+          fields: payload.fields || null,
+          files: files.length
+            ? files.map(function (file) {
+                return { field: file[0], name: file[1].name };
+              })
+            : null,
+          queuedAt: new Date().toISOString(),
+          label:
+            labelFor(url, parsed) +
+            (detail ? ": " + detail.slice(0, 40) : "") +
+            (protocolId ? " (protocol #" + protocolId + ")" : ""),
+        });
+        updateBanner();
 
-    var message =
-      "Offline: action queued and will retry when you are back online.";
-    return Promise.resolve(
-      new Response(
-        JSON.stringify({
-          ok: false,
-          queued: true,
-          error: message,
-          message: message,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+        var message =
+          "Offline: action queued and will retry when you are back online.";
+        return { ok: false, queued: true, error: message, message: message };
+      },
+      function () {
+        var message =
+          "Offline, and this browser could not save the file. Try again when you are back online.";
+        return { ok: false, error: message, message: message };
+      },
     );
   }
 
@@ -633,28 +728,20 @@
     var headers = new Headers(entry.headers);
     var token =
       typeof NOTIF_CSRF_TOKEN !== "undefined" ? NOTIF_CSRF_TOKEN : null;
-    var body = entry.body;
 
     headers.set("X-Idempotency-Key", entry.id);
     headers.set("Accept", "application/json");
     if (token) headers.set("X-CSRF-Token", token);
+    if (entry.fields) headers.delete("Content-Type");
 
-    if (entry.fields) {
-      body = new FormData();
-      entry.fields.forEach(function (field) {
-        body.append(
-          field[0],
-          field[0] === "csrf_token" && token ? token : field[1],
-        );
-      });
-      headers.delete("Content-Type");
-    }
-
-    return _origFetch(entry.url, {
-      method: entry.method,
-      headers: headers,
-      body: body,
-    })
+    return buildBody(entry, token)
+      .then(function (body) {
+        return _origFetch(entry.url, {
+          method: entry.method,
+          headers: headers,
+          body: body,
+        });
+      })
       .then(function (res) {
         if (res.status === 401) {
           SESSION_EXPIRED = true;
@@ -688,12 +775,45 @@
             return false;
           });
       })
-      .catch(function () {
-        if (navigator.onLine) {
+      .catch(function (err) {
+        if (err && err.missingFile) {
+          markFailed(
+            entry.id,
+            "The saved file is no longer in this browser. Remove this action and upload the file again.",
+            false,
+          );
+        } else if (navigator.onLine) {
           markFailed(entry.id, "Could not reach the server. Tap Retry.", true);
         }
         return false;
       });
+  }
+
+  function buildBody(entry, token) {
+    if (!entry.fields) return Promise.resolve(entry.body);
+
+    var body = new FormData();
+    entry.fields.forEach(function (field) {
+      body.append(
+        field[0],
+        field[0] === "csrf_token" && token ? token : field[1],
+      );
+    });
+
+    return Promise.all(
+      (entry.files || []).map(function (file, i) {
+        return loadFile(entry.id, i).then(function (blob) {
+          if (!blob) {
+            var error = new Error("Saved file missing");
+            error.missingFile = true;
+            throw error;
+          }
+          body.append(file.field, blob, file.name);
+        });
+      }),
+    ).then(function () {
+      return body;
+    });
   }
 
   function runReplay() {
@@ -818,5 +938,10 @@
     clear: clearQueue,
     replay: replayQueue,
     open: openQueuePanel,
+    intercepts: shouldIntercept,
+    newKey: uid,
+    capture: function (url, init, body, key) {
+      return captureAndQueue(url, init, queueableBody(body), key);
+    },
   };
 })();

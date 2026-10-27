@@ -78,8 +78,7 @@
       wrap: $(cfg.previewWrap),
       img: $(cfg.preview),
       zoom: $(cfg.zoom),
-      removeRow: $(cfg.removeRow),
-      remove: $(cfg.remove),
+      removeBtn: $(cfg.removeBtn),
       progress: $(cfg.progress),
       pickerLabel: $(cfg.input).parentElement.querySelector(
         "[data-picker-label]",
@@ -101,15 +100,18 @@
     syncPickerLabel(els);
   }
 
-  function clearImage(els) {
+  function hidePreview(els) {
     els.input.value = "";
     els.img.removeAttribute("src");
     els.wrap.hidden = true;
-    els.wrap.classList.remove("is-marked");
-    els.removeRow.hidden = true;
-    els.remove.checked = false;
-    els.progress.innerHTML = "";
     syncPickerLabel(els);
+  }
+
+  function clearImage(els) {
+    hidePreview(els);
+    els.wrap.dataset.saved = "";
+    els.wrap.dataset.removed = "";
+    els.progress.innerHTML = "";
   }
 
   function wireImage(entity) {
@@ -126,14 +128,15 @@
       const reader = new FileReader();
       reader.onload = (e) => {
         showPreview(els, e.target.result);
-        els.wrap.classList.remove("is-marked");
-        els.remove.checked = false;
+        els.wrap.dataset.removed = "";
       };
       reader.readAsDataURL(file);
     });
 
-    els.remove.addEventListener("change", () => {
-      els.wrap.classList.toggle("is-marked", els.remove.checked);
+    els.removeBtn.addEventListener("click", () => {
+      hidePreview(els);
+      els.wrap.dataset.removed = els.wrap.dataset.saved;
+      els.wrap.closest(".modal-backdrop").dataset.changed = "true";
     });
   }
 
@@ -198,7 +201,7 @@
       const file = res.data[entity.image.column];
       if (file) {
         showPreview(els, ROOT + entity.image.base + encodeURIComponent(file));
-        els.removeRow.hidden = false;
+        els.wrap.dataset.saved = "1";
       }
     }
 
@@ -221,7 +224,7 @@
 
     const els = entity.image ? imageEls(entity) : null;
     const file = els && els.input.files[0];
-    const hasImage = !!file || (els && !els.wrap.hidden && !els.remove.checked);
+    const hasImage = !!file || (els && !els.wrap.hidden);
 
     const rules = entity.validate || {};
     if ((rules.all || []).some((name) => !payload[name])) {
@@ -255,7 +258,7 @@
     if (id) payload.id = id;
     if (els) {
       if (file) payload[entity.image.field] = file;
-      if (id) payload.remove_image = els.remove.checked ? "1" : "0";
+      if (id) payload.remove_image = els.wrap.dataset.removed ? "1" : "0";
     }
 
     setButtonBusy(saveBtn, true, file ? "Uploading..." : "Saving...");

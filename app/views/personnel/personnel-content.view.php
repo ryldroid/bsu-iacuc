@@ -406,10 +406,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                 <use href="#search-icon" />
               </svg>
             </button>
-          </div>
-          <div class="ann-remove-image-row" id="ann_remove_row" hidden>
-            <input type="checkbox" id="ann_remove_image">
-            <label for="ann_remove_image">Remove current image</label>
+            <button type="button" class="image-remove-btn" id="ann_image_remove_btn" title="Remove image" aria-label="Remove image">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#trash-icon" />
+              </svg>
+            </button>
           </div>
           <div class="upload-progress-container" id="annImageProgress"></div>
         </div>
@@ -564,8 +565,7 @@ $cmConfig = [
         'previewWrap' => 'ann_image_preview_wrap',
         'preview'    => 'ann_image_preview',
         'zoom'       => 'ann_image_zoom_btn',
-        'removeRow'  => 'ann_remove_row',
-        'remove'     => 'ann_remove_image',
+        'removeBtn'  => 'ann_image_remove_btn',
         'progress'   => 'annImageProgress',
       ],
       'endpoints' => [
