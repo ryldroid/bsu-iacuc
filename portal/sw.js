@@ -24,7 +24,11 @@ const SKIP_PATHS = [
 // ===== Install =====
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_URLS)),
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) =>
+        Promise.allSettled(PRECACHE_URLS.map((u) => cache.add(u))),
+      ),
   );
   self.skipWaiting();
 });
@@ -96,18 +100,30 @@ async function navigationHandler(request) {
   try {
     const response = await fetch(request);
     if (isCacheable(response)) cache.put(request, response.clone());
-    else if (response.type === "opaqueredirect") cacheRedirect(cache, request);
+    else if (
+      response.type === "opaqueredirect" &&
+      request.url === self.registration.scope
+    ) {
+      cacheRedirect(cache, request);
+    }
     return response;
   } catch (err) {
     return (
-      (await cache.match(request)) ||
-      (await cache.match(request, { ignoreSearch: true })) ||
-      (await cache.match("offline.html"))
+      (await cache.match(request, { ignoreVary: true })) ||
+      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ||
+      (await cache.match("offline.html")) ||
+      new Response(
+        "<h1>You are offline</h1><p>This page is not saved on this device.</p>",
+        {
+          status: 503,
+          headers: { "Content-Type": "text/html" },
+        },
+      )
     );
   }
 }
 
-// ===== Redirects (like /portal/ to the dashboard) =====
+// ===== App home redirect (/portal/ to the dashboard) =====
 // A followed redirect cannot be reused for a navigation, so the redirect itself is saved.
 function cacheRedirect(cache, request) {
   fetch(request.url, { credentials: "same-origin" })
