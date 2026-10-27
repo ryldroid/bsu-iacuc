@@ -2,9 +2,12 @@
 const CACHE_VERSION = "bsu-iacuc-v8";
 const FILE_CACHE = "bsu-iacuc-files-v1";
 const MAX_CACHED_FILES = 150;
+const NETWORK_TIMEOUT_MS = 4000;
 
 const PRECACHE_URLS = [
   "offline.html",
+  "assets/css/body.css",
+  "assets/css/404.css",
   "assets/images/bsu.webp",
   "assets/images/ccard.webp",
   "assets/images/favicon.ico",
@@ -94,11 +97,34 @@ function isCacheable(response) {
   return response.ok && response.status === 200 && !response.redirected;
 }
 
+// ===== Network with timeout =====
+// Fails at once when the browser is offline and gives up on a dead connection
+// after NETWORK_TIMEOUT_MS, so the saved copy is shown without a long wait.
+function fetchWithTimeout(request) {
+  if (!navigator.onLine) return Promise.reject(new Error("offline"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("timeout")),
+      NETWORK_TIMEOUT_MS,
+    );
+    fetch(request).then(
+      (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 // ===== Navigation handler =====
 async function navigationHandler(request) {
   const cache = await caches.open(CACHE_VERSION);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request);
     if (isCacheable(response)) cache.put(request, response.clone());
     else if (
       response.type === "opaqueredirect" &&
@@ -141,7 +167,7 @@ async function staticAssetHandler(request) {
   const cache = await caches.open(CACHE_VERSION);
   const cached = await cache.match(request);
 
-  const refresh = fetch(request)
+  const refresh = fetchWithTimeout(request)
     .then((response) => {
       if (response.ok) cache.put(request, response.clone());
       return response;
@@ -160,7 +186,7 @@ async function staticAssetHandler(request) {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request);
     if (isCacheable(response)) cache.put(request, response.clone());
     return response;
   } catch (err) {
@@ -177,7 +203,7 @@ async function fileHandler(request) {
   const cache = await caches.open(FILE_CACHE);
   const key = new Request(request.url);
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request);
     if (isCacheable(response)) {
       await cache.put(key, response.clone());
       trimFileCache(cache);

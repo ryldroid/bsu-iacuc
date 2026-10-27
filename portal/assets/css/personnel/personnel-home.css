@@ -279,6 +279,13 @@
     background: none;
 }
 
+@media (max-width: 767px) {
+    .inbox-search-wrap {
+        flex: 0 0 auto;
+        margin-left: 0;
+    }
+}
+
 @media (max-width: 768px) {
     .inbox-search-wrap {
         max-width: 100%;
