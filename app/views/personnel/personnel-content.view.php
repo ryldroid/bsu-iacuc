@@ -67,7 +67,9 @@ $activeTab     = $activeTab     ?? 'announcements';
 
         <div class="dashboard-page-header records-page-header">
           <div>
-            <h2>Manage Announcements <span class="cm-count" data-cm-count="annListWrap" aria-live="polite"><?= count($announcements) ?></span></h2>
+            <h2><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#announcement-icon" />
+              </svg> Manage Announcements <span class="cm-count" data-cm-count="annListWrap" aria-live="polite"><?= count($announcements) ?></span></h2>
           </div>
           <div class="cm-tools">
             <?php $cmSearchTarget = 'annListWrap';
@@ -143,7 +145,9 @@ $activeTab     = $activeTab     ?? 'announcements';
         <div class="sections">
           <!-- HOMEPAGE CONTENT -->
           <section class="accounts-card">
-            <h2>Homepage Content</h2>
+            <h2><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#home-icon" />
+              </svg> Homepage Content</h2>
             <p class="audit-description">These appear on the public homepage.</p>
             <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings" data-cm-dirty
               data-confirm-message="Save changes to the homepage content?" data-confirm-ok-text="Save">
@@ -190,7 +194,9 @@ $activeTab     = $activeTab     ?? 'announcements';
           <section class="accounts-card">
             <div class="dashboard-page-header records-page-header">
               <div>
-                <h2>Contact Page Offices <span class="cm-count" data-cm-count="officeListWrap" aria-live="polite"><?= count($offices) ?></span></h2>
+                <h2><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#contact-icon" />
+                  </svg> Contact Page Offices <span class="cm-count" data-cm-count="officeListWrap" aria-live="polite"><?= count($offices) ?></span></h2>
                 <p class="audit-description">These cards appear on the public Contact page.</p>
               </div>
               <div class="cm-tools">
@@ -254,7 +260,9 @@ $activeTab     = $activeTab     ?? 'announcements';
           <section class="accounts-card">
             <div class="dashboard-page-header records-page-header">
               <div>
-                <h2>Homepage FAQ <span class="cm-count" data-cm-count="faqListWrap" aria-live="polite"><?= count($faqs) ?></span></h2>
+                <h2><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#question-info-icon" />
+                  </svg> Homepage FAQ <span class="cm-count" data-cm-count="faqListWrap" aria-live="polite"><?= count($faqs) ?></span></h2>
                 <p class="audit-description">These questions appear in the FAQ accordion on the public homepage.</p>
               </div>
               <div class="cm-tools">

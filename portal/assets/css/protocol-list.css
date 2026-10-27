@@ -586,20 +586,28 @@
     display: flex;
   }
 
-  .dashboard-filter-row .sort-filter-label {
+  .dashboard-filter-row .sort-filter-label,
+  .results-bar .sort-filter-label {
     min-width: 5.5em;
   }
 
-  .dashboard-filter-row .sort-wrapper {
+  .dashboard-filter-row .sort-wrapper,
+  .results-bar .sort-wrapper {
     flex: 1;
   }
 
-  .dashboard-filter-row .mobile-dropdown-trigger {
+  .dashboard-filter-row .mobile-dropdown-trigger,
+  .results-bar .mobile-dropdown-trigger {
     width: 100%;
   }
 
-  .dashboard-filter-row .dropdown-panel {
+  .dashboard-filter-row .dropdown-panel,
+  .results-bar .dropdown-panel {
     min-width: 100%;
+  }
+
+  .results-bar .dashboard-sort-group {
+    flex: 1 1 100%;
   }
 
   /* ===== Sort dropdown (box styling shared via .dashboard-select-trigger) ===== */

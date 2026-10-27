@@ -42,7 +42,8 @@
     font-size: 0.9rem;
 }
 
-.accounts-card h2 {
+.accounts-card h2,
+.tab-panel>.records-page-header h2 {
     display: flex;
     align-items: center;
     gap: 0.4em;
@@ -52,12 +53,15 @@
     color: var(--brand-text);
 }
 
-.accounts-card h2 svg {
+.accounts-card h2 svg,
+.tab-panel>.records-page-header h2 svg {
     flex-shrink: 0;
+    fill: none;
 }
 
 /* ===== Section layout ===== */
-.audit-viewer-header h2 {
+.audit-viewer-header h2,
+.tab-panel>.records-page-header h2 {
     margin-bottom: 0;
 }
 

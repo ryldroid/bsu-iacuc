@@ -239,6 +239,24 @@ foreach ($protocols as $p) {
                         </div>
                     </div>
 
+                    <div class="inbox-search-wrap">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="inboxSearchInput" class="inbox-search-input"
+                            placeholder="Search by title or researcher..." autocomplete="off">
+                        <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#close-icon" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ===== Results summary ===== -->
+                <div class="results-bar">
                     <div class="dashboard-sort-group dashboard-field-group">
                         <p class="sort-filter-label">
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -270,25 +288,7 @@ foreach ($protocols as $p) {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- ===== Results summary ===== -->
-                <div class="results-bar">
                     <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
-                    <div class="inbox-search-wrap">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <input type="text" id="inboxSearchInput" class="inbox-search-input"
-                            placeholder="Search by title or researcher..." autocomplete="off">
-                        <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#close-icon" />
-                            </svg>
-                        </button>
-                    </div>
                 </div>
 
                 <!-- ===== Status legend ===== -->
@@ -989,8 +989,8 @@ $guideSteps = [
     ['Protocol Inbox', $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
         : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
-    ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
     ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status.', '#filterPillsRow, .mobile-filter-group'],
+    ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
     ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means for you. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];
