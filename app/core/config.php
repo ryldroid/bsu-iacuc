@@ -85,6 +85,9 @@ define('BREVO_WEBHOOK_SECRET', EnvLoader::get('BREVO_WEBHOOK_SECRET', ''));
 // ===== BACKUP SETTINGS =====
 define('BACKUP_CRON_SECRET', EnvLoader::get('BACKUP_CRON_SECRET', ''));
 
+// ===== OFFLINE SETTINGS =====
+define('OFFLINE_SAVE_PROTOCOLS', 40);
+
 // ===== CLEARANCE EXPIRY SETTINGS =====
 define('EXPIRY_CRON_SECRET', EnvLoader::get('EXPIRY_CRON_SECRET', ''));
 

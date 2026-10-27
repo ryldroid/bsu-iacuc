@@ -125,19 +125,17 @@ if ($isAmendment && !empty($version['note'])) {
     $viewerNotes[] = ['info', 'info-icon', 'Amendment note', $version['note']];
 }
 if (!$isPersonnel && !empty($reviewerNote['comment'])) {
-    $viewerNotes[] = ['warning', 'info-icon', 'Note from CCARD', $reviewerNote['comment']];
+    $viewerNotes[] = ['warning', 'info-icon', 'Note:', $reviewerNote['comment']];
 }
 if ($canResubmitCert) {
     $viewerNotes[] = ['danger', 'alert-triangle-icon', 'Training certificate rejected', 'Your review is on hold until you resubmit it.' . (!empty($cert['cert_note']) ? ' Reason: ' . $cert['cert_note'] . '.' : '')];
 }
-if ($canReview) {
-    $viewerNotes[] = ['info', 'info-icon', 'Your role', ProtocolPermissions::REVIEWER_ROLE_NOTE];
-}
 if ($isPersonnel && $researcherCertStatus === 'rejected') {
-    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: ' . $certReview['note'] . '.' : '') . ' Finishing the review or returning the protocol is unavailable until it is verified.'];
-} elseif ($isPersonnel && $researcherCertStatus === 'verified' && $certReview) {
-    $viewerNotes[] = ['info', 'check-circle-icon', 'Training certificate verified', 'Verified by ' . trim($certReview['actor_name'] ?? '') . ' on ' . date(DATE_FORMAT, strtotime($certReview['created_at'])) . '.'];
+    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: "' . $certReview['note'] . '.' : '') . '" Finishing the review or returning the protocol is unavailable until it is verified.'];
 }
+$certVerifiedTitle = $certReview && $researcherCertStatus === 'verified'
+    ? 'Verified by ' . trim($certReview['actor_name'] ?? '') . ' on ' . date(DATE_FORMAT, strtotime($certReview['created_at'])) . '.'
+    : '';
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $resubmitDocs      = [
@@ -195,6 +193,17 @@ include 'includes/header.php';
                 </span>
                 <?= htmlspecialchars($statusBadgeLabel, ENT_QUOTES, 'UTF-8') ?>
             </span>
+            <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
+            <?php if ($isPersonnel && $researcherCertStatus !== null): ?>
+                <span class="status-badge" id="certVerifiedBadge" title="<?= htmlspecialchars($certVerifiedTitle, ENT_QUOTES, 'UTF-8') ?>" <?= $researcherCertStatus === 'verified' ? '' : 'hidden' ?>>
+                    <span class="status-badge-icon status-badge-icon--approved">
+                        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#check-circle-icon" />
+                        </svg>
+                    </span>
+                    Training certificate verified
+                </span>
+            <?php endif; ?>
 
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
@@ -274,7 +283,7 @@ include 'includes/header.php';
                     <?php if ($canReview): ?>
                         <button class="tool-btn tool-btn--success" id="btnFinishReview"
                             onclick="openReviewDecisionModal()"
-                            <?= $researcherCertStatus === 'verified' ? '' : 'disabled title="The researcher\'s training certificate must be verified first."' ?>>
+                            <?= $researcherCertStatus === 'verified' ? '' : 'aria-disabled="true" title="The researcher\'s training certificate must be verified first."' ?>>
                             Finish Review
                         </button>
                     <?php elseif ($canResubmitCert): ?>
@@ -719,7 +728,6 @@ endif; ?>
     <?php include __DIR__ . '/includes/researcher-modal.php'; ?>
 <?php endif; ?>
 <?php if ($canResubmitCert):
-    $certResubmitProtocolId = $statusKey === 'under review' ? $protocolId : null;
     include __DIR__ . '/includes/cert-resubmit-modal.php';
 endif; ?>
 

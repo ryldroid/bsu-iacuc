@@ -16,9 +16,6 @@ class ProtocolPermissions
 {
   public const RENAMEABLE_STATUSES = ['under review', 'needs revision'];
 
-  // Shown to reviewers in the inbox, the tour and the viewer so the wording never drifts apart.
-  public const REVIEWER_ROLE_NOTE = 'Your part is the review only: give feedback, then mark the protocol Reviewed or return it for revision. Administrative staff handle payment, signing, endorsement, and clearance release.';
-
   public static function flags(array $protocol, array $actor, ?ProtocolModel $model = null): array
   {
     $role        = (string) ($actor['role'] ?? '');

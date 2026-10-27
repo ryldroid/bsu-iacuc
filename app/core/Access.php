@@ -64,8 +64,7 @@ class Access
       'ping' => 'auth',
       'resend_verification' => 'public', // signed-in users, or a sign-in blocked until the email is verified
       'school_options' => 'auth',
-      // researchers only
-      'delete' => 'researcher',
+      'delete' => 'auth',
     ],
 
     'personnel' => [
@@ -117,6 +116,7 @@ class Access
       'approve' => 'staff',
       'reject' => 'staff',
       'update_role' => 'staff',
+      'delete_personnel' => 'staff',
     ],
 
     'backups' => [
@@ -210,7 +210,16 @@ class Access
     }
 
     $loggedIn = isset($_SESSION['user']['user_id']);
-    $role     = (string) ($_SESSION['user']['role'] ?? '');
+
+    if ($loggedIn) {
+      $account = (new UserModel())->getUser((int) $_SESSION['user']['user_id']);
+      if (!$account || $account['status'] === 'deleted') {
+        unset($_SESSION['user']);
+        $loggedIn = false;
+      }
+    }
+
+    $role = (string) ($_SESSION['user']['role'] ?? '');
 
     if (!$loggedIn) {
       self::deny(401, strtolower($controller) === 'personnel' || $rule === 'staff' || $rule === 'personnel');

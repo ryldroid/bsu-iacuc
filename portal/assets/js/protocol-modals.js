@@ -86,6 +86,12 @@ async function submitRename() {
       protocol_id: renameCtx.protocolId,
       title: newTitle,
     });
+    if (data.queued) {
+      closeRenameModal();
+      notifyQueued();
+      setButtonBusy(submitBtn, false);
+      return;
+    }
     if (data.ok) return finishProtocolAction(renameCtx.opts);
     showProtocolModalError(
       errBox,
@@ -208,6 +214,12 @@ async function submitDelete() {
       protocol_id: protocolId,
       reason,
     });
+    if (data.queued) {
+      closeDeleteModal();
+      notifyQueued();
+      setButtonBusy(submitBtn, false);
+      return;
+    }
     if (data.ok) return finishProtocolAction(opts);
     showProtocolModalError(
       errBox,

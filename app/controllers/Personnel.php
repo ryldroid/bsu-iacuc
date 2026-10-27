@@ -134,6 +134,7 @@ class Personnel extends Controller
                     'uploaded_at' => $cert['cert_uploaded_at'],
                     'note'        => $cert['cert_note'],
                     'file_url'    => ROOT . '/apply/cert/' . $id,
+                    'is_image'    => (bool) preg_match('/\.(jpe?g|png)$/i', $cert['cert_path']),
                     'history'     => array_map(fn($h) => [
                         'action'        => $h['action'],
                         'note'          => $h['note'],
@@ -238,7 +239,7 @@ class Personnel extends Controller
             $verified
                 ? 'Your training certificate was ' . Notifier::bold('verified') . '. ' . Notifier::CERT_VERIFIED_NEXT_STEP
                 : 'Your training certificate was ' . Notifier::bold('rejected') . ". Reason: $note. " . Notifier::CERT_REJECTED_NEXT_STEP,
-            'submissions',
+            $verified ? 'submissions' : 'submissions?open=cert',
             [
                 'template' => 'cert_' . $outcome,
                 'vars'     => ['first_name' => $user['first_name'] ?? '', 'reason' => $note],
@@ -1638,6 +1639,41 @@ class Personnel extends Controller
             $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
         } else {
             $_SESSION['flash_error'] = 'Personnel account not found.';
+        }
+
+        $this->redirect('personnel/accounts?tab=accounts');
+    }
+
+    // ===== DELETE PERSONNEL ACCOUNT =====
+    public function delete_personnel(): void
+    {
+        $this->requireStaff();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('personnel/accounts?tab=accounts');
+        }
+
+        $this->verifyCsrfToken();
+
+        $id          = (int) ($_POST['user_id'] ?? 0);
+        $password    = $_POST['password'] ?? '';
+        $actor       = $this->actor();
+        $actorRecord = $this->userModel->getUser($actor['id']);
+        $target      = $this->userModel->getUser($id);
+
+        if ($this->isActor($id)) {
+            $_SESSION['flash_error'] = 'Use the account panel to delete your own account.';
+        } elseif (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
+            $this->userModel->logAudit('personnel_delete_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting to delete an account');
+            $_SESSION['flash_error'] = 'Incorrect password. Account not deleted.';
+        } elseif (!$target || !in_array($target['role'], ['staff', 'reviewer'], true) || $target['status'] === 'deleted') {
+            $_SESSION['flash_error'] = 'Personnel account not found.';
+        } elseif ($this->userModel->deleteUser($id)) {
+            $this->userModel->logAudit('personnel_deleted', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Deleted personnel account: {$target['username']}");
+            Mailer::sendTemplate('account_deleted', ['first_name' => $target['first_name'], 'deleted_by_admin' => true], $target['email'], $target['first_name'], 'Account Deleted');
+            $_SESSION['flash_success'] = 'Personnel account deleted.';
+        } else {
+            $_SESSION['flash_error'] = 'Account deletion failed. Please try again.';
         }
 
         $this->redirect('personnel/accounts?tab=accounts');

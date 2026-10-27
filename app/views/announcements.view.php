@@ -112,9 +112,11 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
     <!-- ===== Announcements page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
-        <div class="announcements-header">
-            <h1 class="announcements-title">Announcements</h1>
-            <p class="page-subtitle">News and trainings from CCARD and our partners</p>
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <h1>Announcements</h1>
+                <p class="page-subtitle">News and trainings from CCARD and our partners</p>
+            </div>
         </div>
 
         <?php if (empty($officeAnnouncements)): ?>

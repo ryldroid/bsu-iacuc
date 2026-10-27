@@ -172,8 +172,11 @@
         ROOT + entity.endpoints.get + "?id=" + encodeURIComponent(id),
       ).then((r) => r.json());
     } catch (err) {
-      showToast(NETWORK_ERROR, "error");
-      return;
+      if (!row || !row.dataset.cmData) {
+        showToast(NETWORK_ERROR, "error");
+        return;
+      }
+      res = { ok: true, data: JSON.parse(row.dataset.cmData) };
     } finally {
       if (row) row.classList.remove("is-busy");
     }
@@ -276,6 +279,12 @@
 
     setButtonBusy(saveBtn, false);
 
+    if (data.queued) {
+      closeModal(entity.modal);
+      notifyQueued();
+      return;
+    }
+
     if (!data.ok) {
       if (bar) bar.remove();
       showError(modal, data.message || "Save failed.");
@@ -307,6 +316,12 @@
       data = await post(entity.endpoints.delete, { id: row.dataset.id });
     } catch (err) {
       data = { ok: false, message: NETWORK_ERROR };
+    }
+
+    if (data.queued) {
+      row.classList.remove("is-busy");
+      notifyQueued();
+      return;
     }
 
     if (!data.ok) {
@@ -350,7 +365,7 @@
 
     row.classList.remove("is-busy");
 
-    if (!data.ok) {
+    if (!data.ok && !data.queued) {
       showToast(data.message || "Move failed.", "error");
       return;
     }
@@ -359,7 +374,8 @@
     else neighbour.after(row);
     updateMoveButtons(row.parentElement);
     flashRow(row);
-    showToast(data.message || "Order updated.");
+    if (data.queued) notifyQueued();
+    else showToast(data.message || "Order updated.");
   }
 
   function flashRow(row) {
@@ -411,6 +427,7 @@
       wrap.classList.remove("is-refreshing");
       applyFilter(wrap);
     });
+    window._actionQueue.syncTags();
 
     if (!flash) return;
 

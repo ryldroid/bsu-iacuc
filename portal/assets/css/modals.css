@@ -287,6 +287,10 @@ html:has(.modal-backdrop.open.guide-targeting) {
     box-shadow: none;
 }
 
+.modal-close[hidden] {
+    display: none;
+}
+
 .modal-close:hover,
 .modal-close:focus-visible {
     background: var(--divider-color-subtle);
@@ -786,6 +790,10 @@ img[data-zoom-src] {
     color: var(--primary-text);
     font-size: 1rem;
     line-height: 1.45;
+}
+
+.confirm-modal .input-group {
+    width: 100%;
 }
 
 .confirm-modal-actions {

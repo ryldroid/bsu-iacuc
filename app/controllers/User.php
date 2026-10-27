@@ -573,12 +573,6 @@ class User extends Controller
   {
     $this->requireLogin();
 
-    // Personnel accounts are managed by staff; only researchers may delete their own account here
-    if (($_SESSION['user']['role'] ?? '') !== 'researcher') {
-      $_SESSION['flash_error'] = 'Personnel accounts cannot be deleted from this page.';
-      $this->redirect('user/account');
-    }
-
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
       $this->redirect('user/account');
     }
@@ -589,30 +583,43 @@ class User extends Controller
     $username = $_SESSION['user']['username'] ?? '';
     $role     = $_SESSION['user']['role'] ?? '';
 
-    $protocolModel = new ProtocolModel();
-
-    if ($protocolModel->hasActiveProtocols($id)) {
-      $_SESSION['flash_error'] = 'You cannot delete your account while you have protocols that are still being processed.';
+    $account = $this->userModel->getUser($id);
+    if (!$account || !password_verify($_POST['password'] ?? '', $account['password'])) {
+      $this->userModel->logAudit('account_delete_denied', $id, $username, $role, 'user', $id, 'Incorrect password entered while attempting to delete own account');
+      $_SESSION['flash_error'] = 'Incorrect password. Account not deleted.';
       $this->redirect('user/account');
     }
 
-    $protocolModel->softDeleteAllForUser($id, 'Deleted User', 'Account deleted by owner');
+    if ($role === 'researcher') {
+      $protocolModel = new ProtocolModel();
 
-    (new DraftModel())->clear($id);
-    $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';
-    if (is_dir($draftDir)) {
-      $this->rrmdir($draftDir);
+      if ($protocolModel->hasActiveProtocols($id)) {
+        $_SESSION['flash_error'] = 'You cannot delete your account while you have protocols that are still being processed.';
+        $this->redirect('user/account');
+      }
+
+      $protocolModel->softDeleteAllForUser($id, 'Deleted User', 'Account deleted by owner');
+
+      (new DraftModel())->clear($id);
+      $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';
+      if (is_dir($draftDir)) {
+        $this->rrmdir($draftDir);
+      }
+    } elseif ($role === 'staff' && $this->userModel->isLastActiveStaff($id)) {
+      $_SESSION['flash_error'] = 'You are the only active Administrative Staff account. Give another account the staff role before deleting yours.';
+      $this->redirect('user/account');
     }
 
     $ok = $this->userModel->deleteUser($id);
 
     if ($ok) {
       $this->userModel->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
+      Mailer::sendTemplate('account_deleted', ['first_name' => $account['first_name'], 'deleted_by_admin' => false], $account['email'], $account['first_name'], 'Account Deleted');
 
       session_destroy();
       session_start();
       $_SESSION['flash_success'] = 'Your account has been deleted.';
-      $this->redirect('user/login');
+      $this->redirect($role === 'researcher' ? 'user/login' : 'personnel/login');
     }
 
     $_SESSION['flash_error'] = 'Account deletion failed. Please try again or contact support.';

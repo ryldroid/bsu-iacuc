@@ -37,8 +37,11 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
     <main class="main-content" id="main-content" tabindex="-1">
 
-        <div class="dashboard-page-header">
-            <h1 class="dashboard-page-title">Administration</h1>
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <h1>Administration</h1>
+                <p class="page-subtitle">Audit logs, user accounts and system backups</p>
+            </div>
         </div>
 
         <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
@@ -79,11 +82,13 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                             </h2>
 
                             <div class="audit-jump-to-date">
-                                <button type="button" id="audit-refresh" class="audit-refresh-btn" aria-label="Refresh audit logs" title="Refresh">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <button type="button" id="audit-refresh" class="audit-refresh-btn" aria-label="Refresh audit logs" title="Load the latest entries">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#refresh-icon" />
                                     </svg>
+                                    Refresh
                                 </button>
+                                <label for="audit-jump-date">Jump to date</label>
                                 <input type="date" id="audit-jump-date"
                                     value="<?= htmlspecialchars($auditFilterDate ?? '') ?>"
                                     <?= $auditDateRange['earliest'] ? 'min="' . htmlspecialchars($auditDateRange['earliest']) . '"' : '' ?>
@@ -317,8 +322,8 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                             <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
                                             <input type="hidden" name="password" class="personnel-role-password">
                                             <select name="role" class="personnel-role-select" hidden
-                                                aria-label="New role for <?= htmlspecialchars($p['username']) ?>"
-                                                data-username="<?= htmlspecialchars($p['username']) ?>"
+                                                aria-label="New role for <?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>"
+                                                data-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>"
                                                 data-original-role="<?= htmlspecialchars($p['role']) ?>"
                                                 onchange="handleRoleChange(this)">
                                                 <?php foreach ($roleLabels as $roleValue => $roleLabel): ?>
@@ -329,6 +334,14 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                                 <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-role-edit">Change role</button>
                                             <?php endif; ?>
                                         </form>
+                                        <?php if (!$isSelf): ?>
+                                            <form method="POST" action="<?= ROOT ?>/personnel/delete_personnel">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
+                                                <input type="hidden" name="password" class="personnel-role-password">
+                                                <button type="button" class="reject-btn personnel-status-btn js-personnel-delete" data-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">Delete</button>
+                                            </form>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -384,7 +397,7 @@ $guideId    = 'audit-logs';
 $guideSteps = [
     ['Audit Logs', 'This page keeps a record of actions taken in the system. Let us walk through it.'],
     ['Audit log viewer', 'Each entry shows when it happened, who did it, the action, what it affected, the details, and the IP address.', '#audit-log-results'],
-    ['Refresh and date', 'Press the refresh icon to load the latest entries, or pick a date to see only that day. **Show all** brings every entry back.', '.audit-jump-to-date'],
+    ['Refresh and date', 'Press **Refresh** to load the latest entries, or pick a date to see only that day. **Show all** brings every entry back.', '.audit-jump-to-date'],
 ];
 if ($auditPages > 1) {
     $guideSteps[] = ['Pagination', 'Move between pages of entries.', '#audit-log-results .pagination-bar'];
@@ -401,7 +414,7 @@ if ($isStaff) {
     $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
     $guideSteps[] = ['Registration link', 'Choose a role and generate a registration link to send to a new staff member or reviewer. The link works for 48 hours.', '.invite-section'];
 }
-$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed.', '.personnel-manage-section'];
+$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed. Press **Delete** to remove someone\'s account. They receive an email letting them know. You can delete your own account from the account panel.', '.personnel-manage-section'];
 $guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
 include dirname(__DIR__) . '/includes/guide.php';
 
@@ -428,7 +441,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <use href="#shield-check-icon" />
                 </svg>
             </span>
-            <p class="modal-title">Confirm Role Change</p>
+            <p class="modal-title" id="roleConfirmTitle">Confirm Role Change</p>
             <button class="modal-close" type="button" onclick="closeRoleConfirm()" aria-label="Close">
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#close-icon" />
@@ -559,6 +572,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         });
 
         const backdrop = document.getElementById('roleConfirmBackdrop');
+        const title = document.getElementById('roleConfirmTitle');
         const text = document.getElementById('roleConfirmText');
         const error = document.getElementById('roleConfirmError');
         const passwordInput = document.getElementById('roleConfirmPassword');
@@ -566,21 +580,33 @@ include dirname(__DIR__) . '/includes/guide.php';
 
         if (!backdrop) return;
 
+        let pendingForm = null;
         let pendingSelect = null;
 
-        window.handleRoleChange = function(select) {
-            pendingSelect = select;
-
-            const roleLabel = select.options[select.selectedIndex].text;
-            const username = select.dataset.username;
-
-            text.textContent = `Change @${username}'s role to ${roleLabel}?`;
+        function openConfirm(form, heading, message) {
+            pendingForm = form;
+            title.textContent = heading;
+            text.textContent = message;
             error.hidden = true;
             passwordInput.value = '';
 
             backdrop.classList.add('open');
             passwordInput.focus();
+        }
+
+        window.handleRoleChange = function(select) {
+            pendingSelect = select;
+
+            const roleLabel = select.options[select.selectedIndex].text;
+            openConfirm(select.closest('form'), 'Confirm Role Change', `Change ${select.dataset.name}'s role to ${roleLabel}?`);
         };
+
+        document.addEventListener('click', (e) => {
+            const deleteButton = e.target.closest('.js-personnel-delete');
+            if (!deleteButton) return;
+
+            openConfirm(deleteButton.closest('form'), 'Confirm Account Deletion', `Delete the account of ${deleteButton.dataset.name}? Their personal details are removed and they can no longer sign in. This cannot be undone.`);
+        });
 
         window.closeRoleConfirm = function() {
             backdrop.classList.remove('open');
@@ -589,10 +615,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                 toggleRoleSelect(pendingSelect, false);
                 pendingSelect = null;
             }
+            pendingForm = null;
         };
 
         window.submitRoleConfirm = function() {
-            if (!pendingSelect) return;
+            if (!pendingForm) return;
 
             const password = passwordInput.value;
             if (!password) {
@@ -602,11 +629,12 @@ include dirname(__DIR__) . '/includes/guide.php';
                 return;
             }
 
-            const form = pendingSelect.closest('form');
+            const form = pendingForm;
             form.querySelector('.personnel-role-password').value = password;
 
             setButtonBusy(submitBtn, true, 'Confirming...');
             pendingSelect = null;
+            pendingForm = null;
             form.submit();
         };
 

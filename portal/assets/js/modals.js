@@ -22,6 +22,8 @@ function formatDateTime(value) {
   let messageEl = null;
   let okBtn = null;
   let cancelBtn = null;
+  let passwordGroup = null;
+  let passwordEl = null;
   let lastFocusedEl = null;
   let activeResolve = null;
 
@@ -37,6 +39,10 @@ function formatDateTime(value) {
       <div class="confirm-modal" role="alertdialog" aria-modal="true"
            aria-labelledby="confirm-modal-message" tabindex="-1">
         <p id="confirm-modal-message" class="confirm-modal-message"></p>
+        <div class="input-group confirm-modal-password" hidden>
+          <input type="password" id="confirm-modal-password" placeholder=" " autocomplete="current-password">
+          <label for="confirm-modal-password">Enter your password to confirm</label>
+        </div>
         <div class="confirm-modal-actions">
           <button type="button" class="confirm-modal-btn confirm-modal-cancel">Cancel</button>
           <button type="button" class="confirm-modal-btn confirm-modal-ok">Yes</button>
@@ -49,9 +55,14 @@ function formatDateTime(value) {
     messageEl = modalEl.querySelector(".confirm-modal-message");
     okBtn = modalEl.querySelector(".confirm-modal-ok");
     cancelBtn = modalEl.querySelector(".confirm-modal-cancel");
+    passwordGroup = modalEl.querySelector(".confirm-modal-password");
+    passwordEl = passwordGroup.querySelector("input");
 
     okBtn.addEventListener("click", () => settle(true));
     cancelBtn.addEventListener("click", () => settle(false));
+    passwordEl.addEventListener("input", () => {
+      okBtn.disabled = passwordEl.value === "";
+    });
 
     modalEl.addEventListener("click", (e) => {
       if (e.target === modalEl) settle(false);
@@ -67,8 +78,18 @@ function formatDateTime(value) {
       return;
     }
 
+    if (e.key === "Enter" && e.target === passwordEl) {
+      e.preventDefault();
+      if (!okBtn.disabled) settle(true);
+      return;
+    }
+
     if (e.key === "Tab") {
-      const focusable = cancelBtn.hidden ? [okBtn] : [cancelBtn, okBtn];
+      const focusable = [
+        passwordGroup.hidden ? null : passwordEl,
+        cancelBtn,
+        okBtn,
+      ].filter((el) => el && !el.hidden && !el.disabled);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
@@ -91,11 +112,14 @@ function formatDateTime(value) {
     const resolve = activeResolve;
     activeResolve = null;
 
+    const password = passwordGroup.hidden ? "" : passwordEl.value;
+    passwordEl.value = "";
+
     if (lastFocusedEl && typeof lastFocusedEl.focus === "function") {
       lastFocusedEl.focus();
     }
 
-    resolve(result);
+    resolve(result && password ? password : result);
   }
 
   window.confirmAction = function (message, options) {
@@ -107,6 +131,9 @@ function formatDateTime(value) {
     cancelBtn.textContent = options.cancelText || "Cancel";
     cancelBtn.hidden = !!options.hideCancel;
     okBtn.classList.toggle("confirm-modal-ok-danger", !!options.danger);
+    passwordGroup.hidden = !options.password;
+    passwordEl.value = "";
+    okBtn.disabled = !!options.password;
 
     lastFocusedEl = document.activeElement;
 
@@ -115,7 +142,12 @@ function formatDateTime(value) {
       modalEl.setAttribute("aria-hidden", "false");
       modalEl.classList.add("is-open");
       requestAnimationFrame(() => {
-        (options.danger ? cancelBtn : okBtn).focus();
+        (options.password
+          ? passwordEl
+          : options.danger
+            ? cancelBtn
+            : okBtn
+        ).focus();
       });
     });
   };
@@ -467,8 +499,10 @@ function formatDateTime(value) {
         okText: form.dataset.confirmOkText,
         cancelText: form.dataset.confirmCancelText,
         danger: form.dataset.confirmDanger === "true",
+        password: form.dataset.confirmPassword === "true",
       });
       if (ok) {
+        if (form.elements.password) form.elements.password.value = ok;
         form.dataset.confirmed = "true";
         form.requestSubmit ? form.requestSubmit() : form.submit();
       }
@@ -489,6 +523,7 @@ function formatDateTime(value) {
   function bindGuide(modal) {
     const guideId = modal.dataset.guide;
     const closeBtn = modal.querySelector(".modal-close");
+    const nextBtn = modal.querySelector("[data-guide-next]");
 
     function close() {
       modal.classList.remove("open");
@@ -510,7 +545,7 @@ function formatDateTime(value) {
     function openGuide() {
       restart();
       modal.classList.add("open");
-      closeBtn.focus();
+      nextBtn.focus({ preventScroll: true });
     }
 
     guideOpeners[guideId] = openGuide;
@@ -526,7 +561,8 @@ function formatDateTime(value) {
       } catch (e) {}
     }
 
-    if (modal.classList.contains("open")) closeBtn.focus();
+    if (modal.classList.contains("open"))
+      nextBtn.focus({ preventScroll: true });
   }
 
   // Open or close the mobile page menu (no-ops on desktop)

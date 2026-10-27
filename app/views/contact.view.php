@@ -36,9 +36,11 @@ $contactLines = function (array $values, string $linkPrefix = '') {
 
     <!-- ===== Contact page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
-        <div class="contact-header">
-            <h1>Contact Us</h1>
-            <p class="page-subtitle">The offices involved in your protocol and clearance</p>
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <h1>Contact Us</h1>
+                <p class="page-subtitle">The offices involved in your protocol and clearance</p>
+            </div>
         </div>
 
         <!-- ===== Office cards ===== -->

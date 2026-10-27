@@ -33,8 +33,11 @@ $activeTab     = $activeTab     ?? 'announcements';
 
   <main class="main-content" id="main-content" tabindex="-1">
 
-    <div class="dashboard-page-header">
-      <h1 class="dashboard-page-title">Edit Site Content</h1>
+    <div class="page-banner">
+      <div class="page-banner-text">
+        <h1>Edit Site Content</h1>
+        <p class="page-subtitle">Announcements and the information shown on the public pages</p>
+      </div>
     </div>
 
     <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
@@ -98,6 +101,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                 $annRowTs = strtotime($a['created_at']);
               ?>
                 <div class="ann-row cm-row" data-cm-entity="announcement" data-id="<?= (int) $a['id'] ?>"
+                  data-cm-data="<?= htmlspecialchars(json_encode($a, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
                   data-cm-label="<?= htmlspecialchars($annTitle !== '' ? $annTitle : 'Untitled', ENT_QUOTES) ?>">
                   <div class="ann-row-thumb" <?= $hasImage ? 'data-zoom-src="' . htmlspecialchars($annImage, ENT_QUOTES) . '" data-zoom-alt="' . htmlspecialchars($annTitle, ENT_QUOTES) . '"' : '' ?>>
                     <?php if ($hasImage): ?>
@@ -109,7 +113,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                     <?php endif; ?>
                   </div>
                   <div class="ann-row-body">
-                    <div class="ann-row-title<?= $annTitle === '' ? ' ann-empty-state' : '' ?>"><?= htmlspecialchars($annTitle !== '' ? $annTitle : 'Untitled', ENT_QUOTES) ?></div>
+                    <div class="ann-row-title<?= $annTitle === '' ? ' ann-empty-state' : '' ?>"><?= htmlspecialchars($annTitle !== '' ? $annTitle : 'Untitled', ENT_QUOTES) ?><span class="pending-sync-badge" data-pending-sync="announcement:<?= (int) $a['id'] ?>" hidden></span></div>
                     <div class="ann-row-snippet<?= $annBody === '' ? ' ann-empty-state' : '' ?>"><?= htmlspecialchars($annBody !== '' ? $annBody : 'No caption', ENT_QUOTES) ?></div>
                     <div class="ann-row-date"><?= $annRowTs ? htmlspecialchars(date(DATETIME_FORMAT, $annRowTs), ENT_QUOTES) : htmlspecialchars($a['created_at'], ENT_QUOTES) ?></div>
                   </div>
@@ -140,7 +144,7 @@ $activeTab     = $activeTab     ?? 'announcements';
           <!-- HOMEPAGE CONTENT -->
           <section class="accounts-card">
             <h2>Homepage Content</h2>
-            <p class="audit-description">These texts on the public homepage.</p>
+            <p class="audit-description">These appear on the public homepage.</p>
             <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings" data-cm-dirty
               data-confirm-message="Save changes to the homepage content?" data-confirm-ok-text="Save">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
@@ -211,9 +215,10 @@ $activeTab     = $activeTab     ?? 'announcements';
                 <div class="ann-list" id="office-list">
                   <?php foreach ($offices as $index => $o): ?>
                     <div class="ann-row cm-row" data-cm-entity="office" data-id="<?= (int) $o['id'] ?>"
+                      data-cm-data="<?= htmlspecialchars(json_encode($o, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
                       data-cm-label="<?= htmlspecialchars($o['name'], ENT_QUOTES) ?>">
                       <div class="ann-row-body">
-                        <div class="ann-row-title"><?= htmlspecialchars($o['name'], ENT_QUOTES) ?></div>
+                        <div class="ann-row-title"><?= htmlspecialchars($o['name'], ENT_QUOTES) ?><span class="pending-sync-badge" data-pending-sync="office:<?= (int) $o['id'] ?>" hidden></span></div>
                         <div class="ann-row-snippet"><?= htmlspecialchars($o['address'] ?? '', ENT_QUOTES) ?></div>
                       </div>
                       <div class="ann-row-actions">
@@ -277,9 +282,10 @@ $activeTab     = $activeTab     ?? 'announcements';
                 <div class="ann-list">
                   <?php foreach ($faqs as $index => $f): ?>
                     <div class="ann-row cm-row" data-cm-entity="faq" data-id="<?= (int) $f['id'] ?>"
+                      data-cm-data="<?= htmlspecialchars(json_encode($f, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
                       data-cm-label="<?= htmlspecialchars($f['question'], ENT_QUOTES) ?>">
                       <div class="ann-row-body">
-                        <div class="ann-row-title"><?= htmlspecialchars($f['question'], ENT_QUOTES) ?></div>
+                        <div class="ann-row-title"><?= htmlspecialchars($f['question'], ENT_QUOTES) ?><span class="pending-sync-badge" data-pending-sync="faq:<?= (int) $f['id'] ?>" hidden></span></div>
                         <div class="ann-row-snippet"><?= htmlspecialchars($f['answer'], ENT_QUOTES) ?></div>
                       </div>
                       <div class="ann-row-actions">

@@ -140,13 +140,15 @@
 }
 
 .protocol {
+  --status-tone: var(--status-color-neutral);
   display: flex;
   gap: 16px;
   align-items: center;
 
   margin: 0;
   padding: 18px 22px;
-  background-color: var(--card-background);
+  background-color: color-mix(in srgb, var(--status-tone) 6%, var(--card-background));
+  box-shadow: inset 5px 0 0 var(--status-tone);
   border-bottom: 1px solid var(--divider-color);
 
   transition: background-color 0.15s ease;
@@ -157,7 +159,7 @@
 }
 
 .protocol:hover {
-  background-color: var(--hover-surface-soft);
+  background-color: color-mix(in srgb, var(--status-tone) 12%, var(--card-background));
 }
 
 .protocol.protocol-row-hidden {
@@ -181,15 +183,19 @@
 }
 
 .protocol-status-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--status-tone);
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+.protocol-status-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .protocol-select-label {
@@ -368,6 +374,11 @@
 .empty-state p {
   color: var(--muted-text);
   font-size: .9em;
+}
+
+/* ===== Card depth ===== */
+:is(.status-legend-bar, .protocols-list) {
+  box-shadow: 0 2px 12px var(--shadow-color-soft);
 }
 
 /* ===== Status legend ===== */
@@ -677,8 +688,8 @@
   }
 
   .protocol-status-icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
 
   .protocol-body {

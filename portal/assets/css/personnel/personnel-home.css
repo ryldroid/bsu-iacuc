@@ -30,13 +30,6 @@
     margin-bottom: 1.5rem;
 }
 
-.dashboard-page-title {
-    font-size: 1.8em;
-    font-weight: 700;
-    color: var(--brand-text);
-    margin: 0;
-}
-
 .dashboard-page-header .row-btn {
     margin: 0 0 0 auto;
     background: var(--brand-color);

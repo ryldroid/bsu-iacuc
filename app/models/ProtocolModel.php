@@ -2,7 +2,7 @@
 
 class ProtocolModel extends Model
 {
-    private const AUTHOR_SQL = "CONCAT(UPPER(LEFT(u.role, 1)), SUBSTRING(u.role, 2), ' - ', u.first_name, ' ', u.last_name)";
+    private const AUTHOR_SQL = "CONCAT(u.first_name, ' ', u.last_name)";
 
     // ===== CREATE PROTOCOL =====
     // Details the researcher enters on submission (column => label), all required

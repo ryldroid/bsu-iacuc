@@ -1,12 +1,4 @@
 /* ===== Page & grid ===== */
-.contact-header {
-    margin-bottom: 30px;
-}
-
-.contact-header h1 {
-    margin-bottom: 0.2em;
-}
-
 /* Cards in a row stretch to the tallest one */
 .contact-grid {
     display: grid;

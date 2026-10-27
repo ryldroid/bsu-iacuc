@@ -56,9 +56,12 @@ function notifDateGroup(string $dateStr): string
   <!-- ===== Notifications page ===== -->
   <main class="main-content" id="main-content" tabindex="-1">
 
-    <div class="notif-page-header">
-      <h1>Notifications</h1>
-      <button type="button" class="notif-page-mark-all" id="notifPageMarkAll">Mark all as read</button>
+    <div class="page-banner">
+      <div class="page-banner-text">
+        <h1>Notifications</h1>
+        <p class="page-subtitle">Recent updates on your protocols and account activity</p>
+      </div>
+      <button type="button" class="notif-page-mark-all page-banner-actions" id="notifPageMarkAll">Mark all as read</button>
     </div>
 
     <!-- ===== Notification list ===== -->

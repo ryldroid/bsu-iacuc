@@ -8,7 +8,7 @@
         </svg>
       </span>
       <div>
-        <p class="modal-label">Researcher</p>
+        <p class="modal-label" id="researcherModalLabel">Researcher</p>
         <p class="modal-title" id="researcherModalName"></p>
       </div>
       <button class="modal-close" onclick="closeResearcherModal()" aria-label="Close">

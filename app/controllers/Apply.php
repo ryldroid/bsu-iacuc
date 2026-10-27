@@ -447,19 +447,19 @@ class Apply extends Controller
 
     // Personnel verify the certificate in the window that opens with the protocol, so the link
     // always goes to a protocol: the one the certificate came with, else the researcher's newest.
-    private function notifyCertSubmitted(int $userId, string $submitterName, ?int $protocolId = null, bool $withRevision = false): void
+    private function notifyCertSubmitted(int $userId, string $submitterName, ?int $protocolId = null): void
     {
         $protocolId ??= (int) max([0, ...array_column($this->protocolModel->getByUser($userId), 'protocol_id')]);
 
         Notifier::sendToPersonnel(
             'cert_verification',
             'Training Certificate to Verify',
-            $submitterName . ' submitted a training certificate for verification' . ($withRevision ? ' along with a revised protocol.' : '.'),
+            $submitterName . ' submitted a training certificate for verification.',
             'cert_verification',
             $protocolId > 0 ? 'apply/viewer/' . $protocolId : 'personnel/home',
             [
                 'template' => 'cert_verification_personnel',
-                'vars'     => ['submitter' => $submitterName, 'protocol_id' => $protocolId, 'revised' => $withRevision],
+                'vars'     => ['submitter' => $submitterName, 'protocol_id' => $protocolId],
                 'subject'  => 'Training Certificate to Verify',
             ]
         );
@@ -1614,7 +1614,7 @@ class Apply extends Controller
 
         $this->protocolModel->logAudit('annotation_added', $actor['id'], $actor['name'], $actor['role'], 'protocol_version', $versionId, "Annotation added on page $pageNumber");
 
-        echo json_encode(['id' => $newId, 'ok' => true, 'author' => $this->roleLabel($actor['role']) . ' - ' . $this->actorDisplayName($actor)]);
+        echo json_encode(['id' => $newId, 'ok' => true, 'author' => $this->actorDisplayName($actor)]);
         exit;
     }
 
@@ -3031,7 +3031,6 @@ class Apply extends Controller
     }
 
     // ===== RESUBMIT TRAINING CERTIFICATE  (POST /apply/reuploadcert) =====
-    // The certificate is required. A revised protocol can go with it while that protocol is under review.
 
     public function reuploadcert(): void
     {
@@ -3040,30 +3039,18 @@ class Apply extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
 
-        $actor      = $this->actor();
-        $cert       = $this->userModel->getCert($actor['id']);
-        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
-        $protocol   = $protocolId > 0 ? $this->protocolModel->getById($protocolId) : null;
-        $error      = null;
-        $upload     = null;
-        $docUpload  = null;
+        $actor  = $this->actor();
+        $cert   = $this->userModel->getCert($actor['id']);
+        $error  = null;
+        $upload = null;
 
         if (!$cert || $cert['cert_status'] !== 'rejected') {
             $error = 'You can upload a new certificate only after a reviewer requests a resubmission.';
-        } elseif ($protocolId > 0 && (!$protocol || !$this->isActor($protocol['user_id']) || strtolower($protocol['status']) !== 'under review')) {
-            $error = 'That protocol cannot be updated right now.';
         } else {
-            $reason    = null;
-            $docReason = null;
-            $upload    = $this->saveUpload('cert_file', $this->certDir($actor['id']), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
+            $reason = null;
+            $upload = $this->saveUpload('cert_file', $this->certDir($actor['id']), ['pdf', 'jpg', 'jpeg', 'png'], required: true, reason: $reason);
             if ($upload === false) {
                 $error = $reason ?? 'Upload failed. Accepted formats: PDF, JPG, PNG (max 10 MB).';
-            } elseif ($protocol) {
-                $docUpload = $this->saveProtocolUpload('protocol_file', $this->protocolDir($protocolId), false, $docReason);
-                if ($docUpload === false) {
-                    @unlink($upload[0]);
-                    $error = $docReason ?? 'Protocol upload failed. Please attach a PDF, DOC, or DOCX file (max 10 MB).';
-                }
             }
         }
 
@@ -3071,9 +3058,8 @@ class Apply extends Controller
             [$certPath, $certOriginalName] = $upload;
 
             if ($this->userModel->saveCert($actor['id'], 'certs/' . $actor['id'] . '/' . basename($certPath), $certOriginalName)) {
-                $withProtocol = $docUpload !== null && $this->insertUploadedProtocolVersion($protocol, $protocolId, $docUpload, $actor['id']);
-                $this->userModel->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Researcher resubmitted training certificate' . ($withProtocol ? " and a revised protocol (# $protocolId)" : ''));
-                $this->notifyCertSubmitted($actor['id'], $this->actorDisplayName($actor), $protocol ? $protocolId : null, $withProtocol);
+                $this->userModel->logAudit('cert_reuploaded', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], 'Researcher resubmitted training certificate');
+                $this->notifyCertSubmitted($actor['id'], $this->actorDisplayName($actor));
                 $_SESSION['flash_success'] = 'Certificate submitted. You will be notified once it is reviewed.';
             } else {
                 $error = 'Could not save your certificate. Please try again.';

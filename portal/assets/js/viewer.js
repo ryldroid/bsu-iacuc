@@ -437,7 +437,7 @@ async function saveComment() {
 // ===== Load + render annotations =====
 function queuedAnnotationEntries() {
   return (window._actionQueue?.load() ?? []).flatMap((entry) => {
-    if (!entry.url.includes("/apply/annotate")) return [];
+    if (entry.error || !entry.url.includes("/apply/annotate")) return [];
     try {
       return [
         {
@@ -558,7 +558,7 @@ function renderSidebar() {
         <div class="annot-item-header">
             <span class="annot-num">${idx + 1}</span>
             <span class="annot-page">Page ${ann.page_number}</span>
-            ${ann._queued ? '<span class="annot-queued-badge">Pending sync</span>' : ""}
+            ${ann._queued ? '<span class="pending-sync-badge annot-queued-badge">Pending sync</span>' : ""}
             ${
               CAN_REVIEW && !ann._queued
                 ? `

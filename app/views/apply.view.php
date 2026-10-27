@@ -13,6 +13,17 @@ include "includes/scroll-top.php";
 <div class="body">
     <main class="main-content" id="main-content" tabindex="-1">
 
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <div class="page-banner-title">
+                    <h1>IACUC Application Portal</h1>
+                    <?php $pageGuideId = 'apply';
+                    include 'includes/page-guide.php'; ?>
+                </div>
+                <p class="page-subtitle">Submit your protocol and training certificate for IACUC review</p>
+            </div>
+        </div>
+
         <a class="button btn-back" id="btn-home" href="<?= ROOT ?>/submissions" onclick="askLeave(event, '<?= ROOT ?>/submissions')">
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
@@ -21,15 +32,6 @@ include "includes/scroll-top.php";
         </a>
 
         <div class="portal">
-            <div class="portal-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#beaker-icon" />
-                </svg>
-                <h1>IACUC Application Portal</h1>
-                <?php $pageGuideId = 'apply';
-                include 'includes/page-guide.php'; ?>
-            </div>
-
             <div class="stepper" id="stepper"></div>
 
             <div class="card" id="page-content"></div>

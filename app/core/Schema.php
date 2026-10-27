@@ -125,6 +125,18 @@ class Schema
             $c->query("UPDATE `protocols` SET ar_number = reference_no, reference_no = NULL WHERE status IN ('Endorsed','Approved') AND reference_no IS NOT NULL");
         }
 
+        // ===== IDEMPOTENCY KEYS TABLE =====
+        $c->query("CREATE TABLE IF NOT EXISTS `idempotency_keys` (
+                    `id`          int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `user_id`     int(11)      NOT NULL,
+                    `request_key` varchar(64)  NOT NULL,
+                    `status_code` smallint(6)  DEFAULT NULL,
+                    `response`    text         DEFAULT NULL,
+                    `created_at`  timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    UNIQUE KEY `unique_user_key` (`user_id`, `request_key`),
+                    INDEX `idx_idem_created` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         // ===== TITLE HISTORY TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_title_history` (
                     `id`              int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -322,6 +334,7 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->seeder->seedFaqs();
+        $this->backfillCertRejectedFaq();
 
         // ===== RETURN REASONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
@@ -650,6 +663,27 @@ class Schema
         $step = Notifier::PAYMENT_REJECTED_NEXT_STEP;
         $rejected->bind_param('s', $step);
         $rejected->execute();
+
+        $certText = $c->prepare(
+            "UPDATE `notifications` SET message = REPLACE(message, ?, '')
+             WHERE type = 'cert_rejected' AND message LIKE CONCAT('%', ?)"
+        );
+        $legacyStep = ' If the protocol is still under review, you can attach a revised file too.';
+        $certText->bind_param('ss', $legacyStep, $legacyStep);
+        $certText->execute();
+
+        $c->query(
+            "UPDATE `notifications` SET link = 'submissions?open=cert'
+             WHERE type = 'cert_rejected' AND link = 'submissions'"
+        );
+    }
+
+    private function backfillCertRejectedFaq(): void
+    {
+        $this->connection->query(
+            "UPDATE `faqs` SET answer = REPLACE(answer, ' If your protocol is still under review, you can attach a revised file too.', '')
+             WHERE question = 'What if my training certificate is rejected?'"
+        );
     }
 
     private function backfillReturnReasonVersions(): void

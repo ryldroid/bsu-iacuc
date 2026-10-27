@@ -168,6 +168,9 @@ async function submitRejectPayment() {
 
     if (data.ok) {
       window.location.reload();
+    } else if (data.queued) {
+      setButtonBusy(btn, false);
+      closeReviewPaymentModal();
     } else {
       errBox.textContent = data.error ?? "Could not reject. Please try again.";
       errBox.hidden = false;

@@ -143,6 +143,9 @@ async function submitDeletionReview() {
       } else {
         window.location.reload();
       }
+    } else if (data.queued) {
+      deletionReviewSubmitBtn.disabled = false;
+      closeDeletionReviewModal();
     } else {
       errBox.textContent = data.error ?? "Could not complete this action.";
       errBox.hidden = false;

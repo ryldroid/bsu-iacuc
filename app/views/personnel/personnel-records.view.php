@@ -273,8 +273,11 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
     <!-- ===== Records page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
 
-        <div class="dashboard-page-header">
-            <h1 class="dashboard-page-title">Records and Statistics</h1>
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <h1>Records and Statistics</h1>
+                <p class="page-subtitle">Reviewed protocols on record and summary figures for a chosen period</p>
+            </div>
         </div>
 
         <?php
@@ -521,6 +524,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                             <td class="records-title-cell">
                                                 <div class="protocol-title-cell">
                                                     <?= htmlspecialchars($r['title_of_research']) ?>
+                                                    <span class="pending-sync-badge" data-pending-sync="record:<?= (int)$r['id'] ?>" hidden></span>
                                                 </div>
                                             </td>
                                             <td class="researcher-cell" data-label="School"><?= htmlspecialchars($r['school'] ?? '') ?></td>
@@ -550,6 +554,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                                     <?php if ($isStaff): ?>
                                                         <button type="button" class="row-btn edit-record-btn"
                                                             data-id="<?= (int)$r['id'] ?>"
+                                                            data-record="<?= htmlspecialchars(json_encode($r, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
                                                             aria-label="Edit record">
                                                             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                                 <use href="#edit-icon">
@@ -1176,7 +1181,10 @@ include dirname(__DIR__) . '/includes/guide.php';
                     received_by: document.getElementById('add_received_by').value,
                     status: document.getElementById('add_status').value,
                 }).then(data => {
-                    if (data.ok) {
+                    if (data.queued) {
+                        closeModal('addModal');
+                        notifyQueued();
+                    } else if (data.ok) {
                         closeModal('addModal');
                         sessionStorage.setItem('records_flash', 'Record added successfully.');
                         location.reload();
@@ -1194,6 +1202,10 @@ include dirname(__DIR__) . '/includes/guide.php';
                 const id = btn.dataset.id;
                 fetch(ROOT + '/personnel/records_get?id=' + encodeURIComponent(id))
                     .then(r => r.json())
+                    .catch(() => ({
+                        ok: true,
+                        data: JSON.parse(btn.dataset.record)
+                    }))
                     .then(data => {
                         if (!data.ok) {
                             showToast(data.message || 'Could not load record.', 'error');
@@ -1265,7 +1277,10 @@ include dirname(__DIR__) . '/includes/guide.php';
                 received_by: document.getElementById('edit_received_by').value,
                 status: document.getElementById('edit_status').value,
             }).then(data => {
-                if (data.ok) {
+                if (data.queued) {
+                    closeModal('editModal');
+                    notifyQueued();
+                } else if (data.ok) {
                     closeModal('editModal');
                     sessionStorage.setItem('records_flash', 'Record updated successfully.');
                     location.reload();
@@ -1294,7 +1309,10 @@ include dirname(__DIR__) . '/includes/guide.php';
                         id: btn.dataset.id
                     })
                     .then(data => {
-                        if (data.ok) {
+                        if (data.queued) {
+                            setButtonBusy(btn, false);
+                            notifyQueued();
+                        } else if (data.ok) {
                             sessionStorage.setItem('records_flash', 'Record deleted.');
                             location.reload();
                         } else {

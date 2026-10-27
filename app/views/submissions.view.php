@@ -71,6 +71,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
+<?php if (($cert['cert_status'] ?? '') === 'rejected'): ?>
+    <link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
+<?php endif; ?>
 
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
@@ -83,11 +86,15 @@ function statusIconSvg(string $iconId, int $size = 14): string
     <main class="main-content" id="main-content" tabindex="-1">
         <?php include 'includes/update-banner.php'; ?>
 
-        <div class="submission-header">
-            <h1>My Protocols</h1>
-
-            <?php $pageGuideId = 'protocols';
-            include 'includes/page-guide.php'; ?>
+        <div class="submission-header page-banner">
+            <div class="page-banner-text">
+                <div class="page-banner-title">
+                    <h1>My Protocols</h1>
+                    <?php $pageGuideId = 'protocols';
+                    include 'includes/page-guide.php'; ?>
+                </div>
+                <p class="page-subtitle">Track your submissions, revisions and clearances</p>
+            </div>
 
             <div id="apply-actions-sub">
                 <a href="<?= ROOT ?>/apply" class="btn-apply button">
@@ -255,7 +262,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>"
                         data-signed-scan-url="<?= !empty($protocol['latest_signed_scan_version_id']) ? ROOT . '/apply/file/' . (int) $protocol['latest_signed_scan_version_id'] : '' ?>">
 
-                        <span class="protocol-status-icon" style="background:<?= $statusMeta[$statusKey]['color'] ?? 'var(--muted-text)' ?>">
+                        <span class="protocol-status-icon">
                             <?= statusIconSvg($statusMeta[$statusKey]['icon'] ?? 'check-circle-icon', 19) ?>
                         </span>
 
@@ -421,7 +428,7 @@ foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
 $guideSteps = array_merge($guideSteps, [
-    ['Training certificate', 'CCARD checks your IACUC training certificate once. If it is rejected, a notice appears at the top of this page with a **Resubmit Certificate** button. You can also attach a revised protocol file while your protocol is under review.'],
+    ['Training certificate', 'CCARD checks your IACUC training certificate once. If it is rejected, you get a notification showing your certificate and the reason, and a notice appears at the top of this page with a **Resubmit Certificate** button.'],
     ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
     ['Actions', 'The **eye button** (View Protocol) opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), **View rejection and resubmit** (if your payment proof is rejected), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
     ['More actions', '**Actions** is the three dots beside the eye button. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
@@ -433,9 +440,10 @@ include 'includes/guide.php';
 <?php include 'includes/history-modal.php'; ?>
 
 <?php if (($cert['cert_status'] ?? '') === 'rejected'):
-    $certResubmitProtocolId = null;
-    include 'includes/cert-resubmit-modal.php'; ?>
+    include 'includes/cert-resubmit-modal.php';
+    include 'includes/cert-rejected-modal.php'; ?>
     <script src="<?= asset_js('cert-resubmit-modal.js') ?>"></script>
+    <script src="<?= asset_js('cert-rejected-modal.js') ?>"></script>
 <?php endif; ?>
 <script src="<?= asset_js('history-modal.js') ?>"></script>
 

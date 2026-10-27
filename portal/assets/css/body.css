@@ -66,7 +66,9 @@
     --nav-icons: var(--secondary-text);
 
     --tab-text-active: var(--brand-text);
-    --tab-underline: var(--brand-color);
+    --accent-color: #c9a227;
+    --accent-text: #1b1600;
+    --tab-underline: var(--accent-color);
 
     --tint-on-brand: rgba(255, 255, 255, 0.25);
     --tint-on-brand-soft: rgba(255, 255, 255, 0.15);
@@ -180,7 +182,8 @@
     --brand-text: #81c995;
     --brand-color-hover: #47a267;
     --nav-icons: #9aa0a6;
-    --tab-underline: var(--brand-text);
+    --accent-color: #e0bd4a;
+    --tab-underline: var(--accent-color);
 
     --shadow-color: rgba(0, 0, 0, 0.6);
     --shadow-color-soft: rgba(0, 0, 0, 0.4);
@@ -299,6 +302,42 @@ main:has(> .page-banner) {
     box-shadow: 0 2px 8px var(--shadow-color-soft);
 }
 
+/* ===== Inner page banner (home keeps its own look) ===== */
+.page-banner:not(.banner) {
+    background:
+        radial-gradient(120% 160% at 100% 0%, color-mix(in srgb, var(--accent-color) 30%, transparent), transparent 45%),
+        linear-gradient(90deg, var(--brand-color), var(--brand-tint-strong)),
+        url("../images/background.webp") center / cover;
+    box-shadow: inset 0 -4px 0 var(--accent-color), 0 2px 8px var(--shadow-color-soft);
+}
+
+.page-banner:not(.banner) {
+    padding-block: 3rem calc(3rem + 4px);
+    padding-top: 4em;
+}
+
+.page-banner:not(.banner) h1 {
+    font-size: clamp(1.9rem, 2.6vw, 2.5rem);
+}
+
+.page-banner:not(.banner) .guide-disc svg {
+    width: 30px;
+    height: 30px;
+}
+
+.page-banner:not(.banner) .btn-apply {
+    padding: 12px 22px;
+    font-size: 1.05em;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+}
+
+.page-banner:not(.banner) .btn-apply:hover {
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+    filter: brightness(1.1);
+}
+
 .page-banner h1 {
     margin: 0;
     font-size: clamp(1.6rem, 2vw, 2.2rem);
@@ -340,16 +379,46 @@ main:has(> .page-banner) {
     color: var(--secondary-text);
 }
 
+/* Title plus subtitle stacked inside a banner, and a right-aligned action slot */
+.page-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: .3em;
+}
+
+/* Title with its guide "?" disc beside it, kept on one row above the subtitle */
+.page-banner-title {
+    display: flex;
+    align-items: center;
+    gap: .6em;
+}
+
+.page-banner .page-subtitle {
+    color: var(--text-on-brand);
+    opacity: .85;
+}
+
+.page-banner-actions {
+    margin-left: auto;
+}
+
 /* ===== Headings & buttons ===== */
 h1,
 h2 {
-    font-family: var(--font-body);
+    font-family: var(--font-title);
+    font-weight: 100;
     text-shadow: 0 0 1px var(--heading-shadow);
     color: var(--heading-fill-main);
 }
 
 h2 {
     font-size: 1.8em;
+}
+
+h2 {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 1.45em;
     color: var(--heading-fill);
 }
 
@@ -824,27 +893,32 @@ main a.underlined:hover {
     transform: none;
 }
 
-.status-card[data-status="under-review"],
+:is(.status-card, .protocol)[data-status="under-review"],
+.protocol[data-filter-slug="to-review"],
 .status-card[data-filter="to-review"] {
     --status-tone: var(--status-color-under-review);
 }
 
-.status-card[data-status="needs-revision"],
+:is(.status-card, .protocol)[data-status="needs-revision"],
+.protocol[data-filter-slug="returned-for-revision"],
 .status-card[data-filter="returned-for-revision"] {
     --status-tone: var(--status-color-needs-revision);
 }
 
-.status-card[data-status="reviewed"],
+:is(.status-card, .protocol)[data-status="reviewed"],
+.protocol[data-filter-slug="reviewed"],
 .status-card[data-filter="reviewed"] {
     --status-tone: var(--status-color-reviewed);
 }
 
-.status-card[data-status="endorsed"],
+:is(.status-card, .protocol)[data-status="endorsed"],
+.protocol[data-filter-slug="endorsed"],
 .status-card[data-filter="endorsed"] {
     --status-tone: var(--status-color-endorsed);
 }
 
-.status-card[data-status="approved"],
+:is(.status-card, .protocol)[data-status="approved"],
+.protocol[data-filter-slug="approved"],
 .status-card[data-filter="approved"] {
     --status-tone: var(--status-color-approved);
 }

@@ -330,6 +330,16 @@ class UserModel extends Model
     return $ok;
   }
 
+  public function isLastActiveStaff(int $id): bool
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT COUNT(*) FROM $this->table WHERE role = 'staff' AND status = 'active' AND id != ?"
+    );
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    return (int) $stmt->get_result()->fetch_row()[0] === 0;
+  }
+
   public function deactivateUser(int $id): bool
   {
     $stmt = $this->connection->prepare("UPDATE $this->table SET status = 'deactivated' WHERE id = ?");

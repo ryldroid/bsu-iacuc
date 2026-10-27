@@ -5,7 +5,7 @@ use PHPMailer\PHPMailer\Exception;
 
 class Mailer
 {
-    private const ACCOUNT_SECURITY_TEMPLATES = ['verify_email', 'password_reset'];
+    private const ACCOUNT_SECURITY_TEMPLATES = ['verify_email', 'password_reset', 'account_deleted'];
 
     // ===== SEND EMAIL =====
     public static function send(

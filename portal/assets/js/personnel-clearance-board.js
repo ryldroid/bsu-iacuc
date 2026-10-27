@@ -584,6 +584,13 @@ async function saveNumber() {
     });
     const data = await res.json();
 
+    if (data.queued) {
+      closeNumberModal();
+      notifyQueued();
+      setButtonBusy(btn, false);
+      return;
+    }
+
     if (!data.success) {
       errBox.textContent = data.error || `Could not save this ${field.label}.`;
       errBox.hidden = false;

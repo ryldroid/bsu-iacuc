@@ -420,7 +420,9 @@ header [data-tooltip][aria-expanded="true"]::after {
 }
 
 /* ===== Preview label ===== */
-.header-auth .preview-tag {
+.header-auth .preview-tag,
+.header-auth .offline-tag {
+    white-space: nowrap;
     padding: 5px 10px;
     font-size: .85em;
     font-weight: 600;
@@ -428,6 +430,11 @@ header [data-tooltip][aria-expanded="true"]::after {
     background: var(--tint-on-brand-soft);
     cursor: default;
     user-select: none;
+}
+
+.header-auth .offline-tag.is-offline {
+    background: var(--warning-background);
+    color: var(--text-on-brand);
 }
 
 .header-auth {
@@ -555,7 +562,7 @@ header [data-tooltip][aria-expanded="true"]::after {
         font-size: 16px;
     }
 
-    .header-auth button span:not(.chev-icon):not(.notif-badge) {
+    .header-auth>button span:not(.chev-icon):not(.notif-badge) {
         display: none;
     }
 

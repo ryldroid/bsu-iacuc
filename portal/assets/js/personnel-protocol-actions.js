@@ -41,7 +41,12 @@ async function postProtocolAction(url, body, btn, errorFallback, busyText) {
       return;
     }
     setButtonBusy(btn, false);
-    if (!data.queued) showToast(data.error ?? errorFallback, "error");
+    if (data.queued) {
+      if (typeof closeReviewPaymentModal === "function")
+        closeReviewPaymentModal();
+    } else {
+      showToast(data.error ?? errorFallback, "error");
+    }
   } catch (err) {
     setButtonBusy(btn, false);
     showToast(
@@ -79,10 +84,10 @@ const submitHardCopy = (protocolId, action, btn) =>
     "Could not update the hard copy pickup.",
   );
 
-const submitStatusChange = (protocolId, status, btn) =>
+const submitStatusChange = (protocolId, status, btn, intent) =>
   postProtocolAction(
     STATUS_API,
-    { protocol_id: protocolId, status },
+    { protocol_id: protocolId, status, intent },
     btn,
     "Could not update status.",
   );
@@ -106,7 +111,7 @@ window.protocolRowActions = {
     confirmThen(
       'Revert this protocol back to Reviewed? Use this if "Mark as Endorsed" was clicked by mistake.',
       "Revert",
-      () => submitStatusChange(id, "Reviewed", btn),
+      () => submitStatusChange(id, "Reviewed", btn, "revert"),
     ),
 
   "revert-endorsed-to-review": (id) =>
@@ -125,7 +130,7 @@ window.protocolRowActions = {
     confirmThen(
       'Revert this protocol back to Endorsed? Use this if "Mark as Approved" was clicked by mistake.',
       "Revert",
-      () => submitStatusChange(id, "Endorsed", btn),
+      () => submitStatusChange(id, "Endorsed", btn, "revert"),
     ),
 
   "upload-signed-scan": (id) =>

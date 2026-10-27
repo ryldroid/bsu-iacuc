@@ -16,32 +16,6 @@ body {
     margin: 0 auto;
 }
 
-.portal-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 1.5rem;
-}
-
-.portal-header svg {
-    width: 24px;
-    height: 24px;
-    color: var(--brand-text);
-}
-
-.portal-header h1 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--brand-text);
-    margin-bottom: 0;
-}
-
-.portal-header .action-link svg {
-    width: 16px;
-    height: 16px;
-    color: inherit;
-}
-
 #page-content .part-1-2-hr {
     border: none;
     height: 2px;
@@ -591,16 +565,6 @@ main button svg {
 }
 
 /* ===== Responsive ===== */
-@media(max-width:1045px) {
-    .portal-header {
-        margin-top: 20px;
-    }
-
-    .btn-back {
-        /* padding-left: 0; */
-    }
-}
-
 @media(max-width:480px) {
     .card {
         padding: 1.25rem;

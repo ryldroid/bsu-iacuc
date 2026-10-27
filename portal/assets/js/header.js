@@ -544,3 +544,55 @@ if (
   openAccountDrawer();
   history.replaceState(null, "", location.pathname);
 }
+
+// ===== OFFLINE MARK =====
+
+const offlineTag = document.querySelector(".offline-tag");
+if (offlineTag) {
+  const showsSaved = offlineTag.hasAttribute("data-offline-saved");
+  let hideTimer;
+
+  const showOfflineTag = (text, hideAfter) => {
+    clearTimeout(hideTimer);
+    offlineTag.hidden = false;
+    offlineTag.textContent = text;
+    if (hideAfter) {
+      hideTimer = setTimeout(() => (offlineTag.hidden = true), hideAfter);
+    }
+  };
+
+  const savedAt = () => {
+    try {
+      return Number(localStorage.getItem("iacuc_saved_at") || 0);
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  const syncOfflineTag = (event) => {
+    const saved = savedAt();
+    offlineTag.classList.toggle("is-offline", !navigator.onLine);
+    offlineTag.title = showsSaved
+      ? "Pages for offline use were last saved " +
+        (saved ? formatDateTime(saved) : "never on this device")
+      : "";
+
+    if (!navigator.onLine) {
+      showOfflineTag(
+        "Offline" + (showsSaved && saved ? ", saved " + formatTime(saved) : ""),
+      );
+    } else if (event.type === "online") {
+      showOfflineTag(
+        showsSaved ? "Back online, syncing..." : "Back online",
+        showsSaved ? 10000 : 3000,
+      );
+    } else if (event.type === "offline-saved" && !offlineTag.hidden) {
+      showOfflineTag("Synced " + formatTime(saved), 3000);
+    }
+  };
+
+  window.addEventListener("online", syncOfflineTag);
+  window.addEventListener("offline", syncOfflineTag);
+  window.addEventListener("offline-saved", syncOfflineTag);
+  window.addEventListener("DOMContentLoaded", syncOfflineTag);
+}

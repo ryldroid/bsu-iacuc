@@ -76,6 +76,50 @@
   min-width: 0;
 }
 
+/* ===== "?" note at the end of a field ===== */
+.phone-field-wrap {
+  position: relative;
+}
+
+.phone-field-wrap .field-info-btn {
+  flex-shrink: 0;
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 2px;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  color: var(--secondary-text);
+}
+
+.phone-field-wrap .field-info-btn:hover {
+  background: var(--divider-color-subtle);
+  color: var(--primary-text);
+}
+
+.field-info-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: min(85vw, 300px);
+  padding: 12px 14px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 4px 16px var(--shadow-color-soft);
+  font-size: .8em;
+  line-height: 1.55;
+  color: var(--secondary-text);
+}
+
+.field-info-panel[hidden] {
+  display: none;
+}
+
 .input-group:has(.phone-field-wrap) label {
   top: 0;
   font-size: .7em;

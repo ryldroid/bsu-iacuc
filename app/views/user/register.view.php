@@ -63,6 +63,7 @@ include dirname(__DIR__) . '/includes/header.php';
                     <input type="tel" id="phone_number" name="phone_number" placeholder=" "
                         inputmode="numeric"
                         value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $old['phone_number'] ?? '')); ?>" required>
+                    <?php include dirname(__DIR__) . '/includes/phone-note.php'; ?>
                 </div>
                 <label for="phone_number">Phone Number</label>
             </div>

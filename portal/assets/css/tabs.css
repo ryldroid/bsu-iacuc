@@ -5,6 +5,11 @@
   gap: 4px;
   border-bottom: 1px solid var(--divider-color);
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-strip button {

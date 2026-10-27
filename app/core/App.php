@@ -41,6 +41,7 @@ class App
 
     // ===== ACCESS POLICY (default deny, see core/Access.php) =====
     Access::enforce($this->controller, $this->method);
+    Idempotency::begin();
 
     $params = array_slice($URL, 2);
     call_user_func_array([$controller, $this->method], $params);

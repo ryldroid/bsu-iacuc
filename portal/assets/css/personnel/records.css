@@ -1267,11 +1267,19 @@
   }
 }
 
+@media (max-width: 640px) {
+  .records-metrics {
+    display: grid;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+}
+
 @media (max-width: 600px) {
 
   .records-metrics,
   .records-charts-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .records-chart-wide {
@@ -1279,7 +1287,7 @@
   }
 
   .records-bar-row {
-    grid-template-columns: 90px 1fr auto;
+    grid-template-columns: 90px minmax(0, 1fr) auto;
   }
 
   .records-form-grid {

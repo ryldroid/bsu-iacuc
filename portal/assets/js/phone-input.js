@@ -83,6 +83,27 @@
     });
   }
 
+  // ===== "?" note =====
+  function setNote(btn, open) {
+    btn.setAttribute("aria-expanded", open);
+    document.getElementById(btn.getAttribute("aria-controls")).hidden = !open;
+  }
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".field-info-btn");
+    document
+      .querySelectorAll('.field-info-btn[aria-expanded="true"]')
+      .forEach((open) => open !== btn && setNote(open, false));
+    if (btn) setNote(btn, btn.getAttribute("aria-expanded") !== "true");
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    document
+      .querySelectorAll('.field-info-btn[aria-expanded="true"]')
+      .forEach((open) => setNote(open, false));
+  });
+
   // ===== Init =====
   function init() {
     document.querySelectorAll(".phone-field-wrap input").forEach(attach);

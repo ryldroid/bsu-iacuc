@@ -269,6 +269,7 @@ async function submitBulkEndorse(protocolIds, btn) {
         .then((data) => ({
           protocolId,
           ok: !!data.ok,
+          queued: !!data.queued,
         }))
         .catch(() => ({
           protocolId,
@@ -277,8 +278,10 @@ async function submitBulkEndorse(protocolIds, btn) {
     ),
   );
 
-  const failedCount = results.filter((r) => !r.ok).length;
-  const okCount = results.length - failedCount;
+  const failedCount = results.filter((r) => !r.ok && !r.queued).length;
+  const okCount = results.filter((r) => r.ok).length;
+
+  if (results.some((r) => r.queued)) setButtonBusy(btn, false);
 
   if (failedCount > 0) {
     setButtonBusy(btn, false);

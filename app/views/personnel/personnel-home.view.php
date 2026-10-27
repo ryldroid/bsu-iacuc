@@ -153,13 +153,21 @@ foreach ($protocols as $p) {
     <main class="main-content" id="main-content" tabindex="-1">
         <?php include dirname(__DIR__) . '/includes/update-banner.php'; ?>
 
+        <div class="page-banner">
+            <div class="page-banner-text">
+                <div class="page-banner-title">
+                    <h1>Protocol Inbox</h1>
+                    <?php $pageGuideId = 'inbox';
+                    include dirname(__DIR__) . '/includes/page-guide.php'; ?>
+                </div>
+                <p class="page-subtitle">Protocols submitted for review, endorsement and clearance</p>
+            </div>
+        </div>
+
         <div class="dashboard-panel">
 
             <!-- ===== Search bar ===== -->
             <div class="dashboard-search-row">
-                <h1 class="dashboard-page-title">Protocol Inbox</h1>
-                <?php $pageGuideId = 'inbox';
-                include dirname(__DIR__) . '/includes/page-guide.php'; ?>
                 <div class="inbox-search-wrap">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -177,15 +185,6 @@ foreach ($protocols as $p) {
             </div>
 
             <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
-
-            <?php if ($personnelRole === 'reviewer'): ?>
-                <div class="notice notice-info">
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#info-icon" />
-                    </svg>
-                    <span><strong>Your role as a reviewer.</strong> <?= htmlspecialchars(ProtocolPermissions::REVIEWER_ROLE_NOTE, ENT_QUOTES, 'UTF-8') ?></span>
-                </div>
-            <?php endif; ?>
 
             <?php if (empty($protocols)): ?>
                 <!-- ===== Empty state ===== -->
@@ -737,7 +736,7 @@ foreach ($protocols as $p) {
                                     </label>
                                 <?php endif; ?>
 
-                                <span class="protocol-status-icon" style="background:<?= $statusMeta[$filterSlug]['color'] ?? 'var(--muted-text)' ?>">
+                                <span class="protocol-status-icon">
                                     <?= statusIconSvg($statusMeta[$filterSlug]['icon'] ?? 'check-circle-icon', 15) ?>
                                 </span>
 
@@ -754,6 +753,7 @@ foreach ($protocols as $p) {
                                                     <?= $hasHardCopyReleased ? 'Hard copy picked up' : 'Hard copy for pickup' ?>
                                                 </span>
                                             <?php endif; ?>
+                                            <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
                                         </p>
                                         <p class="protocol-meta-line">
                                             <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
@@ -992,7 +992,7 @@ $guideId    = 'inbox';
 $guideSteps = [
     ['Protocol Inbox', $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
-        : 'This is where protocols waiting for your feedback show up. ' . ProtocolPermissions::REVIEWER_ROLE_NOTE . ' Let us walk through it.'],
+        : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
     ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
     ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status.', '#filterPillsRow, .mobile-filter-group'],
     ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],

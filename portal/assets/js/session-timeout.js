@@ -21,7 +21,7 @@
     clearTimeout(warnTimer);
     clearTimeout(expireTimer);
     warnTimer = setTimeout(showWarning, IDLE_LIMIT_MS - WARNING_LEAD_MS);
-    expireTimer = setTimeout(forceLogout, IDLE_LIMIT_MS);
+    expireTimer = setTimeout(expireIdle, IDLE_LIMIT_MS);
   }
 
   function registerActivity() {
@@ -66,6 +66,15 @@
       }
     } catch (e) {}
     armTimers();
+  }
+
+  // ===== Idle expiry =====
+  function expireIdle() {
+    if (navigator.onLine) {
+      forceLogout();
+      return;
+    }
+    window.addEventListener("online", extendSession, { once: true });
   }
 
   // ===== Force logout =====

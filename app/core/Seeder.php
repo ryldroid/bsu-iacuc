@@ -232,7 +232,7 @@ class Seeder
             'How much do I pay for an IACUC Protocol Review?' => "There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the animal research clearance, to be paid upon submission of the reviewed IACUC protocol.",
             'What if I amend my IACUC protocol to add/change procedures / personnel / animals?' => 'All revision must be communicated with the IACUC through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
             'Will my account become inactive after my clearance expires?' => 'Yes. Your account is marked inactive once your clearance expires and you have no pending protocols. You may reactivate it at any time by logging in to the portal.',
-            'What if my training certificate is rejected?' => 'Your review is on hold until you resubmit it. Press Resubmit Certificate on My Protocols or on your protocol and upload a new certificate. If your protocol is still under review, you can attach a revised file too.',
+            'What if my training certificate is rejected?' => 'Your review is on hold until you resubmit it. Press Resubmit Certificate on My Protocols or on your protocol and upload a new certificate.',
             'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'In BSU, you may visit the CCARD office. You may also refer to the contact page for additional contact information.',
         ];
 

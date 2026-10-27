@@ -1,6 +1,35 @@
 /* ===== action-queue.css :   offline queue banner + panel ===== */
 
-/* ===== Offline banner (slides in from top) ===== */
+/* ===== Pending sync tag ===== */
+
+.pending-sync-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: var(--radius);
+    font-size: 0.68em;
+    font-weight: 600;
+    vertical-align: middle;
+    white-space: nowrap;
+    color: var(--status-warning-text);
+    background: var(--status-warning-bg);
+}
+
+.pending-sync-badge[hidden] {
+    display: none;
+}
+
+.pending-sync-badge--failed {
+    color: var(--status-danger-text);
+    background: var(--status-danger-bg);
+}
+
+.research-title .pending-sync-badge,
+.protocol-title-cell .pending-sync-badge,
+.ann-row-title .pending-sync-badge {
+    margin-left: 8px;
+}
+
+/* ===== Offline banner (slides in from top) =====
 
 .iq-banner {
     position: fixed;
@@ -122,6 +151,18 @@
     color: var(--secondary-text);
 }
 
+.iq-entry-error {
+    font-size: 0.68em;
+    color: var(--danger-solid);
+}
+
+.iq-entry-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.iq-entry-retry,
 .iq-entry-discard {
     flex-shrink: 0;
     font-size: 0.7em;
@@ -132,6 +173,11 @@
     border-radius: var(--btn-radius);
     background: var(--page-background);
     margin: 0;
+}
+
+.iq-entry-retry:hover {
+    background: var(--hover-surface-soft);
+    color: var(--primary-text);
 }
 
 .iq-entry-discard:hover {

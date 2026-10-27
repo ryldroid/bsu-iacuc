@@ -7,12 +7,19 @@ const reviewDecisionBackdrop = document.getElementById(
 );
 
 function openReviewDecisionModal() {
+  if (certState !== "verified") {
+    confirmAction(
+      "The researcher's training certificate has to be resubmitted and verified first. Don't worry, your comments are saved, so you can leave this page and come back later.",
+      { okText: "Got it", hideCancel: true },
+    );
+    return;
+  }
   const count = annotations.length;
   document.getElementById("reviewDecisionSummary").textContent = count
     ? "You have " +
       count +
       (count === 1 ? " comment" : " comments") +
-      ". Return for Revision sends them to the researcher. To complete the review, remove them first."
+      ". Return for Revision sends them to the researcher. A review can be completed if there are no more comments."
     : "You have no comments. Complete Review marks this protocol as reviewed.";
   reviewDecisionBackdrop.classList.add("open");
 }
@@ -109,6 +116,9 @@ async function submitReturnRevision() {
 
     if (data.ok) {
       window.location.href = BACK_URL;
+    } else if (data.queued) {
+      setButtonBusy(submitBtn, false);
+      closeReturnModal();
     } else {
       errBox.textContent =
         data.error ?? "Could not return protocol. Please try again.";

@@ -23,6 +23,11 @@ $themeModes = [
 $showWelcome = $user && !empty($user['show_welcome']);
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
 $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'];
+if ($role === 'reviewer') {
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents, then return them for revision or mark them Reviewed.";
+} elseif ($role === 'staff') {
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, signing, endorsement, and clearance release. You can also review protocols or return them for revision.";
+}
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
 $guideContact = ['Contact Us', 'Find how to reach relevant offices.', ...$navLink('/contact')];
@@ -142,6 +147,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const CURRENT_USER_ID = <?= json_encode((int) ($user['user_id'] ?? 0)) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
+      const OFFLINE_SAVE_PROTOCOLS = <?= json_encode(OFFLINE_SAVE_PROTOCOLS) ?>;
       const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'user/login') ?>;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
@@ -192,6 +198,9 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
           <?php endif; ?>
 
           <?php if ($user) { ?>
+            <!-- OFFLINE MARK -->
+            <span class="offline-tag" role="status" <?= in_array($role, ['staff', 'reviewer'], true) ? 'data-offline-saved ' : '' ?>hidden>Offline</span>
+
             <button class="notif-bell"
               aria-expanded="false"
               aria-haspopup="true"
@@ -288,7 +297,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     <form class="account-card account-card-row" method="POST" action="<?= ROOT ?>/apply/reuploadcert" enctype="multipart/form-data"
                       data-confirm-message="Submit this certificate for verification?" data-confirm-ok-text="Submit">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                      <p class="helper">Upload a new certificate (PDF, JPG or PNG, max 10 MB). To also send a revised protocol, press Resubmit Certificate on the protocol itself.</p>
+                      <p class="helper">Upload a new certificate (PDF, JPG or PNG, max 10 MB).</p>
                       <input type="file" id="cert-reupload-input" name="cert_file" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="this.form.requestSubmit()">
                       <button type="button" class="button" onclick="document.getElementById('cert-reupload-input').click()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -363,6 +372,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                       <input type="tel" id="phone_number" name="phone_number" placeholder=" " autocomplete="tel-national"
                         inputmode="numeric"
                         value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $accountUser['phone_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                      <?php if ($role === 'researcher') include __DIR__ . '/phone-note.php'; ?>
                     </div>
                     <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
                   </div>
@@ -462,20 +472,22 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                 <section class="account-card">
                   <h2>Account Actions</h2>
                   <div class="account-actions">
-                    <?php if ($role === 'researcher'): ?>
-                      <form method="POST" action="<?= ROOT ?>/user/delete"
-                        data-confirm-message="Deleting your account permanently removes your personal details and training certificate. Your submitted protocols and their files stay in an archive for internal recordkeeping and are no longer linked to your account, though they may still contain personal information you provided. This cannot be undone."
-                        data-confirm-ok-text="Delete Account"
-                        data-confirm-danger="true">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        <button type="submit" class="button btn-account-delete">
-                          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#trash-icon" />
-                          </svg>
-                          Delete Account
-                        </button>
-                      </form>
-                    <?php endif; ?>
+                    <form method="POST" action="<?= ROOT ?>/user/delete"
+                      data-confirm-message="<?= $role === 'researcher'
+                                              ? 'Deleting your account permanently removes your personal details and training certificate. Your submitted protocols and their files stay in an archive for internal recordkeeping and are no longer linked to your account, though they may still contain personal information you provided. This cannot be undone.'
+                                              : 'Deleting your account permanently removes your personal details and your access to the portal. Your past actions stay in the system records. This cannot be undone.' ?>"
+                      data-confirm-ok-text="Delete Account"
+                      data-confirm-danger="true"
+                      data-confirm-password="true">
+                      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                      <input type="hidden" name="password">
+                      <button type="submit" class="button btn-account-delete">
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <use href="#trash-icon" />
+                        </svg>
+                        Delete Account
+                      </button>
+                    </form>
                     <form method="POST" action="<?= ROOT ?><?= $role === 'researcher' ? '/user/logout' : '/personnel/logout' ?>"
                       data-confirm-message="Confirm to log out?" data-confirm-ok-text="Log Out">
                       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
@@ -578,9 +590,6 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                 </svg><span>Records</span></a></li>
             <?php if ($role === 'staff'): ?>
               <li><a href="<?= ROOT ?>/personnel/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#announcement-icon" />
-                  </svg><span>Announcements</span></a></li>
-              <li><a href="<?= ROOT ?>/personnel/site_content"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <use href="#edit-icon" />
                   </svg><span>Site Content</span></a></li>
             <?php endif; ?>

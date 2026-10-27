@@ -3,6 +3,13 @@ const researcherBackdrop = document.getElementById("researcherModalBackdrop");
 const researcherModalBody = document.getElementById("researcherModalBody");
 let currentResearcherId = null;
 let researcherModalLocked = false;
+let certReviewMode = false;
+
+const CERT_REVIEW_TITLES = {
+  pending: "Review before you continue",
+  rejected: "Resubmission requested",
+  verified: "Verified",
+};
 
 const CERT_STATUS_LABELS = {
   pending: "Pending",
@@ -33,10 +40,15 @@ function announceCertState(status) {
 }
 
 // ===== Open & render researcher details =====
-function openResearcherModal(userId, fallbackName) {
+function openResearcherModal(userId, fallbackName, options = {}) {
   currentResearcherId = userId;
-  document.getElementById("researcherModalName").textContent =
-    fallbackName || "";
+  certReviewMode = !!options.review;
+  document.getElementById("researcherModalLabel").textContent = certReviewMode
+    ? "Training certificate"
+    : "Researcher";
+  document.getElementById("researcherModalName").textContent = certReviewMode
+    ? ""
+    : fallbackName || "";
   document.getElementById("researcherModalBody").innerHTML =
     '<p class="helper history-loading">Loading…</p>';
   researcherBackdrop.classList.add("open");
@@ -67,27 +79,8 @@ function openResearcherModal(userId, fallbackName) {
     });
 }
 
-function renderResearcherDetails(d) {
-  document.getElementById("researcherModalName").textContent = (
-    d.first_name +
-    " " +
-    d.last_name
-  ).trim();
-
-  const joined = d.created_at ? formatDate(d.created_at) : "N/A";
-
-  const rows = [
-    ["Username", d.username],
-    ["Email", d.email],
-    ["Phone", formatPhone(d.phone_number) || "N/A"],
-    ["School", d.school || "N/A"],
-    ["Role", d.role ? d.role.charAt(0).toUpperCase() + d.role.slice(1) : "N/A"],
-    [
-      "Account status",
-      d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : "N/A",
-    ],
-    ["Joined", joined],
-  ]
+function renderDetailRows(rows) {
+  return `<div class="researcher-detail-rows">${rows
     .map(
       ([label, value]) => `
         <div class="researcher-detail-row">
@@ -96,7 +89,34 @@ function renderResearcherDetails(d) {
         </div>
     `,
     )
-    .join("");
+    .join("")}</div>`;
+}
+
+function capitalize(text) {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "N/A";
+}
+
+function renderResearcherDetails(d) {
+  const fullName = (d.first_name + " " + d.last_name).trim();
+
+  if (certReviewMode && d.cert) {
+    renderCertReview(d, fullName);
+    return;
+  }
+
+  document.getElementById("researcherModalName").textContent = fullName;
+
+  const joined = d.created_at ? formatDate(d.created_at) : "N/A";
+
+  const rows = renderDetailRows([
+    ["Username", d.username],
+    ["Email", d.email],
+    ["Phone", formatPhone(d.phone_number) || "N/A"],
+    ["School", d.school || "N/A"],
+    ["Role", capitalize(d.role)],
+    ["Account status", capitalize(d.status)],
+    ["Joined", joined],
+  ]);
 
   const protocolsHtml =
     d.protocols && d.protocols.length
@@ -116,7 +136,7 @@ function renderResearcherDetails(d) {
       : '<li class="researcher-protocol-item researcher-protocol-empty">No protocols submitted yet.</li>';
 
   document.getElementById("researcherModalBody").innerHTML = `
-        <div class="researcher-detail-rows">${rows}</div>
+        ${rows}
         ${renderCertSection(d.cert)}
         <div class="researcher-protocol-section">
             <p class="researcher-protocol-heading">Protocols (${d.protocol_count})</p>
@@ -127,12 +147,65 @@ function renderResearcherDetails(d) {
   bindCertActions();
   document.dispatchEvent(
     new CustomEvent("researcher-modal-rendered", {
-      detail: { status: d.cert ? d.cert.status : null },
+      detail: { status: d.cert ? d.cert.status : null, review: false },
     }),
   );
 }
 
+// ===== Certificate review (opened from the viewer) =====
+function renderCertReview(d, fullName) {
+  document.getElementById("researcherModalName").textContent =
+    CERT_REVIEW_TITLES[d.cert.status] || "";
+
+  document.getElementById("researcherModalBody").innerHTML = `
+        ${renderDetailRows([
+          ["Researcher Name", fullName],
+          ["School", d.school || "N/A"],
+          ["Role", capitalize(d.role)],
+        ])}
+        ${renderCertPreview(d.cert, fullName)}
+        ${renderCertActions(d.cert)}
+    `;
+
+  bindCertActions();
+  document.dispatchEvent(
+    new CustomEvent("researcher-modal-rendered", {
+      detail: { status: d.cert.status, review: true },
+    }),
+  );
+}
+
+function renderCertPreview(cert, fullName) {
+  const url = escapeHtml(cert.file_url);
+  const alt = escapeHtml("Training certificate of " + fullName);
+
+  return cert.is_image
+    ? `<button type="button" class="cert-preview" data-zoom-src="${url}" data-zoom-alt="${alt}" aria-label="Zoom in on the training certificate">
+            <img src="${url}" alt="${alt}">
+        </button>`
+    : `<p class="cert-preview-link"><a class="researcher-name-link" href="${url}" target="_blank" rel="noopener">Open certificate (PDF)</a></p>`;
+}
+
 // ===== Training certificate =====
+function renderCertActions(cert) {
+  return cert.status === "pending"
+    ? `
+        <div class="modal-actions" id="certActions">
+            <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="certRejectStartBtn">Request resubmission</button>
+            <button class="confirm-modal-btn confirm-modal-ok" type="button" id="certVerifyBtn">Verify</button>
+        </div>
+        <div id="certRejectPanel" class="cert-reject-panel" hidden>
+            <label for="certRejectNote">Reason <span class="required-asterisk">*</span></label>
+            <textarea id="certRejectNote" class="return-comment-textarea" rows="3" maxlength="500" placeholder="e.g. the certificate is expired or the name does not match" required></textarea>
+            <div class="modal-actions">
+                <button class="confirm-modal-btn confirm-modal-cancel" type="button" id="certRejectBackBtn">Cancel</button>
+                <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="certRejectSubmitBtn">Send request</button>
+            </div>
+        </div>
+    `
+    : "";
+}
+
 function renderCertSection(cert) {
   if (!cert) {
     return `
@@ -160,24 +233,6 @@ function renderCertSection(cert) {
     )
     .join("");
 
-  const actionsHtml =
-    cert.status === "pending"
-      ? `
-        <div class="modal-actions" id="certActions">
-            <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="certRejectStartBtn">Request resubmission</button>
-            <button class="confirm-modal-btn confirm-modal-ok" type="button" id="certVerifyBtn">Verify</button>
-        </div>
-        <div id="certRejectPanel" hidden>
-            <label for="certRejectNote">Reason <span class="required-asterisk">*</span></label>
-            <textarea id="certRejectNote" class="return-comment-textarea" rows="3" maxlength="500" placeholder="e.g. the certificate is expired or the name does not match" required></textarea>
-            <div class="modal-actions">
-                <button class="confirm-modal-btn confirm-modal-cancel" type="button" id="certRejectBackBtn">Back</button>
-                <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" id="certRejectSubmitBtn">Confirm</button>
-            </div>
-        </div>
-    `
-      : "";
-
   return `
         <div class="researcher-protocol-section">
             <p class="researcher-protocol-heading">Training certificate</p>
@@ -191,7 +246,7 @@ function renderCertSection(cert) {
                     <span class="researcher-detail-value"><a class="researcher-name-link" href="${escapeHtml(cert.file_url)}" target="_blank" rel="noopener">View certificate</a></span>
                 </div>
             </div>
-            ${actionsHtml}
+            ${renderCertActions(cert)}
             <p class="researcher-protocol-heading">History</p>
             <ul class="researcher-protocol-list">${historyHtml}</ul>
         </div>
@@ -206,6 +261,7 @@ function bindCertActions() {
   const noteInput = document.getElementById("certRejectNote");
 
   document.getElementById("certVerifyBtn").addEventListener("click", (e) => {
+    rejectPanel.hidden = true;
     confirmAction("Verify this training certificate?", {
       okText: "Verify",
       cancelText: "Cancel",
@@ -215,14 +271,13 @@ function bindCertActions() {
   document
     .getElementById("certRejectStartBtn")
     .addEventListener("click", () => {
-      actions.hidden = true;
       rejectPanel.hidden = false;
-      noteInput.focus();
+      rejectPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      noteInput.focus({ preventScroll: true });
     });
 
   document.getElementById("certRejectBackBtn").addEventListener("click", () => {
     rejectPanel.hidden = true;
-    actions.hidden = false;
   });
 
   document
@@ -236,6 +291,13 @@ function bindCertActions() {
       }
       submitCertReview("certreject", note, e.target);
     });
+}
+
+function settleCertDecision(status) {
+  setResearcherModalLocked(false);
+  if (certReviewMode && status === "verified") closeResearcherModal();
+  else openResearcherModal(currentResearcherId, "", { review: certReviewMode });
+  announceCertState(status);
 }
 
 async function submitCertReview(endpoint, note, btn) {
@@ -252,20 +314,20 @@ async function submitCertReview(endpoint, note, btn) {
       body: formData,
     });
     const data = await res.json();
+    if (data.queued) {
+      setButtonBusy(btn, false);
+      setResearcherModalLocked(false);
+      notifyQueued();
+      return;
+    }
     if (!data.ok) {
       setButtonBusy(btn, false);
       showToast(data.message ?? data.error ?? "Could not save.", "error");
-      if (data.cert_status) {
-        setResearcherModalLocked(false);
-        openResearcherModal(currentResearcherId);
-        announceCertState(data.cert_status);
-      }
+      if (data.cert_status) settleCertDecision(data.cert_status);
       return;
     }
     showToast(data.message, "success");
-    setResearcherModalLocked(false);
-    openResearcherModal(currentResearcherId);
-    announceCertState(data.cert_status);
+    settleCertDecision(data.cert_status);
   } catch (err) {
     setButtonBusy(btn, false);
     showToast("Network error. Please try again.", "error");
@@ -274,7 +336,10 @@ async function submitCertReview(endpoint, note, btn) {
 
 // ===== Close researcher modal =====
 function closeResearcherModal() {
-  if (researcherModalLocked) return;
+  if (researcherModalLocked) {
+    shake(researcherBackdrop.querySelector(".modal-card"));
+    return;
+  }
   researcherBackdrop.classList.remove("open");
 }
 

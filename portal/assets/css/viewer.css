@@ -199,6 +199,10 @@
   border: 1px solid var(--divider-color);
 }
 
+.status-badge[hidden] {
+  display: none;
+}
+
 .status-badge-icon--under-review {
   background: var(--status-color-under-review);
 }
@@ -418,6 +422,11 @@
 .tool-btn--danger:hover,
 .tool-btn--urgent:hover {
   background: var(--danger-solid-hover);
+}
+
+.tool-btn--success[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .tool-btn--danger:disabled {
@@ -781,7 +790,8 @@
     font-size: 0.95rem;
   }
 
-  .status-badge {
+  .status-badge,
+  .status-badge+.pending-sync-badge {
     order: 5;
     font-size: 0.8rem;
   }
@@ -904,14 +914,11 @@
 }
 
 .annot-queued-badge {
-  font-size: 0.62em;
-  font-weight: 700;
-  color: var(--status-warning-text);
-  background: var(--status-warning-bg);
-  border-radius: var(--radius);
-  padding: 2px 6px;
   margin-left: auto;
-  white-space: nowrap;
+}
+
+.status-badge+.pending-sync-badge {
+  font-size: 0.75rem;
 }
 
 /* ===== Return for Revision modal ===== */
