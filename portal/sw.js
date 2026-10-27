@@ -96,6 +96,7 @@ async function navigationHandler(request) {
   try {
     const response = await fetch(request);
     if (isCacheable(response)) cache.put(request, response.clone());
+    else if (response.type === "opaqueredirect") cacheRedirect(cache, request);
     return response;
   } catch (err) {
     return (
@@ -104,6 +105,19 @@ async function navigationHandler(request) {
       (await cache.match("offline.html"))
     );
   }
+}
+
+// ===== Redirects (like /portal/ to the dashboard) =====
+// A followed redirect cannot be reused for a navigation, so the redirect itself is saved.
+function cacheRedirect(cache, request) {
+  fetch(request.url, { credentials: "same-origin" })
+    .then((res) => {
+      res.body?.cancel();
+      if (new URL(res.url).origin === self.location.origin) {
+        cache.put(request, Response.redirect(res.url, 302));
+      }
+    })
+    .catch(() => {});
 }
 
 // ===== Static assets handler =====
