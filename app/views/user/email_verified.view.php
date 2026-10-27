@@ -16,7 +16,7 @@ include dirname(__DIR__) . '/includes/header.php';
     <form onsubmit="return false">
       <h1>Email Verified</h1>
 
-      <p class="success-desc verify-desc">Your email address is verified. You can close this window; the page you came from continues on its own.</p>
+      <p class="success-desc verify-desc">Your email address is verified. You may now close this window.</p>
 
       <button type="button" class="btn-login btn-login--fit" id="close-verified-tab" data-continue-url="<?= htmlspecialchars($continueUrl, ENT_QUOTES, 'UTF-8') ?>">Close This Window</button>
     </form>

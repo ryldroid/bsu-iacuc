@@ -165,7 +165,7 @@ verifyEmailForm?.addEventListener("submit", async (event) => {
     resendVerification.dataset.savedEmail = email;
 
     const sent = verifyEmailForm.querySelector(".verify-email-sent");
-    sent.textContent = `Link sent to ${email}. Open it from your inbox to finish, then continue here.`;
+    sent.textContent = `Link sent to ${email}. Kindly check your inbox or spam folder.`;
     sent.hidden = false;
 
     button.classList.replace("confirm-modal-ok", "confirm-modal-cancel");
@@ -186,6 +186,31 @@ verifyEmailForm
   ?.querySelector(".verify-email-continue")
   .addEventListener("click", (event) => {
     location.href = event.currentTarget.dataset.href;
+  });
+
+// "Remind me later": the server pauses the email requirement for a while so the person can browse
+verifyEmailForm
+  ?.querySelector(".verify-email-later")
+  .addEventListener("click", async (event) => {
+    const later = event.currentTarget;
+    const home = verifyEmailForm.querySelector(".verify-email-continue").dataset
+      .href;
+
+    setButtonBusy(later, true, "One moment...");
+    try {
+      const res = await fetch(`${NOTIF_ROOT}/user/snooze_verification`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "X-CSRF-Token": verifyEmailForm.elements.csrf_token.value,
+        },
+      });
+      if (!res.ok) throw new Error();
+      location.href = home;
+    } catch (e) {
+      setButtonBusy(later, false);
+      showToast("Something went wrong. Please try again.", "error");
+    }
   });
 
 // ===== Account panel: school suggestions (loaded on first open) =====
@@ -292,7 +317,10 @@ accountForm?.addEventListener("submit", async (event) => {
   }
 
   setButtonBusy(saveButton, false);
-  if (ok) applySavedAccount(data.user);
+  if (ok) {
+    applySavedAccount(data.user);
+    closeAccountDrawer();
+  }
   showAccountResult(ok, data);
 });
 
@@ -329,10 +357,11 @@ emailNotificationsForm?.addEventListener("change", async (event) => {
   toggle.disabled = true;
   const { ok, data } = await postAccountForm(emailNotificationsForm, body);
   toggle.disabled = false;
+  toggle.dataset.savedAt = Date.now();
 
   if (ok) {
     emailNotificationsForm.querySelector(".provider-blocked-note").hidden =
-      !data.provider_blocked;
+      !data.provider_blocked || toggle.checked;
   } else {
     toggle.checked = !toggle.checked;
   }

@@ -26,7 +26,7 @@ $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. I
 if ($role === 'reviewer') {
   $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents, then return them for revision or mark them Reviewed.";
 } elseif ($role === 'staff') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, signing, endorsement, and clearance release. You can also review protocols or return them for revision.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, signing, endorsement, and clearance release.";
 }
 $guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
@@ -454,7 +454,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     </span>
                   </label>
                   <p class="helper">
-                    <span class="provider-blocked-note" <?= empty($accountUser['email_provider_blocked']) ? 'hidden' : '' ?>>You previously unsubscribed via a link in one of our emails. Turning this back on will also ask our email provider to unblock your address.</span>
+                    <span class="provider-blocked-note" <?= empty($accountUser['email_provider_blocked']) ? 'hidden' : '' ?>>Email updates are paused because you unsubscribed or our emails could not be delivered. Turning this back on will also ask our email provider to unblock your address.</span>
                   </p>
                   <?php if ($canPreviewSite): ?>
                     <div class="account-actions">
@@ -545,6 +545,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
             </div>
             <p class="panel-modal-intro verify-email-sent" hidden></p>
             <div class="panel-modal-actions">
+              <button type="button" class="confirm-modal-btn confirm-modal-cancel verify-email-later">Remind me later</button>
               <button type="submit" class="confirm-modal-btn confirm-modal-ok">
                 <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#email-icon" />

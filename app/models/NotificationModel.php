@@ -35,6 +35,7 @@ class NotificationModel extends Model
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'clearance_expiring'             => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],
+    'email_updates_stopped'          => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
   ];
 
   // ===== CREATE NOTIFICATIONS =====

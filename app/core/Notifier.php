@@ -16,7 +16,7 @@ class Notifier
 
   public const NEXT_STEPS = [
     'protocol_submitted'          => 'No action needed. You will be notified of any feedback.',
-    'protocol_renamed'            => 'No action needed.',
+    'protocol_renamed'            => 'Review your protocol.',
     'protocol_deleted'            => 'No action needed.',
     'protocol_deletion_rejected'  => 'Your protocol stays active, so no action is needed.',
     'new_submission_reviewer'     => 'Open it to start the review. Your part ends once it is marked Reviewed or returned for revision.',

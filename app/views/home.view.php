@@ -128,13 +128,15 @@ include "includes/scroll-top.php";
             </div>
 
             <div class="faq-column">
-                <?php if (!empty($latestAnnouncements)): ?>
-                    <!-- ===== Latest announcements teaser ===== -->
-                    <section class="home-announcements-teaser">
-                        <div class="home-announcements-teaser-header">
-                            <h2>Latest Announcements</h2>
-                            <a href="<?= $pubRoot ?>/announcements" class="underlined see_all">See all ></a>
-                        </div>
+                <!-- ===== Latest announcements teaser ===== -->
+                <section class="home-announcements-teaser">
+                    <div class="home-announcements-teaser-header">
+                        <h2>Latest Announcements</h2>
+                        <a href="<?= $pubRoot ?>/announcements" class="underlined see_all">See all ></a>
+                    </div>
+                    <?php if (empty($latestAnnouncements)): ?>
+                        <p class="announcements-empty">No announcements yet. Check back soon.</p>
+                    <?php else: ?>
                         <div class="home-announcements-list">
                             <?php foreach ($latestAnnouncements as $post):
                                 $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
@@ -222,75 +224,77 @@ include "includes/scroll-top.php";
                                 </template>
                             <?php endforeach; ?>
                         </div>
-                    </section>
+                    <?php endif; ?>
+                </section>
 
-                    <!-- PROCESS -->
-                    <article class="process-section">
-                        <h2>How to Get Your Animal Research Clearance?</h2>
+                <!-- PROCESS -->
+                <article class="process-section">
+                    <h2>How to Get Your Animal Research Clearance?</h2>
 
-                        <ol class="timeline">
-                            <li class="timeline-step">
-                                <span class="timeline-icon" aria-hidden="true">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <use href="#timeline-apply-icon" />
-                                    </svg>
-                                </span>
-                                <div class="timeline-content">
-                                    <h3>Apply for Review</h3>
-                                    <p>
-                                        <a href="<?= ROOT ?>/user/login" class="underlined">Create an account</a>
-                                        or
-                                        <a href="<?= ROOT ?>/user/login" class="underlined">sign back in</a>.
-                                        Afterwards, go to the
-                                        <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.
-                                    </p>
-                                </div>
-                            </li>
+                    <ol class="timeline">
+                        <li class="timeline-step">
+                            <span class="timeline-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <use href="#timeline-apply-icon" />
+                                </svg>
+                            </span>
+                            <div class="timeline-content">
+                                <h3>Apply for Review</h3>
+                                <p>
+                                    <a href="<?= ROOT ?>/user/login" class="underlined">Create an account</a>
+                                    or
+                                    <a href="<?= ROOT ?>/user/login" class="underlined">sign back in</a>.
+                                    Afterwards, go to the
+                                    <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.
+                                </p>
+                            </div>
+                        </li>
 
-                            <li class="timeline-step">
-                                <span class="timeline-icon" aria-hidden="true">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <use href="#timeline-track-icon" />
-                                    </svg>
-                                </span>
-                                <div class="timeline-content">
-                                    <h3>Track Protocol</h3>
-                                    <p>Track your protocol's status through your dashboard. View CCARD's comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
-                                </div>
-                            </li>
+                        <li class="timeline-step">
+                            <span class="timeline-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <use href="#timeline-track-icon" />
+                                </svg>
+                            </span>
+                            <div class="timeline-content">
+                                <h3>Track Protocol</h3>
+                                <p>Track your protocol's status through your dashboard. View CCARD's comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
+                            </div>
+                        </li>
 
-                            <li class="timeline-step">
-                                <span class="timeline-icon" aria-hidden="true">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <use href="#timeline-endorse-icon" />
-                                    </svg>
-                                </span>
-                                <div class="timeline-content">
-                                    <h3>Pay BAI's Processing Fee</h3>
-                                    <p>Once the protocol has passed CCARD review, it will be endorsed to the Bureau of Animal Industry (BAI).</p>
-                                    <p class="process-step-note">
-                                        <span class="italic">Note:</span> BAI requires an animal research clearance processing fee of <strong>Php 100.00</strong>. Visit the BSU-CCARD office or <a href="<?= ROOT ?>/contact#director-contact" class="underlined">contact the CCARD Director</a> to process your payment.
-                                    </p>
-                                </div>
-                            </li>
+                        <li class="timeline-step">
+                            <span class="timeline-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <use href="#timeline-endorse-icon" />
+                                </svg>
+                            </span>
+                            <div class="timeline-content">
+                                <h3>Pay BAI's Processing Fee</h3>
+                                <p>Once the protocol has passed CCARD review, it will be endorsed to the Bureau of Animal Industry (BAI).</p>
+                                <p class="process-step-note">
+                                    <span class="italic">Note:</span> BAI requires an animal research clearance processing fee of <strong>Php 100.00</strong>. Visit the BSU-CCARD office or <a href="<?= ROOT ?>/contact#director-contact" class="underlined">contact the CCARD Director</a> to process your payment.
+                                </p>
+                            </div>
+                        </li>
 
-                            <li class="timeline-step">
-                                <span class="timeline-icon" aria-hidden="true">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <use href="#timeline-receive-icon" />
-                                    </svg>
-                                </span>
-                                <div class="timeline-content">
-                                    <h3>Receive Clearance</h3>
-                                    <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
-                                    <p class="process-step-note">
-                                        Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
-                                    </p>
-                                </div>
-                            </li>
-                        </ol>
-                    </article>
+                        <li class="timeline-step">
+                            <span class="timeline-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <use href="#timeline-receive-icon" />
+                                </svg>
+                            </span>
+                            <div class="timeline-content">
+                                <h3>Receive Clearance</h3>
+                                <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
+                                <p class="process-step-note">
+                                    Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                </article>
 
+                <?php if (!empty($latestAnnouncements)): ?>
                     <div class="modal-backdrop" id="homeAnnouncementModal" role="dialog" aria-modal="true">
                         <div class="modal-card announcement-modal-card">
                             <button type="button" class="modal-close" id="homeAnnouncementModalClose" aria-label="Close">

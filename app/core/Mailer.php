@@ -86,7 +86,7 @@ class Mailer
     }
 
     // ===== RESUBSCRIBE CONTACT (BREVO) =====
-    public static function resubscribe(string $email): bool
+    public static function resubscribe(string $email, ?int &$failedStatus = null): bool
     {
         if (empty(BREVO_API_KEY)) {
             error_log('Brevo resubscribe skipped: BREVO_API_KEY is not configured.');
@@ -99,16 +99,60 @@ class Mailer
             self::brevoRequest('PUT', '/contacts/' . $encoded, ['emailBlacklisted' => false]),
         ];
 
-        return !array_diff($statuses, [204, 404]);
+        $failed       = array_diff($statuses, [204, 404]);
+        $failedStatus = $failed ? reset($failed) : null;
+
+        return !$failed;
+    }
+
+    // ===== BLOCKED CHECK (BREVO) =====
+    // Webhooks cannot reach a local or private server, so this asks Brevo directly.
+    // Returns the Webhooks event key matching why the address is blocked, or null when it is not blocked.
+    public static function blockedEvent(string $email): ?string
+    {
+        if (empty(BREVO_API_KEY)) {
+            return null;
+        }
+
+        for ($offset = 0; $offset < 500; $offset += 100) {
+            $response = null;
+            $status   = self::brevoRequest('GET', "/smtp/blockedContacts?limit=100&sort=desc&offset=$offset", null, $response);
+            $contacts = json_decode((string) $response, true)['contacts'] ?? [];
+
+            if ($status !== 200 || !$contacts) {
+                return null;
+            }
+
+            foreach ($contacts as $contact) {
+                if (strcasecmp($contact['email'] ?? '', $email) !== 0) {
+                    continue;
+                }
+
+                $code = strtolower($contact['reason']['code'] ?? '');
+                return match (true) {
+                    str_contains($code, 'unsubscribed') => 'unsubscribed',
+                    str_contains($code, 'spam')         => 'spam',
+                    str_contains($code, 'bounce')       => 'hard_bounce',
+                    default                             => 'blocked',
+                };
+            }
+
+            if (count($contacts) < 100) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     // ===== BREVO API REQUEST =====
-    private static function brevoRequest(string $method, string $path, ?array $body = null): int
+    private static function brevoRequest(string $method, string $path, ?array $body = null, ?string &$response = null): int
     {
         $ch = curl_init('https://api.brevo.com/v3' . $path);
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST  => $method,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT        => 10,
             CURLOPT_HTTPHEADER     => [
                 'api-key: ' . BREVO_API_KEY,
@@ -118,12 +162,17 @@ class Mailer
             CURLOPT_POSTFIELDS     => $body ? json_encode($body) : null,
         ]);
 
-        curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error  = curl_error($ch);
+        if ($ca = PdfConverter::caBundle()) {
+            curl_setopt($ch, CURLOPT_CAINFO, $ca);
+        }
+
+        $result   = curl_exec($ch);
+        $response = is_string($result) ? $result : null;
+        $status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error    = curl_error($ch);
         curl_close($ch);
 
-        if ($error || !in_array($status, [204, 404], true)) {
+        if ($error || !in_array($status, [200, 204, 404], true)) {
             error_log("Brevo $method $path failed: " . ($error ?: "status $status"));
         }
 

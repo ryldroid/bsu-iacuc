@@ -7,5 +7,5 @@
   </svg>
 </button>
 <div class="field-info-panel" id="phoneNote" role="note" hidden>
-  CCARD staff may use your phone number to additionally reach you about your protocols.
+  CCARD staff may need to reach you through phone regarding your protocols if necessary.
 </div>

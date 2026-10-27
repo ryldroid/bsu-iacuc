@@ -170,9 +170,10 @@ class Controller
     }
 
     $isResearcher = $fresh['role'] === 'researcher';
+    $emailSnoozed = ($_SESSION['verify_snoozed_until'] ?? 0) > time();
     $needs = array_filter([
       $isResearcher && (empty($fresh['sex']) || empty($fresh['researcher_type'])) ? 'set your sex and researcher type' : null,
-      empty($fresh['email_verified']) ? 'verify your email' : null,
+      empty($fresh['email_verified']) && !$emailSnoozed ? 'verify your email' : null,
     ]);
 
     if (!$needs) {
@@ -182,7 +183,7 @@ class Controller
     // Researchers and personnel have different home pages, and the account panel opens on theirs
     $home  = $isResearcher ? 'home' : 'personnel/home';
     $route = implode('/', array_slice(explode('/', trim($_GET['url'] ?? '', '/')), 0, 2));
-    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'personnel/logout', 'user/ping', 'user/email_preferences', 'user/verify_email', 'user/verification_status', 'user/resend_verification', 'user/school_options'], true) || ($route === $home && isset($_GET['account']))) {
+    if (in_array($route, ['user/account', 'user/update', 'user/logout', 'personnel/logout', 'user/ping', 'user/email_preferences', 'user/verify_email', 'user/verification_status', 'user/resend_verification', 'user/snooze_verification', 'user/school_options'], true) || ($route === $home && isset($_GET['account']))) {
       return;
     }
 
@@ -386,6 +387,53 @@ class Controller
 
     $_SESSION['flash_success'] = 'Password reset successfully. Please log in.';
     $this->redirect($loginRoute);
+  }
+
+  // ===== BREVO EVENTS THAT STOP EMAIL UPDATES =====
+  protected const EMAIL_STOP_NOTICES = [
+    'unsubscribed' => [
+      'audit'   => 'Brevo reported an unsubscribe for this address; email notifications turned off automatically.',
+      'title'   => 'Email Updates Turned Off',
+      'message' => 'You unsubscribed from our emails, so protocol updates will no longer be sent to your inbox. You will still see them here in the portal. You can turn email updates back on anytime in My Account.',
+    ],
+    'spam' => [
+      'audit'   => 'Brevo reported this address marked an email as spam; email notifications turned off automatically.',
+      'title'   => 'Email Updates Turned Off',
+      'message' => 'Your email provider marked one of our emails as spam, so protocol updates will no longer be sent to your inbox. You will still see them here in the portal. You can turn email updates back on anytime in My Account.',
+    ],
+    'hard_bounce' => [
+      'audit'   => 'Brevo reported a hard bounce for this address; email notifications turned off automatically.',
+      'title'   => 'Emails Could Not Be Delivered',
+      'message' => 'Our emails could not be delivered to your address, so protocol updates will no longer be sent to your inbox. Please check that your email is correct in My Account. You will still see updates here in the portal.',
+    ],
+    'blocked' => [
+      'audit'   => 'Brevo reported a blocked email for this address; email notifications turned off automatically.',
+      'title'   => 'Emails Could Not Be Delivered',
+      'message' => 'Our emails were blocked before reaching your inbox, so protocol updates will no longer be sent there. You will still see updates here in the portal. You can try turning email updates back on in My Account.',
+    ],
+  ];
+
+  // Brevo told us (by webhook, or by us asking it) that this address can no longer receive our emails:
+  // switch the account toggle off, record it, and tell the person through the bell
+  protected function stopEmailUpdates(array $user, string $event): void
+  {
+    $notice = self::EMAIL_STOP_NOTICES[$event];
+    $wasOn  = !empty($user['email_notifications']);
+
+    $this->userModel->markEmailProviderUnsubscribed((int) $user['id']);
+    $this->userModel->logAudit(
+      'email_provider_' . $event,
+      null,
+      'Brevo',
+      'system',
+      'user',
+      (int) $user['id'],
+      $notice['audit']
+    );
+
+    if ($wasOn) {
+      Notifier::send((int) $user['id'], 'email_updates_stopped', $notice['title'], $notice['message']);
+    }
   }
 
   // ===== EMAIL VERIFICATION =====

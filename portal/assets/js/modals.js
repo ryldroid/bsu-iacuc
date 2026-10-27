@@ -514,7 +514,8 @@ function formatDateTime(value) {
         password: form.dataset.confirmPassword === "true",
       });
       if (ok) {
-        if (form.elements.password) form.elements.password.value = ok;
+        if (form.dataset.confirmPassword === "true" && form.elements.password)
+          form.elements.password.value = ok;
         form.dataset.confirmed = "true";
         form.requestSubmit ? form.requestSubmit() : form.submit();
       }

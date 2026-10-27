@@ -4,6 +4,7 @@
 /** @var string $action */
 /** @var bool $enabled */
 /** @var string $success */
+/** @var string $error */
 
 $title = 'Email Notifications';
 
@@ -28,8 +29,8 @@ include dirname(__DIR__) . '/includes/header.php';
       </p>
 
       <?php
-      $alertType = 'success';
-      $alertMessages = $success;
+      $alertType = $error !== '' ? 'error' : 'success';
+      $alertMessages = $error !== '' ? $error : $success;
       include dirname(__DIR__) . '/includes/alert.php';
       ?>
 

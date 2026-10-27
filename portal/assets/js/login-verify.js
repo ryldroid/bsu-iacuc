@@ -30,7 +30,7 @@
     alerts.replaceChildren();
     showToast(
       ok
-        ? `Link sent to ${email}. Open it from your inbox to finish.`
+        ? `Link sent to ${email}. Kindly check your inbox or spam folder.`
         : message,
       ok ? "success" : "error",
       { into: alerts, autodismiss: ok ? 0 : undefined },

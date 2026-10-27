@@ -24,6 +24,7 @@ session_start();
 
 // ===== IDLE SESSION TIMEOUT =====
 define('SESSION_TIMEOUT', 1800);
+define('EMAIL_VERIFY_SNOOZE', 3600); // "Remind me later" on the verify email modal: seconds before it asks again
 
 if (isset($_SESSION['last_activity'])) {
     $idle = time() - $_SESSION['last_activity'];

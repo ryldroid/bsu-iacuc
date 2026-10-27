@@ -39,6 +39,7 @@ class PdfConverter
       ],
     ]);
 
+    $status   = 0;
     $response = self::call(self::JOB_URL, $payload, 60, $status, $error);
     $job      = json_decode((string) $response, true);
 
@@ -297,7 +298,7 @@ class PdfConverter
   }
 
   // ===== CA BUNDLE (fixes cURL error 60 on Windows/XAMPP/WAMP) =====
-  private static function caBundle(): ?string
+  public static function caBundle(): ?string
   {
     $override = EnvLoader::get('CLOUDCONVERT_CA_BUNDLE');
     if ($override && is_file($override)) {

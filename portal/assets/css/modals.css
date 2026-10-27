@@ -201,10 +201,6 @@
     margin: 0;
 }
 
-html:has(.modal-backdrop.open.guide-targeting) {
-    overflow: hidden;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .guide-spotlight {
         transition: none;

@@ -191,6 +191,11 @@ header nav a:hover::after {
     display: block;
 }
 
+html:has(#sidebar-backdrop.active, .modal-backdrop.open) {
+    overflow: hidden;
+    scrollbar-gutter: stable;
+}
+
 .nav-sidebar li {
     list-style: none;
     width: 100%;

@@ -43,7 +43,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <div id="verify-alerts" class="verify-alerts"></div>
                 <?php include dirname(__DIR__) . '/includes/alert-js.php'; ?>
 
-                <p class="success-desc verify-desc">Send a verification link to your email, then open it to activate your account. This page continues on its own once you verify. If the address is wrong, correct it below first.</p>
+                <p class="success-desc verify-desc">Verify your account through a verification link that will be sent to your email.</p>
 
                 <div class="input-group">
                     <input type="email" id="verify_email" name="email" placeholder=" " value="<?= htmlspecialchars($pendingEmail ?? ''); ?>" autocomplete="email" required>

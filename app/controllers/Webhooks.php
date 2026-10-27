@@ -25,7 +25,7 @@ class Webhooks extends Controller
     $event = $payload['event'] ?? '';
     $email = $payload['email'] ?? '';
 
-    if ($event !== 'unsubscribed' || empty($email)) {
+    if (!isset(self::EMAIL_STOP_NOTICES[$event]) || empty($email)) {
       http_response_code(200);
       header('Content-Type: application/json');
       echo json_encode(['ok' => true, 'ignored' => true]);
@@ -35,16 +35,7 @@ class Webhooks extends Controller
     $user = $this->userModel->getUserByEmail($email);
 
     if ($user) {
-      $this->userModel->markEmailProviderUnsubscribed((int) $user['id']);
-      $this->userModel->logAudit(
-        'email_provider_unsubscribed',
-        null,
-        'Brevo',
-        'system',
-        'user',
-        (int) $user['id'],
-        'Brevo reported an unsubscribe for this address; email notifications turned off automatically.'
-      );
+      $this->stopEmailUpdates($user, $event);
     }
 
     http_response_code(200);

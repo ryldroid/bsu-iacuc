@@ -278,7 +278,7 @@ body {
 
 main {
     --main-gutter: 40px;
-    --banner-bleed: calc(var(--main-gutter) + max(0px, 4vw - var(--sidebar-width) / 2));
+    --banner-bleed: calc(var(--main-gutter) + max(0px, 4vw - var(--sidebar-width, 0px) / 2));
     max-width: 92%;
     margin: 0 auto;
     padding: 80px var(--main-gutter);

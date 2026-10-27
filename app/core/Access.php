@@ -62,6 +62,7 @@ class Access
       'update' => 'auth',
       'notifications' => 'auth',
       'ping' => 'auth',
+      'snooze_verification' => 'auth', // "Remind me later" on the verify email modal
       'resend_verification' => 'public', // signed-in users, or a sign-in blocked until the email is verified
       'school_options' => 'auth',
       'delete' => 'auth',

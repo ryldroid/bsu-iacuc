@@ -337,7 +337,7 @@ class User extends Controller
       // No email goes out yet: the verify page lets the person send the link when they are ready
       $newUser = $this->userModel->getUserByEmail($email);
       $_SESSION['pending_verification'] = (int) $newUser['id'];
-      $_SESSION['flash_success']        = 'Account created! Send the verification link below to activate it.';
+      $_SESSION['flash_success']        = 'Account created! Activate your account through email verification.';
       $this->redirect('user/login');
     } else {
       $errors[] = 'Registration failed. Please try again.';
@@ -381,6 +381,19 @@ class User extends Controller
     exit;
   }
 
+  // ===== VERIFY EMAIL: REMIND ME LATER (POST /user/snooze_verification) =====
+  // Lets the person browse for a while; the gate in Controller asks again once this runs out
+  public function snooze_verification(): void
+  {
+    $this->requireLogin();
+    $this->requirePostMethod();
+    $this->verifyCsrfHeader();
+
+    $_SESSION['verify_snoozed_until'] = time() + EMAIL_VERIFY_SNOOZE;
+
+    $this->jsonResponse(['ok' => true]);
+  }
+
   // ===== MANAGE ACCOUNT =====
 
   public function account()
@@ -397,8 +410,15 @@ class User extends Controller
     $this->requirePostMethod();
     $this->verifyCsrfToken();
 
-    $id      = (int) $_SESSION['user']['user_id'];
-    $message = $this->saveEmailNotifications($id, $_SESSION['user']['email'], !empty($_POST['email_notifications']));
+    $id    = (int) $_SESSION['user']['user_id'];
+    $email = $_SESSION['user']['email'];
+    session_write_close();
+
+    [$ok, $message] = $this->saveEmailNotifications($id, $email, !empty($_POST['email_notifications']));
+
+    if (!$ok) {
+      $this->jsonError(502, $message);
+    }
 
     $this->jsonResponse([
       'message'          => $message,
@@ -430,11 +450,15 @@ class User extends Controller
 
     $enabled = (bool) $user['email_notifications'];
     $success = '';
+    $error   = '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $this->verifyCsrfToken();
-      $enabled = ($_POST['email_notifications'] ?? '') === '1';
-      $success = $this->saveEmailNotifications((int) $user['id'], $user['email'], $enabled);
+      $wanted = ($_POST['email_notifications'] ?? '') === '1';
+      [$ok, $message] = $this->saveEmailNotifications((int) $user['id'], $user['email'], $wanted);
+      $enabled = $ok ? $wanted : $enabled;
+      $success = $ok ? $message : '';
+      $error   = $ok ? '' : $message;
     }
 
     $this->view('user/email_preferences', [
@@ -442,24 +466,32 @@ class User extends Controller
       'action'  => ROOT . '/user/email_preferences?email=' . rawurlencode($email) . '&token=' . $token,
       'enabled' => $enabled,
       'success' => $success,
+      'error'   => $error,
     ]);
   }
 
-  // Saves the preference and, when turning it on, asks Brevo to unblock the address
-  private function saveEmailNotifications(int $id, string $email, bool $enabled): string
+  // Saves the preference and, when turning it on, asks Brevo to unblock the address first
+  private function saveEmailNotifications(int $id, string $email, bool $enabled): array
   {
-    $this->userModel->updateEmailNotifications($id, $enabled);
+    if ($enabled && !Mailer::resubscribe($email, $failedStatus)) {
+      $user = $this->userModel->getUser($id);
+      $this->userModel->logAudit('email_provider_unblock_failed', $id, $user['username'], $user['role'], 'user', $id, 'Brevo could not unblock this address (status ' . $failedStatus . ').');
 
-    if (!$enabled) {
-      return 'Email updates about your protocols have been turned off.';
+      // Status 0 means Brevo was never reached, so the toggle still saves
+      if ($failedStatus !== 0) {
+        return [false, 'We could not reach our email provider to unblock your address. Please try again shortly.'];
+      }
     }
 
-    $resubscribed = Mailer::resubscribe($email);
-    $this->userModel->updateEmailProviderBlocked($id, !$resubscribed);
+    $this->userModel->updateEmailNotifications($id, $enabled);
 
-    return $resubscribed
+    if ($enabled) {
+      $this->userModel->updateEmailProviderBlocked($id, false);
+    }
+
+    return [true, $enabled
       ? 'You will now receive email updates about your protocols.'
-      : 'Preference saved, but we couldn\'t confirm with our email provider that you\'re unblocked. If you previously unsubscribed via email, you may need to try again shortly.';
+      : 'Email updates about your protocols have been turned off.'];
   }
 
   // ===== UPDATE ACCOUNT =====

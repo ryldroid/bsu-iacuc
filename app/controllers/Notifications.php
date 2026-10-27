@@ -28,10 +28,25 @@ class Notifications extends Controller
     header('Content-Type: application/json');
 
     $userId = (int) $_SESSION['user']['user_id'];
+    $user   = $this->userModel->getUser($userId);
+
+    // Brevo cannot call a local server, so while email updates are on, ask it (at most once a minute)
+    // whether this address has unsubscribed or been blocked since we last looked
+    if (!empty($user['email_notifications']) && ($_SESSION['brevo_checked_at'] ?? 0) < time() - 60) {
+      $_SESSION['brevo_checked_at'] = time();
+      $event = Mailer::blockedEvent($user['email']);
+
+      if ($event !== null) {
+        $this->stopEmailUpdates($user, $event);
+        $user = $this->userModel->getUser($userId);
+      }
+    }
 
     echo json_encode([
-      'unread_count' => $this->notificationModel->getUnreadCount($userId),
-      'items'        => $this->withHighlightLinks($this->notificationModel->getForUser($userId)),
+      'unread_count'        => $this->notificationModel->getUnreadCount($userId),
+      'items'               => $this->withHighlightLinks($this->notificationModel->getForUser($userId)),
+      'email_notifications' => !empty($user['email_notifications']),
+      'provider_blocked'    => !empty($user['email_provider_blocked']),
     ]);
     exit;
   }
@@ -64,6 +79,13 @@ class Notifications extends Controller
   // ===== HIGHLIGHT LINKS =====
   private function withHighlightLinks(array $items): array
   {
+    $items = array_map(function (array $item): array {
+      if ($item['type'] === 'email_updates_stopped') {
+        $item['link'] = 'user/account';
+      }
+      return $item;
+    }, $items);
+
     if ($this->isPersonnel()) {
       return $items;
     }

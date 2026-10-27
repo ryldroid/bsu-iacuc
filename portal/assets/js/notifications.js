@@ -66,8 +66,24 @@ function renderList(items) {
     .join("");
 }
 
+// ===== Email toggle sync =====
+function syncEmailToggle(data, requestedAt) {
+  const toggle = document.querySelector("#email_notifications");
+  if (
+    !toggle ||
+    toggle.disabled ||
+    Number(toggle.dataset.savedAt) > requestedAt
+  )
+    return;
+
+  toggle.checked = data.email_notifications;
+  document.querySelector(".provider-blocked-note").hidden =
+    !data.provider_blocked || toggle.checked;
+}
+
 // ===== Load & mark as read =====
 async function loadNotifications() {
+  const requestedAt = Date.now();
   try {
     const res = await fetch(NOTIF_INDEX_URL, {
       headers: { Accept: "application/json" },
@@ -76,6 +92,7 @@ async function loadNotifications() {
     const data = await res.json();
     renderBadge(data.unread_count);
     renderList(data.items);
+    syncEmailToggle(data, requestedAt);
   } catch (e) {}
 }
 
