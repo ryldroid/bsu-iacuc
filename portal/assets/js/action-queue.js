@@ -292,9 +292,9 @@
     } else if (!navigator.onLine) {
       msg.textContent =
         queue.length === 1
-          ? "1 action queued while offline. Do not clear your browser data until it is sent."
+          ? "1 action queued while offline. You may safely close your browser and turn off your computer, but do not clear your browser data until it is sent."
           : queue.length +
-            " actions queued while offline. Do not clear your browser data until they are sent.";
+            " actions queued while offline. You may safely close your browser and turn off your computer, but do not clear your browser data until they are sent.";
     } else {
       msg.textContent =
         queue.length === 1
