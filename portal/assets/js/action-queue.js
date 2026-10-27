@@ -307,6 +307,46 @@
     if (panelEl) panelEl.classList.remove("open");
   }
 
+  var HIDDEN_FIELDS = ["csrf_token", "csrf", "id"];
+
+  function entryIcon(title) {
+    if (/^(Delete|Reject|Remove)/.test(title)) return "trash-icon";
+    if (/^Add/.test(title)) return "add-icon";
+    if (/^(Edit|Rename|Update|Assign)/.test(title)) return "edit-icon";
+    return "refresh-icon";
+  }
+
+  function fieldTitle(name) {
+    var text = name.replace(/_/g, " ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  function entryDetails(entry) {
+    var data = parsePayload({ fields: entry.fields, text: entry.body });
+    if (!data || typeof data !== "object") return "";
+    return Object.keys(data)
+      .filter(function (key) {
+        var unused = /^remove_/.test(key) && String(data[key]) === "0";
+        return HIDDEN_FIELDS.indexOf(key) === -1 && !unused;
+      })
+      .map(function (key) {
+        var value =
+          typeof data[key] === "object"
+            ? JSON.stringify(data[key])
+            : /^remove_/.test(key)
+              ? "Yes"
+              : String(data[key]);
+        return (
+          "<dt>" +
+          escapeHtml(fieldTitle(key)) +
+          "</dt><dd>" +
+          (value ? escapeHtml(value) : '<span class="helper">Empty</span>') +
+          "</dd>"
+        );
+      })
+      .join("");
+  }
+
   function renderPanel() {
     var queue = loadQueue();
     var body = document.getElementById("iq-panel-body");
@@ -340,6 +380,10 @@
     body.innerHTML = queue
       .map(function (entry) {
         var when = formatDateTime(entry.queuedAt);
+        var parts = entry.label.split(": ");
+        var title = parts.shift();
+        var detail = parts.join(": ");
+        var fields = entryDetails(entry);
         var reason = entry.error
           ? '    <span class="helper iq-entry-error">Server: ' +
             escapeHtml(entry.error) +
@@ -347,14 +391,25 @@
           : "";
         return [
           '<div class="iq-entry">',
+          '  <span class="iq-entry-icon' +
+            (entry.error ? " iq-entry-icon--error" : "") +
+            '" aria-hidden="true">',
+          '    <svg width="16" height="16" viewBox="0 0 24 24" focusable="false"><use href="#' +
+            entryIcon(title) +
+            '"/></svg>',
+          "  </span>",
           '  <div class="iq-entry-info">',
-          '    <span class="iq-entry-label">' +
-            escapeHtml(entry.label) +
-            "</span>",
+          '    <span class="iq-entry-label">' + escapeHtml(title) + "</span>",
+          detail
+            ? '    <span class="iq-entry-detail">' +
+              escapeHtml(detail) +
+              "</span>"
+            : "",
           '    <span class="helper iq-entry-time">' + when + "</span>",
           reason,
           "  </div>",
           '  <div class="iq-entry-actions">',
+          '  <button class="button iq-entry-toggle" type="button" aria-expanded="false">View</button>',
           entry.error
             ? '  <button class="button iq-entry-retry" type="button" data-iq-id="' +
               entry.id +
@@ -367,10 +422,29 @@
             ? '    title="Drop your action and leave the server as it is">Keep theirs</button>'
             : '    title="Discard this action">Remove</button>',
           "  </div>",
+          '  <div class="iq-entry-view" hidden>',
+          fields
+            ? "    <dl>" + fields + "</dl>"
+            : '    <p class="helper">No details were saved for this action.</p>',
+          "  </div>",
           "</div>",
         ].join("");
       })
       .join("");
+
+    panelEl
+      .querySelector(".modal-header-icon")
+      .classList.toggle("modal-header-icon--warn", hasConflict);
+
+    body.querySelectorAll(".iq-entry-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var view = btn.closest(".iq-entry").querySelector(".iq-entry-view");
+        var opening = view.hidden;
+        view.hidden = !opening;
+        btn.textContent = opening ? "Hide" : "View";
+        btn.setAttribute("aria-expanded", opening);
+      });
+    });
 
     body.querySelectorAll(".iq-entry-retry").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -532,7 +606,12 @@
       "Offline: action queued and will retry when you are back online.";
     return Promise.resolve(
       new Response(
-        JSON.stringify({ ok: false, queued: true, error: message, message: message }),
+        JSON.stringify({
+          ok: false,
+          queued: true,
+          error: message,
+          message: message,
+        }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
