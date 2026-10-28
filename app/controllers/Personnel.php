@@ -1375,10 +1375,7 @@ class Personnel extends Controller
             'email_verified' => (bool) $user['email_verified'],
         ];
 
-        if (empty($user['welcome_seen'])) {
-            $_SESSION['user']['show_welcome'] = true;
-            $this->userModel->markWelcomeSeen((int) $user['id']);
-        }
+        $this->showWelcomeOnce($user);
 
         $this->userModel->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Personnel logged in');
         $this->redirect('personnel/home');
