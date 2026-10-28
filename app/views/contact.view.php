@@ -16,19 +16,24 @@ $buttonIcon = fn(string $icon) => '<svg width="14" height="14" viewBox="0 0 24 2
 
 $linkButton = fn(string $href, string $icon, string $label, string $attributes = '') => '<a href="' . $href . '" class="contact-button" aria-label="' . $label . '" title="' . $label . '"' . $attributes . '>' . $buttonIcon($icon) . '</a>';
 
+// The address itself is the link; $email is plain, $text is already escaped
+$emailLink = fn(string $email, string $text) => '<a ' . email_link_attributes($email) . ' class="underlined">' . $text . '</a>';
+
 $copyButton = fn(string $text) => '<button type="button" class="contact-button" data-copy="' . $text . '" aria-label="Copy ' . $text . '" title="Copy">' . $buttonIcon('copy-icon') . '</button>';
 
-// One label/value row; $values are plain strings, $type adds the call/email buttons
-$contactLines = function (array $values, string $type = '') use ($linkButton, $copyButton) {
-    foreach ($values as $value) {
+// One label/value row; $values are plain strings. Phones get a call button, emails become links, both get a copy button
+// $skipFirstCall drops the call button from the first phone, which the card's Call us button already covers
+$contactLines = function (array $values, string $type = '', bool $skipFirstCall = false) use ($linkButton, $emailLink, $copyButton) {
+    foreach (array_values($values) as $index => $value) {
         $text    = htmlspecialchars($type === 'phone' ? preg_replace('/^\+63\s*/', '0', $value) : $value, ENT_QUOTES);
         $number  = preg_replace('/[^\d+]/', '', $value);
         $buttons = '';
 
         if ($type === 'phone' && strlen($number) >= 7) {
-            $buttons = $linkButton('tel:' . $number, 'phone-icon', 'Call ' . $text) . $copyButton($text);
+            $buttons = ($skipFirstCall && $index === 0 ? '' : $linkButton('tel:' . $number, 'phone-icon', 'Call ' . $text)) . $copyButton($text);
         } elseif ($type === 'email') {
-            $buttons = $linkButton('mailto:' . $text, 'email-icon', 'Email ' . $text) . $copyButton($text);
+            $buttons = $copyButton($text);
+            $text    = $emailLink($value, $text);
         }
 
         echo '<span class="contact-line">' . $text . $buttons . '</span>';
@@ -89,12 +94,12 @@ $openLine = function (string $url, string $label) use ($linkButton) {
                                 <?php if (!empty($office['director_email'])): ?>
                                     <?php $directorEmail = htmlspecialchars($office['director_email'], ENT_QUOTES); ?>
                                     <span class="contact-line">
-                                        <span class="person-email">
+                                        <a <?= email_link_attributes($office['director_email']) ?> class="person-email underlined">
                                             <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                 <use href="#email-icon" />
                                             </svg><?= $directorEmail ?>
-                                        </span>
-                                        <?= $linkButton('mailto:' . $directorEmail, 'email-icon', 'Email ' . $directorEmail) . $copyButton($directorEmail) ?>
+                                        </a>
+                                        <?= $copyButton($directorEmail) ?>
                                     </span>
                                 <?php endif; ?>
                             </div>
@@ -121,7 +126,7 @@ $openLine = function (string $url, string $label) use ($linkButton) {
                                             <use href="#phone-icon" />
                                         </svg>Phone
                                     </dt>
-                                    <dd><?php $contactLines($phones, 'phone'); ?></dd>
+                                    <dd><?php $contactLines($phones, 'phone', $isFeatured); ?></dd>
                                 </div>
                             <?php endif; ?>
 
@@ -162,7 +167,7 @@ $openLine = function (string $url, string $label) use ($linkButton) {
                         <?php if ($isFeatured && ($firstEmail !== '' || strlen($firstPhone) >= 7)): ?>
                             <div class="contact-actions">
                                 <?php if ($firstEmail !== ''): ?>
-                                    <a href="mailto:<?= htmlspecialchars($firstEmail, ENT_QUOTES) ?>" class="button contact-action">
+                                    <a <?= email_link_attributes($firstEmail) ?> class="button contact-action">
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#email-icon" />
                                         </svg>Email us

@@ -61,6 +61,18 @@ function asset_js(string $file): string
   return JSPATH . '/' . $file . ($v ? '?v=' . $v : '');
 }
 
+// ===== LINK HELPERS =====
+function gmail_compose_url(string $email): string
+{
+  return 'https://mail.google.com/mail/?view=cm&fs=1&to=' . rawurlencode($email);
+}
+
+// Opens Gmail in a new tab; footer.php swaps in data-mailto on touch screens so their own mail app opens
+function email_link_attributes(string $email): string
+{
+  return 'href="' . htmlspecialchars(gmail_compose_url($email), ENT_QUOTES) . '" data-mailto="mailto:' . htmlspecialchars($email, ENT_QUOTES) . '" target="_blank" rel="noopener noreferrer"';
+}
+
 // ===== ROUND LABEL HELPER =====
 function submission_round_label(int $versionNumber): string
 {
