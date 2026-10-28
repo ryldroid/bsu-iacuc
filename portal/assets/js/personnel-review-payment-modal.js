@@ -51,13 +51,18 @@ reviewPaymentModal.addEventListener("click", (e) => {
 
 // ===== Auto-open from notification/email links =====
 document.addEventListener("DOMContentLoaded", () => {
-  const openPaymentId = parseInt(
-    new URLSearchParams(window.location.search).get("open_payment"),
-    10,
-  );
+  const params = new URLSearchParams(window.location.search);
+  const openPaymentId = parseInt(params.get("open_payment"), 10);
   if (!openPaymentId) return;
+  params.delete("open_payment");
+  const query = params.toString();
+  history.replaceState(
+    null,
+    "",
+    location.pathname + (query ? "?" + query : ""),
+  );
   const protocol = protocolsData.find((p) => p.protocol_id == openPaymentId);
-  if (!protocol) return;
+  if (!protocol || protocol.payment_status !== "proof_submitted") return;
   openReviewPaymentModal(
     openPaymentId,
     protocol.research_title ?? "",

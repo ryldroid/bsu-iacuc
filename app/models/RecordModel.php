@@ -194,10 +194,18 @@ class RecordModel extends Model
     $to    = new DateTime($period['to']);
     $today = new DateTime('today');
 
+    $name = null;
     if ($from->format('d') === '01' && $to->format('Y-m-d') === $to->format('Y-m-t')) {
       $months       = ((int) $to->format('Y') - (int) $from->format('Y')) * 12 + (int) $to->format('n') - (int) $from->format('n') + 1;
       $previousFrom = (clone $from)->modify("-$months months");
       $previousTo   = (clone $from)->modify('-1 day');
+      $startMonth   = (int) $previousFrom->format('n');
+      $name = match (true) {
+        $months === 1                              => $previousFrom->format('M Y'),
+        $months === 3 && $startMonth % 3 === 1     => 'Q' . (intdiv($startMonth - 1, 3) + 1) . ' ' . $previousFrom->format('Y'),
+        $months === 12 && $startMonth === 1        => $previousFrom->format('Y'),
+        default                                    => null,
+      };
     } else {
       $days         = $from->diff($to)->days + 1;
       $previousTo   = (clone $from)->modify('-1 day');
@@ -209,7 +217,7 @@ class RecordModel extends Model
       if ($elapsedEnd < $previousTo) $previousTo = $elapsedEnd;
     }
 
-    return $this->buildPeriod('previous', $previousFrom->format('Y-m-d'), $previousTo->format('Y-m-d'));
+    return $this->buildPeriod('previous', $previousFrom->format('Y-m-d'), $previousTo->format('Y-m-d')) + ['name' => $name];
   }
 
   public function comparison(?array $period): ?array

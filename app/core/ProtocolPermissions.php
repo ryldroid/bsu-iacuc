@@ -16,6 +16,13 @@ class ProtocolPermissions
 {
   public const RENAMEABLE_STATUSES = ['under review', 'needs revision'];
 
+  public const DELETABLE_STATUSES = ['under review', 'needs revision', 'reviewed'];
+
+  public static function isDeletable(?string $status): bool
+  {
+    return in_array(strtolower(trim((string) $status)), self::DELETABLE_STATUSES, true);
+  }
+
   public static function flags(array $protocol, array $actor, ?ProtocolModel $model = null): array
   {
     $role        = (string) ($actor['role'] ?? '');
@@ -23,6 +30,7 @@ class ProtocolPermissions
     $isPersonnel = in_array($role, ['staff', 'reviewer'], true);
     $isOwner     = $actorId > 0 && (int) ($protocol['user_id'] ?? 0) === $actorId;
     $status      = strtolower((string) ($protocol['status'] ?? ''));
+    $deletable   = self::isDeletable($status);
 
     $flags = [
       'isOwner'            => $isOwner,
@@ -30,8 +38,8 @@ class ProtocolPermissions
       'isStaff'            => $role === 'staff',
       'isReviewer'         => $role === 'reviewer',
       'canRename'          => ($isOwner || $isPersonnel) && in_array($status, self::RENAMEABLE_STATUSES, true),
-      'canRequestDeletion' => $isOwner && !$isPersonnel,
-      'canDelete'          => $isPersonnel,
+      'canRequestDeletion' => $isOwner && !$isPersonnel && $deletable,
+      'canDelete'          => $isPersonnel && $deletable,
       'canAmend'           => $isOwner && !$isPersonnel && $status === 'approved',
       'hasPaymentHistory'  => false,
       'hasRenames'         => false,

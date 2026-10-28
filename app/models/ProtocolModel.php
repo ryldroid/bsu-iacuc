@@ -1377,6 +1377,22 @@ class ProtocolModel extends Model
         return (bool) $stmt->get_result()->fetch_row();
     }
 
+    public function hasLockedProtocols(int $userId): bool
+    {
+        $deletable = "'" . implode("','", ProtocolPermissions::DELETABLE_STATUSES) . "'";
+        $stmt = $this->connection->prepare(
+            "SELECT 1 FROM `protocols`
+             WHERE user_id = ? AND deleted_at IS NULL AND LOWER(status) NOT IN ($deletable)
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return true;
+        }
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        return (bool) $stmt->get_result()->fetch_row();
+    }
+
     // ===== RECENT ACTION COUNT =====
     public function countRecentActions(int $userId, string $action, int $windowSeconds = 3600): int
     {

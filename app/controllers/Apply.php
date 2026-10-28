@@ -324,13 +324,13 @@ class Apply extends Controller
         Notifier::sendToRole(
             'staff',
             'payment_proof_uploaded',
-            $paidInPerson ? 'Payment Confirmed' : 'Payment Proof Uploaded',
+            $paidInPerson ? 'Payment Needs Confirmation' : 'Payment Proof Uploaded',
             $researcher . ($paidInPerson ? ' confirmed payment in person for ' : ' uploaded proof of payment for ') . Notifier::boldTitle($title) . '. ' . Notifier::NEXT_STEPS['payment_proof_uploaded'],
             'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
             [
                 'template' => 'payment_proof_uploaded',
                 'vars'     => ['title' => $title, 'actor_name' => $researcher, 'protocol_id' => $protocol['protocol_id'], 'paid_in_person' => $paidInPerson],
-                'subject'  => $paidInPerson ? 'Payment Confirmed' : 'Payment Proof Uploaded',
+                'subject'  => $paidInPerson ? 'Payment Needs Confirmation' : 'Payment Proof Uploaded',
             ]
         );
     }
@@ -453,14 +453,14 @@ class Apply extends Controller
 
         Notifier::sendToPersonnel(
             'cert_verification',
-            'Training Certificate to Verify',
+            'Verify Training Certificate',
             $submitterName . ' submitted a training certificate for verification.',
             'cert_verification',
             $protocolId > 0 ? 'apply/viewer/' . $protocolId : 'personnel/home',
             [
                 'template' => 'cert_verification_personnel',
                 'vars'     => ['submitter' => $submitterName, 'protocol_id' => $protocolId],
-                'subject'  => 'Training Certificate to Verify',
+                'subject'  => 'Verify Training Certificate',
             ]
         );
     }
@@ -1323,8 +1323,8 @@ class Apply extends Controller
 
             $this->redirect(
                 'apply/viewer/' . $canonicalRef
-                . ($versionId > 0 ? '/' . $versionId : '')
-                . ($query !== '' ? '?' . $query : '')
+                    . ($versionId > 0 ? '/' . $versionId : '')
+                    . ($query !== '' ? '?' . $query : '')
             );
         }
 
@@ -1512,12 +1512,8 @@ class Apply extends Controller
         }
 
         $baseDir = dirname(__DIR__, 2) . '/storage/uploads/protocols/';
-        $zipPath = tempnam(sys_get_temp_dir(), 'reviewed_') . '.zip';
 
-        $zip = new ZipArchive();
-        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-
-        $usedNames = [];
+        $entries = [];
         foreach ($rows as $row) {
             $absPath = $baseDir . $row['file_path'];
             if (!file_exists($absPath)) {
@@ -1529,16 +1525,27 @@ class Apply extends Controller
             $entryName = $safeTitle . '.' . $ext;
 
             $suffix = 1;
-            while (in_array($entryName, $usedNames, true)) {
+            while (isset($entries[$entryName])) {
                 $entryName = $safeTitle . '_' . (++$suffix) . '.' . $ext;
             }
-            $usedNames[] = $entryName;
+            $entries[$entryName] = $absPath;
+        }
 
+        if (count($entries) === 1) {
+            $this->protocolModel->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, '1 reviewed protocol downloaded');
+            $this->streamFile(reset($entries), key($entries), true);
+        }
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'reviewed_') . '.zip';
+
+        $zip = new ZipArchive();
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        foreach ($entries as $entryName => $absPath) {
             $zip->addFile($absPath, $entryName);
         }
         $zip->close();
 
-        $this->protocolModel->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($usedNames) . ' reviewed protocol(s) downloaded as ZIP');
+        $this->protocolModel->logAudit('bulk_download', $actor['id'], $actor['name'], $actor['role'], 'protocol', null, count($entries) . ' reviewed protocol(s) downloaded as ZIP');
 
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="reviewed_protocols.zip"');
@@ -1903,6 +1910,7 @@ class Apply extends Controller
         if ($ok) {
             $this->protocolModel->logAudit('payment_verified', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment marked as paid');
             $this->notifyPaymentVerified($protocol, $actor);
+            (new NotificationModel())->markPaymentProofRead($protocolId);
             $_SESSION['flash_success'] = 'Payment marked as paid.';
         }
 
@@ -2272,6 +2280,13 @@ class Apply extends Controller
         exit;
     }
 
+    private function requireDeletable(array $protocol): void
+    {
+        if (!ProtocolPermissions::isDeletable($protocol['status'] ?? '')) {
+            $this->jsonError(422, 'Endorsed and approved protocols cannot be deleted.');
+        }
+    }
+
     // ===== REQUEST DELETION  (POST /apply/request_deletion) =====
 
     public function request_deletion(): void
@@ -2309,6 +2324,7 @@ class Apply extends Controller
         if ($actor['role'] === 'researcher' && !$isOwner) {
             $this->jsonError(403, 'Access denied.');
         }
+        $this->requireDeletable($protocol);
         if (!empty($protocol['deletion_requested_at'])) {
             $this->jsonError(422, 'A deletion request has already been made for this protocol.');
         }
@@ -2325,7 +2341,7 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== DELETE  (POST /apply/delete): staff and reviewers only, any status =====
+    // ===== DELETE  (POST /apply/delete): staff and reviewers only, up to Reviewed status =====
 
     public function delete(): void
     {
@@ -2357,6 +2373,7 @@ class Apply extends Controller
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
+        $this->requireDeletable($protocol);
 
         $ok = $this->protocolModel->softDelete($protocolId, $actor['id'], $actor['name'], $reason);
 
@@ -2398,6 +2415,7 @@ class Apply extends Controller
         if (!$protocol) {
             $this->jsonError(404, 'Protocol not found.');
         }
+        $this->requireDeletable($protocol);
         if (empty($protocol['deletion_requested_at'])) {
             $this->jsonError(422, 'There is no pending deletion request for this protocol.');
         }

@@ -806,7 +806,15 @@ include 'includes/guide.php';
     if (savedPage && savedPage.filter === currentFilter) pager.page = savedPage.page;
 
     (function highlightFromUrl() {
-        const id = new URLSearchParams(window.location.search).get('highlight');
+        const url = new URL(window.location);
+        const id = url.searchParams.get('highlight');
+        const openTarget = url.searchParams.get('open');
+        if (id) {
+            url.searchParams.delete('highlight');
+            url.searchParams.delete('open');
+            history.replaceState(null, '', url);
+        }
+
         const card = id && document.getElementById('protocol-' + id);
         if (!card) return;
         applySubmissionsFilter(card.dataset.status);
@@ -816,12 +824,12 @@ include 'includes/guide.php';
         });
         card.classList.add('protocol--highlight');
 
-        if (new URLSearchParams(window.location.search).get('open') === 'payment' &&
+        if (openTarget === 'payment' &&
             card.querySelector('[data-rejection-reason]')) {
             openPaymentRejectedModal(+id);
         }
 
-        if (new URLSearchParams(window.location.search).get('open') === 'signed_scan' && card.dataset.signedScanUrl) {
+        if (openTarget === 'signed_scan' && card.dataset.signedScanUrl) {
             openFilePopup(card.dataset.signedScanUrl, 'Signed Scan');
         }
     })();

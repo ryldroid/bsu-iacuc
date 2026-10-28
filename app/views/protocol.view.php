@@ -644,13 +644,19 @@ endif; ?>
                     <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
                 </p>
 
+                <?php if (!$canDelete): ?>
+                    <p class="panel-modal-intro">This protocol is endorsed or approved, so it can no longer be deleted. You can only reject this request.</p>
+                <?php endif; ?>
+
                 <div id="deletionReviewChoiceActions" class="panel-modal-actions">
-                    <button class="confirm-modal-btn confirm-modal-ok" type="button" onclick="selectDeletionAction('approve')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-icon" />
-                        </svg>
-                        Approve
-                    </button>
+                    <?php if ($canDelete): ?>
+                        <button class="confirm-modal-btn confirm-modal-ok" type="button" onclick="selectDeletionAction('approve')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#check-icon" />
+                            </svg>
+                            Approve
+                        </button>
+                    <?php endif; ?>
                     <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" onclick="selectDeletionAction('reject')">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#close-icon" />

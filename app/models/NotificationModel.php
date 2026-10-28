@@ -242,6 +242,20 @@ class NotificationModel extends Model
     return $stmt->execute();
   }
 
+  public function markPaymentProofRead(int $protocolId): bool
+  {
+    $link = 'personnel/home?status=reviewed&open_payment=' . $protocolId;
+    $stmt = $this->connection->prepare(
+      "UPDATE `notifications` SET is_read = 1 WHERE type = 'payment_proof_uploaded' AND link = ? AND is_read = 0"
+    );
+    if (! $stmt) {
+      return false;
+    }
+
+    $stmt->bind_param('s', $link);
+    return $stmt->execute();
+  }
+
   public function markAllRead(int $userId): bool
   {
     $stmt = $this->connection->prepare(

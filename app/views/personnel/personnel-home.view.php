@@ -656,13 +656,13 @@ foreach ($protocols as $p) {
                                                 'icon' => 'review'
                                             ],
                                             [
-                                                'label' => 'Revert to Reviewed',
+                                                'label' => 'Undo Endorsed',
                                                 'action' => 'revert-endorsed',
                                                 'icon' => 'undo',
                                                 'menu' => true
                                             ],
                                             [
-                                                'label' => 'Revert to To Review',
+                                                'label' => 'Returned by DA-RFO',
                                                 'action' => 'revert-endorsed-to-review',
                                                 'icon' => 'undo',
                                                 'menu' => true
@@ -693,7 +693,7 @@ foreach ($protocols as $p) {
                                         ];
                                         if (!$hasHardCopyReleased) {
                                             $actions[] = [
-                                                'label' => 'Revert to Endorsed',
+                                                'label' => 'Undo Endorsed',
                                                 'action' => 'revert-approved',
                                                 'icon' => 'undo',
                                                 'menu' => true

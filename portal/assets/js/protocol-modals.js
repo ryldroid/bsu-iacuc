@@ -133,7 +133,7 @@ const DELETE_MODES = {
   },
   revert: {
     api: "/apply/status",
-    label: "Revert to To Review",
+    label: "Returned by DA-RFO",
     intro:
       "The researcher and reviewers will be notified. Add why Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI returned it.",
     button: "Revert",
@@ -141,7 +141,8 @@ const DELETE_MODES = {
     confirm: "Send this protocol back to To Review?",
     danger: false,
     icon: "undo-icon",
-    placeholder: "For example: Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) asked for a corrected animal count.",
+    placeholder:
+      "For example: Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) asked for a corrected animal count.",
     optional: true,
     neutral: true,
     body: { status: "Under Review" },

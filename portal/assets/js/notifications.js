@@ -107,6 +107,7 @@ async function markRead(id, read = true) {
   try {
     await fetch(NOTIF_MARKREAD_URL, {
       method: "POST",
+      keepalive: true,
       headers: {
         "Content-Type": "application/json",
         "X-CSRF-Token": NOTIF_CSRF_TOKEN,
@@ -114,6 +115,14 @@ async function markRead(id, read = true) {
       body: JSON.stringify({ id, read }),
     });
   } catch (e) {}
+}
+
+function openNotification(event, item) {
+  if (event.target.closest(".notif-item-link")) {
+    markRead(item.dataset.id);
+    return;
+  }
+  item.querySelector(".notif-item-link")?.click();
 }
 
 async function markAllRead() {
@@ -167,7 +176,7 @@ if (notifBell && notifDropdown) {
     const item = event.target.closest(".notif-item");
     if (!item) return;
     if (!event.target.closest(".notif-item-toggle-read")) {
-      markRead(item.dataset.id);
+      openNotification(event, item);
       return;
     }
     await markRead(item.dataset.id, item.classList.contains("unread"));

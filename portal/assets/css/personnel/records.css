@@ -74,22 +74,6 @@
   transition: box-shadow 150ms ease, border-color 150ms ease;
 }
 
-.records-stat-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.records-stat-link:hover {
-  box-shadow: 0 4px 12px var(--shadow-color-soft);
-  border-color: var(--brand-color-hover);
-}
-
-.records-stat-link:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
 .records-metrics .metric-card-label {
   font-weight: 600;
   font-size: .78em;
@@ -1908,52 +1892,16 @@
   border-top-color: color-mix(in srgb, var(--tone) 22%, transparent);
 }
 
-/* Before / now bars: the change at a glance */
 .stat-compare {
-  display: grid;
-  gap: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
 }
 
-.stat-compare-row {
-  display: grid;
-  grid-template-columns: 44px 1fr auto;
-  align-items: center;
-  gap: 8px;
+.stat-compare-caption {
   font-size: .8em;
   color: var(--secondary-text);
-}
-
-.stat-compare-track {
-  display: block;
-  height: 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--tone) 14%, transparent);
-  overflow: hidden;
-}
-
-.stat-compare-fill {
-  display: block;
-  width: var(--w);
-  min-width: 3px;
-  height: 100%;
-  border-radius: 4px;
-  transform-origin: left;
-}
-
-.stat-compare-fill--before {
-  background: color-mix(in srgb, var(--tone) 38%, var(--card-background));
-}
-
-.stat-compare-fill--now {
-  background: var(--tone);
-}
-
-.stat-compare-num {
-  min-width: 18px;
-  text-align: right;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--primary-text);
 }
 
 /* Section headers */
@@ -2093,8 +2041,7 @@
 /* One entrance: bars grow in when the tab opens */
 @media (prefers-reduced-motion: no-preference) {
 
-  .records-bar-fill,
-  .stat-compare-fill {
+  .records-bar-fill {
     animation: stat-grow-x 700ms cubic-bezier(.2, .7, .2, 1) both;
   }
 

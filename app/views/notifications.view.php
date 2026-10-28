@@ -153,7 +153,7 @@ function notifDateGroup(string $dateStr): string
       if (!item) return;
       const toggleBtn = event.target.closest('.notif-item-toggle-read');
       if (!toggleBtn) {
-        markRead(item.dataset.id);
+        openNotification(event, item);
         return;
       }
       const read = item.classList.contains('unread');

@@ -616,6 +616,11 @@ class User extends Controller
     if ($role === 'researcher') {
       $protocolModel = new ProtocolModel();
 
+      if ($protocolModel->hasLockedProtocols($id)) {
+        $_SESSION['flash_error'] = 'You cannot delete your account while you have endorsed or approved protocols.';
+        $this->redirect('user/account');
+      }
+
       if ($protocolModel->hasActiveProtocols($id)) {
         $_SESSION['flash_error'] = 'You cannot delete your account while you have protocols that are still being processed.';
         $this->redirect('user/account');

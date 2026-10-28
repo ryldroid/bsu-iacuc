@@ -114,42 +114,47 @@ function renderBarList(array $rows, string $emptyText, bool $showShare = true, b
     echo '</ul>';
 }
 
-function statDelta(int|float $value, ?int $previous): string
+function compactRange(string $from, string $to): string
 {
-    if ($previous === null) return '';
-    $diff = $value - $previous;
-    if ($diff === 0) {
-        return '<span class="stat-delta stat-delta--flat" title="Same as the previous period (' . number_format($previous) . ')">No change</span>';
-    }
-    $dir   = $diff > 0 ? 'up' : 'down';
-    $arrow = $diff > 0 ? '↑' : '↓';
-    $label = $previous > 0
-        ? number_format(round(abs($diff) / $previous * 100)) . '%'
-        : number_format(abs($diff)) . ' new';
-    $title = number_format($previous) . ' in the previous period, ' . number_format(abs($diff)) . ($diff > 0 ? ' more' : ' fewer') . ' now';
-    return '<span class="stat-delta stat-delta--' . $dir . '" title="' . htmlspecialchars($title, ENT_QUOTES) . '">'
-        . '<span aria-hidden="true">' . $arrow . '</span> ' . $label
-        . '<span class="sr-only"> ' . ($diff > 0 ? 'up' : 'down') . ' from ' . number_format($previous) . ' in the previous period</span></span>';
+    $start = new DateTime($from);
+    $end   = new DateTime($to);
+    if ($from === $to) return $start->format('M j, Y');
+    if ($start->format('Y-m') === $end->format('Y-m')) return $start->format('M j') . '–' . $end->format('j, Y');
+    if ($start->format('Y') === $end->format('Y')) return $start->format('M j') . '–' . $end->format('M j, Y');
+    return $start->format('M j, Y') . '–' . $end->format('M j, Y');
+}
+
+function comparisonName(?string $set = null): string
+{
+    static $name = '';
+    if ($set !== null) $name = $set;
+    return $name;
 }
 
 function statCompare(int|float $value, ?int $previous): string
 {
     if ($previous === null) return '';
-    $max  = max($value, $previous, 1);
-    $row  = function (string $name, int $n, string $mod) use ($max): string {
-        return '<div class="stat-compare-row"><span class="stat-compare-name">' . $name . '</span>'
-            . '<span class="stat-compare-track"><span class="stat-compare-fill stat-compare-fill--' . $mod . '" style="--w: ' . round($n / $max * 100) . '%"></span></span>'
-            . '<span class="stat-compare-num">' . number_format($n) . '</span></div>';
-    };
-    return '<div class="stat-compare" aria-hidden="true">' . $row('Before', $previous, 'before') . $row('Now', $value, 'now') . '</div>';
+    $diff = $value - $previous;
+    if ($diff === 0) {
+        $caption = 'from ' . comparisonName() . ' (' . number_format($previous) . ')';
+        $chip    = '<span class="stat-delta stat-delta--flat">No change</span>';
+    } else {
+        $caption = 'than ' . comparisonName() . ' (' . number_format($previous) . ')';
+        $up      = $diff > 0;
+        $percent = $previous > 0 ? ' (' . number_format(round(abs($diff) / $previous * 100)) . '%)' : '';
+        $chip    = '<span class="stat-delta stat-delta--' . ($up ? 'up' : 'down') . '">'
+            . '<span aria-hidden="true">' . ($up ? '↑' : '↓') . '</span>'
+            . '<span class="sr-only">' . ($up ? 'Up' : 'Down') . ' </span> '
+            . number_format(abs($diff)) . ($up ? ' more' : ' fewer') . $percent . '</span>';
+    }
+    return '<div class="stat-compare">' . $chip . '<span class="stat-compare-caption">' . $caption . '</span></div>';
 }
 
-function renderStatCard(string $label, int|float $value, ?int $previous, string $hint, string $href = '', string $tone = 'neutral', string $icon = '', string $title = ''): void
+function renderStatCard(string $label, int|float $value, ?int $previous, string $hint, string $tone = 'neutral', string $icon = '', string $title = ''): void
 {
-    $tag     = $href !== '' ? 'a' : 'div';
-    $classes = 'metric-card' . ($href !== '' ? ' records-stat-link' : '') . ($value == 0 ? ' is-zero' : '');
-    $attrs   = ' class="' . $classes . '" data-tone="' . htmlspecialchars($tone, ENT_QUOTES) . '"' . ($href !== '' ? ' href="' . htmlspecialchars($href, ENT_QUOTES) . '"' : '') . ($title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '');
-    echo '<' . $tag . $attrs . '>';
+    $classes = 'metric-card' . ($value == 0 ? ' is-zero' : '');
+    $attrs   = ' class="' . $classes . '" data-tone="' . htmlspecialchars($tone, ENT_QUOTES) . '"' . ($title !== '' ? ' title="' . htmlspecialchars($title, ENT_QUOTES) . '"' : '');
+    echo '<div' . $attrs . '>';
     echo '<div class="records-stat-head">';
     if ($icon !== '') {
         echo '<span class="records-stat-icon"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . htmlspecialchars($icon, ENT_QUOTES) . '"></use></svg></span>';
@@ -158,11 +163,10 @@ function renderStatCard(string $label, int|float $value, ?int $previous, string 
     echo '</div>';
     echo '<div class="records-stat-main">';
     echo '<div class="metric-card-value">' . number_format($value, is_float($value) ? 1 : 0) . '</div>';
-    echo statDelta($value, $previous);
     echo '</div>';
     echo statCompare($value, $previous);
     echo '<div class="records-stat-hint">' . htmlspecialchars($hint) . '</div>';
-    echo '</' . $tag . '>';
+    echo '</div>';
 }
 
 function renderDataNote(string $text, string $href, string $linkLabel): void
@@ -236,7 +240,6 @@ $sexRows            = statBarRows($stats['sex_breakdown']);
 $revisionProtoRows  = statBarRows($stats['revisions_by_protocol'], count($stats['revisions_by_protocol']), false);
 $revisionPiRows     = statBarRows($stats['revisions_by_pi'], 8, false);
 
-$periodLabel  = $period['label'] ?? 'All time';
 $periodParams = array_filter([
     'period' => $periodPreset,
     'from'   => $periodPreset === 'custom' ? $periodFrom : '',
@@ -673,7 +676,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                 data-tab-panel="statistics" <?= $activeTab === 'statistics' ? '' : 'hidden' ?>>
                 <?php
                 $previousTotals  = $comparison['totals'] ?? null;
-                $inboxUrl        = ROOT . '/personnel/home?status=';
+                comparisonName($comparison['period']['name'] ?? 'the period before');
                 $recordsUrl      = ROOT . '/personnel/records?' . http_build_query($period ? array_merge(['tab' => 'records', 'in_period' => 1], $periodParams) : ['tab' => 'records']);
                 $excludedCount   = $period ? (int) $stats['excluded_by_period'] : 0;
                 $incompleteCount = (int) $stats['incomplete_count'];
@@ -708,11 +711,11 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#calendar-icon" />
                                     </svg>
-                                    <?= htmlspecialchars($periodLabel) ?>
+                                    <?= htmlspecialchars(compactRange($period['from'], min($period['to'], date('Y-m-d')))) ?>
                                 </span>
                             <?php endif; ?>
                             <?php if ($comparison): ?>
-                                <span class="records-period-range">Compared with <?= htmlspecialchars($comparison['period']['label']) ?></span>
+                                <span class="records-period-range">vs. <?= htmlspecialchars(compactRange($comparison['period']['from'], $comparison['period']['to'])) ?></span>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
@@ -741,7 +744,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                 </div>
                 <div class="metrics-row records-metrics">
                     <?php
-                    renderStatCard('Protocols Reviewed', $stats['reviewed'], $previousTotals['reviewed'] ?? null, 'Finished review', $inboxUrl . 'reviewed', 'reviewed', 'review-icon');
+                    renderStatCard('Protocols Reviewed', $stats['reviewed'], $previousTotals['reviewed'] ?? null, 'Finished review', 'reviewed', 'review-icon');
                     renderStatCard(
                         'Protocols Revised',
                         $stats['revised'],
@@ -749,13 +752,12 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         $stats['revised'] > 0
                             ? number_format($stats['revision_submissions']) . ' ' . pluralize($stats['revision_submissions'], 'resubmission') . ' in total'
                             : 'No resubmissions',
-                        $inboxUrl . 'returned-for-revision',
                         'revised',
                         'undo-icon',
                         'One protocol can be resubmitted several times, so resubmissions can be higher than protocols revised.'
                     );
-                    renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', $inboxUrl . 'endorsed', 'endorsed', 'timeline-endorse-icon');
-                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', $inboxUrl . 'endorsed', 'signed', 'shield-check-icon');
+                    renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', 'endorsed', 'timeline-endorse-icon');
+                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', 'signed', 'shield-check-icon');
                     ?>
                 </div>
 
@@ -766,10 +768,10 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                 </div>
                 <div class="metrics-row records-metrics">
                     <?php
-                    renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', $recordsUrl, 'neutral', 'protocols-icon');
-                    renderStatCard('Average Revisions per Protocol', $stats['avg_revisions'], null, 'Resubmissions per revised protocol', $inboxUrl . 'returned-for-revision', 'revised', 'undo-icon');
-                    renderStatCard('Clearances Received', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', $inboxUrl . 'approved', 'signed', 'clearance-page-icon');
-                    renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', $recordsUrl, 'animals', 'beaker-icon');
+                    renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', 'neutral', 'protocols-icon');
+                    renderStatCard('Average Revisions per Protocol', $stats['avg_revisions'], null, 'Resubmissions per revised protocol', 'revised', 'undo-icon');
+                    renderStatCard('Clearances Received', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', 'signed', 'clearance-page-icon');
+                    renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', 'animals', 'beaker-icon');
                     ?>
                 </div>
 
@@ -862,7 +864,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 $guideId    = 'statistics';
 $guideSteps = [
     ['Statistics', 'See review activity and record totals for a period you choose. Let us walk through it.'],
-    ['Period', 'Choose the period to report on, including a custom date range. When available, the figures are compared with the previous period.', '#statsPeriodForm'],
+    ['Period', 'Choose the period to report on, including a custom date range. Each card also shows how its figure compares with the period right before, for example September when you pick October.', '#statsPeriodForm'],
     ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, average revisions, clearances received, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
     ['Breakdowns', 'Charts break the period down by animals used, school, researcher sex, researcher type, and resubmissions.', '.records-charts-grid'],
     ['Download as Excel', 'Download the statistics and records for the chosen period as an Excel file.', '.records-export-btn'],
