@@ -581,7 +581,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                             <td class="records-detail date-cell" data-label="Date Added"><?= $addedLabel ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                             <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
-                                            <td class="records-detail date-cell" data-label="File"><?php if (!empty($r['file_path'])): ?><a class="researcher-name-link" href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="File"><?php if (!empty($r['file_path'])): ?><a class="researcher-name-link" href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>/<?= rawurlencode($r['file_original_name'] ?? 'record.pdf') ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
                                             <td class="records-details-cell">
                                                 <button type="button" class="records-toggle records-details-toggle" aria-expanded="false">
                                                     Details
@@ -613,7 +613,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                                     <?php endif; ?>
                                                     <button type="button" class="row-btn view-record-btn"
                                                         data-details="<?= htmlspecialchars(json_encode($viewDetails, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
-                                                        data-file-url="<?= !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] : '' ?>"
+                                                        data-file-url="<?= !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] . '/' . rawurlencode($r['file_original_name'] ?? 'record.pdf') : '' ?>"
                                                         aria-label="View record details">
                                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                             <use href="#eye-icon">
@@ -1446,7 +1446,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                         document.getElementById('edit_date_released').value = d.date_released ?? '';
                         document.getElementById('edit_received_by').value = d.received_by ?? '';
                         document.getElementById('edit_status').value = d.status || 'Ongoing';
-                        editFile.reset(d.file_original_name ?? '', d.file_original_name ? ROOT + '/personnel/records_file/' + d.id : '');
+                        editFile.reset(d.file_original_name ?? '', d.file_original_name ? ROOT + '/personnel/records_file/' + d.id + '/' + encodeURIComponent(d.file_original_name) : '');
                         openModal('editModal');
                     })
                     .catch(() => showToast('Network error. Please try again.', 'error'));

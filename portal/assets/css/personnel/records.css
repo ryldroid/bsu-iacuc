@@ -297,11 +297,12 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  overflow-x: auto;
 }
 
 .records-column-col {
   flex: 1;
-  min-width: 0;
+  min-width: 4em;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -346,7 +347,7 @@
   line-height: 1.25;
   text-align: center;
   color: var(--secondary-text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .records-card-empty {
@@ -385,6 +386,7 @@
 
 .records-donut-body {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 20px;
 }
@@ -437,8 +439,8 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 11em;
+  min-width: min(11em, 100%);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -461,7 +463,7 @@
 
 .records-legend-label {
   color: var(--secondary-text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .records-legend-value {

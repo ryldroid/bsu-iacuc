@@ -26,31 +26,31 @@ $statusMeta = [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => "Your protocols and/or IACUC training certificate are being reviewed, and you will be notified for every feedback given.\n\nYour protocols will not move forward unless you have a verified training certificate. If it is rejected, resubmit.",
+        'desc'  => "Your protocols and/or IACUC training certificate are being reviewed, and you will be notified for every feedback given. Your protocols will not move forward unless you have a verified training certificate. If it is rejected, resubmit.",
     ],
     'needs-revision' => [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => "The reviewer found an issue and sent your protocol back.\n\nRevise it following the comments and re-submit your file.",
+        'desc'  => "The reviewer found an issue and sent your protocol back.Revise it following the comments and re-submit your file.",
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee.\n\nResearchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\n\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division.",
+        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division.",
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => "No action needed.\n\nYour protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
+        'desc'  => "No action needed.Your protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
     ],
     'approved' => [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => "Congratulations, your protocol has been approved!\n\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.",
+        'desc'  => "Congratulations, your protocol has been approved!\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.",
     ],
 ];
 
