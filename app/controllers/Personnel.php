@@ -148,14 +148,6 @@ class Personnel extends Controller
                     'note'        => $cert['cert_note'],
                     'file_url'    => ROOT . '/apply/cert/' . $id,
                     'is_image'    => (bool) preg_match('/\.(jpe?g|png)$/i', $cert['cert_path']),
-                    'history'     => array_map(fn($h) => [
-                        'action'        => $h['action'],
-                        'note'          => $h['note'],
-                        'original_name' => $h['original_name'],
-                        'created_at'    => $h['created_at'],
-                        'actor_name'    => $h['actor_name'],
-                        'file_url'      => ROOT . '/personnel/cert_file/' . $h['id'],
-                    ], $this->userModel->getCertHistory($id)),
                 ] : null,
                 'protocols'      => array_map(fn($p) => [
                     'reference_no'   => $p['reference_no'],

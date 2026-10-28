@@ -3188,6 +3188,16 @@ class Apply extends Controller
         }, $versions);
 
         $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
+        $certHistory  = $this->isPersonnel()
+            ? array_map(fn($h) => [
+                'action'        => $h['action'],
+                'note'          => $h['note'],
+                'original_name' => $h['original_name'],
+                'created_at'    => $h['created_at'],
+                'actor_name'    => $h['actor_name'],
+                'file_url'      => ROOT . '/personnel/cert_file/' . $h['id'],
+            ], $this->userModel->getCertHistory((int) $protocol['user_id']))
+            : [];
 
         echo json_encode([
             'protocol_id'         => $protocolId,
@@ -3197,6 +3207,7 @@ class Apply extends Controller
             'versions'            => $versions,
             'payment_proof_files' => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof')),
             'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
+            'cert_history'        => $certHistory,
         ]);
         exit;
     }

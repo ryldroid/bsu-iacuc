@@ -44,17 +44,17 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. Only one personnel needs to do this. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.',
+        'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and delete protocols.\n\nAny CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
-        'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**. Each card shows which of the five steps it is on and whether you or the researcher must act.",
-        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
-        'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
+        'reviewed'              => "The reviewer has finished review.\n\nHere, in a step-by-step process, confirm clearance processing fee payments, assign IPNs, upload signed scans with the IACUC chairperson's signature, and mark protocols as **endorsed**.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).\n\nUpload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **approved**.",
+        'approved'              => "Digital animal research clearances issued! The protocols are now fully approved.\n\nConfirm when researchers have picked up the embossed hard copy of their clearances.",
     ],
     'reviewer' => [
-        'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. If it is rejected you can still read and comment, but you cannot finish the review or return the protocol until it is verified. Your part ends once you mark it Reviewed or return it for revision.',
+        'to-review'             => "Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols.\n\nAny CCARD personnel can verify a researcher's first-time IACUC training certificate submission. You can still read and comment even if a certificate is rejected, but you cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
-        'endorsed'              => 'Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
+        'endorsed'              => "Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).\n\nNo action required. Administrative staff will upload the released animal research clearances and release them to the researchers.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
 ];
@@ -269,6 +269,7 @@ foreach ($protocols as $p) {
                             <select id="inboxSortSelect" class="dashboard-sort-select dashboard-select-trigger" aria-label="Sort protocols">
                                 <option value="newest">Newest Submitted</option>
                                 <option value="oldest" selected>Oldest Submitted</option>
+                                <option value="updated">Recently Updated</option>
                                 <option value="title_asc">Title (A–Z)</option>
                                 <option value="title_desc">Title (Z–A)</option>
                             </select>
@@ -283,6 +284,7 @@ foreach ($protocols as $p) {
                             <div class="dropdown-panel" id="mobileSortOptions">
                                 <button class="status-card" data-sort="newest">Newest Submitted</button>
                                 <button class="status-card active" data-sort="oldest">Oldest Submitted</button>
+                                <button class="status-card" data-sort="updated">Recently Updated</button>
                                 <button class="status-card" data-sort="title_asc">Title (A–Z)</button>
                                 <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
                             </div>
@@ -326,7 +328,7 @@ foreach ($protocols as $p) {
                                             <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
                                         </p>
                                         <p class="legend-info-desc">
-                                            <?= Notifier::toHtml($meta['desc']) ?>
+                                            <?= nl2br(Notifier::toHtml($meta['desc'])) ?>
                                         </p>
                                     </div>
                                 </div>
@@ -457,6 +459,7 @@ foreach ($protocols as $p) {
 
                         <?php foreach ($protocols as $protocol):
                             $submittedDate  = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
+                            $updatedDate    = date(DATE_FORMAT, strtotime($protocol['last_activity_at']));
                             $statusDisplay  = $protocol['status_display'];
                             $badgeClass     = $protocol['badge_class'];
                             $filterSlug     = $protocol['filter_slug'];
@@ -721,6 +724,7 @@ foreach ($protocols as $p) {
                                 data-payment="<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>"
                                 data-researcher="<?= strtolower(htmlspecialchars($protocol['first_name'] . ' ' . $protocol['last_name'], ENT_QUOTES, 'UTF-8')) ?>"
                                 data-submitted="<?= htmlspecialchars(date('c', strtotime($protocol['submitted_at'])), ENT_QUOTES, 'UTF-8') ?>"
+                                data-updated="<?= htmlspecialchars(date('c', strtotime($protocol['last_activity_at'])), ENT_QUOTES, 'UTF-8') ?>"
                                 data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
                                 <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
@@ -752,7 +756,7 @@ foreach ($protocols as $p) {
                                             <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
                                         </p>
                                         <p class="protocol-meta-line">
-                                            <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; <?= $submittedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                                            <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; Submitted <?= $submittedDate ?> &middot; Last updated <?= $updatedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
                                         </p>
                                         <?php if ($nextStep): ?>
                                             <div class="protocol-next-step<?= $nextStep[2] ? ' protocol-next-step--waiting' : '' ?>">
@@ -989,21 +993,23 @@ $guideSteps = [
     ['Protocol Inbox', $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
         : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
-    ['Status filters', 'Filter the inbox by status. It opens on **To review**, which are the protocols awaiting review. The number next to each name is how many protocols have that status.', '#filterPillsRow, .mobile-filter-group'],
+    ['Status filters', 'Filter the inbox by status. The number next to each status is the number of protocols with that status.', '#filterPillsRow, .mobile-filter-group'],
     ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
-    ['Sort', 'Change the order: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
-    ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means for you. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
+    ['Sort', 'Change the order: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
+    ['Status legend', 'Every protocol will be organized according to their status. To visit the guide for these any time, click on the question mark at the end of the line.', '.status-legend-bar'],
 ];
 foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
 $guideSteps = array_merge($guideSteps, [
-    ['Training certificates', "Opening a protocol first shows a window with the researcher's details and training certificate. If nobody has checked the certificate yet, you must verify it or request a resubmission before you continue. Only one personnel needs to do this, and whoever does it first settles it for everyone. When it has already been checked, the window just tells you whether it was verified or rejected. If it was rejected, reviewers may still read and comment, but cannot finish the review or return the protocol until the researcher resubmits and it is verified."],
-    ['Protocol card', "Each card is one protocol. It shows the status icon, the research title, the submission round, and the researcher. Press the researcher's name to see their details and verify or review their training certificate.", '.protocols-list .protocol:first-visible'],
-    ['Actions', $personnelRole === 'staff'
-        ? 'Protocols **To Review** are handled by the reviewers, so their cards only offer **View Protocol**. Once a protocol is **Reviewed** or **Endorsed**, its card shows the next task instead, such as **Verify Payment**, **Assign IPN**, **Upload Signed Scan**, **Mark as Endorsed**, or **Mark as Approved**. The **eye button** (View Protocol) is always available beside the three dots, and **View Clearance** appears once approved.'
-        : 'Press **Review** to open it, read it, and give your feedback. Protocols in other statuses show **View Protocol** instead, and **View Clearance** once approved.', '.protocols-list .protocol .actions:first-visible'],
-    ['More actions', '**Actions** is the three dots beside the eye button (View Protocol). It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Delete**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
+    ['Protocol card', "Each card represents one protocol. It shows the status icon, the research title, the number of rounds it has been resubmitted, the researcher's name and school, and the dates it was submitted and last updated.\n\nYou may press the researcher's name to see their contact details or review their training certificate.", '.protocols-list .protocol:first-visible'],
+    ['Card buttons', $personnelRole === 'staff'
+        ? "The main button on a card is your next task, and it changes with the status.\n\n**Reviewed**: verify payment, assign IPN, upload signed scan, mark as endorsed.\n**Endorsed**: mark as approved.\n**Approved**: view clearance.\n\n**To review** cards have no task for you, since the reviewers handle them."
+        : "Press **review** to read and give your feedback on protocols.\n\nCards in any other status have no task for you. **view clearance** appears once a protocol is approved.", '.protocols-list .protocol .actions:first-visible'],
+    ['View button', $personnelRole === 'staff'
+        ? "The **view** button opens the protocol so you can read it.\n\nIt is on every card."
+        : "The **view** button opens the protocol so you can read it. It is on every card except where you press **review** instead.", '.protocols-list .protocol .actions-secondary .protocol-view-btn:first-visible'],
+    ['Three-dot menu', "The three dots beside **view** hold everything else you can do with a protocol. Only the items that apply to that protocol are shown.", '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many rows to show per page.', '#paginationBar'],
 ]);
 include dirname(__DIR__) . '/includes/guide.php';

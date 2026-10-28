@@ -20,11 +20,6 @@ const CERT_STATUS_BADGES = {
   verified: "payment-badge--paid",
   rejected: "payment-badge--rejected",
 };
-const CERT_ACTION_LABELS = {
-  submitted: "Submitted",
-  verified: "Verified",
-  rejected: "Resubmission requested",
-};
 
 function announceCertState(status) {
   document.dispatchEvent(
@@ -119,8 +114,7 @@ function renderResearcherDetails(d) {
             <li class="researcher-protocol-item">
                 <span class="researcher-protocol-title">${escapeHtml(p.research_title)}</span>
                 <span class="researcher-protocol-meta">
-                    ${escapeHtml(p.reference_no || "")} &middot; ${escapeHtml(p.status)}
-                    ${p.submitted_at ? " &middot; " + formatDate(p.submitted_at) : ""}
+                    ${[p.reference_no, p.status, p.submitted_at && formatDate(p.submitted_at)].filter(Boolean).map(escapeHtml).join(" &middot; ")}
                 </span>
             </li>
         `,
@@ -211,21 +205,6 @@ function renderCertSection(cert) {
     `;
   }
 
-  const historyHtml = cert.history
-    .map(
-      (h) => `
-            <li class="researcher-protocol-item">
-                <span class="researcher-protocol-title">${escapeHtml(CERT_ACTION_LABELS[h.action] || h.action)}${h.actor_name ? " by " + escapeHtml(h.actor_name) : ""}</span>
-                <span class="researcher-protocol-meta">
-                    ${formatDateTime(h.created_at)}
-                    ${h.action === "submitted" ? ` &middot; <a class="researcher-name-link" href="${escapeHtml(h.file_url)}" target="_blank" rel="noopener">${escapeHtml(h.original_name || "View file")}</a>` : ""}
-                </span>
-                ${h.note ? `<span class="researcher-protocol-meta">${escapeHtml(h.note)}</span>` : ""}
-            </li>
-        `,
-    )
-    .join("");
-
   return `
         <div class="researcher-protocol-section">
             <p class="researcher-protocol-heading">Training certificate</p>
@@ -240,8 +219,6 @@ function renderCertSection(cert) {
                 </div>
             </div>
             ${renderCertActions(cert)}
-            <p class="researcher-protocol-heading">History</p>
-            <ul class="researcher-protocol-list">${historyHtml}</ul>
         </div>
     `;
 }

@@ -5,6 +5,11 @@
     return isNaN(parsed) ? 0 : parsed;
   }
 
+  function updatedOf(el) {
+    const parsed = Date.parse(el.dataset.updated || "");
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
   function titleOf(el) {
     return el.dataset.title || "";
   }
@@ -14,6 +19,8 @@
     switch (mode) {
       case "oldest":
         return (a, b) => timestampOf(a) - timestampOf(b);
+      case "updated":
+        return (a, b) => updatedOf(b) - updatedOf(a);
       case "title_asc":
         return (a, b) => titleOf(a).localeCompare(titleOf(b));
       case "title_desc":

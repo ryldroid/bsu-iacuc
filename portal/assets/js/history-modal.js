@@ -156,6 +156,52 @@ function buildTitleHistorySection(titleHistory) {
   return historySection("Title Name History", rows);
 }
 
+const CERT_HISTORY_EVENTS = {
+  submitted: ["info", "upload-icon", "Certificate submitted"],
+  verified: ["success", "shield-check-icon", "Certificate verified"],
+  rejected: [
+    "warning",
+    "alert-triangle-icon",
+    "Certificate resubmission requested",
+  ],
+};
+
+function buildCertHistorySection(certHistory) {
+  if (!certHistory || certHistory.length === 0) return "";
+
+  const rows = certHistory
+    .map((h) => {
+      const [tone, icon, title] = CERT_HISTORY_EVENTS[h.action] || [
+        "info",
+        "history-icon",
+        h.action,
+      ];
+      const who = h.actor_name ? escapeHtml(h.actor_name) + " &middot; " : "";
+      const detail = h.note
+        ? `<span class="payment-event-detail">${escapeHtml(h.note)}</span>`
+        : "";
+      const action =
+        h.action === "submitted"
+          ? `<a class="button button-compact history-open" href="${escapeHtml(h.file_url)}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(h.original_name || "certificate")}">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
+                Open
+            </a>`
+          : "";
+
+      return historyEvent(
+        tone,
+        icon,
+        title,
+        `${who}${escapeHtml(formatDateTime(h.created_at))}`,
+        detail,
+        action,
+      );
+    })
+    .join("");
+
+  return historySection("Training Certificate History", rows);
+}
+
 function historySection(label, rows) {
   return `<section class="history-section">
             <p class="history-section-label">${label}</p>
@@ -168,6 +214,7 @@ function renderHistory(data) {
   const sections = [
     buildVersionRows(data),
     buildTitleHistorySection(data.title_history),
+    buildCertHistorySection(data.cert_history),
   ].filter(Boolean);
 
   document.getElementById("historyModalBody").innerHTML = sections.length
