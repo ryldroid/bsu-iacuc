@@ -268,15 +268,6 @@ class User extends Controller
     }
   }
 
-  // Welcome guide shows once, after the researcher has set sex and researcher type and verified their email
-  private function showWelcomeOnce(array $user): void
-  {
-    if (empty($user['welcome_seen']) && !empty($user['email_verified'])) {
-      $_SESSION['user']['show_welcome'] = true;
-      $this->userModel->markWelcomeSeen((int) $user['id']);
-    }
-  }
-
   // ===== REGISTER =====
 
   public function register()
@@ -723,7 +714,7 @@ class User extends Controller
 
     $verified = $this->userModel->getUser($userId);
     $isSelf   = $this->isLoggedIn() && (int) $_SESSION['user']['user_id'] === $userId;
-    if ($isSelf && !empty($verified['sex']) && !empty($verified['researcher_type'])) {
+    if ($isSelf && ($verified['role'] !== 'researcher' || (!empty($verified['sex']) && !empty($verified['researcher_type'])))) {
       $this->showWelcomeOnce($verified);
     }
 

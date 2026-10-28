@@ -937,8 +937,8 @@ main a.underlined:hover {
 }
 
 .status-card.active .status-count {
-    background: color-mix(in srgb, var(--status-tone) 40%, transparent);
-    color: var(--primary-text);
+    background: var(--accent-color);
+    color: var(--accent-text);
 }
 
 .dashboard-filter-row {
@@ -1147,12 +1147,22 @@ select.records-filter-select {
     display: inline-block;
     padding: 3px 10px;
     border-radius: 999px;
-    background-color: var(--brand-color);
-    color: var(--text-on-brand);
+    background-color: var(--accent-color);
+    color: var(--accent-text);
     font-size: 0.78em;
     font-weight: 700;
     line-height: 1.3;
-    box-shadow: 0 0 0 1px var(--brand-text), 0 0 0 3px var(--card-background), 0 2px 6px var(--shadow-color-soft);
+    box-shadow: 0 0 0 3px var(--card-background), 0 2px 6px var(--shadow-color-soft);
+}
+
+/* ===== Main page action (gold) ===== */
+:is(#addRecordBtn, #addAnnouncementBtn, #backup-create) {
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+}
+
+:is(#addRecordBtn, #addAnnouncementBtn, #backup-create):hover {
+    filter: brightness(1.1);
 }
 
 /* Utility: must beat component display rules such as .notice { display: flex } */

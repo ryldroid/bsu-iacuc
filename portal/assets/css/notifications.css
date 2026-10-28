@@ -15,9 +15,9 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  color: #fff;
+  color: var(--accent-text);
 
-  background-color: var(--danger-solid);
+  background-color: var(--accent-color);
   border-radius: 50%;
 }
 

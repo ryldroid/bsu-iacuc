@@ -139,6 +139,15 @@ class Controller
     }
   }
 
+  // Welcome guide shows once, and only after the email is verified (so it never overlaps the verify modal)
+  protected function showWelcomeOnce(array $user): void
+  {
+    if (empty($user['welcome_seen']) && !empty($user['email_verified'])) {
+      $_SESSION['user']['show_welcome'] = true;
+      $this->userModel->markWelcomeSeen((int) $user['id']);
+    }
+  }
+
   // ===== LOGIN CHECK =====
   protected function isLoggedIn()
   {
