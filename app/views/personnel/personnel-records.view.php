@@ -54,7 +54,8 @@ $flash_success   = $flash_success   ?? '';
 $flash_error     = $flash_error     ?? '';
 
 $offset      = ($page - 1) * $perPage;
-$hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
+$incompleteOnly = $incompleteOnly ?? false;
+$hasFilters  = $incompleteOnly || $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
 $isStaff = $role === 'staff';
 $colCount = 18;
 
@@ -257,9 +258,12 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
         'sex' => $sex,
         'rtype'  => $researcherType,
         'status' => $status,
+        'completion' => ($_GET['completion'] ?? '') === 'incomplete' ? 'incomplete' : '',
         'sort'   => $sort !== 'newest' ? $sort : '',
     ], fn($v) => $v !== '' && $v !== 1 || is_string($v)) + $periodFilter);
 }
+
+$renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '<option>' . htmlspecialchars($item) . '</option>', $list));
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
@@ -267,6 +271,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
 <link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('protocol-modals.css') ?>">
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -388,6 +393,11 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                             <?php foreach (RecordModel::STATUSES as $st): ?>
                                 <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" <?= $status === $st ? 'selected' : '' ?>><?= htmlspecialchars($st) ?></option>
                             <?php endforeach; ?>
+                        </select>
+
+                        <select name="completion" class="records-filter-select" aria-label="Filter by completion" onchange="this.form.submit()">
+                            <option value="">All Records</option>
+                            <option value="incomplete" <?= $incompleteOnly ? 'selected' : '' ?>>Needs Completion</option>
                         </select>
 
                         <?php if ($hasFilters): ?>
@@ -771,7 +781,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                 <?php if ($incompleteCount > 0) {
                     renderDataNote(
                         number_format($incompleteCount) . ' of ' . number_format($periodRecords) . ' ' . pluralize($periodRecords, 'record') . ' in this period ' . pluralize($incompleteCount, 'is', 'are') . ' missing an animal count, species, or researcher type, so those charts only show what has been filled in.',
-                        $recordsUrl,
+                        $recordsUrl . '&completion=incomplete',
                         'View records'
                     );
                 } ?>
@@ -837,7 +847,7 @@ $guideSteps = [
 if ($isStaff) {
     $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
 }
-$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, status, or **Needs Completion**, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
@@ -859,7 +869,6 @@ $guideSteps = [
 ];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
-<?php include dirname(__DIR__) . '/includes/animal-type-options.php'; ?>
 <?php include dirname(__DIR__) . '/includes/person-options.php'; ?>
 
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
@@ -896,23 +905,29 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <textarea id="add_title" name="title_of_research" rows="3" placeholder="Full research title"></textarea>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_pi">Principal Investigator</label>
+                    <label class="field-label" for="add_pi">Principal Investigator <span class="records-required">*</span></label>
                     <input type="text" id="add_pi" name="principal_investigator" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_school">School</label>
-                    <input type="text" id="add_school" name="school" placeholder="e.g. College of Agriculture">
+                    <label class="field-label" for="add_school">School <span class="records-required">*</span></label>
+                    <select id="add_school" name="school">
+                        <option value="">Select</option>
+                        <?= $renderOptions(UserModel::SCHOOLS) ?>
+                    </select>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_animal_type">Animal Type</label>
-                    <input type="text" id="add_animal_type" name="animal_type" list="animal-type-options" placeholder="e.g. Mice, Rats">
+                    <label class="field-label" for="add_animal_type">Animal Type <span class="records-required">*</span></label>
+                    <select id="add_animal_type" name="animal_type">
+                        <option value="">Select</option>
+                        <?= $renderOptions(RecordModel::ANIMAL_TYPES) ?>
+                    </select>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_animal_count">Animal Count</label>
-                    <input type="number" id="add_animal_count" name="animal_count" min="0" placeholder="0">
+                    <label class="field-label" for="add_animal_count">Animal Count <span class="records-required">*</span></label>
+                    <input type="number" id="add_animal_count" name="animal_count" min="1" step="1" placeholder="1">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_sex">Researcher Sex</label>
+                    <label class="field-label" for="add_sex">Researcher Sex <span class="records-required">*</span></label>
                     <select id="add_sex" name="sex">
                         <option value="">Select</option>
                         <option>Male</option>
@@ -920,7 +935,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </select>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_researcher_type">Researcher Type</label>
+                    <label class="field-label" for="add_researcher_type">Researcher Type <span class="records-required">*</span></label>
                     <select id="add_researcher_type" name="researcher_type">
                         <option value="">Select</option>
                         <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
@@ -959,6 +974,8 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <label class="field-label" for="add_received_by">Received By</label>
                     <input type="text" id="add_received_by" name="received_by" placeholder="Name of receiving officer">
                 </div>
+                <?php $filePrefix = 'add';
+                include dirname(__DIR__) . '/includes/record-file-field.php'; ?>
             </div>
         </div>
         <div class="records-modal-footer">
@@ -1020,27 +1037,41 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </div>
                 </div>
                 <div class="records-form-group records-form-full">
-                    <label class="field-label" for="edit_title">Title of Research</label>
+                    <label class="field-label" for="edit_title">Title of Research <span class="records-required">*</span></label>
                     <textarea id="edit_title" name="title_of_research" rows="3"></textarea>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_pi">Principal Investigator</label>
+                    <label class="field-label" for="edit_pi">Principal Investigator <span class="records-required">*</span></label>
                     <input type="text" id="edit_pi" name="principal_investigator">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_school">School</label>
-                    <input type="text" id="edit_school" name="school">
+                    <label class="field-label" for="edit_school">School <span class="records-required">*</span></label>
+                    <select id="edit_school" name="school">
+                        <option value="">Select</option>
+                        <?= $renderOptions(UserModel::SCHOOLS) ?>
+                    </select>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_animal_type">Animal Type</label>
-                    <input type="text" id="edit_animal_type" name="animal_type" list="animal-type-options">
+                    <label class="field-label" for="edit_animal_type">Animal Type <span class="records-required">*</span></label>
+                    <select id="edit_animal_type" name="animal_type">
+                        <option value="">Select</option>
+                        <?= $renderOptions(RecordModel::ANIMAL_TYPES) ?>
+                    </select>
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_animal_count">Animal Count</label>
-                    <input type="number" id="edit_animal_count" name="animal_count" min="0">
+                    <label class="field-label" for="edit_animal_count">Animal Count <span class="records-required">*</span></label>
+                    <input type="number" id="edit_animal_count" name="animal_count" min="1" step="1">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_researcher_type">Researcher Type</label>
+                    <label class="field-label" for="edit_sex">Researcher Sex <span class="records-required">*</span></label>
+                    <select id="edit_sex" name="sex">
+                        <option value="">Select</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                    </select>
+                </div>
+                <div class="records-form-group">
+                    <label class="field-label" for="edit_researcher_type">Researcher Type <span class="records-required">*</span></label>
                     <select id="edit_researcher_type" name="researcher_type">
                         <option value="">Select</option>
                         <?php include dirname(__DIR__) . '/includes/researcher-type-options.php'; ?>
@@ -1050,7 +1081,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <label class="field-label" for="edit_research_adviser">Research Adviser</label>
                     <input type="text" id="edit_research_adviser" name="research_adviser" list="adviser-options">
                 </div>
-                <div class="records-form-group records-form-full">
+                <div class="records-form-group">
                     <label class="field-label" for="edit_veterinarian">Veterinarian</label>
                     <input type="text" id="edit_veterinarian" name="veterinarian" list="veterinarian-options">
                 </div>
@@ -1063,6 +1094,8 @@ include dirname(__DIR__) . '/includes/guide.php';
                     </div>
                     <span class="helper">The end month also serves as this clearance's expiry (valid until the last day of that month). Once it passes and the researcher has no other protocols being processed, their account is marked inactive automatically.</span>
                 </div>
+                <?php $filePrefix = 'edit';
+                include dirname(__DIR__) . '/includes/record-file-field.php'; ?>
             </div>
         </div>
         <div class="records-modal-footer">
@@ -1189,6 +1222,94 @@ include dirname(__DIR__) . '/includes/guide.php';
 
         let editOriginalIpn = '';
         let editHasSignedScan = false;
+        let editSkipFields = [];
+
+        // ===== REQUIRED STATISTICS FIELDS =====
+        const STAT_FIELDS = [
+            ['title', 'Title of research'],
+            ['pi', 'Principal investigator'],
+            ['school', 'School'],
+            ['animal_type', 'Animal type'],
+            ['animal_count', 'Animal count'],
+            ['sex', 'Researcher sex'],
+            ['researcher_type', 'Researcher type'],
+        ];
+
+        function missingStatField(prefix, skip = []) {
+            const field = STAT_FIELDS.find(([key]) => !skip.includes(key) && !document.getElementById(prefix + '_' + key).value.trim());
+            if (field) return field[1] + ' is required.';
+            return Number(document.getElementById(prefix + '_animal_count').value) < 1 ? 'Animal count must be at least 1.' : '';
+        }
+
+        function setSelectValue(select, value) {
+            select.querySelectorAll('[data-legacy]').forEach(option => option.remove());
+            if (value && ![...select.options].some(option => option.value === value)) {
+                const legacy = new Option(value, value);
+                legacy.dataset.legacy = '';
+                select.add(legacy);
+            }
+            select.value = value;
+        }
+
+        // ===== FILE FIELDS =====
+        const MAX_FILE_BYTES = 10 * 1024 * 1024;
+        const FILE_HINT = 'Optional. PDF or Word (Word is converted to PDF), max 10 MB.';
+
+        function fileField(prefix) {
+            const field = document.getElementById(prefix + '_file_field');
+            const input = document.getElementById(prefix + '_protocol_file');
+            const picker = field.querySelector('[data-file-picker]');
+            const card = field.querySelector('[data-file-card]');
+            const preview = field.querySelector('[data-file-preview]');
+            const state = {
+                savedName: '',
+                savedUrl: '',
+                removed: false,
+                blobUrl: ''
+            };
+
+            function sync() {
+                const chosen = input.files[0];
+                const name = chosen ? chosen.name : state.removed ? '' : state.savedName;
+                if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
+                state.blobUrl = chosen?.type === 'application/pdf' ? URL.createObjectURL(chosen) : '';
+                const previewUrl = chosen ? state.blobUrl : state.savedUrl;
+                picker.classList.toggle('is-hidden', !!name);
+                card.classList.toggle('is-hidden', !name);
+                card.querySelector('[data-file-name]').textContent = name;
+                card.querySelector('[data-file-sub]').textContent = chosen ? formatFileSize(chosen.size) + ' \u00b7 Not saved yet' : 'Current file';
+                preview.classList.toggle('is-hidden', !previewUrl);
+                preview.href = previewUrl || '#';
+                field.querySelector('[data-file-note]').textContent = state.removed ? 'The current file will be removed when you save.' : FILE_HINT;
+            }
+
+            input.addEventListener('change', () => {
+                state.removed = false;
+                sync();
+            });
+            field.querySelector('[data-file-remove]').addEventListener('click', () => {
+                if (input.files[0]) input.value = '';
+                else state.removed = true;
+                sync();
+            });
+
+            return {
+                file: () => input.files[0],
+                removed: () => state.removed,
+                tooBig: () => input.files[0]?.size > MAX_FILE_BYTES,
+                reset(savedName = '', savedUrl = '') {
+                    input.value = '';
+                    Object.assign(state, {
+                        savedName,
+                        savedUrl,
+                        removed: false
+                    });
+                    sync();
+                },
+            };
+        }
+        const addFile = fileField('add');
+        const editFile = fileField('edit');
 
         // ===== ADD =====
         const addRecordBtn = document.getElementById('addRecordBtn');
@@ -1197,6 +1318,8 @@ include dirname(__DIR__) . '/includes/guide.php';
                 hideErr('addError');
                 document.getElementById('addModal').querySelectorAll('input,textarea,select').forEach(el => el.value = '');
                 document.getElementById('add_status').value = 'Ongoing';
+                document.getElementById('add_animal_count').value = 1;
+                addFile.reset();
                 openModal('addModal');
             });
         }
@@ -1215,8 +1338,13 @@ include dirname(__DIR__) . '/includes/guide.php';
                     showErr('addError', 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
                     return;
                 }
-                if (!title) {
-                    showErr('addError', 'Title of research is required.');
+                const missing = missingStatField('add');
+                if (missing) {
+                    showErr('addError', missing);
+                    return;
+                }
+                if (addFile.tooBig()) {
+                    showErr('addError', 'The file is larger than the 10 MB limit.');
                     return;
                 }
 
@@ -1237,6 +1365,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     date_released: document.getElementById('add_date_released').value,
                     received_by: document.getElementById('add_received_by').value,
                     status: document.getElementById('add_status').value,
+                    protocol_file: addFile.file(),
                 }).then(data => {
                     if (data.queued) {
                         closeModal('addModal');
@@ -1300,13 +1429,16 @@ include dirname(__DIR__) . '/includes/guide.php';
                         editHasSignedScan = !!d.has_signed_scan;
                         document.getElementById('edit_title').value = d.title_of_research ?? '';
                         document.getElementById('edit_pi').value = d.principal_investigator ?? '';
-                        document.getElementById('edit_school').value = d.school ?? '';
-                        document.getElementById('edit_animal_type').value = d.animal_type ?? '';
+                        setSelectValue(document.getElementById('edit_school'), d.school ?? '');
+                        setSelectValue(document.getElementById('edit_animal_type'), d.animal_type ?? '');
                         document.getElementById('edit_animal_count').value = d.animal_count ?? '';
-                        const researcherTypeField = document.getElementById('edit_researcher_type');
-                        researcherTypeField.value = d.researcher_type ?? '';
-                        researcherTypeField.disabled = !!d.user_id;
-                        researcherTypeField.title = d.user_id ? 'Set by the researcher on their account' : '';
+                        ['sex', 'researcher_type'].forEach(key => {
+                            const field = document.getElementById('edit_' + key);
+                            field.value = d[key] ?? '';
+                            field.disabled = !!d.user_id;
+                            field.title = d.user_id ? 'Set by the researcher on their account' : '';
+                        });
+                        editSkipFields = d.user_id ? ['sex', 'researcher_type'] : [];
                         document.getElementById('edit_research_adviser').value = d.research_adviser ?? '';
                         document.getElementById('edit_veterinarian').value = d.veterinarian ?? '';
                         document.getElementById('edit_research_duration_start').value = (d.research_duration_start ?? '').slice(0, 7);
@@ -1314,6 +1446,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                         document.getElementById('edit_date_released').value = d.date_released ?? '';
                         document.getElementById('edit_received_by').value = d.received_by ?? '';
                         document.getElementById('edit_status').value = d.status || 'Ongoing';
+                        editFile.reset(d.file_original_name ?? '', d.file_original_name ? ROOT + '/personnel/records_file/' + d.id : '');
                         openModal('editModal');
                     })
                     .catch(() => showToast('Network error. Please try again.', 'error'));
@@ -1340,6 +1473,16 @@ include dirname(__DIR__) . '/includes/guide.php';
                 if (!confirmed) return;
             }
 
+            const missing = missingStatField('edit', editSkipFields);
+            if (missing) {
+                showErr('editError', missing);
+                return;
+            }
+            if (editFile.tooBig()) {
+                showErr('editError', 'The file is larger than the 10 MB limit.');
+                return;
+            }
+
             post('/personnel/records_edit', {
                 id: document.getElementById('edit_id').value,
                 reference_no: document.getElementById('edit_reference_no').value,
@@ -1349,6 +1492,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 animal_type: document.getElementById('edit_animal_type').value,
                 animal_count: document.getElementById('edit_animal_count').value,
                 principal_investigator: document.getElementById('edit_pi').value,
+                sex: document.getElementById('edit_sex').value,
                 researcher_type: document.getElementById('edit_researcher_type').value,
                 research_adviser: document.getElementById('edit_research_adviser').value,
                 veterinarian: document.getElementById('edit_veterinarian').value,
@@ -1357,6 +1501,8 @@ include dirname(__DIR__) . '/includes/guide.php';
                 date_released: document.getElementById('edit_date_released').value,
                 received_by: document.getElementById('edit_received_by').value,
                 status: document.getElementById('edit_status').value,
+                protocol_file: editFile.file(),
+                remove_file: editFile.removed() ? '1' : '',
             }).then(data => {
                 if (data.queued) {
                     closeModal('editModal');

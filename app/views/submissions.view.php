@@ -26,31 +26,31 @@ $statusMeta = [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => 'Your protocol and/or IACUC training certificate is being reviewed, and you will be notified for every feedback given. Your protocols will not move forward unless you have a verified training certificate. If it is rejected, resubmit.',
+        'desc'  => "Your protocols and/or IACUC training certificate are being reviewed, and you will be notified for every feedback given.\n\nYour protocols will not move forward unless you have a verified training certificate. If it is rejected, resubmit.",
     ],
     'needs-revision' => [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => 'The reviewer found an issue and sent your protocol back. Revise it following the comments and re-submit your file.',
+        'desc'  => "The reviewer found an issue and sent your protocol back.\n\nRevise it following the comments and re-submit your file.",
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => 'Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may pay in person or online by contacting the CCARD director. Once CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division.',
+        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee.\n\nResearchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\n\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division.",
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => 'No action needed. Your protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.',
+        'desc'  => "No action needed.\n\nYour protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
     ],
     'approved' => [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => 'Congratulations, your protocol has been approved! You may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.',
+        'desc'  => "Congratulations, your protocol has been approved!\n\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.",
     ],
 ];
 
@@ -159,6 +159,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <select id="submissionsSortSelect" class="dashboard-sort-select dashboard-select-trigger" data-sort-target=".protocols-list" aria-label="Sort protocols">
                         <option value="newest">Newest Submitted</option>
                         <option value="oldest">Oldest Submitted</option>
+                        <option value="updated">Recently Updated</option>
                         <option value="title_asc">Title (A–Z)</option>
                         <option value="title_desc">Title (Z–A)</option>
                     </select>
@@ -173,6 +174,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     <div class="dropdown-panel" id="mobileSortOptions">
                         <button class="status-card active" data-sort="newest">Newest Submitted</button>
                         <button class="status-card" data-sort="oldest">Oldest Submitted</button>
+                        <button class="status-card" data-sort="updated">Recently Updated</button>
                         <button class="status-card" data-sort="title_asc">Title (A–Z)</button>
                         <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
                     </div>
@@ -215,7 +217,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
                                 </p>
                                 <p class="legend-info-desc">
-                                    <?= Notifier::toHtml($meta['desc']) ?>
+                                    <?= nl2br(Notifier::toHtml($meta['desc'])) ?>
                                 </p>
                             </div>
                         </div>
@@ -242,6 +244,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             <div class="protocols-list">
                 <?php foreach ($protocols as $protocol):
                     $date          = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
+                    $updatedDate   = date(DATE_FORMAT, strtotime($protocol['last_activity_at']));
                     $statusKey     = strtolower(str_replace(' ', '-', $protocol['status']));
                     $statusLabel   = htmlspecialchars($protocol['status'], ENT_QUOTES, 'UTF-8');
                     $needsRevision  = strtolower($protocol['status']) === 'needs revision';
@@ -259,6 +262,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 ?>
                     <div class="protocol" id="protocol-<?= $protocolIdInt ?>" data-status="<?= $statusKey ?>"
                         data-submitted="<?= htmlspecialchars($submittedIso, ENT_QUOTES, 'UTF-8') ?>"
+                        data-updated="<?= htmlspecialchars(date('c', strtotime($protocol['last_activity_at'])), ENT_QUOTES, 'UTF-8') ?>"
                         data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>"
                         data-signed-scan-url="<?= !empty($protocol['latest_signed_scan_version_id']) ? ROOT . '/apply/file/' . (int) $protocol['latest_signed_scan_version_id'] : '' ?>">
 
@@ -277,7 +281,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line" title="Submission round and submission date">
-                                    <?= $versionNum ?> &middot; <?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?>
+                                    <?= $versionNum ?> &middot; Submitted <?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?> &middot; Last updated <?= htmlspecialchars($updatedDate, ENT_QUOTES, 'UTF-8') ?>
                                 </p>
 
                                 <?php if ($paymentStatus === 'rejected' && !empty($protocol['payment_rejection_comment'])): ?>
@@ -419,19 +423,18 @@ function statusIconSvg(string $iconId, int $size = 14): string
 $guideId    = 'protocols';
 $guideSteps = [
     ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
-    ['New Application', 'Start a new protocol application here. If you have one in progress, you can resume it from the same spot.', '#apply-actions-sub'],
+    ['New Application', 'Start a new protocol application here. If you have one in progress, you can click on **resume**.', '#apply-actions-sub'],
     ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters'],
-    ['Sort', 'Change the order of your list: newest or oldest submitted, or by title.', '.dashboard-sort-group'],
+    ['Sort', 'Change the order of your list: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means and what you need to do. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];
 foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
 $guideSteps = array_merge($guideSteps, [
-    ['Training certificate', 'CCARD checks your IACUC training certificate once. If it is rejected, you get a notification showing your certificate and the reason, and a notice appears at the top of this page with a **Resubmit Certificate** button.'],
-    ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title and submission date.', '.protocols-list .protocol:first-visible'],
-    ['Actions', 'The **eye button** (View Protocol) opens your submitted protocol file. When needed, you will also be able to **Review Comments & Re-submit** (after a revision request), **Pay Clearance Fee** (once your protocol passes review), **View rejection and resubmit** (if your payment proof is rejected), or **Download Clearance** (once approved).', '.protocols-list .protocol .actions:first-visible'],
-    ['More actions', '**Actions** is the three dots beside the eye button. It holds **Version History** (every submission, reviewer note, the signed scan and any title changes), **Payment History**, **Download**, **Rename**, **Amendments**, and **Request Deletion**. Each item only appears when it applies.', '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
+    ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title, submission date and the date it was last updated.', '.protocols-list .protocol:first-visible'],
+    ['Actions', 'The **view** button opens the protocol so you can read your submission and any comments made. When applicable, you will be able to resubmit, pay your clearance processing fee, and download your digital animal research clearance.', '.protocols-list .protocol .actions:first-visible'],
+    ['More actions', "The three dots menu holds everything else you can do with a protocol. You may download, rename, or request deletion of your protocol. View your version and payment history, and submit an amendment to your protocol. \n\nSubmit an amendment of your protocol **IF AND ONLY IF** you absolutely must change details in your protocol after you have received your animal research clearance. Submitting an amendment informs CCARD of these necessary changes.", '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],
 ]);
 include 'includes/guide.php';

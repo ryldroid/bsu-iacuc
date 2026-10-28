@@ -7,6 +7,22 @@ class RecordModel extends Model
   public const PENDING_STATUS = 'Pending';
   public const DEFAULT_STATUS = 'Ongoing';
 
+  public const ANIMAL_TYPES = [
+    'Bats',
+    'Chickens',
+    'Ducks',
+    'Fish',
+    'Frogs',
+    'Fruit Flies',
+    'Goats',
+    'Guinea Pigs',
+    'Mice',
+    'Rabbits',
+    'Rats',
+  ];
+
+  private const INCOMPLETE_SQL = "(animal_count IS NULL OR animal_count < 1 OR animal_type IS NULL OR animal_type = '' OR researcher_type IS NULL OR researcher_type = '')";
+
   private function cleanStatus(?string $status): string
   {
     return in_array($status, self::STATUSES, true) ? $status : self::DEFAULT_STATUS;
@@ -20,7 +36,8 @@ class RecordModel extends Model
     string $sex,
     string $researcherType,
     ?array $period = null,
-    string $status = ''
+    string $status = '',
+    bool $incompleteOnly = false
   ): array {
     $conditions = [];
     $params     = [];
@@ -63,6 +80,10 @@ class RecordModel extends Model
       $conditions[] = 'status = ?';
       $params[] = &$status;
       $types .= 's';
+    }
+
+    if ($incompleteOnly) {
+      $conditions[] = self::INCOMPLETE_SQL;
     }
 
     if ($period !== null) {
@@ -286,9 +307,10 @@ class RecordModel extends Model
     int $limit = 25,
     int $offset = 0,
     ?array $period = null,
-    string $status = ''
+    string $status = '',
+    bool $incompleteOnly = false
   ): array {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status, $incompleteOnly);
 
     $stmt = $this->connection->prepare(
       "SELECT * FROM `records` $where ORDER BY {$this->sortClause($sort)} LIMIT ? OFFSET ?"
@@ -316,9 +338,10 @@ class RecordModel extends Model
     string $sex = '',
     string $researcherType = '',
     string $status = '',
-    ?array $period = null
+    ?array $period = null,
+    bool $incompleteOnly = false
   ): int {
-    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status);
+    [$where, $params, $types] = $this->buildFilters($search, $school, $animalType, $sex, $researcherType, $period, $status, $incompleteOnly);
 
     $stmt = $this->connection->prepare("SELECT COUNT(*) FROM `records` $where");
     if (! $stmt) return 0;
@@ -379,14 +402,14 @@ class RecordModel extends Model
     $totalRecordsAll = (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records`", [], '') ?? 0);
 
     $withCount    = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count IS NOT NULL"),
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, "animal_count > 0"),
       $params,
       $types
     ) ?? 0);
 
     $speciesBreakdown = $this->groupedQuery(
       'animal_type',
-      $this->andClause($where, "animal_type IS NOT NULL AND animal_type != '' AND animal_count IS NOT NULL"),
+      $this->andClause($where, "animal_type IS NOT NULL AND animal_type != '' AND animal_count > 0"),
       $params,
       $types,
       'SUM(animal_count)',
@@ -412,10 +435,7 @@ class RecordModel extends Model
     );
 
     $incompleteCount = (int) ($this->scalarQuery(
-      "SELECT COUNT(*) FROM `records` " . $this->andClause(
-        $where,
-        "(animal_count IS NULL OR animal_type IS NULL OR animal_type = '' OR researcher_type IS NULL OR researcher_type = '')"
-      ),
+      "SELECT COUNT(*) FROM `records` " . $this->andClause($where, self::INCOMPLETE_SQL),
       $params,
       $types
     ) ?? 0);
@@ -632,8 +652,9 @@ class RecordModel extends Model
       "INSERT INTO `records`
              (reference_no, ar_number, title_of_research, school, animal_type, animal_count,
               principal_investigator, sex, researcher_type, research_adviser,
-              veterinarian, research_duration_start, research_duration_end, date_released, received_by, status)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+              veterinarian, research_duration_start, research_duration_end, date_released, received_by, status,
+              file_path, file_original_name)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     );
     if (! $stmt) return false;
 
@@ -645,7 +666,7 @@ class RecordModel extends Model
     $status       = $this->cleanStatus($d['status'] ?? null);
 
     $stmt->bind_param(
-      'sssssissssssssss',
+      'sssssissssssssssss',
       $d['reference_no'],
       $arNumber,
       $d['title_of_research'],
@@ -661,7 +682,9 @@ class RecordModel extends Model
       $durationEnd,
       $dateReleased,
       $d['received_by'],
-      $status
+      $status,
+      $d['file_path'],
+      $d['file_original_name']
     );
     return $stmt->execute();
   }
@@ -827,6 +850,7 @@ class RecordModel extends Model
                animal_type              = ?,
                animal_count             = ?,
                principal_investigator   = ?,
+               sex                      = IF(user_id IS NULL, ?, sex),
                researcher_type          = IF(user_id IS NULL, ?, researcher_type),
                research_adviser         = ?,
                veterinarian             = ?,
@@ -834,7 +858,9 @@ class RecordModel extends Model
                research_duration_end    = ?,
                date_released            = ?,
                received_by              = ?,
-               status                   = ?
+               status                   = ?,
+               file_path                = COALESCE(?, file_path),
+               file_original_name       = COALESCE(?, file_original_name)
              WHERE id = ?"
     );
     if (! $stmt) return false;
@@ -846,9 +872,11 @@ class RecordModel extends Model
     $durationEnd   = $d['research_duration_end'] !== '' ? $d['research_duration_end'] : null;
     $dateReleased = $d['date_released'] !== '' ? $d['date_released'] : null;
     $status       = $this->cleanStatus($d['status'] ?? null);
+    $filePath     = $d['file_path'] ?? null;
+    $fileName     = $d['file_original_name'] ?? null;
 
     $stmt->bind_param(
-      'sssssisssssssssi',
+      'sssssissssssssssssi',
       $ref,
       $arNumber,
       $d['title_of_research'],
@@ -856,6 +884,7 @@ class RecordModel extends Model
       $d['animal_type'],
       $animalCount,
       $d['principal_investigator'],
+      $d['sex'],
       $d['researcher_type'],
       $d['research_adviser'],
       $d['veterinarian'],
@@ -864,9 +893,39 @@ class RecordModel extends Model
       $dateReleased,
       $d['received_by'],
       $status,
+      $filePath,
+      $fileName,
       $d['id']
     );
     return $stmt->execute();
+  }
+
+  public function clearFile(int $id): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE `records` SET file_path = NULL, file_original_name = NULL WHERE id = ?");
+    if (! $stmt) return false;
+    $stmt->bind_param('i', $id);
+    return $stmt->execute();
+  }
+
+  // ===== ORPHANED FILE CLEANUP =====
+  // Removes files in $dir that no record points to. Recent files are skipped so an upload
+  // that is still being saved is never removed.
+  public function removeOrphanFiles(string $dir, int $minAgeSeconds = 3600): int
+  {
+    $result = $this->connection->query("SELECT file_path FROM `records` WHERE file_path IS NOT NULL");
+    if (! $result || ! is_dir($dir)) return 0;
+
+    $used    = array_flip(array_column($result->fetch_all(MYSQLI_ASSOC), 'file_path'));
+    $removed = 0;
+
+    foreach (scandir($dir) as $name) {
+      $path = $dir . $name;
+      if (! is_file($path) || isset($used[$name]) || filectime($path) > time() - $minAgeSeconds) continue;
+      if (@unlink($path)) $removed++;
+    }
+
+    return $removed;
   }
 
   public function delete(int $id): bool

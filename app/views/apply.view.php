@@ -53,7 +53,6 @@ include 'includes/guide.php';
 ?>
 
 <?php include "includes/file-popup.php"; ?>
-<?php include "includes/animal-type-options.php"; ?>
 <?php include "includes/person-options.php"; ?>
 <script src="<?= asset_js('file-popup.js') ?>"></script>
 
@@ -63,6 +62,7 @@ include 'includes/guide.php';
     const STEPS = ['Requirements', 'Terms', 'Documents', 'Download form', 'Upload and submit', 'Done'];
     const DRAFT_CSRF = NOTIF_CSRF_TOKEN;
     const PREVIOUS_DETAILS = <?= json_encode($previousDetails ?? []) ?>;
+    const ANIMAL_TYPES = <?= json_encode(RecordModel::ANIMAL_TYPES) ?>;
     window.EMOJI_PATTERN = new RegExp(<?= json_encode('[' . emoji_class_body('\\u') . ']') ?>, 'gu');
 
     // ===== STATE =====
@@ -534,7 +534,7 @@ include 'includes/guide.php';
                 Under the Data Privacy Act you have the right to be informed about how your data is processed, to access your data, to object to its processing, to correct inaccurate data, to request erasure or blocking of your data, to data portability, to be indemnified for damages caused by inaccurate, unlawfully obtained, or unauthorized use of your data, and to file a complaint with the National Privacy Commission (privacy.gov.ph). You may update your details or deactivate or delete your account from your account page. Some records may be retained where the law requires it.
 
                 <h3>9. Contact us</h3>
-                To exercise your rights or ask questions about this policy, contact the CCARD office or the University's Data Protection Officer.
+                To exercise your rights or ask questions about this policy, contact the CCARD office at ccard@bsu.edu.ph or the university's data protection officer.
 
                 <h3>10. Changes to this policy</h3>
                 We may update this policy and will post the revised version here.
@@ -654,7 +654,7 @@ include 'includes/guide.php';
             id: 'inp-animal-type',
             key: 'animalType',
             label: 'Animal type',
-            attrs: 'list="animal-type-options" maxlength="100" placeholder="e.g. Mice"'
+            options: ANIMAL_TYPES
         },
         {
             id: 'inp-animal-count',
@@ -692,10 +692,13 @@ include 'includes/guide.php';
     ];
 
     function detailField(f) {
+        const control = f.options ?
+            `<select id="${f.id}"><option value="">Select</option>${f.options.map(option => `<option${state[f.key] === option ? ' selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select>` :
+            `<input type="${f.type || 'text'}" id="${f.id}" value="${escapeHtml(state[f.key])}" ${f.attrs}>`;
         return `
     <div class="field">
         <label for="${f.id}">${f.label} <span class="req">*</span></label>
-        <input type="${f.type || 'text'}" id="${f.id}" value="${escapeHtml(state[f.key])}" ${f.attrs}>
+        ${control}
     </div>
     ${f.limit ? `<p class="helper field-hint"><span id="${f.id}-count">${[...state[f.key]].length}/${f.limit}</span></p>` : ''}`;
     }

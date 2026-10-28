@@ -814,6 +814,9 @@ class Apply extends Controller
         if ((int) $details['animal_count'] < 1) {
             $this->jsonError(422, 'Animal count must be a whole number of 1 or more.');
         }
+        if (!in_array($details['animal_type'], RecordModel::ANIMAL_TYPES, true)) {
+            $this->jsonError(422, 'Please choose an animal type from the list.');
+        }
         $details['animal_count'] = (int) $details['animal_count'];
 
         foreach (['research_duration_start', 'research_duration_end'] as $column) {

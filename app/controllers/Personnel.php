@@ -109,7 +109,11 @@ class Personnel extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(false);
 
-        $this->jsonResponse(['ok' => true, 'warned' => $this->recordModel->sendExpiryWarnings()]);
+        $this->jsonResponse([
+            'ok'      => true,
+            'warned'  => $this->recordModel->sendExpiryWarnings(),
+            'orphans' => $this->recordModel->removeOrphanFiles($this->recordFileDir()),
+        ]);
     }
 
     // ===== RESEARCHER DETAILS =====
@@ -279,6 +283,7 @@ class Personnel extends Controller
         if (! in_array($status, RecordModel::STATUSES, true)) {
             $status = '';
         }
+        $incompleteOnly = ($_GET['completion'] ?? '') === 'incomplete';
         $sort           = trim($_GET['sort']   ?? '') ?: 'newest';
         $periodPreset   = trim($_GET['period'] ?? '');
         if (! isset(RecordModel::PERIOD_PRESETS[$periodPreset])) {
@@ -292,8 +297,8 @@ class Personnel extends Controller
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
-        $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status, $listPeriod);
-        $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, $listPeriod, $status);
+        $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status, $listPeriod, $incompleteOnly);
+        $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, $listPeriod, $status, $incompleteOnly);
         $totalPages = (int) ceil($total / $perPage);
 
         $this->view('personnel/personnel-records', [
@@ -310,6 +315,7 @@ class Personnel extends Controller
             'sex'          => $sex,
             'researcherType'  => $researcherType,
             'status'          => $status,
+            'incompleteOnly'  => $incompleteOnly,
             'sort'            => $sort,
             'schools'         => $this->recordModel->distinctValues('school'),
             'animalTypes'     => $this->recordModel->distinctValues('animal_type'),
@@ -381,10 +387,24 @@ class Personnel extends Controller
         }
 
         $d = $this->sanitizeRecordPost();
+        $this->requireStatFields($d, true);
         if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'])) {
             $this->jsonError(422, 'That AR number already exists.');
         }
+
+        $reason = '';
+        $saved  = $this->saveRecordFile($reason);
+        if ($saved === false) {
+            $this->jsonError(422, $reason);
+        }
+        $d['file_path']          = $saved[0] ?? null;
+        $d['file_original_name'] = $saved[1] ?? null;
+
         $ok = $this->recordModel->insert($d);
+
+        if (!$ok && $saved) {
+            $this->deleteRecordFile($saved[0]);
+        }
 
         if ($ok) {
             $actor = $this->actor();
@@ -393,6 +413,80 @@ class Personnel extends Controller
 
         echo json_encode(['ok' => $ok, 'message' => $ok ? 'Record added.' : 'Insert failed.']);
         exit;
+    }
+
+    // ===== SAVE RECORD FILE (PDF OR WORD, WORD IS CONVERTED) =====
+    private function recordFileDir(): string
+    {
+        return dirname(__DIR__, 2) . '/storage/uploads/records/';
+    }
+
+    private function deleteRecordFile(?string $name): void
+    {
+        if ($name) {
+            @unlink($this->recordFileDir() . $name);
+        }
+    }
+
+    private function saveRecordFile(string &$reason): array|false|null
+    {
+        $file = $_FILES['protocol_file'] ?? null;
+        if (!$file || $file['error'] === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $reason = 'The file could not be uploaded. Please try again.';
+            return false;
+        }
+        if ($file['size'] > 10 * 1024 * 1024) {
+            $reason = 'That file is larger than the 10 MB limit.';
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['pdf', 'doc', 'docx'], true)) {
+            $reason = 'Please upload a PDF or Word file.';
+            return false;
+        }
+
+        $dir = $this->recordFileDir();
+        if (!is_dir($dir)) {
+            mkdir($dir, 0750, true);
+        }
+
+        $base          = bin2hex(random_bytes(8));
+        $stored        = $base . '.pdf';
+        $cleanOriginal = preg_replace('/[^\w.\-]/', '_', pathinfo($file['name'], PATHINFO_FILENAME)) . '.pdf';
+
+        if ($ext === 'pdf') {
+            if ((new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) !== 'application/pdf') {
+                $reason = 'That file is not a valid PDF.';
+                return false;
+            }
+            $ok = move_uploaded_file($file['tmp_name'], $dir . $stored);
+        } else {
+            $actor  = $this->actor();
+            $source = $dir . $base . '.' . $ext;
+
+            if ($this->protocolModel->countRecentActions($actor['id'], 'protocol_converted') >= PdfConverter::HOURLY_LIMIT) {
+                $reason = PdfConverter::LIMIT_REACHED;
+                return false;
+            }
+
+            $ok = move_uploaded_file($file['tmp_name'], $source) && PdfConverter::convert($source, $dir . $stored, $reason);
+            @unlink($source);
+
+            if ($ok) {
+                $this->recordModel->logAudit('protocol_converted', $actor['id'], $actor['name'], $actor['role'], 'user', $actor['id'], $cleanOriginal . ' converted to PDF');
+            }
+        }
+
+        if (!$ok) {
+            $reason = $reason ?: 'Could not save the uploaded file. Please try again.';
+            return false;
+        }
+
+        return [$stored, $cleanOriginal];
     }
 
     // ===== GET RECORD =====
@@ -434,6 +528,7 @@ class Personnel extends Controller
         $d       = $this->sanitizeRecordPost();
         $d['id'] = $id;
         $existingRec = $this->recordModel->getById($id);
+        $this->requireStatFields($d, empty($existingRec['user_id']));
         $ipnChanged  = $d['reference_no'] !== '' && $d['reference_no'] !== ($existingRec['reference_no'] ?? '');
         if ($ipnChanged && !preg_match('/^\d{6}$/', $d['reference_no'])) {
             $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
@@ -441,7 +536,22 @@ class Personnel extends Controller
         if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'], $id)) {
             $this->jsonError(422, 'That AR number already exists.');
         }
-        $ok      = $this->recordModel->update($d);
+
+        $reason = '';
+        $saved  = $this->saveRecordFile($reason);
+        if ($saved === false) {
+            $this->jsonError(422, $reason);
+        }
+        $d['file_path']          = $saved[0] ?? null;
+        $d['file_original_name'] = $saved[1] ?? null;
+
+        $ok = $this->recordModel->update($d);
+
+        if ($saved) {
+            $this->deleteRecordFile($ok ? $existingRec['file_path'] : $saved[0]);
+        } elseif ($ok && ($_POST['remove_file'] ?? '') === '1' && $this->recordModel->clearFile($id)) {
+            $this->deleteRecordFile($existingRec['file_path']);
+        }
 
         if ($ok) {
             $actor = $this->actor();
@@ -479,6 +589,7 @@ class Personnel extends Controller
         $ok     = $this->recordModel->delete($id);
 
         if ($ok) {
+            $this->deleteRecordFile($record['file_path'] ?? null);
             $actor = $this->actor();
             $ref   = $record && $record['reference_no'] !== '' ? "IPN {$record['reference_no']}" : ($record['title_of_research'] ?? "record #$id");
             $this->recordModel->logAudit('record_deleted', $actor['id'], $actor['name'], $actor['role'], 'record', $id, "Record deleted: $ref");
@@ -666,6 +777,26 @@ class Personnel extends Controller
             return '';
         }
         return $date->format($lastDay ? 'Y-m-t' : 'Y-m-01');
+    }
+
+    // ===== REQUIRED STATISTICS FIELDS =====
+    // Demographics come from the researcher's account when linked.
+    private function requireStatFields(array $d, bool $needsDemographics): void
+    {
+        $required = ['title_of_research' => 'Title of research', 'principal_investigator' => 'Principal investigator', 'school' => 'School', 'animal_type' => 'Animal type', 'animal_count' => 'Animal count'];
+        if ($needsDemographics) {
+            $required += ['sex' => 'Researcher sex', 'researcher_type' => 'Researcher type'];
+        }
+
+        foreach ($required as $key => $label) {
+            if ($d[$key] === '') {
+                $this->jsonError(422, "$label is required.");
+            }
+        }
+
+        if (! ctype_digit($d['animal_count']) || (int) $d['animal_count'] < 1) {
+            $this->jsonError(422, 'Animal count must be a whole number of at least 1.');
+        }
     }
 
     // ===== RECORD INPUT CLEANUP =====
