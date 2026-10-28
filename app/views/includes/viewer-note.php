@@ -7,9 +7,10 @@
  * @var string $noteIcon    sprite id
  * @var string $noteLabel   bold lead-in
  * @var string $noteText    plain text, escaped here
+ * @var string $noteKey     optional id so scripts can remove the note live
  */
 ?>
-<div class="viewer-note viewer-note--<?= $noteVariant ?>">
+<div class="viewer-note viewer-note--<?= $noteVariant ?>" <?= $noteKey !== '' ? ' data-viewer-note="' . $noteKey . '"' : '' ?>>
   <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <use href="#<?= $noteIcon ?>" />
   </svg>

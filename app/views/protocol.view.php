@@ -134,7 +134,7 @@ if ($isPersonnel && $researcherCertStatus === 'rejected') {
     $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: "' . $certReview['note'] . '.' : '') . '" Finishing the review or returning the protocol is unavailable until it is verified.'];
 }
 if ($isPersonnel && $researcherCertStatus === 'pending') {
-    $viewerNotes[] = ['info', 'info-icon', 'Training certificate not verified yet', 'Reload this page to review it. Finishing the review or returning the protocol is unavailable until it is verified.'];
+    $viewerNotes[] = ['info', 'info-icon', 'Training certificate not verified yet', 'Reload this page to review it. Finishing the review or returning the protocol is unavailable until it is verified.', 'cert-pending'];
 }
 $certVerifiedTitle = $certReview && $researcherCertStatus === 'verified'
     ? 'Verified by ' . trim($certReview['actor_name'] ?? '') . ' on ' . date(DATE_FORMAT, strtotime($certReview['created_at'])) . '.'
@@ -370,7 +370,8 @@ include 'includes/header.php';
         <div class="viewer-main">
             <?php if ($viewerNotes): ?>
                 <div class="viewer-notes">
-                    <?php foreach ($viewerNotes as [$noteVariant, $noteIcon, $noteLabel, $noteText]): ?>
+                    <?php foreach ($viewerNotes as $viewerNote): ?>
+                        <?php [$noteVariant, $noteIcon, $noteLabel, $noteText, $noteKey] = array_pad($viewerNote, 5, ''); ?>
                         <?php include 'includes/viewer-note.php'; ?>
                     <?php endforeach; ?>
                 </div>

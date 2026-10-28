@@ -7,12 +7,12 @@ class Notifier
     'under review'   => ['Protocol Under Review', 'is now under review by CCARD. No action needed for now. You will be notified if revisions are needed or once the review is finished.'],
     'needs revision' => ['Revision Needed', 'was returned by CCARD for revision. Open it, read the comments, then fix your files and re-submit.'],
     'reviewed'       => ['Review Passed: Pay Clearance Fee', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to My Protocols and press "Pay Clearance Fee" on this protocol.'],
-    'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for it to be endorsed to DA-CARFU.'],
-    'endorsed'       => ['Protocol Endorsed', 'has been endorsed to DA-CARFU. No action needed. Please wait while BAI processes your animal research clearance.'],
+    'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for it to be endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).'],
+    'endorsed'       => ['Protocol Endorsed', 'has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). No action needed. Please wait while BAI processes your animal research clearance.'],
     'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy.'],
   ];
 
-  public const SIGNED_SCAN_NEXT_STEP = 'No action needed. It will be endorsed to DA-CARFU next.';
+  public const SIGNED_SCAN_NEXT_STEP = 'No action needed. It will be endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) next.';
 
   public const NEXT_STEPS = [
     'protocol_submitted'          => 'No action needed. You will be notified of any feedback.',
@@ -32,7 +32,7 @@ class Notifier
     'cert_verification_staff'     => 'Open it to verify the certificate.',
   ];
 
-  public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to DA-CARFU.';
+  public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).';
 
   public const CERT_VERIFIED_NEXT_STEP = 'No action needed. Your protocol review continues and you can submit new protocols.';
 
@@ -58,7 +58,7 @@ class Notifier
     ];
   }
 
-  // ===== RETURNED TO REVIEW (BY DA-CARFU OR BAI) =====
+  // ===== RETURNED TO REVIEW (BY DA-RFO CAR OR BAI) =====
   public static function reasonSentence(string $reason): string
   {
     return $reason === '' ? '' : ' Reason: ' . rtrim($reason, '.') . '.';
@@ -66,7 +66,7 @@ class Notifier
 
   public static function returnedToReviewNotice(string $reason): array
   {
-    return ['Protocol Returned to Review', 'was returned to review after DA-CARFU or BAI sent it back.' . self::reasonSentence($reason) . ' No action needed for now. You will be notified if revisions are needed or once the review is finished.'];
+    return ['Protocol Returned to Review', 'was returned to review after Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI sent it back.' . self::reasonSentence($reason) . ' No action needed for now. You will be notified if revisions are needed or once the review is finished.'];
   }
 
   // ===== SEND TO ONE USER =====

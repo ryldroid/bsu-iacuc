@@ -11,6 +11,12 @@ const REJECT_NOTE = IS_STAFF
   ? "The researcher is asked to resubmit their certificate. While waiting, the reviewer can still review and comment on this protocol. Their comments are saved. Finishing the review is unavailable until the certificate is verified."
   : "The researcher is asked to resubmit their certificate. While waiting, you can still review and comment on this protocol. Your comments are saved. Finishing the review is unavailable until the certificate is verified.";
 
+function removePendingNote() {
+  const notes = document.querySelector(".viewer-notes");
+  document.querySelector('[data-viewer-note="cert-pending"]')?.remove();
+  if (notes && !notes.children.length) notes.remove();
+}
+
 function syncFinishReviewButton() {
   if (!finishReviewBtn) return;
   const verified = certState === "verified";
@@ -23,6 +29,7 @@ function syncFinishReviewButton() {
 document.addEventListener("cert-reviewed", (e) => {
   certState = e.detail.status;
   syncFinishReviewButton();
+  removePendingNote();
   if (verifiedBadge) {
     verifiedBadge.hidden = certState !== "verified";
     verifiedBadge.title = "Verified just now.";

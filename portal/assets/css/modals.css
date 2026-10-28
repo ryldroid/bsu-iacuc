@@ -811,6 +811,7 @@ img[data-zoom-src] {
     padding: 8px 18px;
 
     transition: background-color 0.15s ease;
+    text-decoration: none;
 }
 
 .confirm-modal-cancel {

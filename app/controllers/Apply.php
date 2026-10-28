@@ -157,7 +157,7 @@ class Apply extends Controller
             'reviewer',
             'protocol_returned_to_review',
             'Protocol Returned to Review',
-            $this->roleLabel($actor['role']) . " {$actor['name']} returned " . Notifier::boldTitle($title) . ' to To Review after DA-CARFU or BAI sent it back.' . Notifier::reasonSentence($reason) . ' ' . Notifier::NEXT_STEPS['new_submission_reviewer'],
+            $this->roleLabel($actor['role']) . " {$actor['name']} returned " . Notifier::boldTitle($title) . ' to To Review after Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI sent it back.' . Notifier::reasonSentence($reason) . ' ' . Notifier::NEXT_STEPS['new_submission_reviewer'],
             'apply/viewer/' . $protocol['protocol_id']
         );
     }
@@ -2119,7 +2119,7 @@ class Apply extends Controller
         $this->protocolModel->logAudit('signed_scan_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Signed scan uploaded');
         $this->notifySignedScanUploaded($protocol, $actor);
 
-        $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to DA-CARFU.';
+        $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).';
         echo json_encode(['success' => true]);
         exit;
     }

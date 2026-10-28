@@ -84,7 +84,7 @@ class Seeder
             ],
             [
                 3,
-                'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division',
+                'Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division',
                 'da.webp',
                 'BPI Compound, Guisad, Baguio City, Benguet',
                 "(074) 444-9872\n+63 956 659 5110",
@@ -123,7 +123,7 @@ class Seeder
         }
     }
 
-    // ===== ONE-TIME UPDATE: contact offices (DA-CARFU, BAI Central, OVPRE + new order) =====
+    // ===== ONE-TIME UPDATE: contact offices (DA-RFO CAR, BAI Central, OVPRE + new order) =====
     // Runs once per database (flag in site_settings), so later edits in Site Content are kept.
     public function migrateContactOffices(): void
     {
@@ -138,8 +138,8 @@ class Seeder
             return;
         }
 
-        // 1) Old "Bureau of Animal Industry" card -> DA-CARFU Regulatory Division
-        $daName = 'Department of Agriculture-Cordillera Administrative Region Field Unit (DA-CARFU) Regulatory Division';
+        // 1) Old "Bureau of Animal Industry" card -> DA-RFO CAR Regulatory Division
+        $daName = 'Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division';
         $daLogo = 'da.webp';
         $daAddr = 'BPI Compound, Guisad, Baguio City, Benguet';
         $old    = 'Bureau of Animal Industry';

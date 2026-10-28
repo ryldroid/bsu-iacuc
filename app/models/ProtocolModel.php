@@ -25,11 +25,11 @@ class ProtocolModel extends Model
 
     // ===== ENDORSEMENT STEPS (Reviewed status, staff view) =====
     public const ENDORSEMENT_STEPS = [
-        1 => 'Researcher uploads the payment proof',
-        2 => 'Staff verifies the payment proof',
-        3 => 'Staff assigns an IPN',
+        1 => 'Researcher uploads their clearance processing payment proof',
+        2 => 'Verify the submitted payment proof',
+        3 => 'Assign an IPN',
         4 => 'Print for the chairperson\'s signature, then upload the signed scan',
-        5 => 'Staff marks the protocol as endorsed',
+        5 => 'Mark the protocol as endorsed',
     ];
 
     // Returns [step number, label, waiting on researcher]

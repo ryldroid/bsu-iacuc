@@ -56,7 +56,7 @@ $flash_error     = $flash_error     ?? '';
 $offset      = ($page - 1) * $perPage;
 $hasFilters  = $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
 $isStaff = $role === 'staff';
-$colCount = 17;
+$colCount = 18;
 
 // ===== Chart helpers =====
 function pluralize(int $count, string $singular, ?string $plural = null): string
@@ -266,6 +266,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
 
 <div class="body">
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
@@ -486,6 +487,10 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                     <?= htmlspecialchars(RecordModel::SORT_COLUMNS[$col][1]) ?>
                                 </label>
                             <?php endforeach; ?>
+                            <label class="records-columns-option">
+                                <input type="checkbox" value="file" data-column-index="<?= count($sortColumns) ?>" checked>
+                                File
+                            </label>
                             <button type="button" class="records-columns-reset" id="recordsColumnsReset">Show all columns</button>
                         </div>
                     </div>
@@ -500,6 +505,7 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                     <?php foreach ($sortColumns as $col => $class): ?>
                                         <?= $sortHeader($col, $class) ?>
                                     <?php endforeach; ?>
+                                    <th class="col-file">File</th>
                                     <th class="col-actions" aria-label="Actions"></th>
                                 </tr>
                             </thead>
@@ -518,6 +524,31 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($records as $i => $r): ?>
+                                        <?php
+                                        $rowStatus     = in_array($r['status'] ?? '', RecordModel::STATUSES, true) ? $r['status'] : RecordModel::DEFAULT_STATUS;
+                                        $durationLabel = RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null);
+                                        $releasedLabel = $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '';
+                                        $addedLabel    = !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '';
+                                        $viewDetails   = [
+                                            ['IPN', $r['reference_no'] ?? ''],
+                                            ['AR No.', $r['ar_number'] ?? ''],
+                                            ['Title of Research', $r['title_of_research'] ?? ''],
+                                            ['School', $r['school'] ?? ''],
+                                            ['Animal Type', $r['animal_type'] ?? ''],
+                                            ['Animal Count', $r['animal_count'] ?? ''],
+                                            ['Researcher', $r['principal_investigator'] ?? ''],
+                                            ['Researcher Sex', $r['sex'] ?? ''],
+                                            ['Researcher Type', $r['researcher_type'] ?? ''],
+                                            ['Research Adviser', $r['research_adviser'] ?? ''],
+                                            ['Veterinarian', $r['veterinarian'] ?? ''],
+                                            ['Research Duration', $durationLabel],
+                                            ['Date Released', $releasedLabel],
+                                            ['Date Added', $addedLabel],
+                                            ['Received By', $r['received_by'] ?? ''],
+                                            ['Status', $rowStatus],
+                                            ['Protocol File', $r['file_original_name'] ?? ''],
+                                        ];
+                                        ?>
                                         <tr>
                                             <td class="records-detail date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
                                             <td class="records-detail date-cell records-ar"><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
@@ -535,12 +566,12 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                             <td class="records-detail date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars(RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null)) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
-                                            <td class="records-detail date-cell" data-label="Date Released"><?= $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '' ?></td>
-                                            <td class="records-detail date-cell" data-label="Date Added"><?= !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '' ?></td>
+                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars($durationLabel) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="Date Released"><?= $releasedLabel ?></td>
+                                            <td class="records-detail date-cell" data-label="Date Added"><?= $addedLabel ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
-                                            <?php $rowStatus = in_array($r['status'] ?? '', RecordModel::STATUSES, true) ? $r['status'] : RecordModel::DEFAULT_STATUS; ?>
                                             <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
+                                            <td class="records-detail date-cell" data-label="File"><?php if (!empty($r['file_path'])): ?><a class="researcher-name-link" href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
                                             <td class="records-details-cell">
                                                 <button type="button" class="records-toggle records-details-toggle" aria-expanded="false">
                                                     Details
@@ -570,16 +601,14 @@ function pageUrl(int $p, string $search, string $school, string $animalType, str
                                                             </svg>
                                                         </button>
                                                     <?php endif; ?>
-                                                    <?php if (!empty($r['file_path'])): ?>
-                                                        <a class="row-btn view-record-btn"
-                                                            href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>"
-                                                            target="_blank" rel="noopener noreferrer"
-                                                            aria-label="View protocol file">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                                <use href="#eye-icon">
-                                                            </svg>
-                                                        </a>
-                                                    <?php endif; ?>
+                                                    <button type="button" class="row-btn view-record-btn"
+                                                        data-details="<?= htmlspecialchars(json_encode($viewDetails, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-file-url="<?= !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] : '' ?>"
+                                                        aria-label="View record details">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                            <use href="#eye-icon">
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -811,8 +840,8 @@ if ($isStaff) {
 $guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, or status, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
-    $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, and status.', '.records-table-wrap'];
-    $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or open its protocol file with the eye icon.' : 'Open the protocol file of a record with the eye icon.', '.records-table .row-actions:first-visible'];
+    $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
+    $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or see all of its details with the eye icon.' : 'See all the details of a record with the eye icon.', '.records-table .row-actions:first-visible'];
 }
 if ($totalPages > 1) {
     $guideSteps[] = ['Pagination', 'Move between pages of records.', '.pagination-bar'];
@@ -1048,6 +1077,34 @@ include dirname(__DIR__) . '/includes/guide.php';
     </div>
 </div>
 
+<!-- ===== View record modal ===== -->
+<div class="modal-backdrop" id="viewModal" data-static role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
+    <div class="modal-card records-modal-card">
+        <div class="modal-header">
+            <span class="modal-header-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
+                    <use href="#eye-icon" />
+                </svg>
+            </span>
+            <p class="modal-title" id="viewModalTitle">Record Details</p>
+            <button type="button" class="modal-close" data-close="viewModal" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#close-icon" />
+                </svg>
+            </button>
+        </div>
+        <div class="records-modal-body">
+            <div class="researcher-detail-rows records-view-rows" id="viewRows"></div>
+        </div>
+        <div class="records-modal-footer">
+            <button type="button" class="confirm-modal-btn confirm-modal-cancel" data-close="viewModal">Close</button>
+            <a class="confirm-modal-btn confirm-modal-ok" id="viewFileLink" href="#" target="_blank" rel="noopener noreferrer" hidden>
+                Open protocol file
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- ===== Modal scripts ===== -->
 <script>
     (function() {
@@ -1194,6 +1251,30 @@ include dirname(__DIR__) . '/includes/guide.php';
                 }).catch(() => showErr('addError', 'Network error. Please try again.'));
             });
         }
+
+        // ===== VIEW =====
+        document.querySelectorAll('.view-record-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const rows = document.getElementById('viewRows');
+                rows.replaceChildren();
+                JSON.parse(btn.dataset.details).forEach(([label, value]) => {
+                    const row = document.createElement('div');
+                    row.className = 'researcher-detail-row';
+                    const key = document.createElement('span');
+                    key.className = 'researcher-detail-label';
+                    key.textContent = label;
+                    const val = document.createElement('span');
+                    val.className = 'researcher-detail-value';
+                    val.textContent = String(value ?? '').trim() || '-';
+                    row.append(key, val);
+                    rows.append(row);
+                });
+                const fileLink = document.getElementById('viewFileLink');
+                fileLink.hidden = !btn.dataset.fileUrl;
+                fileLink.href = btn.dataset.fileUrl || '#';
+                openModal('viewModal');
+            });
+        });
 
         // ===== EDIT =====
         document.querySelectorAll('.edit-record-btn').forEach(btn => {

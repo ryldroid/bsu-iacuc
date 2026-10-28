@@ -889,63 +889,80 @@
 
 
 .records-table .col-ref {
-  width: 120px;
+  width: 140px;
   white-space: nowrap;
 }
 
 .records-table .col-ar {
-  width: 120px;
+  width: 140px;
   white-space: nowrap;
 }
 
 .records-table .col-title {
-  min-width: 300px;
+  min-width: 340px;
 }
 
 .records-table .col-school {
-  width: 130px;
+  width: 170px;
 }
 
 .records-table .col-animal {
-  width: 110px;
+  width: 130px;
 }
 
 .records-table .col-count {
-  width: 70px;
+  width: 80px;
   text-align: right;
 }
 
 .records-table .col-pi {
-  width: 150px;
+  width: 180px;
 }
 
 .records-table .col-sex {
-  width: 80px;
+  width: 100px;
 }
 
 .records-table .col-rtype {
-  width: 110px;
-}
-
-.records-table .col-adviser {
   width: 140px;
 }
 
+.records-table .col-adviser {
+  width: 170px;
+}
+
 .records-table .col-vet {
-  width: 130px;
+  width: 160px;
 }
 
 .records-table .col-duration {
-  width: 190px;
+  width: 220px;
 }
 
 .records-table .col-date {
-  width: 110px;
+  width: 140px;
   white-space: nowrap;
 }
 
 .records-table .col-recv {
-  width: 130px;
+  width: 160px;
+}
+
+/* ===== Larger records text (desktop) ===== */
+@media (min-width: 769px) {
+  .records-table thead th {
+    font-size: 1rem;
+    padding: 12px 16px;
+  }
+
+  .records-table tbody td {
+    font-size: .9rem;
+    padding: 14px 16px;
+  }
+
+  .records-table .records-status {
+    font-size: 0.95rem;
+  }
 }
 
 /* ===== Sortable column headers ===== */
@@ -967,7 +984,7 @@
 }
 
 .records-table .col-status {
-  width: 110px;
+  width: 130px;
   white-space: nowrap;
 }
 

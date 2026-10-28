@@ -24,9 +24,9 @@ $showWelcome = $user && !empty($user['show_welcome']);
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
 $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'];
 if ($role === 'reviewer') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents, then return them for revision or mark them Reviewed.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents. Return them for revision or finish review. You may also verify training certificates and rename or delete protocols.";
 } elseif ($role === 'staff') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, uploading of protocol copies signed by the IACUC chair, endorsement, and clearance release.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nManage protocols post-review, including the verification of payments, assignment of IPNs and digital clearances, and confirmation of pickups of the hard copies. You may also rename or delete protocols. Moreover, manage the records, site content, audit logs, personnel accounts, and data backups.";
 }
 $guideHome = ['Home', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from CCARD.', ...$navLink('/announcements')];
@@ -68,7 +68,7 @@ if ($role === 'researcher') {
     $guideWelcome,
     ['Page menu', 'These links take you between the **dashboard** and **records**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
-    ['Dashboard', 'The **protocol inbox** lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
+    ['Dashboard', 'The **protocol inbox** lists protocols for review. View protocols and draw annotation or comment boxes on submitted documents.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,

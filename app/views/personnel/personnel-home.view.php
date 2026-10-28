@@ -47,14 +47,14 @@ $statusDescByRole = [
         'to-review'             => 'Submitted protocols waiting on the reviewer\'s review. You may view, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. Only one personnel needs to do this. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
         'reviewed'              => "The review has finished review. You may confirm clearance payments, assign IPNs, print protocols for the IACUC chairperson's signature and upload those signed scans, and mark them as **Endorsed**. Each card shows which of the five steps it is on and whether you or the researcher must act.",
-        'endorsed'              => "Protocols have been endorsed to DA-CARFU. Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **Approved**.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
     'reviewer' => [
         'to-review'             => 'Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Opening a protocol shows the researcher\'s training certificate first, and asks you to verify it if no one has yet. If it is rejected you can still read and comment, but you cannot finish the review or return the protocol until it is verified. Your part ends once you mark it Reviewed or return it for revision.',
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
-        'endorsed'              => 'Protocol has been endorsed to DA-CARFU. No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
+        'endorsed'              => 'Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.',
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
 ];
