@@ -152,7 +152,6 @@ h2 {
 .office-announcement-kicker {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75em;
   color: var(--brand-text);
 }
@@ -219,6 +218,8 @@ h2 {
 
 .office-announcement-more {
   display: inline-flex;
+  flex-shrink: 0;
+  white-space: nowrap;
   align-items: center;
   gap: 0.35em;
   font-size: 0.78em;
@@ -274,7 +275,7 @@ h2 {
   min-height: 0;
 }
 
-.office-announcement-card--featured.office-announcement-card--text .office-announcement-body-wrap {
+.office-announcement-card--featured.office-announcement-card--text :is(.office-announcement-title, .office-announcement-snippet) {
   max-width: 56rem;
 }
 
