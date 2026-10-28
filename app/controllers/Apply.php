@@ -3261,11 +3261,11 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== UNDO HISTORY (status reverts, payment and pickup undos), newest first =====
+    // ===== UNDO HISTORY (status reverts and pickup undos), newest first =====
 
     private function undoHistory(int $protocolId): array
     {
-        $titles = ['payment_unmarked' => 'Payment verification undone', 'hard_copy_pickup_undone' => 'Hard copy pickup undone'];
+        $titles = ['hard_copy_pickup_undone' => 'Hard copy pickup undone'];
 
         return array_map(function ($event) use ($titles) {
             preg_match('/^Status changed to: ([^.]+)(?:\. Reason: (.*))?$/s', (string) $event['details'], $match);
@@ -3277,7 +3277,7 @@ class Apply extends Controller
                 'actor_role' => $event['role'],
                 'created_at' => $event['created_at'],
             ];
-        }, $this->protocolModel->getAuditEvents($protocolId, ['status_reverted', 'payment_unmarked', 'hard_copy_pickup_undone']));
+        }, $this->protocolModel->getAuditEvents($protocolId, ['status_reverted', 'hard_copy_pickup_undone']));
     }
 
     // ===== PAYMENT EVENTS (proofs, rejections, verification, undo), newest first =====
@@ -3303,7 +3303,7 @@ class Apply extends Controller
     }
 
     // ===== SHARED MODAL DATA  (GET /apply/modaldata/{protocolId}) =====
-    // Feeds the shared Payment History and Amendments modals.
+    // Feeds the shared Amendments modal.
 
     public function modaldata(int $protocolId = 0): void
     {
@@ -3323,13 +3323,10 @@ class Apply extends Controller
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role']);
 
-        $proofFiles = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof'));
-
         echo json_encode([
-            'protocol_id'     => $protocolId,
-            'title'           => $protocol['research_title'],
-            'payment_history' => $this->paymentEvents($protocol, $proofFiles),
-            'amendments'      => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
+            'protocol_id' => $protocolId,
+            'title'       => $protocol['research_title'],
+            'amendments'  => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
         ]);
         exit;
     }
@@ -3366,6 +3363,7 @@ class Apply extends Controller
             return $v;
         }, $versions);
 
+        $proofFiles   = $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof'));
         $titleHistory = $this->protocolModel->getTitleHistory($protocolId);
         $certHistory  = $this->isPersonnel()
             ? array_map(fn($h) => [
@@ -3385,7 +3383,8 @@ class Apply extends Controller
             'status'              => $protocol['status'],
             'reference_no'        => $protocol['reference_no'] ?? '',
             'versions'            => $versions,
-            'payment_proof_files' => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof')),
+            'payment_proof_files' => $proofFiles,
+            'payment_history'     => $this->paymentEvents($protocol, $proofFiles),
             'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
             'cert_history'        => $certHistory,
             'undo_history'        => $this->undoHistory($protocolId),

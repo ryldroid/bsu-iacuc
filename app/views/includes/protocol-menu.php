@@ -8,10 +8,7 @@ $menuTitle    = htmlspecialchars((string) $menu['title'], ENT_QUOTES, 'UTF-8');
 $menuItems    = [];
 $menuHasUpdate = !empty($menu['hasUpdate']) && $menuFlags['hasRenames'];
 
-$menuItems[] = ['action' => 'version-history', 'label' => 'Version History', 'icon' => 'history-icon', 'update' => $menuHasUpdate];
-if ($menuFlags['hasPaymentHistory']) {
-  $menuItems[] = ['action' => 'payment-history', 'label' => 'Payment History', 'icon' => 'history-icon'];
-}
+$menuItems[] = ['action' => 'history', 'label' => 'History', 'icon' => 'history-icon', 'update' => $menuHasUpdate];
 if (!empty($menu['download'])) {
   $menuItems[] = ['action' => '', 'label' => 'Download', 'icon' => 'download-icon', 'href' => $menu['download']['url'], 'fileName' => $menu['download']['name']];
 }

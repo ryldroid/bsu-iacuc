@@ -131,6 +131,88 @@ function buildVersionRows(data) {
   return historySection("Protocol Submissions", rows);
 }
 
+const PAYMENT_EVENT_LOOKS = {
+  proof: {
+    icon: "upload-icon",
+    title: "Proof of payment submitted",
+    tone: "info",
+  },
+  rejected: {
+    icon: "alert-triangle-icon",
+    title: "Payment rejected",
+    tone: "danger",
+  },
+  paid: {
+    icon: "check-circle-icon",
+    title: "Payment verified",
+    tone: "success",
+  },
+  unmarked: {
+    icon: "undo-icon",
+    title: "Payment verification undone",
+    tone: "warning",
+  },
+};
+
+function buildPaymentHistorySection(events, resubmit) {
+  if (!events || events.length === 0) return "";
+
+  const rows = events
+    .map((e, i) => {
+      const look = PAYMENT_EVENT_LOOKS[e.type] || PAYMENT_EVENT_LOOKS.paid;
+      let detail = `<span class="payment-event-detail">${e.method === "in_person" ? "Paid in person at CCARD" : "Paid online"}</span>`;
+      let action = "";
+
+      if (e.type === "proof") {
+        detail = `<span class="payment-event-detail">${escapeHtml(e.original_name || "")}</span>`;
+        action = `<button class="button button-compact history-open" type="button" data-payment-index="${i}">
+                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
+                View
+            </button>`;
+      } else if (e.type === "rejected") {
+        detail = `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(e.comment || "No reason given.")}</span>`;
+        if (i === 0 && resubmit) {
+          detail +=
+            '<span class="payment-event-note">Open the latest proof below to resubmit your payment.</span>';
+        }
+      } else if (e.type === "unmarked") {
+        detail =
+          '<span class="payment-event-detail">Waiting to be verified again</span>';
+      }
+
+      return historyEvent(
+        look.tone,
+        look.icon,
+        look.title,
+        `${escapeHtml(formatDate(e.at))} &middot; ${escapeHtml(formatTime(e.at))}`,
+        detail,
+        action,
+      );
+    })
+    .join("");
+
+  return historySection("Payment History", rows);
+}
+
+function bindPaymentProofButtons(events, resubmit) {
+  const latestProofIndex = events.findIndex((e) => e.type === "proof");
+
+  document
+    .querySelectorAll("#historyModalBody [data-payment-index]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.paymentIndex);
+        historyBackdrop.classList.remove("open");
+        openFilePopup(
+          events[index].file_url,
+          "Proof of Payment",
+          index === latestProofIndex ? resubmit : null,
+          () => historyBackdrop.classList.add("open"),
+        );
+      });
+    });
+}
+
 function buildTitleHistorySection(titleHistory) {
   if (!titleHistory || titleHistory.length === 0) return "";
 
@@ -237,8 +319,11 @@ function historySection(label, rows) {
 
 // ===== Render history =====
 function renderHistory(data) {
+  const paymentEvents = data.payment_history || [];
+  const resubmit = window.protocolMenuHooks?.paymentResubmit?.();
   const sections = [
     buildVersionRows(data),
+    buildPaymentHistorySection(paymentEvents, resubmit),
     buildTitleHistorySection(data.title_history),
     buildUndoHistorySection(data.undo_history),
     buildCertHistorySection(data.cert_history),
@@ -246,5 +331,7 @@ function renderHistory(data) {
 
   document.getElementById("historyModalBody").innerHTML = sections.length
     ? sections.join("")
-    : '<p class="helper history-empty">No submission history found.</p>';
+    : '<p class="helper history-empty">No history found.</p>';
+
+  bindPaymentProofButtons(paymentEvents, resubmit);
 }

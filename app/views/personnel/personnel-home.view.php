@@ -1026,7 +1026,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 <?php include dirname(__DIR__) . '/includes/history-modal.php'; ?>
 <script>
     window.historyModalConfig = {
-        offlineMessage: 'Submission history is not available offline. It will load once you reconnect.'
+        offlineMessage: 'History is not available offline. It will load once you reconnect.'
     };
 </script>
 <script src="<?= asset_js('history-modal.js') ?>"></script>

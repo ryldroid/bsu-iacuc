@@ -7,7 +7,7 @@
         </svg>
       </span>
       <div class="history-modal-title-wrapper">
-        <p class="modal-label">Submission History</p>
+        <p class="modal-label">History</p>
         <p class="modal-title" id="historyModalTitle"></p>
       </div>
       <button class="modal-close" id="historyModalClose" onclick="closeHistoryModal()" aria-label="Close">

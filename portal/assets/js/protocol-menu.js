@@ -1,16 +1,14 @@
 // ===== Protocol menu =====
 // Markup: includes/protocol-menu.php. Items call the shared openers in
 // protocol-modals.js, file-popup.js and history-modal.js with the protocol id
-// and title stored on the menu. A page can set
-// window.protocolMenuHooks.paymentResubmit to return the resubmit footer used
-// when a rejected payment proof is opened from Payment History. Any other
-// action falls through to the page's window.protocolRowActions table.
+// and title stored on the menu. Any other action falls through to the page's
+// window.protocolRowActions table.
 
 const PROTOCOL_MENU_GAP = 6;
 const PROTOCOL_MENU_MARGIN = 12;
 
 const PROTOCOL_MENU_ACTIONS = {
-  "version-history": (id, title, item, menu) => {
+  history: (id, title, item, menu) => {
     if (item.classList.contains("has-update")) {
       menu
         .querySelectorAll(".has-update")
@@ -21,10 +19,6 @@ const PROTOCOL_MENU_ACTIONS = {
     }
     openHistoryModal(id, title);
   },
-  "payment-history": (id, title) =>
-    openPaymentHistoryModal(id, title, {
-      resubmit: window.protocolMenuHooks?.paymentResubmit?.(),
-    }),
   rename: (id, title) => openRenameModal(id, title),
   amendments: (id, title) => openAmendmentsModal(id, title),
   "submit-amendment": (id, title, item, menu) =>

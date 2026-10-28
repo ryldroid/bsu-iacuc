@@ -1,6 +1,6 @@
 <?php
 // Shared protocol modals: file popup, rename, delete / request deletion,
-// amendments, amendment submit, payment history and rename history.
+// amendments, amendment submit and rename history.
 // They are driven by assets/js/protocol-modals.js and take a protocol id when
 // opened, so the viewer and the list pages can share them. The server still
 // enforces permissions on every endpoint they call.
@@ -192,32 +192,6 @@ include_once __DIR__ . '/file-popup.php';
           Submit
         </button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== Payment history modal ===== -->
-<div class="modal-backdrop" id="paymentHistoryModalBackdrop">
-  <div class="modal-card panel-modal-card">
-    <div class="modal-header">
-      <span class="modal-header-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-          <use href="#clock-icon" />
-        </svg>
-      </span>
-      <div>
-        <p class="modal-label">Payment History</p>
-        <p class="modal-title" id="paymentHistoryModalTitle"></p>
-        <span class="payment-state" id="paymentHistoryState" hidden></span>
-      </div>
-      <button class="modal-close" onclick="closePaymentHistoryModal()" aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <use href="#close-icon" />
-        </svg>
-      </button>
-    </div>
-    <div class="panel-modal-body">
-      <div class="payment-timeline" id="paymentHistoryList"></div>
     </div>
   </div>
 </div>

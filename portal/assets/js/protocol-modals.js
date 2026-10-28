@@ -233,7 +233,7 @@ async function submitDelete() {
 }
 
 // ===== Amendments list =====
-// Same timeline look as the payment history modal. Opening a file closes this
+// Same timeline look as the history modal. Opening a file closes this
 // modal and brings it back when the file popup is dismissed.
 const amendmentsBackdrop = protocolModalBind("amendmentsModalBackdrop", () =>
   closeAmendmentsModal(),
@@ -500,120 +500,4 @@ async function submitAmendment() {
     setButtonBusy(submitBtn, false);
     bar.remove();
   }
-}
-
-// ===== Payment history =====
-// opts.resubmit: a file popup footer ({ note, label, onAction }) shown when
-// the latest proof is opened, e.g. "Resubmit Payment" for a rejected payment.
-const paymentHistoryBackdrop = protocolModalBind(
-  "paymentHistoryModalBackdrop",
-  () => closePaymentHistoryModal(),
-);
-
-const PAYMENT_EVENT_LOOKS = {
-  proof: {
-    icon: "upload-icon",
-    title: "Proof of payment submitted",
-    state: "Awaiting verification",
-    tone: "info",
-  },
-  rejected: {
-    icon: "alert-triangle-icon",
-    title: "Payment rejected",
-    state: "Rejected, waiting for resubmission",
-    tone: "danger",
-  },
-  paid: {
-    icon: "check-circle-icon",
-    title: "Payment verified",
-    state: "Payment verified",
-    tone: "success",
-  },
-  unmarked: {
-    icon: "undo-icon",
-    title: "Payment verification undone",
-    state: "Awaiting verification",
-    tone: "warning",
-  },
-};
-
-async function openPaymentHistoryModal(protocolId, title, opts) {
-  const list = document.getElementById("paymentHistoryList");
-  document.getElementById("paymentHistoryModalTitle").textContent = title;
-  const state = document.getElementById("paymentHistoryState");
-  state.hidden = true;
-  list.innerHTML = '<p class="helper">Loading&hellip;</p>';
-  paymentHistoryBackdrop.classList.add("open");
-
-  try {
-    const data = await protocolModalData(protocolId);
-    if (data.error) throw new Error(data.error);
-
-    const events = data.payment_history;
-    const latestProofIndex = events.findIndex((e) => e.type === "proof");
-
-    const newest = PAYMENT_EVENT_LOOKS[events[0]?.type];
-    state.hidden = !newest;
-    if (newest) {
-      state.textContent = newest.state;
-      state.className = `payment-state payment-tone-${newest.tone}`;
-    }
-
-    list.innerHTML = events
-      .map((e, i) => {
-        const look = PAYMENT_EVENT_LOOKS[e.type] || PAYMENT_EVENT_LOOKS.paid;
-        let detail = `<span class="payment-event-detail">${e.method === "in_person" ? "Paid in person at CCARD" : "Paid online"}</span>`;
-        let action = "";
-
-        if (e.type === "proof") {
-          detail = `<span class="payment-event-detail">${escapeHtml(e.original_name || "")}</span>`;
-          action = `<button class="button button-compact" type="button" data-index="${i}">
-              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
-              View
-            </button>`;
-        } else if (e.type === "rejected") {
-          detail = `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(e.comment || "No reason given.")}</span>`;
-          if (i === 0 && opts?.resubmit) {
-            detail +=
-              '<span class="payment-event-note">Open the latest proof below to resubmit your payment.</span>';
-          }
-        } else if (e.type === "unmarked") {
-          detail =
-            '<span class="payment-event-detail">Waiting to be verified again</span>';
-        }
-
-        return `<div class="payment-event payment-tone-${look.tone}">
-            <span class="payment-event-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${look.icon}" /></svg>
-            </span>
-            <div class="payment-event-body">
-              <span class="payment-event-title">${look.title}</span>
-              <span class="payment-event-time">${escapeHtml(formatDate(e.at))} &middot; ${escapeHtml(formatTime(e.at))}</span>
-              ${detail}
-            </div>
-            ${action}
-          </div>`;
-      })
-      .join("");
-
-    list.querySelectorAll("button[data-index]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const index = Number(btn.dataset.index);
-        closePaymentHistoryModal();
-        openFilePopup(
-          events[index].file_url,
-          "Proof of Payment",
-          index === latestProofIndex ? opts?.resubmit : null,
-          () => paymentHistoryBackdrop.classList.add("open"),
-        );
-      });
-    });
-  } catch {
-    list.innerHTML =
-      '<p class="helper">Could not load the payment history. Please try again.</p>';
-  }
-}
-
-function closePaymentHistoryModal() {
-  paymentHistoryBackdrop.classList.remove("open");
 }
