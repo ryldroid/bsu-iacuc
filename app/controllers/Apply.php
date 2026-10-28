@@ -162,6 +162,26 @@ class Apply extends Controller
         );
     }
 
+    private function notifyPersonnelStatusReverted(array $protocol, array $actor, string $newStatus, string $reason, bool $reviewUndone): void
+    {
+        $title   = $protocol['research_title'] ?? 'Untitled Protocol';
+        $summary = $reviewUndone
+            ? 'undid the review of ' . Notifier::boldTitle($title) . '. It is back in To Review.'
+            : 'moved ' . Notifier::boldTitle($title) . ' back to ' . Notifier::bold($newStatus) . '.';
+
+        foreach ($reviewUndone ? ['reviewer', 'staff'] : ['staff'] as $role) {
+            Notifier::sendToRole(
+                $role,
+                'protocol_reverted',
+                $reviewUndone ? 'Review Undone' : 'Protocol Moved Back',
+                $this->roleLabel($actor['role']) . " {$actor['name']} $summary" . Notifier::reasonSentence($reason),
+                'apply/viewer/' . $protocol['protocol_id'],
+                [],
+                (int) $actor['id']
+            );
+        }
+    }
+
     private function notifyPersonnelProtocolAmended(array $protocol, array $actor, string $note): void
     {
         $title = $protocol['research_title'] ?? 'Untitled Protocol';
@@ -278,7 +298,7 @@ class Apply extends Controller
         );
     }
 
-    private function notifyStatusChange(array $protocol, string $newStatus, string $reason = ''): void
+    private function notifyStatusChange(array $protocol, string $newStatus, string $reason = '', bool $reviewUndone = false): void
     {
         $owner = $this->ownerOf($protocol);
         if (!$owner) {
@@ -296,12 +316,21 @@ class Apply extends Controller
             $noticeKey = 'reviewed paid';
         }
 
-        $returned = $noticeKey === 'under review';
-        [$noticeTitle, $nextStep] = $returned ? Notifier::returnedToReviewNotice($reason) : Notifier::STATUS_NOTICES[$noticeKey];
+        $returned = $noticeKey === 'under review' && !$reviewUndone;
+        [$noticeTitle, $nextStep] = match (true) {
+            $reviewUndone => Notifier::REVIEW_UNDONE_NOTICE,
+            $returned     => Notifier::returnedToReviewNotice($reason),
+            default       => Notifier::STATUS_NOTICES[$noticeKey],
+        };
+        $type = match (true) {
+            $reviewUndone => 'protocol_review_undone',
+            $returned     => 'protocol_returned_to_review',
+            default       => 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
+        };
 
         Notifier::send(
             (int) $protocol['user_id'],
-            $returned ? 'protocol_returned_to_review' : 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
+            $type,
             $noticeTitle,
             'Your protocol ' . Notifier::boldTitle($title) . ' ' . $nextStep,
             $link,
@@ -368,6 +397,72 @@ class Apply extends Controller
                 'vars'     => ['title' => $title, 'protocol_id' => $protocol['protocol_id']],
                 'subject'  => 'Protocol Ready for IPN',
             ]
+        );
+    }
+
+    private function notifyPaymentUndone(array $protocol, array $actor): void
+    {
+        $owner = $this->ownerOf($protocol);
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        if ($owner) {
+            Notifier::send(
+                (int) $protocol['user_id'],
+                'payment_unverified',
+                'Payment Verification Undone',
+                'The verification of your payment for ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('undone') . '. ' . Notifier::PAYMENT_UNDONE_NEXT_STEP,
+                $this->protocolHighlightLink((int) $protocol['protocol_id']),
+                [
+                    'template' => 'protocol_status_changed',
+                    'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => 'Reviewed', 'next_step' => 'had its payment verification undone. ' . Notifier::PAYMENT_UNDONE_NEXT_STEP, 'protocol_id' => $protocol['protocol_id']],
+                    'to'       => $owner['email'] ?? '',
+                    'name'     => $owner['first_name'] ?? '',
+                    'subject'  => 'Payment Verification Undone',
+                ]
+            );
+        }
+
+        Notifier::sendToRole(
+            'staff',
+            'payment_unverified',
+            'Payment Verification Undone',
+            $this->roleLabel($actor['role']) . " {$actor['name']} undid the payment verification for " . Notifier::boldTitle($title) . '. It is back to awaiting verification.',
+            'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
+            [],
+            (int) $actor['id']
+        );
+    }
+
+    private function notifyHardCopyUndone(array $protocol, array $actor): void
+    {
+        $owner = $this->ownerOf($protocol);
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        if ($owner) {
+            Notifier::send(
+                (int) $protocol['user_id'],
+                'hard_copy_undone',
+                'Hard Copy Pickup Undone',
+                'The pickup of the embossed hard copy of ' . Notifier::boldTitle($title) . ' was marked as ' . Notifier::bold('not picked up') . '. ' . Notifier::HARD_COPY_UNDONE_NEXT_STEP,
+                $this->protocolHighlightLink((int) $protocol['protocol_id']),
+                [
+                    'template' => 'protocol_status_changed',
+                    'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => 'Hard Copy', 'next_step' => 'had its hard copy pickup undone. ' . Notifier::HARD_COPY_UNDONE_NEXT_STEP, 'protocol_id' => $protocol['protocol_id']],
+                    'to'       => $owner['email'] ?? '',
+                    'name'     => $owner['first_name'] ?? '',
+                    'subject'  => 'Hard Copy Pickup Undone',
+                ]
+            );
+        }
+
+        Notifier::sendToRole(
+            'staff',
+            'hard_copy_undone',
+            'Hard Copy Pickup Undone',
+            $this->roleLabel($actor['role']) . " {$actor['name']} undid the hard copy pickup of " . Notifier::boldTitle($title) . '.',
+            'apply/viewer/' . $protocol['protocol_id'],
+            [],
+            (int) $actor['id']
         );
     }
 
@@ -1712,9 +1807,12 @@ class Apply extends Controller
 
         // ===== ALLOWED STATUS CHANGES =====
         $allowedTransitions = [
-            'reviewer' => ['under review' => ['Needs Revision', 'Reviewed']],
+            'reviewer' => [
+                'under review' => ['Needs Revision', 'Reviewed'],
+                'reviewed'     => ['Under Review'],
+            ],
             'staff'    => [
-                'reviewed' => ['Endorsed'],
+                'reviewed' => ['Endorsed', 'Under Review'],
                 'endorsed' => ['Reviewed', 'Approved', 'Under Review'],
                 'approved' => ['Endorsed'],
             ],
@@ -1725,8 +1823,15 @@ class Apply extends Controller
             $this->jsonError(422, "That status change isn't allowed from the protocol's current state.");
         }
 
-        $isRevert = (in_array($newStatus, ['Reviewed', 'Under Review'], true) && strtolower($protocol['status']) === 'endorsed')
+        $isRevert = $newStatus === 'Under Review'
+            || ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
             || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
+
+        $isUndoReviewed = $newStatus === 'Under Review' && strtolower($protocol['status']) === 'reviewed';
+
+        if ($isUndoReviewed && !ProtocolPermissions::canUndoReviewed($protocol)) {
+            $this->jsonError(422, 'Undo the payment before undoing the review.');
+        }
 
         $reason = $newStatus === 'Under Review' ? mb_substr(trim((string) ($body['reason'] ?? '')), 0, 1000) : '';
 
@@ -1788,15 +1893,26 @@ class Apply extends Controller
                 }
             }
 
-            $this->notifyStatusChange($protocol, $newStatus, $reason);
+            if ($isUndoReviewed) {
+                $record = $this->recordModel->getByProtocolId($protocolId);
+                if ($record) {
+                    $this->recordModel->delete((int) $record['id']);
+                }
+            }
 
-            if ($newStatus === 'Under Review') {
+            $this->notifyStatusChange($protocol, $newStatus, $reason, $isUndoReviewed);
+
+            if ($isRevert) {
+                $this->notifyPersonnelStatusReverted($protocol, $actor, $newStatus, $reason, $isUndoReviewed);
+            }
+
+            if ($newStatus === 'Under Review' && !$isUndoReviewed) {
                 $this->notifyReviewersReturnedToReview($protocol, $actor, $reason);
             }
 
             // ===== SUCCESS MESSAGE =====
             $flashMessages = [
-                'Under Review'   => 'Endorsement reverted. Protocol is back to To Review.',
+                'Under Review'   => $isUndoReviewed ? 'Review undone. Protocol is back to To Review.' : 'Endorsement reverted. Protocol is back to To Review.',
                 'Needs Revision' => 'Protocol returned for revision. The researcher will be notified to make changes.',
                 'Reviewed'       => $isRevert ? 'Endorsement reverted. Protocol is back to Reviewed.' : 'Review finished. Protocol details have been added to the records.',
                 'Endorsed'       => $isRevert ? 'Approval reverted. Protocol is back to Endorsed.' : 'Protocol marked as endorsed.',
@@ -1954,6 +2070,7 @@ class Apply extends Controller
         $ok = $this->protocolModel->undoMarkPaid($protocolId);
         if ($ok) {
             $this->protocolModel->logAudit('payment_unmarked', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Payment mark undone');
+            $this->notifyPaymentUndone($protocol, $actor);
             $_SESSION['flash_success'] = 'Payment mark undone. The protocol is back to "proof submitted".';
         }
 
@@ -1998,6 +2115,9 @@ class Apply extends Controller
         $ok = $this->protocolModel->setHardCopyReleased($protocolId, $release ? $actor['id'] : null);
         if ($ok) {
             $this->protocolModel->logAudit($release ? 'hard_copy_picked_up' : 'hard_copy_pickup_undone', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $release ? 'Embossed hard copy picked up by the researcher' : 'Hard copy pickup undone');
+            if (!$release) {
+                $this->notifyHardCopyUndone($protocol, $actor);
+            }
             $_SESSION['flash_success'] = $release ? 'Hard copy pickup recorded.' : 'Hard copy pickup undone.';
         }
 
@@ -3141,7 +3261,26 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== PAYMENT EVENTS (proofs, rejections, verification), newest first =====
+    // ===== UNDO HISTORY (status reverts, payment and pickup undos), newest first =====
+
+    private function undoHistory(int $protocolId): array
+    {
+        $titles = ['payment_unmarked' => 'Payment verification undone', 'hard_copy_pickup_undone' => 'Hard copy pickup undone'];
+
+        return array_map(function ($event) use ($titles) {
+            preg_match('/^Status changed to: ([^.]+)(?:\. Reason: (.*))?$/s', (string) $event['details'], $match);
+
+            return [
+                'title'      => $titles[$event['action']] ?? 'Moved back to ' . ($match[1] ?? 'the previous status'),
+                'note'       => $match[2] ?? '',
+                'actor_name' => $event['username'],
+                'actor_role' => $event['role'],
+                'created_at' => $event['created_at'],
+            ];
+        }, $this->protocolModel->getAuditEvents($protocolId, ['status_reverted', 'payment_unmarked', 'hard_copy_pickup_undone']));
+    }
+
+    // ===== PAYMENT EVENTS (proofs, rejections, verification, undo), newest first =====
 
     private function paymentEvents(array $protocol, array $proofFiles): array
     {
@@ -3152,7 +3291,11 @@ class Apply extends Controller
         foreach ($this->protocolModel->getPaymentRejections((int) $protocol['protocol_id']) as $rejection) {
             $events[] = ['type' => 'rejected', 'at' => $rejection['created_at'], 'comment' => $rejection['comment']];
         }
-        if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at'])) {
+        foreach ($this->protocolModel->getAuditEvents((int) $protocol['protocol_id'], ['payment_verified', 'payment_unmarked']) as $audit) {
+            $verified = $audit['action'] === 'payment_verified';
+            $events[] = ['type' => $verified ? 'paid' : 'unmarked', 'at' => $audit['created_at'], 'method' => $verified ? ($protocol['payment_method'] ?? '') : ''];
+        }
+        if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at']) && !in_array('paid', array_column($events, 'type'), true)) {
             $events[] = ['type' => 'paid', 'at' => $protocol['paid_at'], 'method' => $protocol['payment_method'] ?? ''];
         }
         usort($events, fn($a, $b) => strcmp($b['at'], $a['at']));
@@ -3245,6 +3388,7 @@ class Apply extends Controller
             'payment_proof_files' => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'payment_proof')),
             'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
             'cert_history'        => $certHistory,
+            'undo_history'        => $this->undoHistory($protocolId),
         ]);
         exit;
     }

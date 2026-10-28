@@ -156,6 +156,32 @@ function buildTitleHistorySection(titleHistory) {
   return historySection("Title Name History", rows);
 }
 
+// ===== Undo history =====
+function buildUndoHistorySection(undoHistory) {
+  if (!undoHistory || undoHistory.length === 0) return "";
+
+  const rows = undoHistory
+    .map((h) => {
+      const role = h.actor_role
+        ? h.actor_role.charAt(0).toUpperCase() + h.actor_role.slice(1) + " - "
+        : "";
+      const detail = h.note
+        ? `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(h.note)}</span>`
+        : "";
+
+      return historyEvent(
+        "warning",
+        "undo-icon",
+        escapeHtml(h.title),
+        `${escapeHtml(role + (h.actor_name || ""))} &middot; ${escapeHtml(formatDateTime(h.created_at))}`,
+        detail,
+      );
+    })
+    .join("");
+
+  return historySection("Undo History", rows);
+}
+
 const CERT_HISTORY_EVENTS = {
   submitted: ["info", "upload-icon", "Certificate submitted"],
   verified: ["success", "shield-check-icon", "Certificate verified"],
@@ -214,6 +240,7 @@ function renderHistory(data) {
   const sections = [
     buildVersionRows(data),
     buildTitleHistorySection(data.title_history),
+    buildUndoHistorySection(data.undo_history),
     buildCertHistorySection(data.cert_history),
   ].filter(Boolean);
 

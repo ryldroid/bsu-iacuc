@@ -40,6 +40,12 @@ class Notifier
 
   public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
 
+  public const PAYMENT_UNDONE_NEXT_STEP = 'No action needed. CCARD will verify your payment again.';
+
+  public const HARD_COPY_UNDONE_NEXT_STEP = 'If you already claimed it, please tell the CCARD office. Otherwise, visit the office to claim it.';
+
+  public const REVIEW_UNDONE_NOTICE = ['Review Undone', 'was moved back to review because its review was undone. Please do not pay the clearance fee for now. You will be notified once the review is finished.'];
+
   // ===== EVERY NEXT-STEP TEXT WITH THE NOTIFICATION TYPE THAT CARRIES IT =====
   // Schema uses this to rewrite saved notifications whenever one of these texts is reworded.
   public static function stepTexts(): array
@@ -98,9 +104,10 @@ class Notifier
     string $title,
     string $message = '',
     ?string $link = null,
-    array $email = []
+    array $email = [],
+    ?int $exceptUserId = null
   ): void {
-    $recipients = (new NotificationModel())->createForRole($role, $type, $title, $message, $link);
+    $recipients = (new NotificationModel())->createForRole($role, $type, $title, $message, $link, $exceptUserId);
 
     if (empty($email['template'])) {
       return;

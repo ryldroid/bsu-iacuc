@@ -385,6 +385,24 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    public function getAuditEvents(int $protocolId, array $actions): array
+    {
+        $marks = implode(',', array_fill(0, count($actions), '?'));
+        $stmt  = $this->connection->prepare(
+            "SELECT action, username, role, details, created_at
+             FROM `audit_logs`
+             WHERE target_type = 'protocol' AND target_id = ? AND action IN ($marks)
+             ORDER BY created_at DESC, id DESC"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i' . str_repeat('s', count($actions)), $protocolId, ...$actions);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
     public function getPaymentRejections(int $protocolId): array
     {
         $stmt = $this->connection->prepare(
@@ -446,8 +464,8 @@ class ProtocolModel extends Model
                     (SELECT pv.file_path
                      FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id
-                       AND pv.file_type = 'protocol'
-                     ORDER BY pv.version_number DESC
+                       AND pv.file_type IN ('protocol', 'signed_scan')
+                     ORDER BY pv.file_type = 'signed_scan' DESC, pv.version_number DESC
                      LIMIT 1) AS file_path
                 FROM `protocols` p
                 WHERE p.status = 'Reviewed'

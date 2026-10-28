@@ -712,6 +712,15 @@ foreach ($protocols as $p) {
                                 }
                             }
 
+                            if (ProtocolPermissions::canUndoReviewed($protocol)) {
+                                $actions[] = [
+                                    'label' => 'Undo Reviewed',
+                                    'action' => 'revert-reviewed',
+                                    'icon' => 'undo',
+                                    'menu' => true
+                                ];
+                            }
+
                             $nextStep = null;
                             $stepCount = count(ProtocolModel::ENDORSEMENT_STEPS);
                             if ($userRole === 'staff' && $statusLower === 'reviewed') {

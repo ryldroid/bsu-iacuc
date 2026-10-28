@@ -529,6 +529,12 @@ const PAYMENT_EVENT_LOOKS = {
     state: "Payment verified",
     tone: "success",
   },
+  unmarked: {
+    icon: "undo-icon",
+    title: "Payment verification undone",
+    state: "Awaiting verification",
+    tone: "warning",
+  },
 };
 
 async function openPaymentHistoryModal(protocolId, title, opts) {
@@ -571,6 +577,9 @@ async function openPaymentHistoryModal(protocolId, title, opts) {
             detail +=
               '<span class="payment-event-note">Open the latest proof below to resubmit your payment.</span>';
           }
+        } else if (e.type === "unmarked") {
+          detail =
+            '<span class="payment-event-detail">Waiting to be verified again</span>';
         }
 
         return `<div class="payment-event payment-tone-${look.tone}">

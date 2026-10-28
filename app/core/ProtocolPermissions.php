@@ -23,6 +23,12 @@ class ProtocolPermissions
     return in_array(strtolower(trim((string) $status)), self::DELETABLE_STATUSES, true);
   }
 
+  public static function canUndoReviewed(array $protocol): bool
+  {
+    return strtolower((string) ($protocol['status'] ?? '')) === 'reviewed'
+      && in_array($protocol['payment_status'] ?? 'unpaid', ['unpaid', 'rejected'], true);
+  }
+
   public static function flags(array $protocol, array $actor, ?ProtocolModel $model = null): array
   {
     $role        = (string) ($actor['role'] ?? '');

@@ -36,6 +36,10 @@ class NotificationModel extends Model
     'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
+    'protocol_reverted'              => ['icon' => 'undo-icon', 'variant' => 'warning'],
+    'protocol_review_undone'         => ['icon' => 'undo-icon', 'variant' => 'warning'],
+    'payment_unverified'             => ['icon' => 'undo-icon', 'variant' => 'warning'],
+    'hard_copy_undone'               => ['icon' => 'undo-icon', 'variant' => 'warning'],
     'clearance_expiring'             => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],
     'backup_download'                => ['icon' => 'download-icon', 'variant' => 'warning'],
@@ -61,7 +65,7 @@ class NotificationModel extends Model
     return $this->connection->insert_id;
   }
 
-  public function createForRole(string $role, string $type, string $title, string $message = '', ?string $link = null): array
+  public function createForRole(string $role, string $type, string $title, string $message = '', ?string $link = null, ?int $exceptUserId = null): array
   {
     $stmt = $this->connection->prepare(
       "SELECT id, email, first_name, email_verified, email_notifications FROM `users` WHERE role = ? AND status = 'active'"
@@ -72,7 +76,10 @@ class NotificationModel extends Model
 
     $stmt->bind_param('s', $role);
     $stmt->execute();
-    $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $users = array_values(array_filter(
+      $stmt->get_result()->fetch_all(MYSQLI_ASSOC),
+      fn($u) => (int) $u['id'] !== $exceptUserId
+    ));
 
     foreach ($users as $u) {
       $this->create((int) $u['id'], $type, $title, $message, $link);

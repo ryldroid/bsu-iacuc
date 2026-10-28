@@ -107,6 +107,13 @@ window.protocolRowActions = {
       () => submitStatusChange(id, "Endorsed", btn),
     ),
 
+  "revert-reviewed": (id, btn) =>
+    confirmThen(
+      'Undo the review? The protocol will go back to To Review and its record will be removed. Use this if "Finish Review" was clicked by mistake.',
+      "Undo",
+      () => submitStatusChange(id, "Under Review", btn, "revert"),
+    ),
+
   "revert-endorsed": (id, btn) =>
     confirmThen(
       'Revert this protocol back to Reviewed? Use this if "Mark as Endorsed" was clicked by mistake.',
