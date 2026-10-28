@@ -44,6 +44,7 @@ class Model
                     (new Schema($this->connection))->run();
                     $this->markSchemaChecked();
                 } catch (Throwable $e) {
+                    error_log('Schema failed: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine());
                     $this->fatalError('Database setup failed. Please try again later.');
                 }
             }

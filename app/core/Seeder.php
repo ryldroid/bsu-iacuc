@@ -64,7 +64,7 @@ class Seeder
                 '63.74.665.7645',
                 'vp.re@bsu.edu.ph',
                 'https://www.facebook.com/bsuovpre/',
-                'facebook.com/bsuovpre',
+                'BSU - Office of the Vice President for Research and Extension',
                 null,
                 null,
                 null,
@@ -103,7 +103,7 @@ class Seeder
                 '8528 2240',
                 'strategiccommunications@bai.gov.ph',
                 'https://www.facebook.com/bai.gov.ph',
-                'facebook.com/bai.gov.ph',
+                'Bureau of Animal Industry',
                 null,
                 null,
                 null,
@@ -167,7 +167,7 @@ class Seeder
                     '63.74.665.7645',
                     'vp.re@bsu.edu.ph',
                     'https://www.facebook.com/bsuovpre/',
-                    'facebook.com/bsuovpre'
+                    'BSU - Office of the Vice President for Research and Extension'
                 ],
                 [
                     4,
@@ -177,7 +177,7 @@ class Seeder
                     '8528 2240',
                     'strategiccommunications@bai.gov.ph',
                     'https://www.facebook.com/bai.gov.ph',
-                    'facebook.com/bai.gov.ph'
+                    'Bureau of Animal Industry'
                 ],
             ];
             foreach ($new as [$so, $nm, $lg, $ad, $ph, $em, $fb, $fl]) {
@@ -208,6 +208,22 @@ class Seeder
         if ($flag) {
             $flag->bind_param('ss', $flagKey, $flagVal);
             $flag->execute();
+        }
+    }
+
+    // ===== Facebook labels: replace URL-style text with page names, keeps later edits =====
+    public function fixFacebookLabels(): void
+    {
+        $fixes = [
+            'facebook.com/bsuovpre'    => 'BSU - Office of the Vice President for Research and Extension',
+            'facebook.com/bai.gov.ph'  => 'Bureau of Animal Industry',
+        ];
+
+        $stmt = $this->connection->prepare("UPDATE `contact_offices` SET facebook_label = ? WHERE facebook_label = ?");
+        if (! $stmt) return;
+        foreach ($fixes as $old => $new) {
+            $stmt->bind_param('ss', $new, $old);
+            $stmt->execute();
         }
     }
 

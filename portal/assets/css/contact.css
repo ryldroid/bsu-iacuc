@@ -220,6 +220,45 @@
     }
 }
 
+.contact-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contact-card .contact-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    color: var(--brand-text);
+    border: 0;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    margin-top: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.contact-card .contact-button:hover {
+    color: var(--text-on-brand);
+    background-color: var(--brand-color);
+}
+
+.contact-card--featured .contact-button {
+    background-color: var(--card-background);
+    margin-top: 0;
+    background: none;
+}
+
+.contact-card--featured .contact-button:hover {
+    background-color: var(--brand-color);
+}
+
 @media (max-width: 450px) {
     .contact-card {
         padding: 18px;

@@ -11,21 +11,34 @@ $featuredOffices = array_values(array_filter($offices, fn($office) => !empty($of
 $otherOffices = array_values(array_filter($offices, fn($office) => empty($office['director_name'])));
 $offices = array_merge($featuredOffices, $otherOffices);
 
-// One label/value row; $values are plain strings, $linkPrefix turns them into mailto:/tel: links
-$contactLines = function (array $values, string $linkPrefix = '') {
+// Small icon buttons; every argument is already escaped
+$buttonIcon = fn(string $icon) => '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . $icon . '" /></svg>';
+
+$linkButton = fn(string $href, string $icon, string $label, string $attributes = '') => '<a href="' . $href . '" class="contact-button" aria-label="' . $label . '" title="' . $label . '"' . $attributes . '>' . $buttonIcon($icon) . '</a>';
+
+$copyButton = fn(string $text) => '<button type="button" class="contact-button" data-copy="' . $text . '" aria-label="Copy ' . $text . '" title="Copy">' . $buttonIcon('copy-icon') . '</button>';
+
+// One label/value row; $values are plain strings, $type adds the call/email buttons
+$contactLines = function (array $values, string $type = '') use ($linkButton, $copyButton) {
     foreach ($values as $value) {
-        $text = htmlspecialchars($value, ENT_QUOTES);
-        if ($linkPrefix === 'tel:') {
-            $number = preg_replace('/[^\d+]/', '', $value);
-            echo strlen($number) >= 7
-                ? '<span><a href="tel:' . $number . '" class="underlined">' . $text . '</a></span>'
-                : '<span>' . $text . '</span>';
-        } elseif ($linkPrefix !== '') {
-            echo '<span><a href="' . $linkPrefix . $text . '" class="underlined">' . $text . '</a></span>';
-        } else {
-            echo '<span>' . $text . '</span>';
+        $text    = htmlspecialchars($type === 'phone' ? preg_replace('/^\+63\s*/', '0', $value) : $value, ENT_QUOTES);
+        $number  = preg_replace('/[^\d+]/', '', $value);
+        $buttons = '';
+
+        if ($type === 'phone' && strlen($number) >= 7) {
+            $buttons = $linkButton('tel:' . $number, 'phone-icon', 'Call ' . $text) . $copyButton($text);
+        } elseif ($type === 'email') {
+            $buttons = $linkButton('mailto:' . $text, 'email-icon', 'Email ' . $text) . $copyButton($text);
         }
+
+        echo '<span class="contact-line">' . $text . $buttons . '</span>';
     }
+};
+
+// A label with a button that opens its page in a new tab
+$openLine = function (string $url, string $label) use ($linkButton) {
+    $label = htmlspecialchars($label, ENT_QUOTES);
+    echo '<span class="contact-line">' . $label . $linkButton(htmlspecialchars($url, ENT_QUOTES), 'external-link-icon', 'Open ' . $label, ' target="_blank" rel="noopener noreferrer"') . '</span>';
 };
 ?>
 
@@ -74,11 +87,15 @@ $contactLines = function (array $values, string $linkPrefix = '') {
                                 </div>
 
                                 <?php if (!empty($office['director_email'])): ?>
-                                    <a href="mailto:<?= htmlspecialchars($office['director_email'], ENT_QUOTES) ?>" class="underlined person-email">
-                                        <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#email-icon" />
-                                        </svg><?= htmlspecialchars($office['director_email'], ENT_QUOTES) ?>
-                                    </a>
+                                    <?php $directorEmail = htmlspecialchars($office['director_email'], ENT_QUOTES); ?>
+                                    <span class="contact-line">
+                                        <span class="person-email">
+                                            <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <use href="#email-icon" />
+                                            </svg><?= $directorEmail ?>
+                                        </span>
+                                        <?= $linkButton('mailto:' . $directorEmail, 'email-icon', 'Email ' . $directorEmail) . $copyButton($directorEmail) ?>
+                                    </span>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -104,7 +121,7 @@ $contactLines = function (array $values, string $linkPrefix = '') {
                                             <use href="#phone-icon" />
                                         </svg>Phone
                                     </dt>
-                                    <dd><?php $contactLines($phones, 'tel:'); ?></dd>
+                                    <dd><?php $contactLines($phones, 'phone'); ?></dd>
                                 </div>
                             <?php endif; ?>
 
@@ -115,7 +132,7 @@ $contactLines = function (array $values, string $linkPrefix = '') {
                                             <use href="#email-icon" />
                                         </svg>Email
                                     </dt>
-                                    <dd><?php $contactLines($emails, 'mailto:'); ?></dd>
+                                    <dd><?php $contactLines($emails, 'email'); ?></dd>
                                 </div>
                             <?php endif; ?>
 
@@ -126,7 +143,7 @@ $contactLines = function (array $values, string $linkPrefix = '') {
                                             <use href="#facebook-icon" />
                                         </svg>Facebook
                                     </dt>
-                                    <dd><a href="<?= htmlspecialchars($office['facebook_url'], ENT_QUOTES) ?>" target="_blank" rel="noopener noreferrer" class="underlined"><?= htmlspecialchars($office['facebook_label'] ?: $office['facebook_url'], ENT_QUOTES) ?></a></dd>
+                                    <dd><?php $openLine($office['facebook_url'], $office['facebook_label'] ?: $office['facebook_url']); ?></dd>
                                 </div>
                             <?php endif; ?>
 
@@ -137,7 +154,7 @@ $contactLines = function (array $values, string $linkPrefix = '') {
                                             <use href="#website-icon" />
                                         </svg>Website
                                     </dt>
-                                    <dd><a href="<?= htmlspecialchars($office['website_url'], ENT_QUOTES) ?>" target="_blank" rel="noopener noreferrer" class="underlined"><?= htmlspecialchars($office['website_label'] ?: $office['website_url'], ENT_QUOTES) ?></a></dd>
+                                    <dd><?php $openLine($office['website_url'], $office['website_label'] ?: $office['website_url']); ?></dd>
                                 </div>
                             <?php endif; ?>
                         </dl>
@@ -166,6 +183,24 @@ $contactLines = function (array $values, string $linkPrefix = '') {
         </div>
     </main>
 </div>
+
+<script>
+    // ===== Copy email address or phone number =====
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-copy]');
+        if (!button) return;
+
+        const icon = button.querySelector('use');
+        const showIcon = (name) => {
+            icon.setAttribute('href', '#' + name);
+            setTimeout(() => icon.setAttribute('href', '#copy-icon'), 2000);
+        };
+
+        navigator.clipboard.writeText(button.dataset.copy)
+            .then(() => showIcon('check-icon'))
+            .catch(() => showIcon('alert-triangle-icon'));
+    });
+</script>
 
 <!-- ===== Footer ===== -->
 <?php include "includes/footer.php"; ?>

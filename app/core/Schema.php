@@ -330,6 +330,7 @@ class Schema
 
         $this->seeder->seedContactOffices();
         $this->seeder->migrateContactOffices();
+        $this->seeder->fixFacebookLabels();
 
         // ===== FAQS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `faqs` (

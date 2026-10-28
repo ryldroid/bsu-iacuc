@@ -2,6 +2,10 @@
 
 $previewMode = $previewMode ?? false;
 $pubRoot     = $previewMode ? ROOT . '/preview' : ROOT;
+$loginLink    = $previewMode ? '#' : ROOT . '/user/login';
+$registerLink = $previewMode ? '#' : ROOT . '/user/register';
+$applyLink    = $previewMode ? '#' : ROOT . '/apply';
+$disabledLink = $previewMode ? ' aria-disabled="true" onclick="return false;"' : '';
 
 $siteSettings    = $siteSettings ?? [];
 $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - Institutional Animal Care and Use Committee';
@@ -51,11 +55,7 @@ include "includes/scroll-top.php";
                             <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank" rel="noopener noreferrer">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
                         </p>
                         <div id="apply-actions">
-                            <?php if ($previewMode): ?>
-                                <a href="#" class="button btn-apply" aria-disabled="true" onclick="return false;">Click to Apply for IACUC Protocol Review</a>
-                            <?php else: ?>
-                                <a href="<?= ROOT ?>/apply" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>
-                            <?php endif; ?>
+                            <a href="<?= $applyLink ?>" class="button btn-apply" <?= $disabledLink ?>>Click to Apply for IACUC Protocol Review</a>
                         </div>
                     </div>
                 </article>
@@ -233,11 +233,12 @@ include "includes/scroll-top.php";
                             <div class="timeline-content">
                                 <h3>Apply for Review</h3>
                                 <p>
-                                    <a href="<?= ROOT ?>/user/login" class="underlined">Create an account</a>
+                                    <a href="<?= $registerLink ?>" class="underlined" <?= $disabledLink ?>>Create an account</a>
                                     or
-                                    <a href="<?= ROOT ?>/user/login" class="underlined">sign back in</a>.
-                                    Afterwards, go to the
-                                    <a href="<?= $previewMode ? '#' : ROOT . '/apply' ?>" class="underlined" <?= $previewMode ? ' aria-disabled="true" onclick="return false;"' : '' ?>>application page</a>. Follow the steps to submit your IACUC protocol form.
+                                    <a href="<?= $loginLink ?>" class="underlined" <?= $disabledLink ?>>sign in</a>.
+                                    View the
+                                    <a href="<?= $applyLink ?>" class="underlined" <?= $disabledLink ?>>application form</a>
+                                    and follow the steps to submit your IACUC protocol form.
                                 </p>
                             </div>
                         </li>
@@ -250,7 +251,7 @@ include "includes/scroll-top.php";
                             </span>
                             <div class="timeline-content">
                                 <h3>Track Protocol</h3>
-                                <p>Track your protocol's status through your dashboard. View CCARD's comments and resubmit for as long as revisions are requested. You will be notified of every update via email.</p>
+                                <p>Track your protocol's status through your dashboard. As long as there are comments or requested revisions on your protocol, revise and resubmit. You will be notified of every update via your verified email.</p>
                             </div>
                         </li>
 
@@ -264,7 +265,7 @@ include "includes/scroll-top.php";
                                 <h3>Pay BAI's Processing Fee</h3>
                                 <p>Once the protocol has passed CCARD review, it will be endorsed to the Bureau of Animal Industry (BAI).</p>
                                 <p class="process-step-note">
-                                    <span class="italic">Note:</span> BAI requires an animal research clearance processing fee of <strong>Php 100.00</strong>. Visit the BSU-CCARD office or <a href="<?= ROOT ?>/contact#director-contact" class="underlined">contact the CCARD Director</a> to process your payment.
+                                    <span class="italic">Note:</span> BAI requires an animal research clearance processing fee of <strong>Php 100.00</strong>. If within BSU-La Trinidad Campus, submit your payment to the CCARD office. Otherwise, you may <a href="<?= ROOT ?>/contact#director-contact" class="underlined">contact the CCARD Director</a> to process your payment.
                                 </p>
                             </div>
                         </li>
@@ -277,9 +278,9 @@ include "includes/scroll-top.php";
                             </span>
                             <div class="timeline-content">
                                 <h3>Receive Clearance</h3>
-                                <p>Wait for your clearance to be released through your dashboard. You will also be notified through email.</p>
+                                <p>When your protocol is approved, your digital animal research clearance (ARC) will be released through your dashboard.</p>
                                 <p class="process-step-note">
-                                    Once approved, visit the BSU-CCARD office to claim the embossed hard copy of your animal research clearance.
+                                    Visit the CCARD office to claim the embossed hard copy of your ARC.
                                 </p>
                             </div>
                         </li>
