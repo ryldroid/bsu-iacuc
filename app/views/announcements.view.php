@@ -5,7 +5,7 @@ include "includes/header.php";
 include "includes/scroll-top.php";
 
 $officeAnnouncements = $officeAnnouncements ?? [];
-$carouselSlideCount = 5;
+$carouselSlideCount = 3;
 $carouselPosts = array_slice($officeAnnouncements, 0, $carouselSlideCount);
 $earlierPosts = array_slice($officeAnnouncements, $carouselSlideCount);
 
@@ -36,26 +36,27 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
     $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
 ?>
     <button type="button"
-        class="office-announcement-card<?= $isSlide ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $isNew ? ' is-new' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
+        class="office-announcement-card<?= $isSlide ? ' office-announcement-card--featured' : '' ?><?= $isPhotoOnly ? ' office-announcement-card--photo' : '' ?><?= $hasImage ? '' : ' office-announcement-card--text' ?><?= $isNew ? ' is-new' : '' ?><?= $isUntitled ? ' is-untitled' : '' ?>"
         data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
         aria-haspopup="dialog">
 
         <?php if ($hasImage): ?>
-            <span class="office-announcement-thumb">
+            <span class="office-announcement-thumb" style="--thumb-image: url('<?= $annImgUrl ?>')">
                 <img src="<?= $annImgUrl ?>" alt="<?= $isPhotoOnly ? htmlspecialchars($annHeading, ENT_QUOTES) : '' ?>">
-                <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
-            </span>
-        <?php else: ?>
-            <span class="office-announcement-thumb is-placeholder">
-                <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#announcement-icon" />
-                </svg>
                 <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
             </span>
         <?php endif; ?>
 
         <?php if (!$isPhotoOnly): ?>
             <span class="office-announcement-body-wrap">
+                <?php if (!$hasImage): ?>
+                    <span class="office-announcement-kicker">
+                        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#announcement-icon" />
+                        </svg>
+                        <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
+                    </span>
+                <?php endif; ?>
                 <span class="office-announcement-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></span>
                 <?php if ($annSnippet !== ''): ?>
                     <span class="office-announcement-snippet"><?= htmlspecialchars($annSnippet, ENT_QUOTES) ?></span>
@@ -137,14 +138,12 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
             </section>
         <?php endif; ?>
 
-        <div class="announcements-sections">
-            <section class="announcements">
-                <h2>Earlier Announcements</h2>
+        <div class="announcements-sections<?= empty($earlierPosts) ? ' is-partners-only' : '' ?>">
+            <?php if (!empty($earlierPosts)): ?>
+                <section class="announcements">
+                    <h2>More Announcements</h2>
 
-                <?php if (empty($earlierPosts)): ?>
-                    <p class="announcements-empty">No earlier announcements.</p>
-                <?php else: ?>
-                    <!-- ===== Earlier announcement cards ===== -->
+                    <!-- ===== More announcement cards ===== -->
                     <div class="office-announcements-list">
                         <?php foreach ($earlierPosts as $post) {
                             $renderAnnouncement($post, false);
@@ -165,22 +164,8 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
                             </select>
                         </div>
                     </div>
-                <?php endif; ?>
-
-                <?php if (!empty($officeAnnouncements)): ?>
-                    <!-- ===== Announcement modal ===== -->
-                    <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
-                        <div class="modal-card announcement-modal-card">
-                            <button type="button" class="modal-close" id="officeAnnouncementModalClose" aria-label="Close">
-                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#close-icon" />
-                                </svg>
-                            </button>
-                            <div id="officeAnnouncementModalBody"></div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </section>
+                </section>
+            <?php endif; ?>
 
             <section class="fb-cards">
                 <h2>From Our Partner Pages</h2>
@@ -231,6 +216,20 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
                 </div>
             </section>
         </div>
+
+        <?php if (!empty($officeAnnouncements)): ?>
+            <!-- ===== Announcement modal ===== -->
+            <div class="modal-backdrop" id="officeAnnouncementModal" role="dialog" aria-modal="true">
+                <div class="modal-card announcement-modal-card">
+                    <button type="button" class="modal-close" id="officeAnnouncementModalClose" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#close-icon" />
+                        </svg>
+                    </button>
+                    <div id="officeAnnouncementModalBody"></div>
+                </div>
+            </div>
+        <?php endif; ?>
 
     </main>
 </div>
@@ -331,7 +330,7 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
             buttons: document.getElementById('paginationButtons'),
             rowsSelect: document.getElementById('rowsPerPageSelect'),
             defaultRows: 12,
-            noun: 'earlier announcements',
+            noun: 'announcements',
             storageKey: 'announcements',
             onChange: render
         });
