@@ -329,6 +329,7 @@ main:has(> .page-banner) {
     padding: 12px 22px;
     font-size: 1.05em;
     background-color: var(--accent-color);
+    border: 1.5px solid var(--accent-color);
     color: var(--accent-text);
 }
 
@@ -336,6 +337,16 @@ main:has(> .page-banner) {
     background-color: var(--accent-color);
     color: var(--accent-text);
     filter: brightness(1.1);
+}
+
+.page-banner:not(.banner) .btn-apply-outline {
+    background: none;
+    color: var(--accent-color);
+}
+
+.page-banner:not(.banner) .btn-apply-outline:hover {
+    background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+    color: var(--accent-color);
 }
 
 .page-banner h1 {

@@ -74,6 +74,10 @@
 }
 
 @media (max-width: 650px) {
+    .submission-header {
+        flex-wrap: wrap;
+    }
+
     .submission-header .btn-apply .label-full {
         display: none;
     }
@@ -82,7 +86,7 @@
         display: inline;
     }
 
-    .submission-header .btn-apply {
+    .submission-header.page-banner .btn-apply {
         padding: 9px 12px;
     }
 }

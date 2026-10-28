@@ -846,14 +846,14 @@ include 'includes/guide.php';
 
                 container.innerHTML = `
                     <div class="apply-actions">
-                        <a href="${applyUrl}" class="btn-apply button" title="Continue Application">
+                        <a href="${applyUrl}" class="btn-apply btn-apply-outline button" title="Continue Application">
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#arrow-right-icon" />
                             </svg>
                             <span class="label-full">Resume Application</span>
                             <span class="label-short">Resume</span>
                         </a>
-                        <button type="button" class="btn-apply btn-apply-outline button" id="btn-sub-new"
+                        <button type="button" class="btn-apply button" id="btn-sub-new"
                             data-confirm-message="You have an application in progress. Starting a new one will discard your saved progress. This cannot be undone."
                             data-confirm-ok-text="Yes, Start Over"
                             data-confirm-cancel-text="Go Back"

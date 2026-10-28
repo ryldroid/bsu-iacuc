@@ -124,3 +124,9 @@ function normalize_pasted_text(?string $text): string
   // ===== COLLAPSE SPACES =====
   return trim(preg_replace('/[^\S\r\n]{2,}/u', ' ', $result));
 }
+
+// ===== STRIP WRAPPING QUOTES =====
+function strip_wrapping_quotes(string $text): string
+{
+  return trim(preg_replace('/^["\x{201C}\x{201D}]([^"\x{201C}\x{201D}]*)["\x{201C}\x{201D}]$/u', '$1', trim($text)));
+}

@@ -145,6 +145,7 @@ $resubmitDocs      = [
     ['key' => 'protocol', 'title' => 'Revised protocol file', 'subtitle' => 'PDF, DOC, or DOCX · max 10 MB', 'accept' => '.pdf,.doc,.docx', 'required' => true],
 ];
 
+$hideWelcomeGuide = true;
 include 'includes/header.php';
 ?>
 

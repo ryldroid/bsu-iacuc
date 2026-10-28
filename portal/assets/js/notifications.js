@@ -49,19 +49,26 @@ function renderList(items) {
       const isUnread = item.is_read == 0;
       const href = item.link ? `${NOTIF_ROOT}/${item.link}` : "#";
       return `
-        <a href="${href}" class="notif-item${isUnread ? " unread" : ""}" data-id="${item.id}">
+        <div class="notif-item${isUnread ? " unread" : ""}" data-id="${item.id}">
           <span class="notif-item-icon notif-item-icon--${item.variant}">
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <use href="#${item.icon}" />
             </svg>
           </span>
           <div class="notif-item-body">
-            <div class="notif-item-title">${escapeHtml(item.title)}</div>
+            <div class="notif-item-title">
+              <a href="${href}" class="notif-item-link">${escapeHtml(item.title)}</a>
+            </div>
             <div class="notif-item-message">${item.message_html}</div>
             <div class="notif-item-time">${timeAgo(item.created_at)}</div>
           </div>
-          ${isUnread ? '<span class="notif-item-dot" aria-hidden="true"></span>' : ""}
-        </a>`;
+          <button type="button" class="notif-item-toggle-read" aria-label="${isUnread ? "Mark as read" : "Mark as unread"}" title="${isUnread ? "Mark as read" : "Mark as unread"}">
+            <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#${isUnread ? "open-mail-icon" : "email-icon"}" />
+            </svg>
+          </button>
+          <span class="notif-item-dot" aria-hidden="true"></span>
+        </div>`;
     })
     .join("");
 }
@@ -96,7 +103,7 @@ async function loadNotifications() {
   } catch (e) {}
 }
 
-async function markRead(id) {
+async function markRead(id, read = true) {
   try {
     await fetch(NOTIF_MARKREAD_URL, {
       method: "POST",
@@ -104,7 +111,7 @@ async function markRead(id) {
         "Content-Type": "application/json",
         "X-CSRF-Token": NOTIF_CSRF_TOKEN,
       },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, read }),
     });
   } catch (e) {}
 }
@@ -156,10 +163,15 @@ if (notifBell && notifDropdown) {
     if (!clickedInside) closeNotifDropdown();
   });
 
-  notifList?.addEventListener("click", (event) => {
+  notifList?.addEventListener("click", async (event) => {
     const item = event.target.closest(".notif-item");
     if (!item) return;
-    markRead(item.dataset.id);
+    if (!event.target.closest(".notif-item-toggle-read")) {
+      markRead(item.dataset.id);
+      return;
+    }
+    await markRead(item.dataset.id, item.classList.contains("unread"));
+    loadNotifications();
   });
 
   notifMarkAll?.addEventListener("click", markAllRead);

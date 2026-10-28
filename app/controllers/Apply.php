@@ -798,7 +798,7 @@ class Apply extends Controller
             $this->jsonError(422, 'No draft found. Please fill out the application first.');
         }
 
-        $title = trim($draft['title'] ?? '');
+        $title = strip_wrapping_quotes($draft['title'] ?? '');
         if ($title === '') {
             $this->jsonError(422, 'Protocol title is required.');
         }
@@ -2207,7 +2207,7 @@ class Apply extends Controller
 
         $body       = json_decode(file_get_contents('php://input'), true) ?? [];
         $protocolId = (int) ($body['protocol_id'] ?? 0);
-        $newTitle   = normalize_pasted_text(trim($body['title'] ?? ''));
+        $newTitle   = strip_wrapping_quotes(normalize_pasted_text(trim($body['title'] ?? '')));
 
         if ($protocolId < 1) {
             $this->jsonError(400, 'Missing protocol ID.');

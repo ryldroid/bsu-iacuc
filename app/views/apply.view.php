@@ -2,6 +2,7 @@
 
 /** @var array|null $user */
 $title = "Submit Protocol";
+$hideWelcomeGuide = true;
 
 include "includes/header.php";
 include "includes/scroll-top.php";
@@ -44,9 +45,9 @@ include "includes/scroll-top.php";
 $guideId    = 'apply';
 $guideSteps = [
     ['Application', 'Applying for protocol review takes a few short steps. Let us walk through this page.'],
-    ['Progress', 'Each dot is a step: Requirements, Terms, Documents, Download form, Upload and submit, and Done. Finished steps show a check mark.', '#stepper'],
-    ['Current step', 'The step you are on appears here. Read it, finish what it asks, then press **Continue**. Press **Back** to return to an earlier step.', '#page-content'],
-    ['Leave and resume', 'Press **Home** to go back to My Protocols. Your progress is saved, and you can resume the application from there anytime.', '#btn-home'],
+    ['Progress', 'Move through the requirements, terms and conditions, one-time upload of your IACUC training certificate, download of the official IACUC protocol review form, and finally the filling of protocol details and submission.', '#stepper'],
+    ['Current step', 'Thoroughly read and follow the instructions. You can navigate the steps with **Back** and **Continue**.', '#page-content'],
+    ['Leave and resume', 'Press to go back to your dashboard. Your progress will be saved, and you can resume the application from any time.', '#btn-home'],
 ];
 include 'includes/guide.php';
 ?>
@@ -571,7 +572,7 @@ include 'includes/guide.php';
     ${!state.certAlready ? `
     <p class="step-intro-text">
         The training certificate is issued upon completion of your IACUC (animal care and use) course or seminar.
-        If you haven't completed this training yet, contact CCARD for a schedule before continuing.
+        If you have not completed this training yet, contact CCARD for a schedule before continuing.
     </p>` : ''}
 
     ${rows.join('')}
@@ -647,7 +648,6 @@ include 'includes/guide.php';
             key: 'title',
             label: 'Protocol title',
             attrs: 'maxlength="255" placeholder="e.g. Effects of X on Y in Z model"',
-            hint: 'Do not surround with quotation marks ("").',
             limit: 255,
         },
         {
@@ -697,7 +697,7 @@ include 'includes/guide.php';
         <label for="${f.id}">${f.label} <span class="req">*</span></label>
         <input type="${f.type || 'text'}" id="${f.id}" value="${escapeHtml(state[f.key])}" ${f.attrs}>
     </div>
-    ${f.hint ? `<p class="helper field-hint">${f.hint}${f.limit ? ` <span id="${f.id}-count">${[...state[f.key]].length}/${f.limit}</span>` : ''}</p>` : ''}`;
+    ${f.limit ? `<p class="helper field-hint"><span id="${f.id}-count">${[...state[f.key]].length}/${f.limit}</span></p>` : ''}`;
     }
 
     function captureDetails() {
@@ -718,7 +718,7 @@ include 'includes/guide.php';
     <div class="page-title">Submit your protocol</div>
 
     <div class="section-label">Part 1: Upload completed form</div>
-    <p class="step-intro-text">Print, sign, and scan the updated protocol, then upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
+    <p class="step-intro-text">Print your protocol then collected the required signatures. Afterwards, scan and upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
 
     ${docRow('protocol', {
         title: 'Completed IACUC protocol form',
@@ -766,7 +766,7 @@ include 'includes/guide.php';
         </div>
         <div class="page-title page-title--center">Protocol submitted</div>
         <p class="success-desc">
-            Your protocol has been received and will be assigned to a reviewer at BSU-CCARD. Expect feedback within <strong>5–7 business days</strong>. You will be notified via email.
+            Your protocol has been received and will be assigned to a reviewer at CCARD. Expect feedback within <strong>5–7 business days</strong>. You will be notified via email.
         </p>
         <div class="success-btn-row">
             <a href="${ROOT}/submissions?submitted=1" class="btn-link" onclick="disarmGuard();">

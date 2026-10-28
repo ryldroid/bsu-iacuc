@@ -227,17 +227,18 @@ class NotificationModel extends Model
     return (int) $stmt->get_result()->fetch_assoc()['c'];
   }
 
-  // ===== MARK AS READ =====
-  public function markRead(int $id, int $userId): bool
+  // ===== MARK AS READ / UNREAD =====
+  public function markRead(int $id, int $userId, bool $read = true): bool
   {
     $stmt = $this->connection->prepare(
-      "UPDATE `notifications` SET is_read = 1 WHERE id = ? AND user_id = ?"
+      "UPDATE `notifications` SET is_read = ? WHERE id = ? AND user_id = ?"
     );
     if (! $stmt) {
       return false;
     }
 
-    $stmt->bind_param('ii', $id, $userId);
+    $isRead = (int) $read;
+    $stmt->bind_param('iii', $isRead, $id, $userId);
     return $stmt->execute();
   }
 

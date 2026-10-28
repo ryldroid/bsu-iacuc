@@ -87,6 +87,7 @@ if ($role === 'researcher') {
     $guideHelp,
   ];
 }
+if ($hideWelcomeGuide ?? false) $welcomeSteps = [];
 $canPreviewSite = $role === 'staff' || $role === 'reviewer';
 $canReplayGuide = $welcomeSteps && !$accountRequired;
 ?>
@@ -632,6 +633,6 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
     $guideShowOnce = !$user;
     include __DIR__ . '/guide.php';
   } ?>
-  <?php if ($showWelcome) unset($_SESSION['user']['show_welcome']); ?>
+  <?php if ($showWelcome && $welcomeSteps) unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>

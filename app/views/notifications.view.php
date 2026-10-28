@@ -80,23 +80,26 @@ function notifDateGroup(string $dateStr): string
             <?php $currentGroup = $group; ?>
             <h2 class="notif-group-heading"><?= $group ?></h2>
           <?php endif; ?>
-          <a href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>"
-            class="notif-item<?= $isUnread ? ' unread' : '' ?>"
-            data-id="<?= (int) $item['id'] ?>">
+          <div class="notif-item<?= $isUnread ? ' unread' : '' ?>" data-id="<?= (int) $item['id'] ?>">
             <span class="notif-item-icon notif-item-icon--<?= $item['variant'] ?>">
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#<?= $item['icon'] ?>" />
               </svg>
             </span>
             <div class="notif-item-body">
-              <div class="notif-item-title"><?= htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8') ?></div>
+              <div class="notif-item-title">
+                <a href="<?= htmlspecialchars($href, ENT_QUOTES, 'UTF-8') ?>" class="notif-item-link"><?= htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8') ?></a>
+              </div>
               <div class="notif-item-message"><?= $item['message_html'] ?></div>
               <div class="notif-item-time"><?= notifTimeAgo($item['created_at']) ?></div>
             </div>
-            <?php if ($isUnread): ?>
-              <span class="notif-item-dot" aria-hidden="true"></span>
-            <?php endif; ?>
-          </a>
+            <button type="button" class="notif-item-toggle-read" aria-label="<?= $isUnread ? 'Mark as read' : 'Mark as unread' ?>" title="<?= $isUnread ? 'Mark as read' : 'Mark as unread' ?>">
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#<?= $isUnread ? 'open-mail-icon' : 'email-icon' ?>" />
+              </svg>
+            </button>
+            <span class="notif-item-dot" aria-hidden="true"></span>
+          </div>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
@@ -145,19 +148,23 @@ function notifDateGroup(string $dateStr): string
     const list = document.querySelector('.notif-page-list');
     const markAllBtn = document.getElementById('notifPageMarkAll');
 
-    list?.addEventListener('click', (event) => {
+    list?.addEventListener('click', async (event) => {
       const item = event.target.closest('.notif-item');
       if (!item) return;
-      fetch(<?= json_encode(ROOT . '/notifications/markread') ?>, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify({
-          id: item.dataset.id
-        }),
-      }).catch(() => {});
+      const toggleBtn = event.target.closest('.notif-item-toggle-read');
+      if (!toggleBtn) {
+        markRead(item.dataset.id);
+        return;
+      }
+      const read = item.classList.contains('unread');
+      const label = read ? 'Mark as unread' : 'Mark as read';
+      const request = markRead(item.dataset.id, read);
+      item.classList.toggle('unread', !read);
+      toggleBtn.querySelector('use').setAttribute('href', read ? '#email-icon' : '#open-mail-icon');
+      toggleBtn.setAttribute('aria-label', label);
+      toggleBtn.title = label;
+      await request;
+      loadNotifications();
     });
 
     markAllBtn?.addEventListener('click', async () => {

@@ -201,6 +201,41 @@
   font-weight: 700;
 }
 
+.notif-item-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.notif-item-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.notif-item .notif-item-toggle-read {
+  flex-shrink: 0;
+  display: flex;
+  position: relative;
+  margin-top: 0;
+  padding: .5em;
+
+  background: none;
+  box-shadow: none;
+  transform: none;
+  border-radius: 50%;
+
+  color: var(--brand-text);
+}
+
+.notif-item .notif-item-toggle-read:is(:hover, :active) {
+  background: var(--hover-surface);
+}
+
+.notif-item-toggle-read svg {
+  width: 24px;
+  height: 24px;
+}
+
 .notif-item-dot {
   flex-shrink: 0;
   width: 8px;
@@ -208,6 +243,10 @@
   margin-top: .6em;
   border-radius: 50%;
   background-color: var(--brand-text);
+}
+
+.notif-item:not(.unread) .notif-item-dot {
+  visibility: hidden;
 }
 
 /* ===== Empty state ===== */

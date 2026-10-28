@@ -98,7 +98,7 @@ class Notifications extends Controller
     }, $items);
   }
 
-  // ===== MARK AS READ =====
+  // ===== MARK AS READ / UNREAD =====
   public function markread(): void
   {
     $this->requireLogin();
@@ -114,7 +114,7 @@ class Notifications extends Controller
     }
 
     $userId = (int) $_SESSION['user']['user_id'];
-    $ok     = $this->notificationModel->markRead($id, $userId);
+    $ok     = $this->notificationModel->markRead($id, $userId, (bool) ($body['read'] ?? true));
 
     echo json_encode(['ok' => $ok]);
     exit;
