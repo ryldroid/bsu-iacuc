@@ -4,9 +4,12 @@ class NotificationModel extends Model
 {
   // ===== ICON & COLOR BY TYPE =====
   private const DEFAULT_STYLE = ['icon' => 'bell-icon', 'variant' => 'info'];
+  private const BACKUP_REMINDER_DAYS = 7;
+  private const BACKUP_DOWNLOAD_DAYS = 14;
 
   private const TYPE_STYLES = [
     'account_verified'               => ['icon' => 'shield-check-icon', 'variant' => 'success'],
+    'personnel_application'          => ['icon' => 'clock-icon', 'variant' => 'warning'],
     'protocol_submitted'             => ['icon' => 'upload-icon', 'variant' => 'info'],
     'new_submission'                 => ['icon' => 'upload-icon', 'variant' => 'info'],
     'new_submission_staff'           => ['icon' => 'upload-icon', 'variant' => 'info'],
@@ -35,6 +38,7 @@ class NotificationModel extends Model
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'clearance_expiring'             => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],
+    'backup_download'                => ['icon' => 'download-icon', 'variant' => 'warning'],
     'email_updates_stopped'          => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
   ];
 
@@ -77,7 +81,7 @@ class NotificationModel extends Model
     return $users;
   }
 
-  // ===== BACKUP WARNING FOR ALL STAFF: ONE PER STALE BACKUP =====
+  // ===== BACKUP WARNING FOR ALL STAFF: AT MOST ONE A WEEK WHILE THE BACKUP IS STALE =====
   public function warnStaffAboutBackup(Backup $backup): void
   {
     $message = $backup->ageWarning();
@@ -85,7 +89,7 @@ class NotificationModel extends Model
       return;
     }
 
-    $since = date('Y-m-d H:i:s', $backup->lastBackupTime() ?? strtotime('2000-01-01'));
+    $since = date('Y-m-d H:i:s', max($backup->lastBackupTime() ?? 0, time() - self::BACKUP_REMINDER_DAYS * 86400));
 
     $stmt = $this->connection->prepare(
       "SELECT u.id FROM `users` u
@@ -104,6 +108,47 @@ class NotificationModel extends Model
 
     foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $staff) {
       $this->create((int) $staff['id'], 'backup_warning', 'Backup Needed', $message, 'personnel/accounts?tab=backups');
+    }
+  }
+
+  // ===== REMIND STAFF TO DOWNLOAD A BACKUP: AT MOST ONE EVERY 2 WEEKS =====
+  public function remindStaffToDownloadBackup(Backup $backup): void
+  {
+    if ($backup->lastBackupTime() === null) {
+      return;
+    }
+
+    $limit = date('Y-m-d H:i:s', time() - self::BACKUP_DOWNLOAD_DAYS * 86400);
+
+    $stmt = $this->connection->prepare("SELECT MAX(created_at) FROM `audit_logs` WHERE action = 'backup_downloaded'");
+    if (! $stmt) {
+      return;
+    }
+
+    $stmt->execute();
+    $lastDownload = $stmt->get_result()->fetch_row()[0] ?? null;
+
+    if ($lastDownload !== null && $lastDownload > $limit) {
+      return;
+    }
+
+    $stmt = $this->connection->prepare(
+      "SELECT u.id FROM `users` u
+             WHERE u.role = 'staff' AND u.status = 'active'
+             AND NOT EXISTS (
+               SELECT 1 FROM `notifications` n
+               WHERE n.user_id = u.id AND n.type = 'backup_download' AND n.created_at > ?
+             )"
+    );
+    if (! $stmt) {
+      return;
+    }
+
+    $stmt->bind_param('s', $limit);
+    $stmt->execute();
+
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $staff) {
+      $this->create((int) $staff['id'], 'backup_download', 'Download a Backup', 'No backup has been downloaded in the last 2 weeks. Press Save a copy on a backup and keep the file on your computer or Google Drive.', 'personnel/accounts?tab=backups');
     }
   }
 

@@ -2,7 +2,6 @@
 const researcherBackdrop = document.getElementById("researcherModalBackdrop");
 const researcherModalBody = document.getElementById("researcherModalBody");
 let currentResearcherId = null;
-let researcherModalLocked = false;
 let certReviewMode = false;
 
 const CERT_REVIEW_TITLES = {
@@ -26,12 +25,6 @@ const CERT_ACTION_LABELS = {
   verified: "Verified",
   rejected: "Resubmission requested",
 };
-
-// ===== Lock (mandatory review: no way to dismiss until a decision is saved) =====
-function setResearcherModalLocked(locked) {
-  researcherModalLocked = locked;
-  researcherBackdrop.querySelector(".modal-close").hidden = locked;
-}
 
 function announceCertState(status) {
   document.dispatchEvent(
@@ -294,7 +287,6 @@ function bindCertActions() {
 }
 
 function settleCertDecision(status) {
-  setResearcherModalLocked(false);
   if (certReviewMode && status === "verified") closeResearcherModal();
   else openResearcherModal(currentResearcherId, "", { review: certReviewMode });
   announceCertState(status);
@@ -316,7 +308,6 @@ async function submitCertReview(endpoint, note, btn) {
     const data = await res.json();
     if (data.queued) {
       setButtonBusy(btn, false);
-      setResearcherModalLocked(false);
       notifyQueued();
       return;
     }
@@ -336,10 +327,6 @@ async function submitCertReview(endpoint, note, btn) {
 
 // ===== Close researcher modal =====
 function closeResearcherModal() {
-  if (researcherModalLocked) {
-    shake(researcherBackdrop.querySelector(".modal-card"));
-    return;
-  }
   researcherBackdrop.classList.remove("open");
 }
 

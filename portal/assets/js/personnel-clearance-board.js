@@ -271,6 +271,8 @@ function showNextUpload() {
   URL.revokeObjectURL(clearanceUploadImg.src);
   clearanceUploadImg.src = URL.createObjectURL(file);
   clearanceUploadImg.alt = file.name;
+  clearanceUploadImg.dataset.zoomSrc = clearanceUploadImg.src;
+  clearanceUploadImg.dataset.zoomAlt = file.name;
   document.getElementById("clearanceUploadName").textContent = file.name;
   document.getElementById("clearanceUploadTitle").textContent =
     uploadTotal > 1

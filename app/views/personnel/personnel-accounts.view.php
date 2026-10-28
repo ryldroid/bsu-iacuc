@@ -259,12 +259,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                     <button
                                         type="button"
                                         class="accounts-btn-primary"
-                                        onclick="copyInviteLink()">
+                                        onclick="copyInviteLink(this)">
                                         Copy
                                     </button>
                                 </div>
 
-                                <p id="copy-message"></p>
+                                <span class="helper">Valid for 48 hours. Send this link to the person registering so they can create their own account. Once they register, approve their account under Pending Personnel Approvals.</span>
                             </div>
                         <?php endif; ?>
                     </section>
@@ -424,7 +424,7 @@ $guideSteps = [
     ['Create a backup', 'Press **Create Backup**. It runs in steps, so keep this page open until the bar reaches 100%.', '#backup-create'],
     ['Upload a backup', 'Press **Restore from a file** and choose a backup ZIP you saved earlier. It is sent in small pieces and checked before it appears in the list. Then press **Restore this backup** on it to bring it back.', '#backup-upload'],
     ['Backup health', 'This line shows when the last backup was made. It turns into a warning when the newest backup is 3 days old or more, or when none exists. Open **Technical details** for server limits.', '#backup-health'],
-    ['Saved backups', '**Save a copy** to keep a backup off the server, **Check this backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
+    ['Saved backups', '**Save a copy** to keep a backup off the server, **Verify backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
     ['Restore', '**Restore this backup** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
@@ -524,18 +524,17 @@ include dirname(__DIR__) . '/includes/guide.php';
 
 <script>
     // ===== Copy invite link =====
-    function copyInviteLink() {
+    function copyInviteLink(button) {
         const input = document.getElementById('invite-link');
 
+        const showLabel = (label) => {
+            button.textContent = label;
+            setTimeout(() => button.textContent = 'Copy', 2000);
+        };
+
         navigator.clipboard.writeText(input.value)
-            .then(() => {
-                document.getElementById('copy-message').textContent =
-                    'Copied to clipboard!';
-            })
-            .catch(() => {
-                document.getElementById('copy-message').textContent =
-                    'Failed to copy.';
-            });
+            .then(() => showLabel('Copied!'))
+            .catch(() => showLabel('Copy failed'));
     }
 
     const auditFullHistoryCheckbox = document.getElementById('audit-full-history');

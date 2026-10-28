@@ -76,7 +76,10 @@ class Personnel extends Controller
         $activityTimestamps = array_column($protocols, 'last_activity_at');
         $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
 
-        (new NotificationModel())->warnStaffAboutBackup(new Backup($this->userModel->connection));
+        $backup        = new Backup($this->userModel->connection);
+        $notifications = new NotificationModel();
+        $notifications->warnStaffAboutBackup($backup);
+        $notifications->remindStaffToDownloadBackup($backup);
 
         $this->view('personnel/personnel-home', [
             'user'            => $_SESSION['user'],
@@ -97,6 +100,16 @@ class Personnel extends Controller
 
         echo json_encode(['latest' => $this->protocolModel->getLatestActivityTimestamp()]);
         exit;
+    }
+
+    // ===== EXPIRY WARNINGS (RUN IN THE BACKGROUND BY A PERSONNEL BROWSER) =====
+    public function expirywarnings(): void
+    {
+        $this->requirePersonnel(true);
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(false);
+
+        $this->jsonResponse(['ok' => true, 'warned' => $this->recordModel->sendExpiryWarnings()]);
     }
 
     // ===== RESEARCHER DETAILS =====
@@ -1031,7 +1044,11 @@ class Personnel extends Controller
     public function accounts(): void
     {
         $this->requireStaff();
-        $this->renderAccounts();
+
+        $inviteUrl = $_SESSION['invite_url'] ?? '';
+        unset($_SESSION['invite_url']);
+
+        $this->renderAccounts($inviteUrl ? ['invite_url' => $inviteUrl] : []);
     }
 
     private function renderAccounts(array $extra = []): void
@@ -1485,6 +1502,13 @@ class Personnel extends Controller
             $newUserId = $this->userModel->connection->insert_id;
             $this->userModel->consumeInviteToken($token, $newUserId);
             Mailer::sendTemplate('application_received', ['first_name' => $first_name, 'role' => $role], $email, $first_name, 'Application Received');
+            Notifier::sendToRole(
+                'staff',
+                'personnel_application',
+                'New Personnel Application',
+                Notifier::personnelApplicationMessage("$first_name $last_name", $role),
+                'personnel/accounts?tab=accounts'
+            );
             $this->view('personnel/personnel-register', [
                 'csrf'    => $this->generateCsrfToken(),
                 'token'   => htmlspecialchars($token),
@@ -1524,10 +1548,9 @@ class Personnel extends Controller
         $actor = $this->actor();
         $this->userModel->logAudit('invite_generated', $actor['id'], $actor['name'], $actor['role'], 'invite', null, "Generated invite link for role: $role");
 
-        $this->renderAccounts([
-            'invite_url'  => ROOT . '/personnel/register?token=' . $token,
-            'invite_role' => $role,
-        ]);
+        $_SESSION['invite_url']    = ROOT . '/personnel/register?token=' . $token;
+        $_SESSION['flash_success'] = 'Registration link generated. It works for 48 hours.';
+        $this->redirect('personnel/accounts?tab=accounts');
     }
 
     // ===== APPROVE ACCOUNT =====
@@ -1813,8 +1836,8 @@ class Personnel extends Controller
             $this->jsonError(422, $imageReason ?: 'Image upload failed.');
         }
 
-        if ($body === '' && $imageName === null) {
-            $this->jsonError(422, 'Add either content or an image.');
+        if ($title === '' && $body === '' && $imageName === null) {
+            $this->jsonError(422, 'Add a title, content, or an image.');
         }
 
         $actor = $this->actor();
@@ -1882,8 +1905,8 @@ class Personnel extends Controller
         }
 
         $hasImage = $imageToSave === 'KEEP' ? !empty($existing['image_path']) : $imageToSave !== null;
-        if ($body === '' && !$hasImage) {
-            $this->jsonError(422, 'Add either content or an image.');
+        if ($title === '' && $body === '' && !$hasImage) {
+            $this->jsonError(422, 'Add a title, content, or an image.');
         }
 
         if ($newImage !== null || $removeImage) {

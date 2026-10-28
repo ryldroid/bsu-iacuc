@@ -84,10 +84,10 @@ class User extends Controller
       $errors[] = 'A valid email address is required.';
     }
 
-    if (empty($phone_number)) {
-      $errors[] = 'Phone number is required.';
-    } else {
-      if (preg_match('/[a-zA-Z]/', $phone_number)) {
+    if ($role === 'researcher') {
+      if (empty($phone_number)) {
+        $errors[] = 'Phone number is required.';
+      } elseif (preg_match('/[a-zA-Z]/', $phone_number)) {
         $errors[] = 'Phone number cannot contain letters. Please enter numbers only.';
       } elseif (!preg_match('/^\+639\d{9}$/', $phone_number)) {
         $errors[] = 'Enter a valid Philippine phone number (e.g., +639171234567)';

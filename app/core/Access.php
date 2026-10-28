@@ -80,6 +80,7 @@ class Access
       // staff + reviewer
       'home' => 'personnel',
       'checkupdates' => 'personnel',
+      'expirywarnings' => 'personnel',
       'researcher_details' => 'personnel',
       'cert_file' => 'personnel',
       'certverify' => 'personnel',
@@ -124,6 +125,7 @@ class Access
       'all' => 'staff',
       'start' => 'staff',
       'step' => 'staff',
+      'autostep' => 'staff',
       'download' => 'staff',
       'delete' => 'staff',
       'restore' => 'staff',

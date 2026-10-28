@@ -42,7 +42,7 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
 
         <?php if ($hasImage): ?>
             <span class="office-announcement-thumb">
-                <img src="<?= $annImgUrl ?>" alt="">
+                <img src="<?= $annImgUrl ?>" alt="<?= $isPhotoOnly ? htmlspecialchars($annHeading, ENT_QUOTES) : '' ?>">
                 <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
             </span>
         <?php else: ?>
@@ -78,16 +78,7 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
     <!-- ===== Announcement modal template ===== -->
     <template id="annModalTpl-<?= (int) $post['id'] ?>">
         <?php if ($hasImage): ?>
-            <div class="announcement-modal-image-wrap">
-                <img class="announcement-modal-image"
-                    src="<?= $annImgUrl ?>" alt="">
-                <button type="button" class="image-zoom-btn" title="Zoom image" aria-label="Zoom image"
-                    data-zoom-src="<?= $annImgUrl ?>" data-zoom-alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#search-icon" />
-                    </svg>
-                </button>
-            </div>
+            <?php include "includes/announcement-modal-image.php"; ?>
         <?php endif; ?>
         <?php if ($hasTitle): ?>
             <h2 class="announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>

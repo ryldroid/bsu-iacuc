@@ -130,6 +130,21 @@
     margin-left: .3em;
 }
 
+.invite-form .form-section {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.invite-form .helper {
+    flex-basis: 100%;
+    margin-left: .3em;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
 .invite-form select:focus {
     outline: none;
     border-color: var(--focus-ring-color);
@@ -216,11 +231,9 @@
     box-shadow: 0 0 0 2px var(--focus-ring-tint);
 }
 
-#copy-message {
+.invite-link-container .helper {
+    display: block;
     margin-top: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--brand-text);
-    min-height: 1.5em;
 }
 
 /* ===== Pending accounts ===== */

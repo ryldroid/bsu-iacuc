@@ -109,23 +109,14 @@ class Backups extends Controller
       $this->jsonError(401, 'Invalid backup secret.');
     }
 
-    session_write_close();
-    ignore_user_abort(true);
-    @set_time_limit(60);
+    $this->runAutomatic();
+  }
 
-    try {
-      $status = $this->backup->automatic();
-    } catch (Throwable $e) {
-      error_log('Automatic backup failed: ' . $e->getMessage());
-      (new NotificationModel())->warnStaffAboutBackup($this->backup);
-      $this->jsonError($e->getCode() === 409 ? 409 : 500, 'The automatic backup could not continue.');
-    }
-
-    if (!empty($status['done'])) {
-      $this->userModel->logAudit('backup_created', null, 'Automatic', 'system', 'backup', null, 'Created backup ' . $status['name']);
-    }
-
-    $this->jsonResponse(['ok' => true, 'status' => $status]);
+  // ===== AUTOMATIC BACKUP (STAFF BROWSER, FOR HOSTS THAT BLOCK THE EXTERNAL PINGER) =====
+  public function autostep(): void
+  {
+    $this->guardPost();
+    $this->runAutomatic();
   }
 
   // ===== VERIFY A BACKUP =====
@@ -271,5 +262,29 @@ class Backups extends Controller
   {
     $this->requirePostMethod();
     $this->verifyCsrfToken(false);
+  }
+
+  // ===== RUN ONE AUTOMATIC BACKUP STEP =====
+  private function runAutomatic(): void
+  {
+    session_write_close();
+    ignore_user_abort(true);
+    @set_time_limit(60);
+
+    try {
+      $status = $this->backup->automatic();
+    } catch (Throwable $e) {
+      error_log('Automatic backup failed: ' . $e->getMessage());
+      if ($e->getCode() !== 409) {
+        (new NotificationModel())->warnStaffAboutBackup($this->backup);
+      }
+      $this->jsonError($e->getCode() === 409 ? 409 : 500, 'The automatic backup could not continue.');
+    }
+
+    if (!empty($status['done'])) {
+      $this->userModel->logAudit('backup_created', null, 'Automatic', 'system', 'backup', null, 'Created backup ' . $status['name']);
+    }
+
+    $this->jsonResponse(['ok' => true, 'status' => $status]);
   }
 }

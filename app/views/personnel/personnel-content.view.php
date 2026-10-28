@@ -401,11 +401,6 @@ include dirname(__DIR__) . '/includes/guide.php';
           </label>
           <div class="ann-image-preview-wrap" id="ann_image_preview_wrap" hidden>
             <img id="ann_image_preview" alt="Image preview">
-            <button type="button" class="image-zoom-btn" id="ann_image_zoom_btn" title="Zoom image" aria-label="Zoom image">
-              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <use href="#search-icon" />
-              </svg>
-            </button>
             <button type="button" class="image-remove-btn" id="ann_image_remove_btn" title="Remove image" aria-label="Remove image">
               <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#trash-icon" />
@@ -564,7 +559,6 @@ $cmConfig = [
         'input'      => 'ann_image',
         'previewWrap' => 'ann_image_preview_wrap',
         'preview'    => 'ann_image_preview',
-        'zoom'       => 'ann_image_zoom_btn',
         'removeBtn'  => 'ann_image_remove_btn',
         'progress'   => 'annImageProgress',
       ],
@@ -574,7 +568,7 @@ $cmConfig = [
         'edit'   => '/personnel/announcements_edit',
         'delete' => '/personnel/announcements_delete',
       ],
-      'validate'  => ['any' => ['body'], 'anyImage' => true, 'anyMessage' => 'Add either content or an image.'],
+      'validate'  => ['any' => ['title', 'body'], 'anyImage' => true, 'anyMessage' => 'Add a title, content, or an image.'],
       'text'      => [
         'addTitle'      => 'Add Announcement',
         'editTitle'     => 'Edit Announcement',

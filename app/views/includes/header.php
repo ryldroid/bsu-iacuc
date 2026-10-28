@@ -26,24 +26,24 @@ $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. I
 if ($role === 'reviewer') {
   $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents, then return them for revision or mark them Reviewed.";
 } elseif ($role === 'staff') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, signing, endorsement, and clearance release.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nHandle payment, uploading of protocol copies signed by the IACUC chair, endorsement, and clearance release.";
 }
-$guideHome = ['Homepage', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
-$guideAnnouncements = ['Announcements', 'Read the latest news and updates from the CCARD office.', ...$navLink('/announcements')];
+$guideHome = ['Home', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
+$guideAnnouncements = ['Announcements', 'Read the latest news and updates from CCARD.', ...$navLink('/announcements')];
 $guideContact = ['Contact Us', 'Find how to reach relevant offices.', ...$navLink('/contact')];
-$guideSidebar = ['Expand the sidebar', 'On a computer, use this button to show the page names beside the icons, or hide them again.', '#sidebar-toggle', '', true];
-$guideNotifications = ['Notifications', 'The bell shows a badge when there is something new. Open it to read your updates or see all notifications.', '.notif-bell svg'];
-$guideTheme = ['Theme', 'Switch between Light, Dark, and System to match your device.', '#theme-toggle'];
-$guideHelp = ['Guide', 'Replay this tour anytime with the question mark button.', '.header-help'];
-$guideAccount = ['Your account', 'Open this to update **My Account**, ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'switch between Light, Dark, and System theme, or log out.', '.header-account'];
+$guideSidebar = ['Expand the sidebar', 'Show or hide page names beside the icons.', '#sidebar-toggle', '', true];
+$guideNotifications = ['Notifications', 'The bell shows a badge when there are updates relevant to you.', '.notif-bell svg'];
+$guideTheme = ['Theme', 'Switch between light, dark, or system to match your device settings.', '#theme-toggle'];
+$guideHelp = ['Guide', 'Click here to replay this tour anytime.', '.header-help'];
+$guideAccount = ['Account', 'Open this to update your account, ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'switch between light, dark, or system theme to match your device settings, change your email preferences, or log out.', '.header-account'];
 $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between **Home**, **My Protocols**, **Announcements**, and **Contact Us**.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **home**, **your dashboard**, **announcements**, and **contact** pages.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     $guideHome,
-    ['My Protocols', 'Apply for review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
+    ['My Protocols', 'Apply for IACUC protocol review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
     $guideAnnouncements,
     $guideContact,
     $guideNotifications,
@@ -53,12 +53,12 @@ if ($role === 'researcher') {
 } elseif ($role === 'staff') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard**, **Records**, **Site Content**, and **Administration**.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **dashboard**, **records**, **site content**, and **administration** pages.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
-    ['Dashboard', 'The Protocol Inbox lists submitted protocols. Open one to review it or return it for revision, and upload released clearances here.', ...$navLink('/personnel/home')],
+    ['Dashboard', 'The **protocol inbox** lists all submitted protocols. View protocols and execute actions accordingly.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
-    ['Site Content', 'Edit what visitors see: post announcements and update the homepage text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
-    ['Administration', 'Approve pending personnel applications and download audit logs.', ...$navLink('/personnel/accounts')],
+    ['Site Content', 'Edit what visitors see: post announcements and update the home page text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
+    ['Administration', 'View and download audit logs, manage personnel accounts, and create system and data backups.', ...$navLink('/personnel/accounts')],
     $guideNotifications,
     $guideAccount,
     $guideHelp,
@@ -66,9 +66,9 @@ if ($role === 'researcher') {
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **Dashboard** and **Records**.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **dashboard** and **records**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
-    ['Dashboard', 'The Protocol Inbox lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
+    ['Dashboard', 'The **protocol inbox** lists protocols for review. Open one to read it and draw annotation boxes on the document.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,
@@ -78,7 +78,7 @@ if ($role === 'researcher') {
   $welcomeSteps = [
     ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'],
     ['Sign in or register', 'Already have an account? Press **Sign In**. New here? Press **Register** to create one. You will need an account to apply for protocol review.', '#headerLogin, #headerRegister'],
-    ['Page menu', 'These links take you between the **homepage**, **announcements page**, and **contact page**.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **home**, **announcements**, and **contact** pages.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     $guideHome,
     $guideAnnouncements,
@@ -152,6 +152,9 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
     </script>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
+    <?php if (in_array($role, ['staff', 'reviewer'], true)): ?>
+      <script src="<?= asset_js('background-tasks.js') ?>" <?= $role === 'staff' ? ' data-backup' : '' ?> defer></script>
+    <?php endif; ?>
   <?php endif; ?>
 
 </head>
@@ -364,18 +367,18 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                         value="<?= htmlspecialchars($accountUser['school'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                       <label for="school">School <span class="required-asterisk">*</span></label>
                     </div>
-                  <?php endif; ?>
 
-                  <div class="input-group">
-                    <div class="phone-field-wrap">
-                      <span class="phone-prefix">+63</span>
-                      <input type="tel" id="phone_number" name="phone_number" placeholder=" " autocomplete="tel-national"
-                        inputmode="numeric"
-                        value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $accountUser['phone_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
-                      <?php if ($role === 'researcher') include __DIR__ . '/phone-note.php'; ?>
+                    <div class="input-group">
+                      <div class="phone-field-wrap">
+                        <span class="phone-prefix">+63</span>
+                        <input type="tel" id="phone_number" name="phone_number" placeholder=" " autocomplete="tel-national"
+                          inputmode="numeric"
+                          value="<?= htmlspecialchars(preg_replace('/^\+63/', '', $accountUser['phone_number'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
+                        <?php include __DIR__ . '/phone-note.php'; ?>
+                      </div>
+                      <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
                     </div>
-                    <label for="phone_number">Phone Number <span class="required-asterisk">*</span></label>
-                  </div>
+                  <?php endif; ?>
 
                   <h2>Sign-in Details</h2>
                   <div class="input-group">

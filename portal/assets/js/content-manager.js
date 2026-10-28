@@ -77,7 +77,6 @@
       input: $(cfg.input),
       wrap: $(cfg.previewWrap),
       img: $(cfg.preview),
-      zoom: $(cfg.zoom),
       removeBtn: $(cfg.removeBtn),
       progress: $(cfg.progress),
       pickerLabel: $(cfg.input).parentElement.querySelector(
@@ -95,7 +94,8 @@
 
   function showPreview(els, src) {
     els.img.src = src;
-    els.zoom.dataset.zoomSrc = src;
+    els.img.dataset.zoomSrc = src;
+    els.img.dataset.zoomAlt = els.img.alt;
     els.wrap.hidden = false;
     syncPickerLabel(els);
   }

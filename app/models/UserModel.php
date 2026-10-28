@@ -241,7 +241,7 @@ class UserModel extends Model
     $first_name   = $input['first_name'];
     $last_name    = $input['last_name'];
     $email        = $input['email'];
-    $phone_number = $input['phone_number'];
+    $phone_number = $input['phone_number'] ?: null;
     $school       = $input['school'] ?? null;
     $sex          = $input['sex'] ?? null;
     $researcher_type = ($input['researcher_type'] ?? '') ?: null;

@@ -275,7 +275,15 @@ class Schema
                     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
+        $c->query("CREATE TABLE IF NOT EXISTS `notification_steps` (
+                    `step_key` varchar(60) NOT NULL PRIMARY KEY,
+                    `step`     text        NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+
         $this->backfillStatusNotifications();
+        $this->backfillChangedNextSteps();
+        $this->backfillPersonnelApplicationNotifications();
+        $this->backfillFirstSubmissionNotifications();
 
         // ===== ANNOUNCEMENTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
@@ -676,6 +684,85 @@ class Schema
             "UPDATE `notifications` SET link = 'submissions?open=cert'
              WHERE type = 'cert_rejected' AND link = 'submissions'"
         );
+    }
+
+    // Saved notifications follow any next-step text that is reworded in Notifier::stepTexts()
+    private function backfillChangedNextSteps(): void
+    {
+        $c        = $this->connection;
+        $saved    = array_column($c->query("SELECT step_key, step FROM `notification_steps`")->fetch_all(MYSQLI_ASSOC), 'step', 'step_key');
+        $rewrite  = $c->prepare("UPDATE `notifications` SET message = REPLACE(message, ?, ?) WHERE type = ? AND message LIKE CONCAT('%', ?, '%')");
+        $remember = $c->prepare("REPLACE INTO `notification_steps` (step_key, step) VALUES (?, ?)");
+
+        foreach (Notifier::stepTexts() as $key => [$type, $step]) {
+            if (($saved[$key] ?? null) === $step) {
+                continue;
+            }
+
+            if (isset($saved[$key])) {
+                $rewrite->bind_param('ssss', $saved[$key], $step, $type, $saved[$key]);
+                $rewrite->execute();
+            }
+
+            $remember->bind_param('ss', $key, $step);
+            $remember->execute();
+        }
+    }
+
+    // Staff are told about personnel applications that were waiting before the notification existed
+    private function backfillPersonnelApplicationNotifications(): void
+    {
+        $c = $this->connection;
+
+        $applicants = $c->query("SELECT first_name, last_name, role, created_at FROM `users` WHERE role IN ('staff', 'reviewer') AND status = 'pending'");
+        $staff      = $c->query("SELECT id FROM `users` WHERE role = 'staff' AND status = 'active'");
+        if (! $applicants || ! $staff) {
+            return;
+        }
+
+        $exists = $c->prepare("SELECT 1 FROM `notifications` WHERE user_id = ? AND type = 'personnel_application' AND message = ? LIMIT 1");
+        $insert = $c->prepare(
+            "INSERT INTO `notifications` (user_id, type, title, message, link, created_at)
+             VALUES (?, 'personnel_application', 'New Personnel Application', ?, 'personnel/accounts?tab=accounts', ?)"
+        );
+
+        $staffIds = array_column($staff->fetch_all(MYSQLI_ASSOC), 'id');
+        foreach ($applicants->fetch_all(MYSQLI_ASSOC) as $applicant) {
+            $message = Notifier::personnelApplicationMessage($applicant['first_name'] . ' ' . $applicant['last_name'], $applicant['role']);
+
+            foreach ($staffIds as $staffId) {
+                $exists->bind_param('is', $staffId, $message);
+                $exists->execute();
+                if ($exists->get_result()->num_rows > 0) {
+                    continue;
+                }
+
+                $insert->bind_param('iss', $staffId, $message, $applicant['created_at']);
+                $insert->execute();
+            }
+        }
+    }
+
+    // First submissions whose certificate still waits for a decision now say to verify it
+    private function backfillFirstSubmissionNotifications(): void
+    {
+        $update = $this->connection->prepare(
+            "UPDATE `notifications` n
+             JOIN `users` r ON r.id = n.user_id AND r.role = ?
+             JOIN `protocols` p ON p.id = CAST(SUBSTRING_INDEX(n.link, '/', -1) AS UNSIGNED)
+             JOIN `users` s ON s.id = p.user_id AND s.cert_status = 'pending'
+             JOIN `notifications` c ON c.user_id = n.user_id AND c.type = 'cert_verification' AND c.link = n.link
+                  AND ABS(TIMESTAMPDIFF(SECOND, n.created_at, c.created_at)) <= 60
+             SET n.message = CONCAT(LEFT(n.message, CHAR_LENGTH(n.message) - CHAR_LENGTH(?)), ?)
+             WHERE n.type = 'new_submission' AND n.message LIKE CONCAT('%', ?)"
+        );
+
+        foreach (['staff', 'reviewer'] as $role) {
+            $old = Notifier::NEXT_STEPS['new_submission_' . $role];
+            $new = Notifier::NEXT_STEPS['first_submission_' . $role];
+            $update->bind_param('ssss', $role, $old, $new, $old);
+            $update->execute();
+        }
     }
 
     private function backfillCertRejectedFaq(): void

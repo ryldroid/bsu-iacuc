@@ -1,7 +1,7 @@
 // ===== Viewer: training certificate check for personnel =====
 // Opens the shared researcher modal when the certificate needs a decision. It also opens on the
 // original submission when the certificate was rejected.
-// While it is pending the modal cannot be dismissed, so someone must verify or reject it.
+// Personnel can close it with the X if they would rather not verify it themselves.
 // The decision belongs to the researcher, so whoever makes it first settles it for everyone.
 let certState = CERT_STATUS;
 const finishReviewBtn = document.getElementById("btnFinishReview");
@@ -67,10 +67,10 @@ document.addEventListener("researcher-modal-rendered", (e) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (certState === "pending") {
-    setResearcherModalLocked(true);
-    openResearcherModal(RESEARCHER_ID, RESEARCHER_NAME, { review: true });
-  } else if (certState === "rejected" && IS_ORIGINAL_SUBMISSION) {
+  if (
+    certState === "pending" ||
+    (certState === "rejected" && IS_ORIGINAL_SUBMISSION)
+  ) {
     openResearcherModal(RESEARCHER_ID, RESEARCHER_NAME, { review: true });
   }
 });

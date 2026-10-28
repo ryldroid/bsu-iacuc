@@ -21,6 +21,8 @@ class Notifier
     'protocol_deletion_rejected'  => 'Your protocol stays active, so no action is needed.',
     'new_submission_reviewer'     => 'Open it to start the review. Your part ends once it is marked Reviewed or returned for revision.',
     'new_submission_staff'        => 'No action needed for now. A reviewer will assess it first.',
+    'first_submission_reviewer'   => 'This is their first submission. Open it to verify their training certificate, then start the review.',
+    'first_submission_staff'      => 'This is their first submission. Open it to verify their training certificate.',
     'protocol_resubmitted_reviewer' => 'Open it to review the revisions.',
     'protocol_resubmitted_staff'  => 'No action needed for now. A reviewer will assess the revisions first.',
     'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
@@ -37,6 +39,24 @@ class Notifier
   public const CERT_REJECTED_NEXT_STEP = 'Press Resubmit Certificate on My Protocols or on your protocol.';
 
   public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
+
+  // ===== EVERY NEXT-STEP TEXT WITH THE NOTIFICATION TYPE THAT CARRIES IT =====
+  // Schema uses this to rewrite saved notifications whenever one of these texts is reworded.
+  public static function stepTexts(): array
+  {
+    $steps = [];
+    foreach (self::NEXT_STEPS as $key => $step) {
+      $steps[$key] = [preg_replace(['/^first_submission/', '/_(staff|reviewer)$/'], ['new_submission', ''], $key), $step];
+    }
+
+    return $steps + [
+      'signed_scan_uploaded'   => ['signed_scan_uploaded', self::SIGNED_SCAN_NEXT_STEP],
+      'payment_verified'       => ['payment_verified', self::PAYMENT_VERIFIED_NEXT_STEP],
+      'cert_verified'          => ['cert_verified', self::CERT_VERIFIED_NEXT_STEP],
+      'cert_rejected'          => ['cert_rejected', self::CERT_REJECTED_NEXT_STEP],
+      'payment_proof_rejected' => ['payment_proof_rejected', self::PAYMENT_REJECTED_NEXT_STEP],
+    ];
+  }
 
   // ===== RETURNED TO REVIEW (BY DA-CARFU OR BAI) =====
   public static function reasonSentence(string $reason): string
@@ -110,6 +130,12 @@ class Notifier
     foreach (['staff', 'reviewer'] as $role) {
       self::sendToRole($role, $type, $title, $message . ' ' . self::NEXT_STEPS[$nextStepKey . '_' . $role], $link, $email);
     }
+  }
+
+  // ===== PERSONNEL APPLICATION =====
+  public static function personnelApplicationMessage(string $name, string $role): string
+  {
+    return self::bold($name) . ' applied as ' . ($role === 'staff' ? 'Administrative Staff' : 'Reviewer') . '. Open Administration to approve or reject the application.';
   }
 
   // ===== MESSAGE FORMATTING =====

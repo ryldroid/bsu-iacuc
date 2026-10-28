@@ -906,7 +906,7 @@ class Apply extends Controller
             'new_submission',
             'New Protocol Submitted',
             $submitterName . ' submitted ' . Notifier::boldTitle($title) . '.',
-            'new_submission',
+            $certSubmitted ? 'first_submission' : 'new_submission',
             'apply/viewer/' . $protocolId,
             [
                 'template' => 'protocol_submitted_personnel',

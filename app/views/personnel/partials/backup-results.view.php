@@ -67,7 +67,7 @@ $backups = $backups ?? [];
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#shield-check-icon" />
                     </svg>
-                    Check this backup
+                    Verify backup
                   </button>
                 <?php endif; ?>
                 <button type="button" class="reject-btn personnel-status-btn js-backup-delete"

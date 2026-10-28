@@ -142,6 +142,7 @@ include "includes/scroll-top.php";
                                 $annTitle = normalize_pasted_text(trim($post['title'] ?? ''));
                                 $annBody = normalize_pasted_text(trim($post['body'] ?? ''));
                                 $hasImage = !empty($post['image_path']);
+                                $annImgUrl = $hasImage ? ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) : '';
                                 $hasTitle = $annTitle !== '';
                                 $hasBody = $annBody !== '';
                                 $isPhotoOnly = $hasImage && !$hasTitle && !$hasBody;
@@ -168,7 +169,7 @@ include "includes/scroll-top.php";
                                         data-ann-modal="annModalTpl-<?= (int) $post['id'] ?>"
                                         aria-haspopup="dialog">
                                         <span class="home-announcement-photo">
-                                            <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                            <img src="<?= $annImgUrl ?>" alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
                                             <time datetime="<?= htmlspecialchars($annDateIso, ENT_QUOTES) ?>"><?= htmlspecialchars($annDateDisplay, ENT_QUOTES) ?></time>
                                             <?php if ($isNew): ?><span class="new-badge">New</span><?php endif; ?>
                                         </span>
@@ -180,7 +181,7 @@ include "includes/scroll-top.php";
                                         aria-haspopup="dialog">
                                         <span class="home-announcement-thumb<?= $hasImage ? '' : ' is-placeholder' ?>">
                                             <?php if ($hasImage): ?>
-                                                <img src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
+                                                <img src="<?= $annImgUrl ?>" alt="">
                                             <?php else: ?>
                                                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                     <use href="#announcement-icon" />
@@ -203,16 +204,7 @@ include "includes/scroll-top.php";
                                 <!-- ===== Announcement modal templates ===== -->
                                 <template id="annModalTpl-<?= (int) $post['id'] ?>">
                                     <?php if ($hasImage): ?>
-                                        <div class="announcement-modal-image-wrap">
-                                            <img class="announcement-modal-image"
-                                                src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" alt="">
-                                            <button type="button" class="image-zoom-btn" title="Zoom image" aria-label="Zoom image"
-                                                data-zoom-src="<?= ROOT . '/assets/uploads/announcements/' . rawurlencode($post['image_path']) ?>" data-zoom-alt="<?= htmlspecialchars($annHeading, ENT_QUOTES) ?>">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                    <use href="#search-icon" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                        <?php include "includes/announcement-modal-image.php"; ?>
                                     <?php endif; ?>
                                     <?php if ($hasTitle): ?>
                                         <h2 class="announcement-modal-title"><?= htmlspecialchars($annHeading, ENT_QUOTES) ?></h2>

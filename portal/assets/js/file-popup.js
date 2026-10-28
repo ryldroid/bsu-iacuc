@@ -92,6 +92,8 @@ async function openFilePopup(fileUrl, title, footer, onClose) {
 
     filePopupImg.src = filePopupObjectUrl;
     filePopupImg.alt = title;
+    filePopupImg.dataset.zoomSrc = filePopupObjectUrl;
+    filePopupImg.dataset.zoomAlt = title;
     showFilePopupState("img");
   } catch (err) {
     filePopupMessage.textContent = "Could not load this file.";
@@ -129,7 +131,11 @@ filePopupBackdrop.addEventListener("click", (e) => {
 document.addEventListener(
   "keydown",
   (e) => {
-    if (e.key !== "Escape" || !filePopupBackdrop.classList.contains("open"))
+    if (
+      e.key !== "Escape" ||
+      !filePopupBackdrop.classList.contains("open") ||
+      document.querySelector(".image-zoom-backdrop.open")
+    )
       return;
     e.stopPropagation();
     closeFilePopup();
