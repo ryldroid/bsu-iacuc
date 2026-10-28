@@ -64,6 +64,7 @@ class Personnel extends Controller
         $protocols = $this->protocolModel->getAll();
 
         foreach ($protocols as &$protocol) {
+            $protocol['viewer_ref'] = protocol_ref((int) $protocol['protocol_id'], (string) $protocol['research_title']);
             $protocol['can_endorse'] = $protocol['status'] === 'Reviewed'
                 && ($protocol['payment_status'] ?? 'unpaid') === 'paid'
                 && !empty($protocol['reference_no'])
@@ -499,6 +500,9 @@ class Personnel extends Controller
         $row   = $id > 0 ? $this->recordModel->getById($id) : null;
 
         if ($row) {
+            $row['file_url'] = !empty($row['file_path'])
+                ? ROOT . '/personnel/records_file/' . (int) $row['id'] . '/' . (slugify(strtok($row['file_original_name'] ?? '', '.') ?: '') ?: 'record')
+                : '';
             $row['has_signed_scan'] = !empty($row['protocol_id'])
                 && $this->protocolModel->getLatestVersion((int) $row['protocol_id'], 'signed_scan') !== null;
         }

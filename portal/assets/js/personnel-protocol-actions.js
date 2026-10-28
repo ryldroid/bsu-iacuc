@@ -12,7 +12,7 @@ function openProtocolViewer(protocolId) {
   window.location.href =
     ROOT_URL +
     "/apply/viewer/" +
-    protocolId +
+    (rowProtocol(protocolId)?.viewer_ref ?? protocolId) +
     "?from=" +
     encodeURIComponent(activeFilter);
 }

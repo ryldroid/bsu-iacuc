@@ -112,7 +112,7 @@ function buildVersionRows(data) {
         ? `<span class="payment-event-detail">${escapeHtml(titleNote)}</span>`
         : "";
 
-      const action = `<a class="button button-compact history-open" href="${ROOT_URL}/apply/viewer/${data.protocol_id}/${v.id}" aria-label="Open ${escapeHtml(v.label)}, ${formatDate(v.uploaded_at)}">
+      const action = `<a class="button button-compact history-open" href="${ROOT_URL}/apply/viewer/${data.viewer_ref}/${v.id}" aria-label="Open ${escapeHtml(v.label)}, ${formatDate(v.uploaded_at)}">
                 <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
                 Open
             </a>`;

@@ -6,7 +6,7 @@ ob_start();
 /** @var string $next_step */
 /** @var int $protocol_id */
 $link = strtolower($status) === 'needs revision'
-  ? ROOT . '/apply/viewer/' . $protocol_id
+  ? ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $title)
   : ROOT . '/submissions?highlight=' . $protocol_id;
 ?>
 

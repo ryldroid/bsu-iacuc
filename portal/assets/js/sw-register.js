@@ -84,7 +84,7 @@
           ? protocolsData.slice(0, WARM_VIEWER_LIMIT)
           : protocolsData;
       saved.forEach(function (p) {
-        urls.push(root + "/apply/viewer/" + p.protocol_id);
+        urls.push(root + "/apply/viewer/" + (p.viewer_ref || p.protocol_id));
       });
     }
     return urls.filter(function (u, i) {

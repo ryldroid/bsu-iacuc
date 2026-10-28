@@ -258,6 +258,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                     $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
                     $versionNum    = submission_round_label((int) ($protocol['latest_version'] ?? 1));
                     $protocolIdInt = (int) $protocol['protocol_id'];
+                    $viewerRef     = protocol_ref($protocolIdInt, (string) $protocol['research_title']);
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
                     <div class="protocol" id="protocol-<?= $protocolIdInt ?>" data-status="<?= $statusKey ?>"
@@ -323,8 +324,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             <!-- Actions -->
                             <div class="actions">
                                 <?php if ($needsRevision): ?>
-                                    <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
-                                        onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
+                                    <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?>"
+                                        onclick="event.preventDefault(); openProtocol(this.href)">
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#upload-icon" />
                                         </svg>
@@ -376,9 +377,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
                                 <div class="actions-secondary">
                                     <?php if (!$needsRevision): ?>
-                                        <a class="action-link protocol-view-btn" href="<?= ROOT ?>/apply/viewer/<?= $protocolIdInt ?>"
+                                        <a class="action-link protocol-view-btn" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?>"
                                             title="View Protocol" aria-label="View Protocol"
-                                            onclick="event.preventDefault(); openProtocol(<?= $protocolIdInt ?>)">
+                                            onclick="event.preventDefault(); openProtocol(this.href)">
                                             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                                 <use href="#eye-icon" />
                                             </svg>
@@ -789,8 +790,8 @@ include 'includes/guide.php';
         });
     });
 
-    function openProtocol(protocolId) {
-        window.location.href = ROOT_URL + '/apply/viewer/' + parseInt(protocolId, 10) + '?from=' + encodeURIComponent(currentFilter);
+    function openProtocol(href) {
+        window.location.href = href + '?from=' + encodeURIComponent(currentFilter);
     }
 
     restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);

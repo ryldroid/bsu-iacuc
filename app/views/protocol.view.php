@@ -90,11 +90,13 @@ $scanIsImage = $isSignedScan
 $fromFilter = $fromFilter ?? '';
 
 // ===== Version viewer URL helper =====
-function versionViewerUrl(int $protocolId, int $versionId, string $fromFilter): string
+function versionViewerUrl(string $viewerRef, int $versionId, string $fromFilter): string
 {
-    $url = ROOT . '/apply/viewer/' . $protocolId . '/' . $versionId;
+    $url = ROOT . '/apply/viewer/' . $viewerRef . '/' . $versionId;
     return $fromFilter !== '' ? $url . '?from=' . urlencode($fromFilter) : $url;
 }
+
+$viewerRef = protocol_ref($protocolId, (string) $protocol['research_title']);
 
 // $versions is newest first: the entry before the current one is newer, the one after is older.
 $prevVersion  = null;
@@ -110,8 +112,8 @@ foreach ($versions as $i => $v) {
 }
 
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-$latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($protocolId, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
-$amendRedirect = ROOT . '/apply/viewer/' . $protocolId . ($fromFilter !== '' ? '?from=' . urlencode($fromFilter) : '');
+$latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($viewerRef, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
+$amendRedirect = ROOT . '/apply/viewer/' . $viewerRef . ($fromFilter !== '' ? '?from=' . urlencode($fromFilter) : '');
 
 // ===== Notes shown above the document =====
 $viewerNotes = [];
@@ -211,7 +213,7 @@ include 'includes/header.php';
 
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
-                    <?= $prevVersion ? 'href="' . versionViewerUrl($protocolId, (int) $prevVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
+                    <?= $prevVersion ? 'href="' . versionViewerUrl($viewerRef, (int) $prevVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
                     aria-label="Previous version" title="Previous version">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <use href="#back-icon" />
@@ -227,7 +229,7 @@ include 'includes/header.php';
                 </button>
 
                 <a class="version-nav-btn<?= !$nextVersion ? ' is-disabled' : '' ?>"
-                    <?= $nextVersion ? 'href="' . versionViewerUrl($protocolId, (int) $nextVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
+                    <?= $nextVersion ? 'href="' . versionViewerUrl($viewerRef, (int) $nextVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
                     aria-label="Next version" title="Next version">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#arrow-right-icon" />
@@ -243,7 +245,7 @@ include 'includes/header.php';
                         $vIsCur = $vId === $versionId;
                         ?>
                         <a class="version-dropdown-item<?= $vIsCur ? ' is-current' : '' ?>"
-                            href="<?= versionViewerUrl($protocolId, $vId, $fromFilter) ?>">
+                            href="<?= versionViewerUrl($viewerRef, $vId, $fromFilter) ?>">
                             <span class="version-dropdown-item-num"><?= htmlspecialchars($v['label'], ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="version-dropdown-item-meta">
                                 <span class="version-dropdown-item-date"><?= htmlspecialchars($vDate, ENT_QUOTES, 'UTF-8') ?></span>

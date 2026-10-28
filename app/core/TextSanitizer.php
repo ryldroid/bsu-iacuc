@@ -125,6 +125,22 @@ function normalize_pasted_text(?string $text): string
   return trim(preg_replace('/[^\S\r\n]{2,}/u', ' ', $result));
 }
 
+// ===== URL SLUG =====
+function slugify(string $text, int $maxLength = 60): string
+{
+  $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $text), '-'));
+
+  return rtrim(substr($slug, 0, $maxLength), '-');
+}
+
+// ===== PROTOCOL URL SEGMENT (29-potential-of-ethanol-leaf-extract) =====
+function protocol_ref(int $protocolId, string $title): string
+{
+  $slug = slugify($title);
+
+  return $slug === '' ? (string) $protocolId : $protocolId . '-' . $slug;
+}
+
 // ===== STRIP WRAPPING QUOTES =====
 function strip_wrapping_quotes(string $text): string
 {

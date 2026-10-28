@@ -1288,11 +1288,13 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== VIEWER  (GET /apply/viewer/{protocolId}) =====
+    // ===== VIEWER  (GET /apply/viewer/{protocolId}-{slug}) =====
 
-    public function viewer(int $protocolId = 0, int $versionId = 0): void
+    public function viewer(string $protocolRef = '0', int $versionId = 0): void
     {
         $this->requireLogin();
+
+        $protocolId = (int) $protocolRef;
 
         if ($protocolId < 1) {
             $this->renderError(400, 'Missing Protocol ID', [
@@ -1312,6 +1314,19 @@ class Apply extends Controller
         // ===== ACCESS CHECK =====
         $actor = $this->actor();
         $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
+
+        // ===== CANONICAL URL =====
+        $canonicalRef = protocol_ref($protocolId, (string) $protocol['research_title']);
+
+        if ($protocolRef !== $canonicalRef && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+            $query = http_build_query(array_diff_key($_GET, ['url' => true]));
+
+            $this->redirect(
+                'apply/viewer/' . $canonicalRef
+                . ($versionId > 0 ? '/' . $versionId : '')
+                . ($query !== '' ? '?' . $query : '')
+            );
+        }
 
         // ===== PICK VERSION TO SHOW =====
         // The switcher lists protocol versions, signed scans and amendments together.
@@ -3204,6 +3219,7 @@ class Apply extends Controller
 
         echo json_encode([
             'protocol_id'         => $protocolId,
+            'viewer_ref'          => protocol_ref($protocolId, (string) $protocol['research_title']),
             'title'               => $protocol['research_title'],
             'status'              => $protocol['status'],
             'reference_no'        => $protocol['reference_no'] ?? '',
