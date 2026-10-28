@@ -33,6 +33,33 @@ class Seeder
         }
     }
 
+    // ===== ONE-TIME UPDATE: the about paragraphs (and the legal paragraph) become one editable text =====
+    public function migrateAboutText(): void
+    {
+        $c        = $this->connection;
+        $settings = [];
+        $result   = $c->query("SELECT setting_key, setting_value FROM `site_settings`");
+        foreach ($result ? $result->fetch_all(MYSQLI_ASSOC) : [] as $row) {
+            $settings[$row['setting_key']] = $row['setting_value'];
+        }
+        if (isset($settings['about_text'])) {
+            return;
+        }
+
+        $paragraphs = isset($settings['about_paragraphs'])
+            ? (json_decode($settings['about_paragraphs'], true) ?: [])
+            : array_values(array_filter([$settings['about_paragraph_1'] ?? '', $settings['about_paragraph_2'] ?? ''], 'strlen'));
+        if (! isset($settings['legal_paragraph_migrated'])) {
+            $paragraphs[] = 'The IACUC reviews and endorses animal research protocols in accordance with [Republic Act No. 8485](https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html) (Animal Welfare Act of 1998), as amended by [Republic Act No. 10631](https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html), and [Department of Agriculture Administrative Order No. 40, Series of 1999](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491) (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.';
+        }
+
+        $save = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES ('about_text', ?)");
+        if (! $save) return;
+        $text = implode("\n\n", $paragraphs);
+        $save->bind_param('s', $text);
+        $save->execute();
+    }
+
     public function seedContactOffices(): void
     {
         $c      = $this->connection;

@@ -863,14 +863,9 @@ class Personnel extends Controller
         $this->requirePostMethod();
         $this->verifyCsrfToken(true);
 
-        $paragraphs = array_values(array_filter(array_map(
-            fn($text) => normalize_pasted_text(trim((string) $text)),
-            (array) ($_POST['about_paragraphs'] ?? [])
-        ), 'strlen'));
-
         $this->settingsModel->setMany([
-            'banner_title'     => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
-            'about_paragraphs' => json_encode($paragraphs, JSON_UNESCAPED_UNICODE),
+            'banner_title' => normalize_pasted_text(trim($_POST['banner_title'] ?? '')),
+            'about_text'   => normalize_pasted_text(trim($_POST['about_text'] ?? '')),
         ]);
 
         $actor = $this->actor();

@@ -148,7 +148,7 @@ $activeTab     = $activeTab     ?? 'announcements';
             <h2><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#home-icon" />
               </svg> Homepage Content</h2>
-            <p class="audit-description">These appear on the public homepage.</p>
+            <p class="audit-description">These appear on the public homepage. Press Enter to start a new paragraph. To add a link, write [link text](https://web-address).</p>
             <form method="POST" action="<?= ROOT ?>/personnel/site_content_settings" data-cm-dirty
               data-confirm-message="Save changes to the homepage content?" data-confirm-ok-text="Save">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
@@ -159,24 +159,8 @@ $activeTab     = $activeTab     ?? 'announcements';
                     value="<?= htmlspecialchars($settings['banner_title'] ?? '', ENT_QUOTES) ?>">
                 </div>
                 <div class="records-form-group records-form-full">
-                  <div class="cm-paragraph-list" data-cm-paragraphs="about_paragraph">
-                    <?php foreach (array_values($settings['about_paragraphs'] ?? []) as $paragraphKey => $paragraph): ?>
-                      <?php $number = $paragraphKey + 1;
-                      include __DIR__ . '/partials/about-paragraph.php'; ?>
-                    <?php endforeach; ?>
-                  </div>
-                  <button type="button" class="cm-link-btn" data-cm-paragraph-add>
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <use href="#add-icon" />
-                    </svg>
-                    Add Paragraph
-                  </button>
-                  <template data-cm-paragraph-template>
-                    <?php $paragraphKey = 'new';
-                    $paragraph = '';
-                    $number = 1;
-                    include __DIR__ . '/partials/about-paragraph.php'; ?>
-                  </template>
+                  <label class="field-label" for="about_text">About IACUC</label>
+                  <textarea id="about_text" name="about_text" rows="12"><?= htmlspecialchars($settings['about_text'] ?? '', ENT_QUOTES) ?></textarea>
                 </div>
               </div>
               <div class="cm-savebar">
@@ -348,7 +332,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 $guideId    = 'site-homepage';
 $guideSteps = [
   ['Homepage', 'Edit what visitors see on the public homepage and Contact page. Let us walk through it.'],
-  ['Homepage Content', 'Change the banner title and the "What is IACUC?" paragraphs. Use **Add Paragraph** for a new one, or the bin button to remove one. **Save Changes** turns on once you change something. Press it and confirm to apply your edits, or press **Discard** to undo them.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
+  ['Homepage Content', 'Change the banner title and the "What is IACUC?" text. Press Enter to start a new paragraph. To make a link, write it as [link text](https://web-address). **Save Changes** turns on once you change something. Press it and confirm to apply your edits, or press **Discard** to undo them.', '#panel-site_content .sections > .accounts-card:nth-child(1)'],
   ['Add Office', 'Add an office card to the public Contact page.', '#addOfficeBtn'],
 ];
 if ($offices) {

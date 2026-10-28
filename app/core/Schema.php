@@ -306,6 +306,7 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->seeder->seedSiteSettings();
+        $this->seeder->migrateAboutText();
 
         // ===== CONTACT OFFICES TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `contact_offices` (

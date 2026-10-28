@@ -9,7 +9,7 @@ $disabledLink = $previewMode ? ' aria-disabled="true" onclick="return false;"' :
 
 $siteSettings    = $siteSettings ?? [];
 $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - Institutional Animal Care and Use Committee';
-$aboutParagraphs = $siteSettings['about_paragraphs'] ?? [];
+$aboutText       = $siteSettings['about_text'] ?? '';
 
 $ccardMapEmbed = 'https://www.google.com/maps?cid=10697978370393166203&z=18&output=embed';
 $ccardMapLink  = 'https://www.google.com/maps/place/Cordillera+Center+for+Animal+Research+and+Development+(CCARD)/data=!4m2!3m1!1s0x0:0x9476daa5c618d17b';
@@ -43,17 +43,11 @@ include "includes/scroll-top.php";
                 <article class="iacuc-section">
                     <div class="home-iacuc">
                         <h2>What is IACUC?</h2>
-                        <?php foreach ($aboutParagraphs as $aboutParagraph): ?>
+                        <?php foreach (preg_split('/\R+/', $aboutText, -1, PREG_SPLIT_NO_EMPTY) as $aboutLine): ?>
                             <p>
-                                <?= nl2br(htmlspecialchars($aboutParagraph, ENT_QUOTES)) ?>
+                                <?= render_text_with_links($aboutLine) ?>
                             </p>
                         <?php endforeach; ?>
-                        <p>
-                            The IACUC reviews and endorses animal research protocols in accordance with
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html" class="underlined" target="_blank" rel="noopener noreferrer">Republic Act No. 8485</a></strong> (Animal Welfare Act of 1998), as amended by
-                            <strong><a href="https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html" class="underlined" target="_blank" rel="noopener noreferrer">Republic Act No. 10631</a></strong>, and
-                            <strong><a href="https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491" class="underlined" target="_blank" rel="noopener noreferrer">Department of Agriculture Administrative Order No. 40, Series of 1999</a></strong> (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.
-                        </p>
                         <div id="apply-actions">
                             <a href="<?= $applyLink ?>" class="button btn-apply" <?= $disabledLink ?>>Click to Apply for IACUC Protocol Review</a>
                         </div>

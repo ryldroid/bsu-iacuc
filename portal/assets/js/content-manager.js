@@ -5,7 +5,6 @@
 //   - live search with a result count
 //   - lists refresh in place after a change, so the page never reloads
 //   - forms marked data-cm-dirty track unsaved changes
-//   - [data-cm-paragraphs] lists inside those forms let people add and delete paragraphs
 //
 // A page describes its lists in <script type="application/json" id="cmConfig"> and uses data-cm-*
 // attributes in its markup. See app/views/personnel/personnel-content.view.php for a working example.
@@ -504,60 +503,8 @@
     box.hidden = false;
   }
 
-  // ===== Paragraph lists (inside forms marked data-cm-dirty) =====
-  const paragraphSnapshots = new WeakMap();
-
-  function paragraphKeys(list) {
-    return [...list.querySelectorAll("[data-cm-paragraph]")]
-      .map((paragraph) => paragraph.dataset.key)
-      .join();
-  }
-
-  function numberParagraphs(list) {
-    list.querySelectorAll("[data-cm-paragraph]").forEach((paragraph, index) => {
-      const number = index + 1;
-      const textarea = paragraph.querySelector("textarea");
-      textarea.id = list.dataset.cmParagraphs + "_" + number;
-      paragraph.querySelector("label").htmlFor = textarea.id;
-      paragraph.querySelector("[data-cm-paragraph-number]").textContent =
-        number;
-      paragraph
-        .querySelector("[data-cm-paragraph-remove]")
-        .setAttribute("aria-label", "Delete paragraph " + number);
-    });
-  }
-
-  function addParagraph(form) {
-    const list = form.querySelector("[data-cm-paragraphs]");
-    const template = form.querySelector("[data-cm-paragraph-template]");
-    list.appendChild(template.content.cloneNode(true));
-    numberParagraphs(list);
-    list.lastElementChild.querySelector("textarea").focus();
-    updateDirty(form);
-  }
-
-  async function removeParagraph(paragraph) {
-    const confirmed = await confirmAction(
-      "Delete paragraph " +
-        paragraph.querySelector("[data-cm-paragraph-number]").textContent +
-        "? This is applied when you save your changes.",
-      { okText: "Delete", cancelText: "Cancel", danger: true },
-    );
-    if (!confirmed) return;
-
-    const form = paragraph.closest("form");
-    const list = paragraph.parentElement;
-    paragraph.remove();
-    numberParagraphs(list);
-    form.querySelector("[data-cm-paragraph-add]").focus();
-    updateDirty(form);
-  }
-
   // ===== Unsaved changes (forms marked data-cm-dirty) =====
   function isDirty(form) {
-    const list = form.querySelector("[data-cm-paragraphs]");
-    if (list && paragraphKeys(list) !== list.dataset.keys) return true;
-
     return [...form.elements].some((el) => {
       if (!el.name || el.disabled) return false;
       if (el.type === "checkbox" || el.type === "radio")
@@ -579,18 +526,6 @@
 
   // ===== Events =====
   document.addEventListener("click", (e) => {
-    const paragraphAdd = e.target.closest("[data-cm-paragraph-add]");
-    if (paragraphAdd) {
-      addParagraph(paragraphAdd.closest("form"));
-      return;
-    }
-
-    const paragraphRemove = e.target.closest("[data-cm-paragraph-remove]");
-    if (paragraphRemove) {
-      removeParagraph(paragraphRemove.closest("[data-cm-paragraph]"));
-      return;
-    }
-
     const addBtn = e.target.closest("[data-cm-add]");
     if (addBtn) {
       openAdd(addBtn.dataset.cmAdd);
@@ -657,9 +592,6 @@
   document.addEventListener("reset", (e) => {
     const form = e.target.closest("form[data-cm-dirty]");
     if (!form) return;
-    form.querySelectorAll("[data-cm-paragraphs]").forEach((list) => {
-      list.innerHTML = paragraphSnapshots.get(list);
-    });
     setTimeout(() => updateDirty(form), 0);
   });
 
@@ -703,10 +635,6 @@
   function init() {
     Object.values(entities).forEach(wireImage);
     document.querySelectorAll(".cm-list-wrap").forEach(applyFilter);
-    document.querySelectorAll("[data-cm-paragraphs]").forEach((list) => {
-      list.dataset.keys = paragraphKeys(list);
-      paragraphSnapshots.set(list, list.innerHTML);
-    });
     document.querySelectorAll("form[data-cm-dirty]").forEach(updateDirty);
   }
 

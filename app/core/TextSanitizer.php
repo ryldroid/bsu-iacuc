@@ -130,3 +130,13 @@ function strip_wrapping_quotes(string $text): string
 {
   return trim(preg_replace('/^["\x{201C}\x{201D}]([^"\x{201C}\x{201D}]*)["\x{201C}\x{201D}]$/u', '$1', trim($text)));
 }
+
+// ===== ESCAPE TEXT, TURNING [text](https://address) INTO LINKS =====
+function render_text_with_links(string $text): string
+{
+  return preg_replace_callback(
+    '/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/',
+    fn(array $match): string => '<strong><a href="' . $match[2] . '" class="underlined" target="_blank" rel="noopener noreferrer">' . $match[1] . '</a></strong>',
+    htmlspecialchars($text, ENT_QUOTES)
+  );
+}
