@@ -1872,6 +1872,7 @@
 
 .records-metrics .records-stat-hint {
   font-size: .84em;
+  color: var(--secondary-text);
   border-top-color: color-mix(in srgb, var(--tone) 22%, transparent);
 }
 

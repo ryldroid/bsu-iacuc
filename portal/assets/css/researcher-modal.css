@@ -15,6 +15,10 @@
   text-decoration-color: currentColor;
 }
 
+[data-theme="dark"] .researcher-name-link {
+  color: var(--brand-text);
+}
+
 .researcher-name-link:hover,
 .researcher-name-link:focus-visible {
   color: var(--brand-text);
