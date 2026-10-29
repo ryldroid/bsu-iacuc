@@ -949,6 +949,9 @@ include 'includes/guide.php';
 
         try {
             const json = await uploadWithProgress(ROOT + '/apply/draftupload', fd, {
+                headers: {
+                    'X-CSRF-Token': DRAFT_CSRF
+                },
                 onProgress: pct => isWord ? updateConversionOverlay(pct) : bar.update(pct)
             });
 
