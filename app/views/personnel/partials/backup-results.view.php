@@ -16,11 +16,11 @@ $backups = $backups ?? [];
     <table class="data-table">
       <thead>
         <tr>
-          <th>Created</th>
-          <th>Created by</th>
-          <th>Contents</th>
-          <th>Size</th>
-          <th></th>
+          <th scope="col">Created</th>
+          <th scope="col">Created by</th>
+          <th scope="col">Contents</th>
+          <th scope="col">Size</th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
       <tbody>

@@ -246,6 +246,7 @@ foreach ($protocols as $p) {
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                         <input type="text" id="inboxSearchInput" class="inbox-search-input"
+                            aria-label="Search by title or researcher"
                             placeholder="Search by title or researcher..." autocomplete="off">
                         <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">

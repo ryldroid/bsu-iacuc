@@ -326,6 +326,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         <input type="text"
                             name="search"
                             id="recordSearch"
+                            aria-label="Search records"
                             class="inbox-search-input"
                             placeholder="Search records…"
                             value="<?= htmlspecialchars($search, ENT_QUOTES) ?>"
@@ -479,7 +480,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                     $icon      = $sort === $col . '_desc' ? 'chev-down-icon' : 'chev-up-icon';
                     $href      = htmlspecialchars(pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $nextSort, $status), ENT_QUOTES);
                     $iconHtml  = $active ? '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' . $icon . '" /></svg>' : '';
-                    return '<th class="' . $class . '" aria-sort="' . $ariaSort . '"><a class="records-sort-link' . ($active ? ' is-active' : '') . '" href="' . $href . '">'
+                    return '<th class="' . $class . '" scope="col" aria-sort="' . $ariaSort . '"><a class="records-sort-link' . ($active ? ' is-active' : '') . '" href="' . $href . '">'
                         . htmlspecialchars($label) . $iconHtml . '</a></th>';
                 };
                 ?>
@@ -521,8 +522,8 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                     <?php foreach ($sortColumns as $col => $class): ?>
                                         <?= $sortHeader($col, $class) ?>
                                     <?php endforeach; ?>
-                                    <th class="col-file">File</th>
-                                    <th class="col-actions" aria-label="Actions"></th>
+                                    <th class="col-file" scope="col">File</th>
+                                    <th class="col-actions" scope="col"><span class="sr-only">Actions</span></th>
                                 </tr>
                             </thead>
                             <tbody>

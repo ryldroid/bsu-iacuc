@@ -189,6 +189,7 @@ include 'includes/header.php';
                 Back
             </a>
 
+            <h1 class="sr-only">Protocol Viewer</h1>
             <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
 
             <span class="status-badge">
@@ -362,7 +363,7 @@ include 'includes/header.php';
     </div>
 
     <!-- ===== Layout: PDF + sidebar ===== -->
-    <div class="viewer-layout">
+    <div class="viewer-layout" id="main-content" role="main" tabindex="-1">
 
         <div class="viewer-loading" id="viewerLoading" role="status" aria-live="polite">
             <span class="viewer-loading-spinner" aria-hidden="true"></span>
@@ -384,7 +385,7 @@ include 'includes/header.php';
         <?php if (!$isReadOnlyFile): ?>
             <div class="annot-sidebar" id="annotSidebar">
                 <div class="annot-sidebar-inner">
-                    <h3>Comments</h3>
+                    <h3 aria-level="2">Comments</h3>
                     <p class="helper" id="annotOfflineNote" hidden></p>
                     <div id="annotList">
                         <p class="annot-empty">Loading…</p>
@@ -426,7 +427,7 @@ include 'includes/header.php';
     <!-- ===== Comment dialog (personnel only, latest version, while under review) ===== -->
     <?php if ($canReview): ?>
         <div class="modal-backdrop" id="commentDialog">
-            <div class="modal-card panel-modal-card">
+            <div class="modal-card panel-modal-card" role="dialog" aria-modal="true" aria-labelledby="commentDialogTitle">
                 <div class="modal-header">
                     <span class="modal-header-icon" aria-hidden="true">
                         <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
@@ -441,7 +442,7 @@ include 'includes/header.php';
                     </button>
                 </div>
                 <div class="panel-modal-body">
-                    <textarea id="commentText" class="return-comment-textarea" rows="4" placeholder="Type your comment…"></textarea>
+                    <textarea id="commentText" class="return-comment-textarea" rows="4" aria-labelledby="commentDialogTitle" placeholder="Type your comment…"></textarea>
                     <div class="panel-modal-actions" id="commentDialogActions">
                         <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="cancelComment()">Cancel</button>
                         <button class="confirm-modal-btn confirm-modal-ok" type="button" id="commentDialogSave" onclick="saveComment()">

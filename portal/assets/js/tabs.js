@@ -59,9 +59,28 @@
       });
     });
 
+    // ===== Arrow keys, Home and End move between tabs =====
+    strip.addEventListener("keydown", (e) => {
+      const currentIndex = buttons.indexOf(document.activeElement);
+      if (currentIndex === -1) return;
+      const lastIndex = buttons.length - 1;
+      const targetIndex = {
+        ArrowRight: currentIndex === lastIndex ? 0 : currentIndex + 1,
+        ArrowLeft: currentIndex === 0 ? lastIndex : currentIndex - 1,
+        Home: 0,
+        End: lastIndex,
+      }[e.key];
+      if (targetIndex === undefined) return;
+      e.preventDefault();
+      buttons[targetIndex].focus();
+      buttons[targetIndex].click();
+    });
+
     window.addEventListener("popstate", () =>
       activate(currentMatch(strip, buttons)),
     );
+
+    activate(currentMatch(strip, buttons));
   }
 
   // ===== Start up =====

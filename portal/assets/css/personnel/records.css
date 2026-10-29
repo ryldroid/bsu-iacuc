@@ -1580,18 +1580,6 @@
    Statistics page refresh
    ===================================================================== */
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* Section headers: title and one-line description on a shared baseline */
 .records-section-head {
   display: flex;

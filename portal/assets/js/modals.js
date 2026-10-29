@@ -792,3 +792,17 @@ document
       attributeFilter: ["class"],
     });
   });
+
+// ===== Give dialogs their role and name (when neither the backdrop nor the card sets one) =====
+document.querySelectorAll(".modal-card").forEach((card, index) => {
+  if (card.getAttribute("role")) return;
+  if (card.closest(".modal-backdrop")?.getAttribute("role")) return;
+
+  const title = card.querySelector(".modal-title, h1, h2, h3");
+  if (!title) return;
+  if (!title.id) title.id = "modal-title-" + index;
+
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+  card.setAttribute("aria-labelledby", title.id);
+});

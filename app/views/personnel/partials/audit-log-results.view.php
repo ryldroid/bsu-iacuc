@@ -28,12 +28,12 @@ $auditToneKeywords = [
     <table class="data-table audit-viewer-table">
       <thead>
         <tr>
-          <th>Timestamp</th>
-          <th>User</th>
-          <th>Action</th>
-          <th>Target</th>
-          <th>Details</th>
-          <th>IP Address</th>
+          <th scope="col">Timestamp</th>
+          <th scope="col">User</th>
+          <th scope="col">Action</th>
+          <th scope="col">Target</th>
+          <th scope="col">Details</th>
+          <th scope="col">IP Address</th>
         </tr>
       </thead>
       <tbody>
