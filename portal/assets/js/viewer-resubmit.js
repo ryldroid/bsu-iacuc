@@ -243,7 +243,7 @@ async function uploadProtocolFile(endpoint, fieldName, file, onProgress) {
   }
 
   return uploadWithProgress(ROOT_URL + endpoint, formData, {
-    headers: { "X-CSRF-Token": CSRF_TOKEN },
+    headers: csrfHeaders(),
     onProgress,
   });
 }

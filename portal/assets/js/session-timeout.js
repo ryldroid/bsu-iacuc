@@ -53,7 +53,7 @@
     try {
       var res = await fetch(NOTIF_ROOT + "/user/ping", {
         method: "POST",
-        headers: { "X-CSRF-Token": NOTIF_CSRF_TOKEN },
+        headers: csrfHeaders(),
       });
       var contentType = res.headers.get("content-type") || "";
       if (

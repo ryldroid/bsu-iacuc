@@ -260,7 +260,7 @@ async function submitBulkEndorse(protocolIds, btn) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": CSRF_TOKEN,
+          ...csrfHeaders(),
         },
         body: JSON.stringify({
           protocol_id: protocolId,

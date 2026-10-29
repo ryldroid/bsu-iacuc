@@ -60,7 +60,6 @@ include 'includes/guide.php';
     // ===== CONSTANTS =====
     const ROOT = '<?= ROOT ?>';
     const STEPS = ['Requirements', 'Terms', 'Documents', 'Download form', 'Upload and submit', 'Done'];
-    const DRAFT_CSRF = NOTIF_CSRF_TOKEN;
     const PREVIOUS_DETAILS = <?= json_encode($previousDetails ?? []) ?>;
     const ANIMAL_TYPES = <?= json_encode(RecordModel::ANIMAL_TYPES) ?>;
     window.EMOJI_PATTERN = new RegExp(<?= json_encode('[' . emoji_class_body('\\u') . ']') ?>, 'gu');
@@ -102,10 +101,7 @@ include 'includes/guide.php';
         try {
             await fetch(ROOT + '/apply/draftsave', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': DRAFT_CSRF
-                },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     step: state.step,
                     agreedTerms: state.agreedTerms,
@@ -949,9 +945,7 @@ include 'includes/guide.php';
 
         try {
             const json = await uploadWithProgress(ROOT + '/apply/draftupload', fd, {
-                headers: {
-                    'X-CSRF-Token': DRAFT_CSRF
-                },
+                headers: csrfHeaders(),
                 onProgress: pct => isWord ? updateConversionOverlay(pct) : bar.update(pct)
             });
 
@@ -993,10 +987,7 @@ include 'includes/guide.php';
         try {
             await fetch(ROOT + '/apply/draftremovefile', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': DRAFT_CSRF
-                },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     key
                 })
@@ -1054,9 +1045,7 @@ include 'includes/guide.php';
         try {
             const res = await fetch(ROOT + '/apply/submit', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-Token': DRAFT_CSRF
-                }
+                headers: csrfHeaders()
             });
             const json = await res.json();
 

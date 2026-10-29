@@ -7,5 +7,5 @@ ob_start();
 
 <p><strong><?= htmlspecialchars($submitter) ?></strong> submitted a new protocol: <strong><?= htmlspecialchars($title) ?></strong>.</p>
 <p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $title), 'view it here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

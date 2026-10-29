@@ -144,7 +144,6 @@ function notifDateGroup(string $dateStr): string
 <!-- ===== Page script ===== -->
 <script>
   (function() {
-    const csrfToken = <?= json_encode($csrf) ?>;
     const list = document.querySelector('.notif-page-list');
     const markAllBtn = document.getElementById('notifPageMarkAll');
 
@@ -171,10 +170,7 @@ function notifDateGroup(string $dateStr): string
       try {
         await fetch(<?= json_encode(ROOT . '/notifications/markallread') ?>, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-          },
+          headers: csrfHeaders({ 'Content-Type': 'application/json' }),
         });
         location.reload();
       } catch (e) {}

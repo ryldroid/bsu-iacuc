@@ -11,5 +11,5 @@ ob_start();
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>You can <?= Mailer::link(ROOT . '/submissions', 'view your other protocols here') ?>.</p>
 <p>If you have questions about this, please contact BSU-CCARD.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

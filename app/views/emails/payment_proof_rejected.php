@@ -10,5 +10,5 @@ ob_start();
 <p>Your payment proof for protocol <strong><?= htmlspecialchars($title) ?></strong> was rejected.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>Press "Pay Clearance Fee" on your protocol and <?= Mailer::link(ROOT . '/submissions?highlight=' . $protocol_id, 'submit your payment again here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

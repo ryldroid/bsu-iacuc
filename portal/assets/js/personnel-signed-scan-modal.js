@@ -71,7 +71,7 @@ async function submitSignedScanUpload() {
   try {
     const data = await uploadWithProgress(SIGNED_SCAN_UPLOAD_API, formData, {
       headers: {
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       onProgress: (pct) => bar.update(pct),
     });

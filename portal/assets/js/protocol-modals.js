@@ -15,7 +15,7 @@ function protocolModalBind(backdropId, closeFn) {
 function protocolModalPost(path, body) {
   return fetch(ROOT_URL + path, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRF-Token": CSRF_TOKEN },
+    headers: csrfHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   }).then((res) => res.json());
 }
@@ -373,7 +373,7 @@ async function stageWordFile(file, onProgress) {
     ROOT_URL + "/apply/stageprotocol",
     formData,
     {
-      headers: { "X-CSRF-Token": CSRF_TOKEN },
+      headers: csrfHeaders(),
       onProgress,
     },
   );
@@ -531,7 +531,7 @@ async function submitAmendment() {
       ROOT_URL + "/apply/amendment_upload",
       formData,
       {
-        headers: { "X-CSRF-Token": CSRF_TOKEN },
+        headers: csrfHeaders(),
         onProgress: (pct) => bar.update(pct),
       },
     );

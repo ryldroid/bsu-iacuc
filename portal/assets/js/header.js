@@ -200,10 +200,7 @@ verifyEmailForm
     try {
       const res = await fetch(`${NOTIF_ROOT}/user/snooze_verification`, {
         method: "POST",
-        headers: {
-          Accept: "application/json",
-          "X-CSRF-Token": verifyEmailForm.elements.csrf_token.value,
-        },
+        headers: csrfHeaders({ Accept: "application/json" }),
       });
       if (!res.ok) throw new Error();
       location.href = home;

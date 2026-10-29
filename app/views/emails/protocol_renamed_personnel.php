@@ -10,5 +10,5 @@ ob_start();
 <p>Hi,</p>
 <p><?= htmlspecialchars($role_label) ?> <strong><?= htmlspecialchars($actor_name) ?></strong> renamed the protocol <strong><?= htmlspecialchars($old_title) ?></strong> to <strong><?= htmlspecialchars($new_title) ?></strong>.</p>
 <p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $new_title), 'view it here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

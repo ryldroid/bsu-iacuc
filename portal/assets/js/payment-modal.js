@@ -138,7 +138,7 @@ async function submitPaymentProof() {
       formData,
       {
         headers: {
-          "X-CSRF-Token": CSRF_TOKEN,
+          ...csrfHeaders(),
         },
         onProgress: bar ? (pct) => bar.update(pct) : undefined,
       },

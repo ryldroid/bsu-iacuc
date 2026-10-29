@@ -358,7 +358,7 @@ async function saveComment() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         action: "edit",
@@ -384,7 +384,7 @@ async function saveComment() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRF-Token": CSRF_TOKEN,
+      ...csrfHeaders(),
     },
     body: JSON.stringify({
       action: "save",
@@ -803,7 +803,7 @@ async function deleteAnnotation(annotId) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRF-Token": CSRF_TOKEN,
+      ...csrfHeaders(),
     },
     body: JSON.stringify({
       action: "delete",
@@ -831,7 +831,7 @@ async function updateStatus(btn, newStatus) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         protocol_id: PROTOCOL_ID,

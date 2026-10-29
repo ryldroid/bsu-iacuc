@@ -323,7 +323,7 @@ async function saveClearanceUpload() {
     const res = await fetch(CLEARANCE_POOL_UPLOAD_API, {
       method: "POST",
       headers: {
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: formData,
     });
@@ -435,7 +435,7 @@ async function stageItem(poolId, protocolId) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         pool_id: poolId,
@@ -457,7 +457,7 @@ async function unstage(poolId) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         pool_id: poolId,
@@ -486,7 +486,7 @@ async function deletePoolItem(poolId, btn) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         pool_id: poolId,
@@ -578,7 +578,7 @@ async function saveNumber() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         protocol_id: numberModalProtocolId,
@@ -655,7 +655,7 @@ async function proceedConfirm() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({
         pool_id: confirmPoolId,

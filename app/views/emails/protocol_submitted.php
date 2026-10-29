@@ -8,5 +8,5 @@ ob_start();
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
 <p>Your protocol <strong><?= htmlspecialchars($title) ?></strong> has been submitted and is now under review. No action needed. You will be notified of any feedback.</p>
 <p>You can <?= Mailer::link(ROOT . '/submissions?highlight=' . $protocol_id, 'track its status here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

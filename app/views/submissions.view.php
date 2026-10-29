@@ -890,10 +890,7 @@ include 'includes/guide.php';
                 document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
                     fetch('<?= ROOT ?>/apply/draftclear', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': NOTIF_CSRF_TOKEN
-                        }
+                        headers: csrfHeaders({ 'Content-Type': 'application/json' })
                     }).finally(() => {
                         window.location.href = applyUrl;
                     });

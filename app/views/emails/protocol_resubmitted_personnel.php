@@ -9,5 +9,5 @@ ob_start();
 <p>Hi,</p>
 <p><?= htmlspecialchars($role_label) ?> <strong><?= htmlspecialchars($actor_name) ?></strong> resubmitted the protocol <strong><?= htmlspecialchars($title) ?></strong>. It is back under review.</p>
 <p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $title), 'view it here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

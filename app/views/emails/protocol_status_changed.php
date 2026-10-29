@@ -17,5 +17,5 @@ $link = strtolower($status) === 'needs revision'
   <p>Note that your account will be marked inactive after your clearance expires and you have no pending protocols. You may reactivate it at any time by logging in to the portal.</p>
 <?php endif; ?>
 <p>You can <?= Mailer::link($link, 'view the details here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

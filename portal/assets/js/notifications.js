@@ -110,7 +110,7 @@ async function markRead(id, read = true) {
       keepalive: true,
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": NOTIF_CSRF_TOKEN,
+        ...csrfHeaders(),
       },
       body: JSON.stringify({ id, read }),
     });
@@ -131,7 +131,7 @@ async function markAllRead() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": NOTIF_CSRF_TOKEN,
+        ...csrfHeaders(),
       },
     });
     loadNotifications();

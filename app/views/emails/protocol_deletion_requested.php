@@ -11,5 +11,5 @@ ob_start();
 <p><?= htmlspecialchars($role_label) ?> <strong><?= htmlspecialchars($actor_name) ?></strong> has requested the deletion of protocol <strong><?= htmlspecialchars($title) ?></strong>.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $title) . '?open=deletion_request', 'review and act on this request here') ?>.</p>
-<p>BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

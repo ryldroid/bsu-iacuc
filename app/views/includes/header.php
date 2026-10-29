@@ -145,6 +145,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
   ?>
     <script>
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
+      const csrfHeaders = (extra = {}) => ({ 'X-CSRF-Token': NOTIF_CSRF_TOKEN, ...extra });
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const CURRENT_USER_ID = <?= json_encode((int) ($user['user_id'] ?? 0)) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
