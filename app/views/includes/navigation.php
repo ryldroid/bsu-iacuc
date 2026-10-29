@@ -15,12 +15,12 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
             <!-- PERSONNEL (STAFF / REVIEWER) NAVIGATION -->
             <?php if ($role === 'staff' || $role === 'reviewer'): ?>
                 <li>
-                    <a href="<?= ROOT ?>/personnel/home">
+                    <a href="<?= ROOT ?>/personnel/home" aria-label="Dashboard">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#dashboard-icon" />
                         </svg>
                     </a>
-                    <div>
+                    <div aria-hidden="true">
                         <span>Dashboard</span>
                     </div>
                 </li>
@@ -28,23 +28,23 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                 <?php if ($role === 'staff'): ?>
                     <!-- STAFF ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/personnel/records">
+                        <a href="<?= ROOT ?>/personnel/records" aria-label="Records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
                         </a>
-                        <div>
+                        <div aria-hidden="true">
                             <span>Records</span>
                         </div>
                     </li>
 
                     <li>
-                        <a href="<?= ROOT ?>/personnel/announcements">
+                        <a href="<?= ROOT ?>/personnel/announcements" aria-label="Site Content">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#edit-icon" />
                             </svg>
                         </a>
-                        <div>
+                        <div aria-hidden="true">
                             <span>Site Content</span>
                         </div>
                     </li>
@@ -53,12 +53,12 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                 <?php if ($role === 'reviewer'): ?>
                     <!-- REVIEWER ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/personnel/records">
+                        <a href="<?= ROOT ?>/personnel/records" aria-label="Records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
                         </a>
-                        <div>
+                        <div aria-hidden="true">
                             <span>Records</span>
                         </div>
                     </li>
@@ -67,12 +67,12 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
 
                 <?php if ($role === 'staff'): ?>
                     <li>
-                        <a href="<?= ROOT ?>/personnel/accounts">
+                        <a href="<?= ROOT ?>/personnel/accounts" aria-label="Administration">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#accounts-icon" />
                             </svg>
                         </a>
-                        <div>
+                        <div aria-hidden="true">
                             <span>Administration</span>
                         </div>
                     </li>
@@ -81,12 +81,12 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
             <?php else: ?>
                 <!-- PUBLIC / RESEARCHER NAVIGATION -->
                 <li>
-                    <a href="<?= $pubRoot ?>/home">
+                    <a href="<?= $pubRoot ?>/home" aria-label="Home">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#home-icon" />
                         </svg>
                     </a>
-                    <div>
+                    <div aria-hidden="true">
                         <span>Home</span>
                     </div>
                 </li>
@@ -94,35 +94,35 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                 <?php if ($role === 'researcher'): ?>
                     <!-- RESEARCHER ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/submissions">
+                        <a href="<?= ROOT ?>/submissions" aria-label="My Protocols">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
                         </a>
-                        <div>
+                        <div aria-hidden="true">
                             <span>My Protocols</span>
                         </div>
                     </li>
                 <?php endif; ?>
 
                 <li>
-                    <a href="<?= $pubRoot ?>/announcements">
+                    <a href="<?= $pubRoot ?>/announcements" aria-label="Announcements">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#announcement-icon" />
                         </svg>
                     </a>
-                    <div>
+                    <div aria-hidden="true">
                         <span>Announcements</span>
                     </div>
                 </li>
 
                 <li>
-                    <a href="<?= $pubRoot ?>/contact">
+                    <a href="<?= $pubRoot ?>/contact" aria-label="Contact Us">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#contact-icon" />
                         </svg>
                     </a>
-                    <div>
+                    <div aria-hidden="true">
                         <span>Contact Us</span>
                     </div>
                 </li>
