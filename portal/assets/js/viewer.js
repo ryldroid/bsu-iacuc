@@ -814,6 +814,11 @@ async function deleteAnnotation(annotId) {
   if (data.ok) {
     annotations = annotations.filter((a) => a.id !== annotId);
     renderAnnotations();
+  } else {
+    showToast(
+      "Could not delete comment: " + (data.error ?? "unknown error"),
+      "error",
+    );
   }
 }
 

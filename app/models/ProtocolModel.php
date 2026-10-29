@@ -1100,6 +1100,20 @@ class ProtocolModel extends Model
         return $this->connection->insert_id;
     }
 
+    public function getAnnotationById(int $annotationId): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT id, version_id, created_by FROM `annotations` WHERE id = ?"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $annotationId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
     public function updateAnnotation(int $annotationId, string $comment): bool
     {
         $comment = trim($comment);

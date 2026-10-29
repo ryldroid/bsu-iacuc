@@ -1823,6 +1823,8 @@ class Apply extends Controller
             $this->jsonError(400, 'Missing or invalid fields.');
         }
 
+        $this->requireOpenReview($versionId);
+
         $actor = $this->actor();
         $newId = $this->protocolModel->insertAnnotation($versionId, $pageNumber, $x, $y, $width, $height, $comment, $actor['id']);
 
@@ -1844,6 +1846,8 @@ class Apply extends Controller
         if ($annotId < 1 || $comment === '') {
             $this->jsonError(400, 'Missing or invalid fields.');
         }
+
+        $this->requireOwnAnnotation($annotId);
 
         $actor = $this->actor();
         $ok    = $this->protocolModel->updateAnnotation($annotId, $comment);
@@ -1874,6 +1878,36 @@ class Apply extends Controller
         exit;
     }
 
+    private function requireOpenReview(int $versionId): void
+    {
+        $version = $this->protocolModel->getVersionById($versionId);
+
+        if (!$version) {
+            $this->jsonError(404, 'Version not found.');
+        }
+
+        $latestVersion = $this->protocolModel->getLatestVersion((int) $version['protocol_id'], 'protocol');
+        $isLatest      = $latestVersion && (int) $latestVersion['id'] === $versionId;
+
+        if (strtolower($version['protocol_status'] ?? '') !== 'under review' || !$isLatest) {
+            $this->jsonError(422, 'Comments can only be changed while the protocol is under review.');
+        }
+    }
+
+    private function requireOwnAnnotation(int $annotId): void
+    {
+        $annotation = $this->protocolModel->getAnnotationById($annotId);
+
+        if (!$annotation) {
+            $this->jsonError(404, 'Comment not found.');
+        }
+        if ((int) $annotation['created_by'] !== (int) $this->actor()['id']) {
+            $this->jsonError(403, 'You can only change your own comments.');
+        }
+
+        $this->requireOpenReview((int) $annotation['version_id']);
+    }
+
     // ===== STATUS UPDATE  (POST /apply/status) =====
 
     public function status(): void
@@ -1883,7 +1917,7 @@ class Apply extends Controller
 
         $actor = $this->actor();
         if (!$this->isPersonnel()) {
-            $this->jsonError(403, 'Administrative staff only.');
+            $this->jsonError(403, 'You do not have permission to change the status.');
         }
 
         $this->requirePostMethod();
@@ -3176,54 +3210,6 @@ class Apply extends Controller
 
         $_SESSION['flash_success'] = "$confirmed protocol(s) approved." . ($failures ? ' Some items need another look.' : '');
         echo json_encode(['confirmed' => $confirmed, 'failures' => $failures]);
-        exit;
-    }
-
-    // ===== CLEARANCE UNASSIGN  (POST /apply/clearance_unassign) =====
-
-    public function clearance_unassign(): void
-    {
-        $this->requireLogin();
-        header('Content-Type: application/json');
-
-        $actor = $this->actor();
-        if ($actor['role'] !== 'staff') {
-            $this->jsonError(403, 'Administrative staff only.');
-        }
-
-        $this->requirePostMethod();
-        $this->verifyCsrfHeader();
-
-        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
-        $poolId = (int) ($body['pool_id'] ?? 0);
-        if ($poolId < 1) {
-            $this->jsonError(400, 'Missing pool_id.');
-        }
-
-        $item  = $this->protocolModel->getClearancePoolItem($poolId);
-
-        if (!$item || $item['protocol_id'] === null) {
-            $this->jsonError(422, 'That screenshot is not currently assigned.');
-        }
-        if (empty($item['version_id'])) {
-            $this->jsonError(422, 'That screenshot hasn\'t been confirmed yet: use "unstage" instead.');
-        }
-
-        $protocolId = (int) $item['protocol_id'];
-        $protocol   = $this->protocolModel->getById($protocolId);
-
-        if ($protocol && strtolower($protocol['status']) === 'approved') {
-            $this->protocolModel->updateStatus($protocolId, 'Endorsed');
-            $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::DEFAULT_STATUS, RecordModel::PENDING_STATUS);
-            $this->notifyStatusChange($protocol, 'Endorsed');
-        }
-
-        $this->detachClearance($protocolId);
-
-        $this->protocolModel->logAudit('clearance_unassigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #$poolId detached; reverted to Endorsed");
-        $_SESSION['flash_success'] = 'Clearance detached and returned to the pool.';
-
-        echo json_encode(['success' => true]);
         exit;
     }
 

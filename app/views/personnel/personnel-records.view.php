@@ -729,7 +729,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#download-icon">
                         </svg>
-                        Download as Excel
+                        Export period to Excel
                     </a>
                 </form>
 
@@ -871,7 +871,7 @@ $guideSteps = [
     ['Period', 'Choose the period to report on, including a custom date range. Each card also shows how its figure compares with the period right before, for example September when you pick October.', '#statsPeriodForm'],
     ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, average revisions, clearances received, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
     ['Breakdowns', 'Charts break the period down by animals used, school, researcher sex, researcher type, and resubmissions.', '.records-charts-grid'],
-    ['Download as Excel', 'Download the statistics and records for the chosen period as an Excel file.', '.records-export-btn'],
+    ['Export period to Excel', 'Download the statistics and every record in the chosen period as an Excel file. Search and filters on the Records tab are not applied.', '.records-export-btn'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>

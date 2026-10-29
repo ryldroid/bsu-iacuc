@@ -188,7 +188,6 @@ class Access
       'clearance_unstage' => 'staff',
       'clearance_delete' => 'staff',
       'clearance_confirm' => 'staff',
-      'clearance_unassign' => 'staff',
       'assign_ipn' => 'staff',
     ],
   ];
