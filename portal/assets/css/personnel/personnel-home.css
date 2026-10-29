@@ -41,7 +41,7 @@
 }
 
 .dashboard-page-header .row-btn:hover {
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
     color: var(--text-on-brand);
     box-shadow: 0 2px 6px var(--shadow-color-soft);
 }
@@ -97,7 +97,7 @@
 }
 
 .bulk-actions-bar .row-btn:hover {
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
     color: var(--text-on-brand);
     box-shadow: 0 2px 6px var(--shadow-color-soft);
 }

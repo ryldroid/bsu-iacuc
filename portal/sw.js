@@ -1,5 +1,5 @@
 // ===== Cache settings =====
-const CACHE_VERSION = "bsu-iacuc-v8";
+const CACHE_VERSION = "bsu-iacuc-v9";
 const FILE_CACHE = "bsu-iacuc-files-v1";
 const MAX_CACHED_FILES = 150;
 const NETWORK_TIMEOUT_MS = 4000;

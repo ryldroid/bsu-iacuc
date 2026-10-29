@@ -211,12 +211,13 @@ function renderDonut(array $rows, string $centerLabel, string $emptyText): void
         $pct   = $sum > 0 ? ($row['total'] / $sum) * 100 : 0;
         $tone  = $row['modifier'] !== '' ? $row['modifier'] : (string) (($i % 8) + 1);
         $segs .= sprintf(
-            '<circle class="records-donut-seg records-donut-seg--%s" cx="21" cy="21" r="%F" stroke-dasharray="%F %F" stroke-dashoffset="%F"></circle>',
+            '<circle class="records-donut-seg records-donut-seg--%s" cx="21" cy="21" r="%F" stroke-dasharray="%F %F" stroke-dashoffset="%F"><title>%s</title></circle>',
             $tone,
             $radius,
             $pct,
             100 - $pct,
-            25 - $cursor
+            25 - $cursor,
+            htmlspecialchars($row['label'] . ': ' . number_format($row['total']) . ' (' . $row['share'] . '%)')
         );
         $legend .= '<li><span class="records-legend-dot records-donut-seg--' . $tone . '"></span>'
             . '<span class="records-legend-label">' . htmlspecialchars($row['label']) . '</span>'

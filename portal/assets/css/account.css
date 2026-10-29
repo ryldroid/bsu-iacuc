@@ -107,7 +107,7 @@ main button {
     width: 200px;
     margin-bottom: .4em;
     font-size: 1em;
-    background-color: var(--brand-color-hover);
+    background-color: var(--brand-fill-hover);
     color: var(--text-on-brand);
 }
 

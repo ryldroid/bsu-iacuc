@@ -18,7 +18,7 @@
 }
 
 .records-page-header .row-btn:hover {
-  background: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
   color: var(--text-on-brand);
   box-shadow: 0 2px 6px var(--shadow-color-soft);
 }
@@ -233,7 +233,7 @@
 }
 
 .records-bar-fill--ok {
-  background: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
 }
 
 .records-bar-fill--warn {
@@ -356,12 +356,12 @@
 .records-charts-grid {
   --chart-1: #2f6f4e;
   --chart-2: #5b9c78;
-  --chart-3: #8bc4a3;
-  --chart-4: #c9a227;
+  --chart-3: #732828;
+  --chart-4: #b88400;
   --chart-5: #b5651d;
   --chart-6: #6d597a;
   --chart-7: #457b9d;
-  --chart-8: #9d9d9d;
+  --chart-8: #787878;
   --chart-ok: var(--brand-color-hover);
   --chart-warn: var(--status-warning-text);
   --chart-danger: var(--status-danger-text);
@@ -528,8 +528,8 @@
   --chart-3: #8bc4a3;
   --chart-4: #e0b93a;
   --chart-5: #d98a45;
-  --chart-6: #a58bb5;
-  --chart-7: #6aa5c9;
+  --chart-6: #9563a6;
+  --chart-7: #8561f2;
   --chart-8: #a8a8a8;
 }
 
@@ -558,7 +558,7 @@
 }
 
 .records-period-apply:hover {
-  background: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
 }
 
 /* ===== Filters & sorting ===== */
@@ -1122,8 +1122,8 @@
 }
 
 .records-table .row-actions .row-btn:hover {
-  background: var(--brand-color-hover);
-  border-color: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
+  border-color: var(--brand-fill-hover);
   color: var(--text-on-brand);
 }
 

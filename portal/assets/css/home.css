@@ -67,7 +67,7 @@ article {
     font-size: 1.05em;
     font-weight: 800;
 
-    background-color: var(--brand-color-hover);
+    background-color: var(--brand-fill-hover);
     color: var(--text-on-brand);
 }
 
@@ -232,7 +232,7 @@ h2 {
 .faq-question:hover {
     /* background: var(--brand-color-active); */
     /* background-color: var(--faq-highlight-background); */
-    background-color: var(--brand-color-hover);
+    background-color: var(--brand-fill-hover);
 
     color: var(--text-on-brand);
 
@@ -243,7 +243,7 @@ h2 {
     color: var(--text-on-brand);
     /* background: var(--brand-color); */
     /* background-color: var(--faq-highlight-background); */
-    background-color: var(--brand-color-hover);
+    background-color: var(--brand-fill-hover);
 
     border-bottom: 1px solid var(--brand-color);
     /* border-radius: 8px 8px 0 0;   */

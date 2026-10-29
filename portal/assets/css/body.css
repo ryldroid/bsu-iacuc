@@ -57,6 +57,7 @@
 
     --brand-color: rgb(22, 71, 11);
     --brand-color-hover: rgb(53, 112, 40);
+    --brand-fill-hover: var(--brand-color-hover);
     --brand-color-active: rgb(44, 96, 33);
     --brand-color-light: #c8e6c0;
     --brand-surface-tint: rgba(202, 214, 204, 0.716);
@@ -68,7 +69,7 @@
     --tab-text-active: var(--brand-text);
     --accent-color: #c9a227;
     --accent-text: #1b1600;
-    --tab-underline: var(--accent-color);
+    --tab-underline: #8a6f00;
 
     --tint-on-brand: rgba(255, 255, 255, 0.25);
     --tint-on-brand-soft: rgba(255, 255, 255, 0.15);
@@ -88,7 +89,7 @@
     --divider-color: #e4e4e4;
     --divider-color-subtle: #f0f0f0;
     --divider-color-strong: #000000;
-    --hover-surface: #d0d0d0;
+    --hover-surface: #e8e8e8;
     --hover-surface-soft: #f9fbf9;
 
     --heading-fill: rgba(0, 0, 0, 0.15);
@@ -104,7 +105,7 @@
     --shadow-color-soft: rgba(0, 0, 0, 0.15);
     --shadow-color-modal: rgba(0, 0, 0, 0.25);
 
-    --required-color: red;
+    --required-color: var(--danger-color);
     --danger-color: #b91c1c;
     --danger-color-hover: #8f1d17;
     --danger-solid: var(--danger-color);
@@ -119,9 +120,9 @@
     --error-text: #3d0707;
 
     --status-color-under-review: #0072B2;
-    --status-color-needs-revision: #D55E00;
+    --status-color-needs-revision: #BD4B00;
     --status-color-reviewed: #CC79A7;
-    --status-color-endorsed: #E69F00;
+    --status-color-endorsed: #CC8100;
     --status-color-approved: #009E73;
     --status-color-neutral: #6b6b6b;
 
@@ -140,9 +141,9 @@
     --warning-text: #b45309;
     --brand-surface-faint: rgba(22, 71, 11, 0.03);
 
-    --muted-text: #8a8a8a;
+    --muted-text: #6b6b6b;
     --table-row-hover: color-mix(in srgb, var(--brand-text) 8%, var(--card-background));
-    --input-border: #cccccc;
+    --input-border: #8a8a8a;
     --success-background-soft: #eaf7e6;
     --success-border-soft: #a7f3d0;
     --danger-tint-strong: rgba(149, 25, 25, 0.8);
@@ -181,6 +182,7 @@
     --brand-surface-tint: rgba(129, 201, 149, 0.1);
     --brand-text: #81c995;
     --brand-color-hover: #47a267;
+    --brand-fill-hover: #2f7a49;
     --nav-icons: #9aa0a6;
     --accent-color: #e0bd4a;
     --tab-underline: var(--accent-color);
@@ -190,7 +192,7 @@
     --shadow-color-modal: rgba(0, 0, 0, 0.5);
 
     --required-color: #ff6b6b;
-    --danger-color: #f15757;
+    --danger-color: #f77171;
     --danger-color-hover: #de3131;
     --danger-solid: #c62828;
     --danger-solid-hover: #a31f1f;
@@ -215,6 +217,10 @@
     --status-success-bg: #133824;
     --status-success-text: #6ee7b7;
     --warning-text: #f0a868;
+    --status-color-under-review: #56B4E9;
+    --status-color-needs-revision: #D55E00;
+    --status-color-endorsed: #E69F00;
+    --status-color-neutral: #9aa0a6;
     --brand-surface-faint: rgba(200, 230, 192, 0.05);
 
     --muted-text: #9aa0a6;
@@ -465,7 +471,7 @@ button:hover,
 }
 
 .button:hover {
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
     color: var(--text-on-brand);
 }
 

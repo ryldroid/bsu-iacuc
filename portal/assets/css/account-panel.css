@@ -98,7 +98,7 @@
 }
 
 #account-drawer .button:hover {
-  background-color: var(--brand-color-hover);
+  background-color: var(--brand-fill-hover);
   color: var(--text-on-brand);
 }
 
@@ -369,7 +369,7 @@
   width: 100%;
   padding: .7em 1em;
   border-radius: var(--btn-radius);
-  background-color: var(--brand-color-hover);
+  background-color: var(--brand-fill-hover);
   color: var(--text-on-brand);
   font-size: .95em;
 }

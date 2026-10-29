@@ -389,7 +389,7 @@
 }
 
 .tool-btn:hover {
-  background: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
   color: var(--text-on-brand);
 }
 

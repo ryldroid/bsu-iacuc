@@ -377,7 +377,7 @@ h2 {
 }
 
 .carousel-arrow:hover:not(:disabled) {
-  background: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
   color: var(--text-on-brand);
 }
 
@@ -568,8 +568,8 @@ h2 {
 }
 
 .ann-row-actions .row-btn:hover {
-  background: var(--brand-color-hover);
-  border-color: var(--brand-color-hover);
+  background: var(--brand-fill-hover);
+  border-color: var(--brand-fill-hover);
   color: var(--text-on-brand);
 }
 

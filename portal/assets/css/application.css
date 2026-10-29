@@ -62,8 +62,8 @@ body {
 }
 
 .step-dot.done {
-    background: var(--brand-color-hover);
-    border-color: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
+    border-color: var(--brand-fill-hover);
     color: var(--text-on-brand);
 }
 
@@ -75,7 +75,7 @@ body {
 }
 
 .step-line.done {
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
 }
 
 @media(max-width:480px) {
@@ -252,7 +252,7 @@ main button svg {
 }
 
 .btn-success {
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
     color: var(--text-on-brand);
 }
 
@@ -267,7 +267,7 @@ main button svg {
     font-size: .92rem;
     font-weight: 600;
     text-decoration: none;
-    background: var(--brand-color-hover);
+    background: var(--brand-fill-hover);
     color: var(--text-on-brand);
     transition: opacity 0.15s;
 }
