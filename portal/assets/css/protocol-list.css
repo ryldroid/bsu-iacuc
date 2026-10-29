@@ -419,7 +419,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8em;
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 .legend-icon {

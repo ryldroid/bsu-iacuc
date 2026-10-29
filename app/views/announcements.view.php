@@ -155,7 +155,7 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
                         <span class="pagination-info" id="paginationInfo"></span>
                         <div class="pagination-buttons" id="paginationButtons"></div>
                         <div class="rows-per-page-wrap">
-                            Rows per page:
+                            <label for="rowsPerPageSelect">Rows per page:</label>
                             <select id="rowsPerPageSelect">
                                 <option value="6">6</option>
                                 <option value="12">12</option>

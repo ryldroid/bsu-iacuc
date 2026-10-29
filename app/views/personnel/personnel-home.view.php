@@ -848,7 +848,7 @@ foreach ($protocols as $p) {
                     <span class="pagination-info" id="paginationInfo"></span>
                     <div class="pagination-buttons" id="paginationButtons"></div>
                     <div class="rows-per-page-wrap">
-                        Rows per page:
+                        <label for="rowsPerPageSelect">Rows per page:</label>
                         <select id="rowsPerPageSelect">
                             <option value="10">10</option>
                             <option value="25">25</option>

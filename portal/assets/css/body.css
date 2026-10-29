@@ -83,7 +83,7 @@
     --backdrop-color: rgba(0, 0, 0, 0.5);
 
     --primary-text: #1a1a1a;
-    --secondary-text: #666666;
+    --secondary-text: #595959;
     --text-on-brand: #f5f5f5;
 
     --divider-color: #e4e4e4;
@@ -141,7 +141,7 @@
     --warning-text: #b45309;
     --brand-surface-faint: rgba(22, 71, 11, 0.03);
 
-    --muted-text: #6b6b6b;
+    --muted-text: #616161;
     --table-row-hover: color-mix(in srgb, var(--brand-text) 8%, var(--card-background));
     --input-border: #8a8a8a;
     --success-background-soft: #eaf7e6;

@@ -86,6 +86,11 @@
         display: inline;
     }
 
+    .submission-header.page-banner:not(.banner) {
+        row-gap: 1.25rem;
+        padding-bottom: calc(1.5rem + 4px);
+    }
+
     .submission-header.page-banner .btn-apply {
         padding: 9px 12px;
     }
