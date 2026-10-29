@@ -297,16 +297,18 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
         ?>
 
         <!-- ===== Tabs: Records / Statistics ===== -->
-        <div class="tab-strip" role="tablist" aria-label="Records sections" data-tab-panels="recordsTabPanels" data-tab-param="tab">
-            <button type="button" role="tab" class="has-guide" id="tab-records" data-tab="records"
-                aria-selected="<?= $activeTab === 'records' ? 'true' : 'false' ?>"
-                aria-controls="panel-records">Records</button>
+        <div class="tab-strip" data-tab-panels="recordsTabPanels" data-tab-param="tab">
+            <div class="tab-list" role="tablist" aria-label="Records sections">
+                <button type="button" role="tab" class="has-guide" id="tab-records" data-tab="records"
+                    aria-selected="<?= $activeTab === 'records' ? 'true' : 'false' ?>"
+                    aria-controls="panel-records">Records</button>
+                <button type="button" role="tab" class="has-guide" id="tab-statistics" data-tab="statistics"
+                    aria-selected="<?= $activeTab === 'statistics' ? 'true' : 'false' ?>"
+                    aria-controls="panel-statistics">Statistics</button>
+            </div>
             <?php $tabGuideId = 'records';
             $tabGuideLabel = 'Records';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
-            <button type="button" role="tab" class="has-guide" id="tab-statistics" data-tab="statistics"
-                aria-selected="<?= $activeTab === 'statistics' ? 'true' : 'false' ?>"
-                aria-controls="panel-statistics">Statistics</button>
             <?php $tabGuideId = 'statistics';
             $tabGuideLabel = 'Statistics';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>

@@ -398,6 +398,10 @@
   stroke: var(--divider-color-subtle);
 }
 
+.records-donut svg .records-donut-seg {
+  background: none;
+}
+
 .records-donut-center {
   position: absolute;
   inset: 0;
@@ -405,6 +409,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 21%;
+  text-align: center;
+  overflow-wrap: anywhere;
   line-height: 1.1;
   pointer-events: none;
 }
@@ -416,7 +423,7 @@
 
 .records-donut-center span {
   font-size: .68em;
-  color: var(--muted-text);
+  color: var(--secondary-text);
 }
 
 .records-legend {
@@ -1643,12 +1650,6 @@
   color: var(--brand-text);
 }
 
-/* Zero is information too, but it shouldn't shout */
-.records-metrics .metric-card.is-zero .metric-card-value {
-  color: var(--muted-text);
-  opacity: .7;
-}
-
 .stat-delta {
   flex-shrink: 0;
   padding: 2px 8px;
@@ -1812,11 +1813,6 @@
   background: var(--divider-color-subtle);
 }
 
-.records-metrics .metric-card.is-zero .metric-card-value {
-  color: var(--muted-text);
-  opacity: .6;
-}
-
 /* Revision charts share the "revised" colour with the card above */
 .records-bar-card[data-tone="revised"] {
   --chart-1: var(--tone);
@@ -1872,14 +1868,14 @@
 }
 
 .records-metrics .metric-card.is-zero .metric-card-value {
-  color: var(--muted-text);
+  color: var(--secondary-text);
 }
 
 .stat-delta {
   padding: 4px 11px;
   font-size: .86em;
   background: color-mix(in srgb, var(--tone) 20%, transparent);
-  color: color-mix(in srgb, var(--tone) 60%, var(--primary-text));
+  color: color-mix(in srgb, var(--tone) 30%, var(--primary-text));
 }
 
 .records-metrics .metric-card.is-zero .stat-delta {

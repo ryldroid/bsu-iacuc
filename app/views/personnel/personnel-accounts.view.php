@@ -46,22 +46,24 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
         <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
-        <div class="tab-strip" role="tablist" aria-label="Administration sections" data-tab-panels="accountsTabPanels" data-tab-param="tab">
-            <button type="button" role="tab" class="has-guide" id="tab-audit-logs" data-tab="audit-logs"
-                aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
-                aria-controls="panel-audit-logs">Audit Logs</button>
+        <div class="tab-strip" data-tab-panels="accountsTabPanels" data-tab-param="tab">
+            <div class="tab-list" role="tablist" aria-label="Administration sections">
+                <button type="button" role="tab" class="has-guide" id="tab-audit-logs" data-tab="audit-logs"
+                    aria-selected="<?= $activeTab === 'audit-logs' ? 'true' : 'false' ?>"
+                    aria-controls="panel-audit-logs">Audit Logs</button>
+                <button type="button" role="tab" class="has-guide" id="tab-accounts" data-tab="accounts"
+                    aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
+                    aria-controls="panel-accounts">Manage Accounts</button>
+                <button type="button" role="tab" class="has-guide" id="tab-backups" data-tab="backups"
+                    aria-selected="<?= $activeTab === 'backups' ? 'true' : 'false' ?>"
+                    aria-controls="panel-backups">Backups</button>
+            </div>
             <?php $tabGuideId = 'audit-logs';
             $tabGuideLabel = 'Audit Logs';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
-            <button type="button" role="tab" class="has-guide" id="tab-accounts" data-tab="accounts"
-                aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
-                aria-controls="panel-accounts">Manage Accounts</button>
             <?php $tabGuideId = 'accounts';
             $tabGuideLabel = 'Manage Accounts';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
-            <button type="button" role="tab" class="has-guide" id="tab-backups" data-tab="backups"
-                aria-selected="<?= $activeTab === 'backups' ? 'true' : 'false' ?>"
-                aria-controls="panel-backups">Backups</button>
             <?php $tabGuideId = 'backups';
             $tabGuideLabel = 'Backups';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>

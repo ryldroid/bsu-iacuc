@@ -42,18 +42,20 @@ $activeTab     = $activeTab     ?? 'announcements';
 
     <?php include dirname(__DIR__) . '/includes/flash.php'; ?>
 
-    <div class="tab-strip" role="tablist" aria-label="Content sections" data-tab-panels="contentTabPanels">
-      <button type="button" role="tab" class="has-guide" id="tab-announcements" data-tab="announcements"
-        data-tab-href="<?= ROOT ?>/personnel/announcements"
-        aria-selected="<?= $activeTab === 'announcements' ? 'true' : 'false' ?>"
-        aria-controls="panel-announcements">Announcements</button>
+    <div class="tab-strip" data-tab-panels="contentTabPanels">
+      <div class="tab-list" role="tablist" aria-label="Content sections">
+        <button type="button" role="tab" class="has-guide" id="tab-announcements" data-tab="announcements"
+          data-tab-href="<?= ROOT ?>/personnel/announcements"
+          aria-selected="<?= $activeTab === 'announcements' ? 'true' : 'false' ?>"
+          aria-controls="panel-announcements">Announcements</button>
+        <button type="button" role="tab" class="has-guide" id="tab-site_content" data-tab="site_content"
+          data-tab-href="<?= ROOT ?>/personnel/site_content"
+          aria-selected="<?= $activeTab === 'site_content' ? 'true' : 'false' ?>"
+          aria-controls="panel-site_content">Homepage</button>
+      </div>
       <?php $tabGuideId = 'site-announcements';
       $tabGuideLabel = 'Announcements';
       include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
-      <button type="button" role="tab" class="has-guide" id="tab-site_content" data-tab="site_content"
-        data-tab-href="<?= ROOT ?>/personnel/site_content"
-        aria-selected="<?= $activeTab === 'site_content' ? 'true' : 'false' ?>"
-        aria-controls="panel-site_content">Homepage</button>
       <?php $tabGuideId = 'site-homepage';
       $tabGuideLabel = 'Homepage';
       include dirname(__DIR__) . '/includes/tab-guide.php'; ?>

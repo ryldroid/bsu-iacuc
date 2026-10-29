@@ -587,9 +587,7 @@ h2 {
 }
 
 .ann-empty-state {
-  color: var(--muted-text);
-  /* font-style: italic; */
-  opacity: 0.85;
+  color: var(--secondary-text);
 }
 
 .ann-image-preview-wrap {
