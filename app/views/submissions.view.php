@@ -325,7 +325,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <?php if (!empty($protocol['hard_copy_released_at'])): ?>
                                             <strong>Embossed hard copy picked up</strong> on <?= date(DATE_FORMAT, strtotime($protocol['hard_copy_released_at'])) ?>.
                                         <?php else: ?>
-                                            <strong>Your embossed hard copy is ready for pickup.</strong> The downloadable clearance is for temporary reference only. Please visit the BSU-CCARD Office to claim your embossed hard copy during office hours, Monday to Friday, 8:00 AM to 5:00 PM. For the office location, please visit our <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page.
+                                            <strong>Your embossed hard copy is ready for pickup.</strong> The downloadable clearance is for temporary reference only. Please visit the BSU-CCARD Office to claim your embossed hard copy during office hours, Monday to Friday, 8:00 AM to 5:00 PM. Office staff will record the pickup once you have received it. For the office location, please visit our <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page.
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
@@ -390,16 +390,6 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                             <use href="#upload-icon" />
                                         </svg>
                                         <?= $paymentStatus === 'rejected' ? 'View rejection and resubmit' : 'Pay Clearance Fee' ?>
-                                    </button>
-                                <?php endif; ?>
-
-                                <?php if ($isApproved && empty($protocol['hard_copy_released_at'])): ?>
-                                    <button class="button" type="button"
-                                        onclick="claimHardCopy(<?= $protocolIdInt ?>, this)">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                                            <use href="#check-icon" />
-                                        </svg>
-                                        Mark Hard Copy as Claimed
                                     </button>
                                 <?php endif; ?>
 
@@ -534,44 +524,10 @@ include 'includes/guide.php';
 <?php include 'includes/payment-modal.php'; ?>
 <script src="<?= asset_js('payment-modal.js') ?>"></script>
 
-<!-- ===== Page config and hard copy claim ===== -->
+<!-- ===== Page config ===== -->
 <script>
     const CSRF_TOKEN = <?= json_encode($csrf ?? '') ?>;
     const MUST_PAY_IN_PERSON = <?= $mustPayInPerson ? 'true' : 'false' ?>;
-    const HARD_COPY_CLAIM_API = <?= json_encode(ROOT . '/apply/hard_copy_claim') ?>;
-
-    // ===== Hard copy claim =====
-    function claimHardCopy(protocolId, btn) {
-        confirmAction('Mark your embossed hard copy as claimed? Only do this once you have received it from the BSU-CCARD Office.', {
-            okText: 'Mark as Claimed',
-            cancelText: 'Cancel'
-        }).then(async ok => {
-            if (!ok) return;
-            setButtonBusy(btn, true, 'Saving...');
-            try {
-                const res = await fetch(HARD_COPY_CLAIM_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': CSRF_TOKEN
-                    },
-                    body: JSON.stringify({
-                        protocol_id: protocolId
-                    })
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    window.location.reload();
-                    return;
-                }
-                setButtonBusy(btn, false);
-                showToast(data.error ?? 'Could not record the hard copy pickup.', 'error');
-            } catch (err) {
-                setButtonBusy(btn, false);
-                showToast(navigator.onLine ? 'Network error. Please try again.' : 'You are offline. Please try again when reconnected.', 'error');
-            }
-        });
-    }
 
     // ===== Payment rejected modal =====
     const paymentRejectedModal = document.getElementById('paymentRejectedModalBackdrop');

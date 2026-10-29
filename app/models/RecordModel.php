@@ -815,7 +815,7 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
-  public function setArNumberByProtocolId(int $protocolId, string $arNumber): bool
+  public function setArNumberByProtocolId(int $protocolId, ?string $arNumber): bool
   {
     $stmt = $this->connection->prepare("UPDATE `records` SET ar_number = ? WHERE protocol_id = ?");
     if (! $stmt) return false;

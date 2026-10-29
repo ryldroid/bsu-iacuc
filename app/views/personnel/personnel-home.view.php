@@ -663,7 +663,7 @@ foreach ($protocols as $p) {
                                                 'menu' => true
                                             ],
                                             [
-                                                'label' => 'Returned by DA-RFO',
+                                                'label' => 'Mark as returned by DA-RFO-CAR or BAI',
                                                 'action' => 'revert-endorsed-to-review',
                                                 'icon' => 'undo',
                                                 'menu' => true
@@ -694,7 +694,7 @@ foreach ($protocols as $p) {
                                         ];
                                         if (!$hasHardCopyReleased) {
                                             $actions[] = [
-                                                'label' => 'Undo Endorsed',
+                                                'label' => 'Undo Approved',
                                                 'action' => 'revert-approved',
                                                 'icon' => 'undo',
                                                 'menu' => true

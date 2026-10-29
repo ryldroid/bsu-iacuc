@@ -20,11 +20,15 @@ const PROTOCOL_MENU_ACTIONS = {
     openHistoryModal(id, title);
   },
   rename: (id, title) => openRenameModal(id, title),
-  amendments: (id, title) => openAmendmentsModal(id, title),
+  amendments: (id, title, item, menu) =>
+    openAmendmentsModal(id, title, {
+      redirectUrl: menu.dataset.amendRedirect || null,
+    }),
   "submit-amendment": (id, title, item, menu) =>
     openAmendmentModal(id, title, {
       redirectUrl: menu.dataset.amendRedirect || null,
     }),
+  "cancel-deletion": (id) => cancelDeletionRequest(id),
   delete: (id, title, item, menu) =>
     openDeleteModal(id, title, {
       mode: menu.dataset.deleteMode,

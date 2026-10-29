@@ -154,7 +154,8 @@ class Access
       'payment_proof' => 'researcher',
       'amendment_upload' => 'researcher',
       'request_deletion' => 'researcher',
-      'hard_copy_claim' => 'researcher',
+      'cancel_deletion' => 'researcher',
+      'withdraw_amendment' => 'researcher',
       // signed in; each also checks protocol ownership / personnel inside
       'versions' => 'auth',
       'allversions' => 'auth',
@@ -180,7 +181,6 @@ class Access
       'signed_scan_upload' => 'staff',
       'approve_deletion' => 'staff',
       'reject_deletion' => 'staff',
-      'clearance_upload' => 'staff',
       'clearance_pool_upload' => 'staff',
       'clearance_pool' => 'staff',
       'clearance_pool_file' => 'staff',

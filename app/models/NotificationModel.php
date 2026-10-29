@@ -34,6 +34,8 @@ class NotificationModel extends Model
     'clearance_pool_uploaded'        => ['icon' => 'clearance-icon', 'variant' => 'teal'],
     'protocol_deletion_requested'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
+    'protocol_deletion_cancelled'    => ['icon' => 'undo-icon', 'variant' => 'info'],
+    'protocol_amendment_withdrawn'   => ['icon' => 'undo-icon', 'variant' => 'info'],
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'protocol_reverted'              => ['icon' => 'undo-icon', 'variant' => 'warning'],

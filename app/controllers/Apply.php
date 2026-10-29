@@ -207,6 +207,30 @@ class Apply extends Controller
         }
     }
 
+    private function notifyDeletionCancelled(array $protocol, array $actor): void
+    {
+        Notifier::sendToRole(
+            'staff',
+            'protocol_deletion_cancelled',
+            'Deletion Request Cancelled',
+            "{$actor['name']} cancelled the deletion request for " . Notifier::boldTitle($protocol['research_title'] ?? 'Untitled Protocol') . '. No action needed.',
+            'apply/viewer/' . $protocol['protocol_id']
+        );
+    }
+
+    private function notifyAmendmentWithdrawn(array $protocol, array $actor, int $versionNumber): void
+    {
+        foreach (['staff', 'reviewer'] as $personnelRole) {
+            Notifier::sendToRole(
+                $personnelRole,
+                'protocol_amendment_withdrawn',
+                'Amendment Withdrawn',
+                "{$actor['name']} withdrew amendment $versionNumber for " . Notifier::boldTitle($protocol['research_title'] ?? 'Untitled Protocol') . '. No action needed.',
+                'apply/viewer/' . $protocol['protocol_id']
+            );
+        }
+    }
+
     private function notifyDeletionRequested(array $protocol, string $reason, array $actor): void
     {
         $roleLabel = $this->roleLabel($actor['role']);
@@ -613,6 +637,43 @@ class Apply extends Controller
         return $onProtocols || $onRecords;
     }
 
+    // Reverses a clearance confirmation: drops the clearance version, returns the screenshot to the
+    // pool (file moved back so it exists again) and clears the AR number so it can be reused.
+    private function detachClearance(int $protocolId): void
+    {
+        $version = $this->protocolModel->getLatestVersion($protocolId, 'clearance');
+        $item    = $version ? $this->protocolModel->getClearancePoolItemByVersion((int) $version['id']) : null;
+
+        if ($item) {
+            $poolDir = $this->clearancePoolDir();
+            if (!is_dir($poolDir)) {
+                mkdir($poolDir, 0750, true);
+            }
+            $src  = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $version['file_path'];
+            $ext  = strtolower(pathinfo($src, PATHINFO_EXTENSION));
+            $dest = $poolDir . bin2hex(random_bytes(8)) . ($ext !== '' ? '.' . $ext : '');
+
+            if (is_file($src) && @rename($src, $dest)) {
+                $this->protocolModel->setClearancePoolFilePath((int) $item['id'], $dest);
+            } elseif (!is_file((string) $item['file_path'])) {
+                error_log("Clearance pool item #{$item['id']}: file missing after detach (protocol #$protocolId)");
+            }
+            $this->protocolModel->unassignClearancePoolItem((int) $item['id']);
+        } elseif ($version) {
+            // Legacy clearance with no pool row: nothing to return, just remove the file
+            @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $version['file_path']);
+        }
+
+        if ($version) {
+            $this->protocolModel->deleteVersion((int) $version['id']);
+        }
+
+        $this->protocolModel->setArNumber($protocolId, null);
+        if ($this->recordModel->getByProtocolId($protocolId)) {
+            $this->recordModel->setArNumberByProtocolId($protocolId, null);
+        }
+    }
+
     private function clearancePoolDir(): string
     {
         return dirname(__DIR__, 2) . '/storage/uploads/clearance_pool/';
@@ -920,6 +981,7 @@ class Apply extends Controller
         $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
+        $this->verifyCsrfHeader();
 
         $actor      = $this->actor();
 
@@ -1179,6 +1241,7 @@ class Apply extends Controller
         $this->requireResearcher();
         header('Content-Type: application/json');
         $this->requirePostMethod();
+        $this->verifyCsrfHeader();
 
         $actor = $this->actor();
         $key   = $_POST['key'] ?? '';
@@ -1376,6 +1439,7 @@ class Apply extends Controller
         $this->requireLogin();
         header('Content-Type: application/json');
         $this->requirePostMethod();
+        $this->verifyCsrfHeader();
 
         $protocolId = (int) ($_POST['protocol_id'] ?? 0);
         if ($protocolId < 1) {
@@ -1400,12 +1464,12 @@ class Apply extends Controller
         $docReason = null;
         $docUpload = ($_POST['use_staged'] ?? '') === '1'
             ? $this->takeStagedProtocol($this->protocolDir($protocolId), $docReason)
-            : $this->saveProtocolUpload('protocol_file', $this->protocolDir($protocolId), false, $docReason);
+            : $this->saveProtocolUpload('protocol_file', $this->protocolDir($protocolId), true, $docReason);
         if ($docUpload === false) {
             $this->jsonError(422, $docReason ?? 'Upload failed. Please attach a PDF, DOC, or DOCX file (max 10 MB).');
         }
 
-        if ($docUpload !== null && !$this->insertUploadedProtocolVersion($protocol, $protocolId, $docUpload, $actor['id'])) {
+        if (!$this->insertUploadedProtocolVersion($protocol, $protocolId, $docUpload, $actor['id'])) {
             $this->jsonError(500, 'Could not record new version.');
         }
 
@@ -1917,6 +1981,8 @@ class Apply extends Controller
                 $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::PENDING_STATUS, RecordModel::DEFAULT_STATUS);
             } elseif ($newStatus === 'Endorsed' && $isRevert) {
                 $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::DEFAULT_STATUS, RecordModel::PENDING_STATUS);
+                // Undoing approval means the clearance was wrong: free the slot so a new one can be attached
+                $this->detachClearance($protocolId);
             }
 
             // ===== SNAPSHOT RECORD ON REVIEWED =====
@@ -2163,53 +2229,6 @@ class Apply extends Controller
         exit;
     }
 
-    // ===== HARD COPY CLAIMED BY RESEARCHER  (POST /apply/hard_copy_claim) =====
-
-    public function hard_copy_claim(): void
-    {
-        $this->requireLogin();
-        header('Content-Type: application/json');
-
-        $actor         = $this->actor();
-        $actor['name'] = $this->actorDisplayName($actor);
-        if ($actor['role'] !== 'researcher') {
-            $this->jsonError(403, 'This action is for researchers only.');
-        }
-
-        $this->requirePostMethod();
-        $this->verifyCsrfHeader();
-
-        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
-        $protocolId = (int) ($body['protocol_id'] ?? 0);
-        if ($protocolId < 1) {
-            $this->jsonError(400, 'Missing protocol_id.');
-        }
-
-        $protocol = $this->protocolModel->getById($protocolId);
-
-        if (!$protocol) {
-            $this->jsonError(404, 'Protocol not found.');
-        }
-        if (!$this->isActor($protocol['user_id'])) {
-            $this->jsonError(403, 'Access denied.');
-        }
-        if (strtolower($protocol['status']) !== 'approved') {
-            $this->jsonError(422, 'The hard copy can only be claimed for approved protocols.');
-        }
-        if (!empty($protocol['hard_copy_released_at'])) {
-            $this->jsonError(422, 'The hard copy pickup was already recorded.');
-        }
-
-        $ok = $this->protocolModel->setHardCopyReleased($protocolId, $actor['id']);
-        if ($ok) {
-            $this->protocolModel->logAudit('hard_copy_claimed', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Researcher marked the embossed hard copy as claimed');
-            $_SESSION['flash_success'] = 'Hard copy marked as claimed.';
-        }
-
-        echo json_encode(['ok' => $ok]);
-        exit;
-    }
-
     // ===== REJECT PAYMENT PROOF  (POST /apply/reject_payment) =====
 
     public function reject_payment(): void
@@ -2370,6 +2389,58 @@ class Apply extends Controller
         exit;
     }
 
+    // ===== WITHDRAW AMENDMENT  (POST /apply/withdraw_amendment): owner researcher only =====
+
+    public function withdraw_amendment(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Researcher only.');
+        }
+
+        $body      = json_decode(file_get_contents('php://input'), true) ?? [];
+        $versionId = (int) ($body['version_id'] ?? 0);
+
+        if ($versionId < 1) {
+            $this->jsonError(400, 'Missing amendment ID.');
+        }
+
+        $version = $this->protocolModel->getVersionById($versionId);
+
+        if (!$version || $version['file_type'] !== 'amendment') {
+            $this->jsonError(404, 'Amendment not found.');
+        }
+        if (!$this->isActor($version['owner_id'])) {
+            $this->jsonError(403, 'Access denied.');
+        }
+
+        $protocolId = (int) $version['protocol_id'];
+        $protocol   = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+
+        $ok = $this->protocolModel->deleteVersion($versionId);
+
+        if ($ok) {
+            @unlink($this->protocolDir($protocolId) . basename($version['file_path']));
+            $this->protocolModel->logAudit('amendment_withdrawn', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Withdrew amendment ' . (int) $version['version_number']);
+            $this->notifyAmendmentWithdrawn($protocol, $actor, (int) $version['version_number']);
+            $_SESSION['flash_success'] = 'Amendment withdrawn.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
     // ===== DUPLICATE TITLE GUARD (shared by submit and rename) =====
 
     private function rejectDuplicateTitle(string $title, ?int $excludeId = null): void
@@ -2493,6 +2564,53 @@ class Apply extends Controller
             $this->protocolModel->logAudit('protocol_deletion_requested', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Requested deletion. Reason: $reason");
             $this->notifyDeletionRequested($protocol, $reason, $actor);
             $_SESSION['flash_success'] = 'Deletion request sent to administrative staff.';
+        }
+
+        echo json_encode(['ok' => $ok]);
+        exit;
+    }
+
+    // ===== CANCEL DELETION REQUEST  (POST /apply/cancel_deletion): owner researcher only =====
+
+    public function cancel_deletion(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Researcher only.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+
+        $protocol = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (!$this->isActor($protocol['user_id'])) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (empty($protocol['deletion_requested_at'])) {
+            $this->jsonError(422, 'There is no pending deletion request for this protocol.');
+        }
+
+        $ok = $this->protocolModel->cancelDeletionRequest($protocolId);
+
+        if ($ok) {
+            $this->protocolModel->logAudit('protocol_deletion_cancelled', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Cancelled the deletion request');
+            $this->notifyDeletionCancelled($protocol, $actor);
+            $_SESSION['flash_success'] = 'Deletion request cancelled.';
         }
 
         echo json_encode(['ok' => $ok]);
@@ -2636,54 +2754,6 @@ class Apply extends Controller
         }
 
         echo json_encode(['ok' => $ok]);
-        exit;
-    }
-
-    // ===== CLEARANCE UPLOAD  (POST /apply/clearance_upload) =====
-
-    public function clearance_upload(): void
-    {
-        $this->requireLogin();
-        header('Content-Type: application/json');
-
-        $actor = $this->actor();
-        if ($actor['role'] !== 'staff') {
-            $this->jsonError(403, 'Administrative staff only.');
-        }
-
-        $this->requirePostMethod();
-        $this->verifyCsrfHeader();
-
-        $protocolId = (int) ($_POST['protocol_id'] ?? 0);
-        if ($protocolId < 1) {
-            $this->jsonError(400, 'Missing protocol_id.');
-        }
-
-        $protocol = $this->protocolModel->getById($protocolId);
-
-        if (!$protocol) {
-            $this->jsonError(404, 'Protocol not found.');
-        }
-        if (strtolower($protocol['status']) !== 'endorsed') {
-            $this->jsonError(422, 'Only endorsed protocols can receive a clearance.');
-        }
-
-        $docReason = null;
-        $docUpload = $this->saveUpload('clearance_file', $this->protocolDir($protocolId), ['pdf'], required: true, reason: $docReason);
-        if ($docUpload === false) {
-            $this->jsonError(422, $docReason ?? 'Upload failed. Only PDF files are accepted (max 10 MB).');
-        }
-        [$docPath, $docOriginalName] = $docUpload;
-
-        $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $docPath), $docOriginalName, $actor['id'], 'clearance');
-        if (!$versionId) {
-            $this->jsonError(500, 'Could not record the clearance file. Please try again.');
-        }
-
-        $this->protocolModel->logAudit('clearance_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Clearance uploaded');
-        $_SESSION['flash_success'] = 'Clearance uploaded. You can now mark this protocol as Approved.';
-
-        echo json_encode(['success' => true]);
         exit;
     }
 
@@ -3076,9 +3146,15 @@ class Apply extends Controller
 
             $versionId = $this->protocolModel->insertVersion($protocolId, $this->relPath($protocolId, $dest), $item['original_name'], $actor['id'], 'clearance');
             if (!$versionId || !$this->protocolModel->confirmClearancePoolItem((int) $item['id'], $versionId)) {
+                // Put the file back so the staged item still points at something real
+                @rename($dest, $item['file_path']);
+                if ($versionId) {
+                    $this->protocolModel->deleteVersion((int) $versionId);
+                }
                 $failures[] = $item['protocol_title'] . ': could not record the clearance file.';
                 continue;
             }
+            $this->protocolModel->setClearancePoolFilePath((int) $item['id'], $dest);
 
             $this->protocolModel->setArNumber($protocolId, $item['ar_number']);
             if ($record) {
@@ -3135,11 +3211,8 @@ class Apply extends Controller
             $this->notifyStatusChange($protocol, 'Endorsed');
         }
 
-        if (!empty($item['version_id'])) {
-            $this->protocolModel->deleteVersion((int) $item['version_id']);
-        }
+        $this->detachClearance($protocolId);
 
-        $this->protocolModel->unassignClearancePoolItem($poolId);
         $this->protocolModel->logAudit('clearance_unassigned', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Clearance pool item #$poolId detached; reverted to Endorsed");
         $_SESSION['flash_success'] = 'Clearance detached and returned to the pool.';
 
@@ -3365,6 +3438,7 @@ class Apply extends Controller
             'protocol_id' => $protocolId,
             'title'       => $protocol['research_title'],
             'amendments'  => $this->addFileUrls($this->protocolModel->getVersions($protocolId, 'amendment')),
+            'can_withdraw' => $actor['role'] === 'researcher' && $this->isActor($protocol['user_id']),
         ]);
         exit;
     }

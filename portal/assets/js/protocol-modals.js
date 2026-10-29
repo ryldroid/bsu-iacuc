@@ -133,7 +133,7 @@ const DELETE_MODES = {
   },
   revert: {
     api: "/apply/status",
-    label: "Returned by DA-RFO",
+    label: "Mark as returned by DA-RFO-CAR or BAI",
     intro:
       "The researcher and reviewers will be notified. Add why Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI returned it.",
     button: "Revert",
@@ -232,6 +232,25 @@ async function submitDelete() {
   setButtonBusy(submitBtn, false);
 }
 
+// ===== Cancel a pending deletion request (researcher) =====
+async function cancelDeletionRequest(protocolId, opts) {
+  const ok = await confirmAction(
+    "Cancel your deletion request? The protocol stays active.",
+    { okText: "Cancel Request", cancelText: "Keep Request" },
+  );
+  if (!ok) return;
+
+  try {
+    const data = await protocolModalPost("/apply/cancel_deletion", {
+      protocol_id: protocolId,
+    });
+    if (data.ok) return finishProtocolAction(opts);
+    showToast(data.error ?? "Could not cancel the deletion request.", "error");
+  } catch {
+    showToast("Network error. Please try again.", "error");
+  }
+}
+
 // ===== Amendments list =====
 // Same timeline look as the history modal. Opening a file closes this
 // modal and brings it back when the file popup is dismissed.
@@ -239,7 +258,7 @@ const amendmentsBackdrop = protocolModalBind("amendmentsModalBackdrop", () =>
   closeAmendmentsModal(),
 );
 
-async function openAmendmentsModal(protocolId, title) {
+async function openAmendmentsModal(protocolId, title, opts) {
   const list = document.getElementById("amendmentsList");
   const count = document.getElementById("amendmentsCount");
   document.getElementById("amendmentsModalTitle").textContent = title;
@@ -288,6 +307,14 @@ async function openAmendmentsModal(protocolId, title) {
               <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
               Open
             </button>
+            ${
+              data.can_withdraw
+                ? `<button class="button button-compact" type="button" data-withdraw="${i}" aria-label="Withdraw Amendment ${Number(a.version_number)}">
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#undo-icon" /></svg>
+              Withdraw
+            </button>`
+                : ""
+            }
           </div>`;
       })
       .join("");
@@ -301,9 +328,32 @@ async function openAmendmentsModal(protocolId, title) {
         );
       });
     });
+    list.querySelectorAll("button[data-withdraw]").forEach((btn) => {
+      btn.addEventListener("click", () =>
+        withdrawAmendment(amendments[btn.dataset.withdraw], opts),
+      );
+    });
   } catch {
     list.innerHTML =
       '<p class="helper">Could not load the amendments. Please try again.</p>';
+  }
+}
+
+async function withdrawAmendment(amendment, opts) {
+  const ok = await confirmAction(
+    `Withdraw Amendment ${amendment.version_number}? Its file and note will be removed and CCARD will be notified.`,
+    { okText: "Withdraw", cancelText: "Keep", danger: true },
+  );
+  if (!ok) return;
+
+  try {
+    const data = await protocolModalPost("/apply/withdraw_amendment", {
+      version_id: amendment.id,
+    });
+    if (data.ok) return finishProtocolAction(opts);
+    showToast(data.error ?? "Could not withdraw the amendment.", "error");
+  } catch {
+    showToast("Network error. Please try again.", "error");
   }
 }
 
@@ -457,7 +507,7 @@ async function submitAmendment() {
   }
 
   const ok = await confirmAction(
-    "Submit this amendment? CCARD will be notified. It will not be reviewed again.",
+    "Submit this amendment? CCARD will be notified.",
     { okText: "Submit", cancelText: "Cancel" },
   );
   if (!ok) return;

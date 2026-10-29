@@ -27,8 +27,9 @@ foreach ($menu['extraItems'] ?? [] as $extra) {
 if ($menuFlags['canDelete']) {
   $menuItems[] = ['action' => 'delete', 'label' => 'Delete', 'icon' => 'trash-icon', 'danger' => true];
 } elseif ($menuFlags['canRequestDeletion']) {
-  $requested   = !empty($menu['deletionRequested']);
-  $menuItems[] = ['action' => 'delete', 'label' => $requested ? 'Deletion Requested' : 'Request Deletion', 'icon' => 'trash-icon', 'danger' => true, 'disabled' => $requested];
+  $menuItems[] = !empty($menu['deletionRequested'])
+    ? ['action' => 'cancel-deletion', 'label' => 'Cancel Deletion Request', 'icon' => 'undo-icon']
+    : ['action' => 'delete', 'label' => 'Request Deletion', 'icon' => 'trash-icon', 'danger' => true];
 }
 
 ?>
@@ -66,8 +67,7 @@ if ($menuFlags['canDelete']) {
       <?php else: ?>
         <button type="button" class="<?= $itemClass ?>" role="menuitem"
           data-menu-action="<?= $item['action'] ?>"
-          <?= isset($item['fileUrl']) ? 'data-file-url="' . htmlspecialchars($item['fileUrl'], ENT_QUOTES, 'UTF-8') . '"' : '' ?>
-          <?= !empty($item['disabled']) ? 'disabled' : '' ?>>
+          <?= isset($item['fileUrl']) ? 'data-file-url="' . htmlspecialchars($item['fileUrl'], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#<?= $item['icon'] ?>" />
           </svg>

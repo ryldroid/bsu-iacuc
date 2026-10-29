@@ -227,10 +227,12 @@ bulkDownloadBtn?.addEventListener("click", () => {
 
 bulkEndorseBtn?.addEventListener("click", () => {
   const protocolIds = selectedProtocolIds(
-    ".protocol-select-checkbox[data-can-endorse]:checked",
+    ".protocol:not(.protocol-row-hidden) .protocol-select-checkbox[data-can-endorse]:checked",
   );
   const skippedCount =
-    selectedProtocolIds(".protocol-select-checkbox:checked").length -
+    selectedProtocolIds(
+      ".protocol:not(.protocol-row-hidden) .protocol-select-checkbox:checked",
+    ).length -
     protocolIds.length;
 
   if (protocolIds.length === 0) return;
@@ -294,6 +296,8 @@ async function submitBulkEndorse(protocolIds, btn) {
   }
 
   if (okCount > 0) {
+    // Give the error toast time to be read before the reload wipes it
+    if (failedCount > 0) await new Promise((r) => setTimeout(r, 3500));
     window.location.reload();
   }
 }

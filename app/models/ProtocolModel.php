@@ -261,6 +261,23 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
+    public function cancelDeletionRequest(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols`
+             SET deletion_requested_at = NULL, deletion_requested_by = NULL,
+                 deletion_requested_by_name = NULL, deletion_requested_by_role = NULL,
+                 deletion_request_reason = NULL
+             WHERE id = ?"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        return $stmt->execute();
+    }
+
     public function rejectDeletionRequest(int $protocolId, string $reason): bool
     {
         $reason = mb_substr(trim($reason), 0, 1000);
@@ -825,7 +842,7 @@ class ProtocolModel extends Model
         return (bool) $stmt->get_result()->fetch_row();
     }
 
-    public function setArNumber(int $protocolId, string $arNumber): bool
+    public function setArNumber(int $protocolId, ?string $arNumber): bool
     {
         $stmt = $this->connection->prepare("UPDATE `protocols` SET ar_number = ? WHERE id = ?");
         if (! $stmt) {
@@ -1222,7 +1239,8 @@ class ProtocolModel extends Model
     public function getClearancePoolItemForProtocol(int $protocolId): ?array
     {
         $stmt = $this->connection->prepare(
-            "SELECT * FROM `clearance_pool` WHERE protocol_id = ? LIMIT 1"
+            "SELECT * FROM `clearance_pool` WHERE protocol_id = ?
+             ORDER BY (version_id IS NOT NULL) DESC, id DESC LIMIT 1"
         );
         if (! $stmt) {
             return null;
@@ -1231,6 +1249,32 @@ class ProtocolModel extends Model
         $stmt->bind_param('i', $protocolId);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    // The pool row that produced a given clearance version (exact match, never a guess by protocol)
+    public function getClearancePoolItemByVersion(int $versionId): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT * FROM `clearance_pool` WHERE version_id = ? LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $versionId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+
+    public function setClearancePoolFilePath(int $poolId, string $filePath): bool
+    {
+        $stmt = $this->connection->prepare("UPDATE `clearance_pool` SET file_path = ? WHERE id = ?");
+        if (! $stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('si', $filePath, $poolId);
+        return $stmt->execute();
     }
 
     public function stageClearancePoolItem(int $poolId, int $protocolId, int $assignedBy): bool
