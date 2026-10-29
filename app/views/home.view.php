@@ -49,7 +49,7 @@ include "includes/scroll-top.php";
                             </p>
                         <?php endforeach; ?>
                         <div id="apply-actions">
-                            <a href="<?= $applyLink ?>" class="button btn-apply" <?= $disabledLink ?>>Click to Apply for IACUC Protocol Review</a>
+                            <a href="<?= $applyLink ?>" class="button btn-apply" <?= $disabledLink ?>>Apply for IACUC Protocol Review Now</a>
                         </div>
                     </div>
                 </article>
@@ -77,7 +77,7 @@ include "includes/scroll-top.php";
                                         </span>
                                     </summary>
                                     <div class="faq-answer">
-                                        <?= nl2br(htmlspecialchars($faqItem['answer'], ENT_QUOTES)) ?>
+                                        <?= nl2br(render_text_with_links($faqItem['answer'])) ?>
                                     </div>
                                 </details>
                             <?php endforeach; ?>
@@ -405,15 +405,15 @@ include "includes/scroll-top.php";
 
                 if (!inProgress) {
                     container.innerHTML =
-                        `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
+                        `<a href="${applyUrl}" class="button btn-apply">Apply for IACUC Protocol Review Now</a>`;
                     return;
                 }
 
-                container.innerHTML = `<a href="${applyUrl}" class="button btn-apply">Continue Application →</a>`;
+                container.innerHTML = `<a href="${applyUrl}" class="button btn-apply">Continue IACUC Protocol Review Application →</a>`;
             })
             .catch(() => {
                 container.innerHTML =
-                    `<a href="${applyUrl}" class="button btn-apply">Click to Apply for IACUC Protocol Review</a>`;
+                    `<a href="${applyUrl}" class="button btn-apply">Apply for IACUC Protocol Review Now</a>`;
             });
     })();
 

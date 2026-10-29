@@ -34,6 +34,8 @@ class Seeder
     }
 
     // ===== ONE-TIME UPDATE: the about paragraphs (and the legal paragraph) become one editable text =====
+    public const CHED_MEMO_CLAUSE = ', known as the Rules and Regulations on the Conduct of Scientific Procedures Using Animals, which the Commission on Higher Education (CHED) has reinforced through its [memorandum dated April 23, 2015](https://www.facebook.com/bai.gov.ph/posts/commission-on-higher-education-ched-has-issued-memoranda-as-part-of-its-complian/400983116759988/)';
+
     public function migrateAboutText(): void
     {
         $c        = $this->connection;
@@ -50,7 +52,7 @@ class Seeder
             ? (json_decode($settings['about_paragraphs'], true) ?: [])
             : array_values(array_filter([$settings['about_paragraph_1'] ?? '', $settings['about_paragraph_2'] ?? ''], 'strlen'));
         if (! isset($settings['legal_paragraph_migrated'])) {
-            $paragraphs[] = 'The IACUC reviews and endorses animal research protocols in accordance with [Republic Act No. 8485](https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html) (Animal Welfare Act of 1998), as amended by [Republic Act No. 10631](https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html), and [Department of Agriculture Administrative Order No. 40, Series of 1999](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491) (AO 40). Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.';
+            $paragraphs[] = 'The IACUC reviews and endorses animal research protocols in accordance with [Republic Act No. 8485](https://www.lawphil.net/statutes/repacts/ra1998/ra_8485_1998.html) (Animal Welfare Act of 1998), as amended by [Republic Act No. 10631](https://www.lawphil.net/statutes/repacts/ra2013/ra_10631_2013.html), and the requirements of [Department of Agriculture Administrative Order No. 40, Series of 1998](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/39491) (AO 40)' . self::CHED_MEMO_CLAUSE . '. Researchers conducting scientific procedures involving animals are required to obtain the necessary IACUC approval and ARC before commencing their studies.';
         }
 
         $save = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES ('about_text', ?)");
@@ -265,18 +267,19 @@ class Seeder
 
         $faqs = [
             'Who may avail?' => 'Students and researchers from BSU and other institutions within the Cordillera Administrative Region.',
-            'What are the requirements?' => 'Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.',
-            'When working in groups, should each member apply for an IACUC protocol review?' => 'No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.',
-            'What kind of IACUC training is required?' => 'Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+            'What are the requirements?' => 'Researchers (formally called Principal Investigators) must have prior IACUC training in order to apply for protocol review.',
+            'When working in groups, should each member apply for an IACUC protocol review?' => 'No, only the Principal Investigator (PI) may submit the IACUC protocol for the group. Multiple submissions of the same protocol will be rejected.',
+            'What kind of IACUC training is required?' => 'Everyone working with animals must receive lecture and laboratory animal handling training. The training does not have to be from CCARD. However, please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
             'What type of experiments need IACUC review?' => 'IACUC review is needed for all work involving direct interaction with live animals only.',
-            'Do I need an IACUC protocol to use dead animals or animal parts?' => 'If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).',
+            'Do I need an IACUC protocol to use dead animals or animal parts?' => 'If you are obtaining animals or tissue that were already dead (e.g., rat livers from another laboratory, steaks from the supermarket, and tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).',
             'How long does it take to get an IACUC review?' => 'Protocols are reviewed as soon as protocols are submitted. However, it may take 1-8 weeks for IACUC review and the issuance of the animal research clearance by BAI.',
             'Can the investigator begin animal work before receiving IACUC review?' => 'No. The IACUC review shall be part of the thesis proposal when using live animals.',
             'How much do I pay for an IACUC Protocol Review?' => "There is no fee for CCARD's IACUC review. However, BAI requires a payment of Php 100.00 for the animal research clearance, to be paid upon submission of the reviewed IACUC protocol.",
-            'What if I amend my IACUC protocol to add/change procedures / personnel / animals?' => 'All revision must be communicated with the IACUC through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
+            'What if I amend my IACUC protocol to add/change procedures / personnel / animals?' => 'All revisions MUST be communicated with CCARD through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
             'Will my account become inactive after my clearance expires?' => 'Yes. Your account is marked inactive once your clearance expires and you have no pending protocols. You may reactivate it at any time by logging in to the portal.',
             'What if my training certificate is rejected?' => 'Your review is on hold until you resubmit it. Press Resubmit Certificate on My Protocols or on your protocol and upload a new certificate.',
-            'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'In BSU, you may visit the CCARD office. You may also refer to the contact page for additional contact information.',
+            'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'Feel free to reach and inquire with us. You may contact ccard@bsu.edu.ph or refer to the contact page for more information.',
+            'Who do I contact if I found an issue or have comments or suggestions about the portal?' => 'You may contact the developers at [meryl.arnobit@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=meryl.arnobit%40gmail.com) or [malipe.sheldon01@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=malipe.sheldon01%40gmail.com).',
         ];
 
         $stmt      = $c->prepare("INSERT INTO `faqs` (sort_order, question, answer) VALUES (?, ?, ?)");

@@ -284,6 +284,10 @@
         flex: 0 0 auto;
         margin-left: 0;
     }
+
+    .dashboard-filter-row .inbox-search-wrap {
+        order: -1;
+    }
 }
 
 @media (max-width: 768px) {

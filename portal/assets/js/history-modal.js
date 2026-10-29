@@ -106,7 +106,9 @@ function buildVersionRows(data) {
           ? "alert-triangle-icon"
           : "upload-icon";
       const badge =
-        index === 0 ? ' <span class="history-latest-badge">Current</span>' : "";
+        index === 0
+          ? ' <span class="status-dot status-dot--success">Current</span>'
+          : "";
 
       const detail = titleNote
         ? `<span class="payment-event-detail">${escapeHtml(titleNote)}</span>`
@@ -228,9 +230,9 @@ function buildTitleHistorySection(titleHistory) {
       return historyEvent(
         "info",
         "edit-icon",
-        h.changed_by_name ? "Title changed" : "Initial title",
+        escapeHtml(h.title),
         `${who} &middot; ${escapeHtml(formatDateTime(h.changed_at))}`,
-        `<span class="payment-event-detail">${escapeHtml(h.title)}</span>`,
+        "",
       );
     })
     .join("");

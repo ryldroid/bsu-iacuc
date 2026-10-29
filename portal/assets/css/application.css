@@ -24,6 +24,10 @@ body {
 }
 
 /* ===== Progress stepper ===== */
+.btn-back {
+    margin-bottom: 1.5rem;
+}
+
 .stepper {
     display: flex;
     align-items: center;
@@ -86,6 +90,7 @@ body {
         height: 11px;
     }
 
+    .btn-back,
     .stepper {
         margin-bottom: 1rem;
     }
@@ -387,7 +392,7 @@ main button svg {
     align-items: center;
     gap: 4px;
     padding: 3px 10px;
-    border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+    /* border: 1px solid color-mix(in srgb, currentColor 45%, transparent); */
     border-radius: 4px;
     font-size: .8rem;
     font-weight: 600;
@@ -596,7 +601,7 @@ main button svg {
 /* ===== Terms/privacy modal ===== */
 .modal-card .tc-scroll {
     margin-top: .75rem;
-    height: 320px;
+    height: 50vh;
 }
 
 /* ===== Larger text for components shared with the modals (protocol-modals.css loads after this file) ===== */

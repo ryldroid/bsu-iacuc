@@ -87,7 +87,9 @@ class Model
         string $actorRole = '',
         string $targetType = '',
         ?int $targetId = null,
-        string $description = ''
+        string $description = '',
+        ?string $oldStatus = null,
+        ?string $newStatus = null
     ): void {
         AuditLogger::log(
             $this->connection,
@@ -97,7 +99,9 @@ class Model
             $actorRole,
             $targetType,
             $targetId,
-            $description
+            $description,
+            $oldStatus,
+            $newStatus
         );
     }
 

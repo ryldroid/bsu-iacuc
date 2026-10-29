@@ -316,16 +316,19 @@ class Apply extends Controller
             $noticeKey = 'reviewed paid';
         }
 
-        $returned = $noticeKey === 'under review' && !$reviewUndone;
+        $returned       = $noticeKey === 'under review' && !$reviewUndone;
+        $approvalUndone = $noticeKey === 'endorsed' && strtolower($protocol['status'] ?? '') === 'approved';
         [$noticeTitle, $nextStep] = match (true) {
-            $reviewUndone => Notifier::REVIEW_UNDONE_NOTICE,
-            $returned     => Notifier::returnedToReviewNotice($reason),
-            default       => Notifier::STATUS_NOTICES[$noticeKey],
+            $reviewUndone   => Notifier::REVIEW_UNDONE_NOTICE,
+            $returned       => Notifier::returnedToReviewNotice($reason),
+            $approvalUndone => Notifier::APPROVAL_UNDONE_NOTICE,
+            default         => Notifier::STATUS_NOTICES[$noticeKey],
         };
         $type = match (true) {
-            $reviewUndone => 'protocol_review_undone',
-            $returned     => 'protocol_returned_to_review',
-            default       => 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
+            $reviewUndone   => 'protocol_review_undone',
+            $returned       => 'protocol_returned_to_review',
+            $approvalUndone => 'protocol_approval_undone',
+            default         => 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
         };
 
         Notifier::send(
@@ -428,6 +431,39 @@ class Apply extends Controller
             'Payment Verification Undone',
             $this->roleLabel($actor['role']) . " {$actor['name']} undid the payment verification for " . Notifier::boldTitle($title) . '. It is back to awaiting verification.',
             'personnel/home?status=reviewed&open_payment=' . $protocol['protocol_id'],
+            [],
+            (int) $actor['id']
+        );
+    }
+
+    private function notifyHardCopyPickedUp(array $protocol, array $actor): void
+    {
+        $owner = $this->ownerOf($protocol);
+        $title = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        if ($owner) {
+            Notifier::send(
+                (int) $protocol['user_id'],
+                'hard_copy_picked_up',
+                'Hard Copy Pickup Recorded',
+                'The pickup of the embossed hard copy of ' . Notifier::boldTitle($title) . ' was ' . Notifier::bold('recorded') . '. ' . Notifier::HARD_COPY_PICKED_UP_NEXT_STEP,
+                $this->protocolHighlightLink((int) $protocol['protocol_id']),
+                [
+                    'template' => 'protocol_status_changed',
+                    'vars'     => ['first_name' => $owner['first_name'] ?? '', 'title' => $title, 'status' => 'Hard Copy', 'next_step' => 'had its hard copy pickup recorded. ' . Notifier::HARD_COPY_PICKED_UP_NEXT_STEP, 'protocol_id' => $protocol['protocol_id']],
+                    'to'       => $owner['email'] ?? '',
+                    'name'     => $owner['first_name'] ?? '',
+                    'subject'  => 'Hard Copy Pickup Recorded',
+                ]
+            );
+        }
+
+        Notifier::sendToRole(
+            'staff',
+            'hard_copy_picked_up',
+            'Hard Copy Pickup Recorded',
+            $this->roleLabel($actor['role']) . " {$actor['name']} recorded the hard copy pickup of " . Notifier::boldTitle($title) . '.',
+            'apply/viewer/' . $protocol['protocol_id'],
             [],
             (int) $actor['id']
         );
@@ -1874,7 +1910,7 @@ class Apply extends Controller
 
         if ($ok) {
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
-            $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus" . ($reason !== '' ? ". Reason: $reason" : ''));
+            $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus" . ($reason !== '' ? ". Reason: $reason" : ''), $protocol['status'], $newStatus);
 
             // ===== KEEP RECORD STATUS IN STEP WITH APPROVAL =====
             if ($newStatus === 'Approved') {
@@ -2115,7 +2151,9 @@ class Apply extends Controller
         $ok = $this->protocolModel->setHardCopyReleased($protocolId, $release ? $actor['id'] : null);
         if ($ok) {
             $this->protocolModel->logAudit($release ? 'hard_copy_picked_up' : 'hard_copy_pickup_undone', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, $release ? 'Embossed hard copy picked up by the researcher' : 'Hard copy pickup undone');
-            if (!$release) {
+            if ($release) {
+                $this->notifyHardCopyPickedUp($protocol, $actor);
+            } else {
                 $this->notifyHardCopyUndone($protocol, $actor);
             }
             $_SESSION['flash_success'] = $release ? 'Hard copy pickup recorded.' : 'Hard copy pickup undone.';
@@ -3271,7 +3309,7 @@ class Apply extends Controller
             preg_match('/^Status changed to: ([^.]+)(?:\. Reason: (.*))?$/s', (string) $event['details'], $match);
 
             return [
-                'title'      => $titles[$event['action']] ?? 'Moved back to ' . ($match[1] ?? 'the previous status'),
+                'title'      => $titles[$event['action']] ?? 'Moved back to ' . ($event['new_status'] ?? $match[1] ?? 'the previous status'),
                 'note'       => $match[2] ?? '',
                 'actor_name' => $event['username'],
                 'actor_role' => $event['role'],

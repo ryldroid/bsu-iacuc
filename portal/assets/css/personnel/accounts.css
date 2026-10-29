@@ -756,43 +756,6 @@
     color: var(--muted-text);
 }
 
-/* ===== Audit actions: plain text with a small tone dot ===== */
-.audit-action {
-    --audit-tone: var(--muted-text);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5em;
-    color: var(--primary-text);
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.audit-action::before {
-    content: "";
-    flex-shrink: 0;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--audit-tone);
-}
-
-.audit-action--danger {
-    --audit-tone: var(--status-danger-text);
-}
-
-.audit-action--warning {
-    --audit-tone: var(--status-warning-text);
-}
-
-.audit-action--success {
-    --audit-tone: var(--status-success-text);
-}
-
-.audit-action--info {
-    --audit-tone: var(--status-teal-text);
-}
-
 .audit-viewer-section .pagination-btn.disabled {
     opacity: .35;
     cursor: default;

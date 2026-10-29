@@ -11,14 +11,16 @@ class AuditLogger
         string  $actorRole = '',
         string  $targetType = '',
         ?int    $targetId = null,
-        string  $description = ''
+        string  $description = '',
+        ?string $oldStatus = null,
+        ?string $newStatus = null
     ): void {
         $ip = self::getClientIp();
 
         $query = $database->prepare(
             "INSERT INTO audit_logs
-                (user_id, username, role, action, target_type, target_id, details, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                (user_id, username, role, action, target_type, target_id, details, ip_address, old_status, new_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         if (!$query) {
@@ -27,7 +29,7 @@ class AuditLogger
         }
 
         $query->bind_param(
-            'issssiss',
+            'issssissss',
             $actorId,
             $actorUsername,
             $actorRole,
@@ -35,7 +37,9 @@ class AuditLogger
             $targetType,
             $targetId,
             $description,
-            $ip
+            $ip,
+            $oldStatus,
+            $newStatus
         );
 
         if (!$query->execute()) {

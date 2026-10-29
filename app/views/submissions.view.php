@@ -145,6 +145,34 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         </button>
                     <?php endforeach; ?>
                 </div>
+
+                <div class="dashboard-field-group mobile-filter-group">
+                    <p class="sort-filter-label">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#filter-icon" />
+                        </svg>
+                        Status:
+                    </p>
+
+                    <div class="sort-wrapper">
+                        <button type="button" class="mobile-filter-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+                            <span id="mobileFilterLabel">All</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#chev-down-icon" />
+                            </svg>
+                        </button>
+
+                        <div class="dropdown-panel" id="mobileFilterOptions">
+                            <button class="status-card active" type="button" data-mobile-filter="all">All <span class="status-count"><?= $totalProtocolCount ?></span></button>
+                            <?php foreach ($statuses as $status):
+                                $statusSlug  = strtolower(str_replace(' ', '-', $status));
+                                $statusCount = $countsByStatusSlug[$statusSlug] ?? 0;
+                            ?>
+                                <button class="status-card" type="button" data-mobile-filter="<?= htmlspecialchars($statusSlug, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?> <span class="status-count"><?= $statusCount ?></span></button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="dashboard-sort-group dashboard-field-group">
@@ -276,7 +304,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <p class="research-title">
                                     <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
                                     <?php if ($statusKey === 'reviewed'): ?>
-                                        <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
+                                        <span class="status-dot payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
                                             <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                         </span>
                                     <?php endif; ?>
@@ -425,7 +453,7 @@ $guideId    = 'protocols';
 $guideSteps = [
     ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
     ['New Application', 'Start a new protocol application here. If you have one in progress, you can click on **resume**.', '#apply-actions-sub'],
-    ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters'],
+    ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters, .mobile-filter-group'],
     ['Sort', 'Change the order of your list: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means and what you need to do. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
 ];
@@ -633,6 +661,9 @@ include 'includes/guide.php';
     const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
     const mobileSortOptions = document.getElementById('mobileSortOptions');
     const mobileSortLabel = document.getElementById('mobileSortLabel');
+    const mobileFilterTrigger = document.querySelector('.mobile-filter-trigger');
+    const mobileFilterOptions = document.getElementById('mobileFilterOptions');
+    const mobileFilterLabel = document.getElementById('mobileFilterLabel');
     let currentFilter = 'all';
 
     const pager = createPagination({
@@ -722,6 +753,8 @@ include 'includes/guide.php';
     function applySubmissionsFilter(selected) {
         currentFilter = selected;
         filterBtns.forEach(b => b.classList.toggle('active', b.dataset.status === selected));
+        mobileFilterOptions?.querySelectorAll('.status-card').forEach(b => b.classList.toggle('active', b.dataset.mobileFilter === selected));
+        if (mobileFilterLabel) mobileFilterLabel.textContent = [...filterBtns].find(b => b.dataset.status === selected)?.dataset.label ?? '';
         updateStatusGuide(selected);
 
         [...filterBtns].find(b => b.dataset.status === selected)?.scrollIntoView({
@@ -761,18 +794,37 @@ include 'includes/guide.php';
 
     mobileSortTrigger?.addEventListener('click', e => {
         e.stopPropagation();
+        closeDropdown(mobileFilterTrigger, mobileFilterOptions);
         openDropdown(mobileSortTrigger, mobileSortOptions);
     });
 
+    mobileFilterTrigger?.addEventListener('click', e => {
+        e.stopPropagation();
+        closeDropdown(mobileSortTrigger, mobileSortOptions);
+        openDropdown(mobileFilterTrigger, mobileFilterOptions);
+    });
+
     document.addEventListener('click', e => {
-        if (!mobileSortOptions?.contains(e.target) && !mobileSortTrigger?.contains(e.target)) {
-            closeDropdown(mobileSortTrigger, mobileSortOptions);
-        }
+        [
+            [mobileSortTrigger, mobileSortOptions],
+            [mobileFilterTrigger, mobileFilterOptions]
+        ].forEach(([trigger, panel]) => {
+            if (!panel?.contains(e.target) && !trigger?.contains(e.target)) {
+                closeDropdown(trigger, panel);
+            }
+        });
     });
 
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             applySubmissionsFilter(btn.dataset.status);
+        });
+    });
+
+    mobileFilterOptions?.querySelectorAll('.status-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+            closeDropdown(mobileFilterTrigger, mobileFilterOptions);
+            applySubmissionsFilter(btn.dataset.mobileFilter);
         });
     });
 

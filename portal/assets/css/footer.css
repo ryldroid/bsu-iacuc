@@ -65,36 +65,6 @@ footer button:active {
     border-left: 1px solid var(--tint-on-brand);
 }
 
-/* ===== Developer contact ===== */
-.footer-contact {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 4px 6px;
-}
-
-.footer-note {
-    margin-right: 4px;
-}
-
-.footer-contact a.footer-contact-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
-    text-decoration: none;
-    opacity: .9;
-    transition: background-color .2s ease, opacity .2s ease;
-}
-
-.footer-contact a.footer-contact-icon:is(:hover, :focus-visible) {
-    background-color: var(--tint-on-brand);
-    opacity: 1;
-}
-
 /* ===== Copyright ===== */
 .footer-copy {
     width: 100%;

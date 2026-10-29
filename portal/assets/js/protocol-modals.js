@@ -268,7 +268,7 @@ async function openAmendmentsModal(protocolId, title) {
       .map((a, i) => {
         const badge =
           i === 0 && amendments.length > 1
-            ? ' <span class="payment-event-badge">Latest</span>'
+            ? ' <span class="status-dot status-dot--success">Latest</span>'
             : "";
         const note = (a.note || "").trim();
         const detail = note

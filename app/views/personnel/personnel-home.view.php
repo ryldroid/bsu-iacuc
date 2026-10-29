@@ -44,17 +44,17 @@ $personnelRole = ($user['role'] ?? '') === 'reviewer' ? 'reviewer' : 'staff';
 
 $statusDescByRole = [
     'staff' => [
-        'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and delete protocols.\n\nAny CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
+        'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and delete protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
-        'reviewed'              => "The reviewer has finished review.\n\nHere, in a step-by-step process, confirm clearance processing fee payments, assign IPNs, upload signed scans with the IACUC chairperson's signature, and mark protocols as **endorsed**.",
-        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).\n\nUpload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **approved**.",
-        'approved'              => "Digital animal research clearances issued! The protocols are now fully approved.\n\nConfirm when researchers have picked up the embossed hard copy of their clearances.",
+        'reviewed'              => "The reviewer has finished review. Here, in a step-by-step process:\n(1) Wait for the researcher to pay their clearance processing fee,\n(2) Verify submitted payment,\n(3) Assign IPN,\n(4) Upload the scan with the IACUC chairperson's signature, and\n(5) Mark the protocol as **endorsed**.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **approved**.",
+        'approved'              => "Digital animal research clearances issued! The protocols are now fully approved. Confirm when researchers have picked up the embossed hard copy of their clearances.",
     ],
     'reviewer' => [
-        'to-review'             => "Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols.\n\nAny CCARD personnel can verify a researcher's first-time IACUC training certificate submission. You can still read and comment even if a certificate is rejected, but you cannot finish a review or return a protocol until it is verified.",
+        'to-review'             => "Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. You can still read and comment even if a certificate is rejected, but you cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
-        'endorsed'              => "Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).\n\nNo action required. Administrative staff will upload the released animal research clearances and release them to the researchers.",
+        'endorsed'              => "Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
 ];
@@ -754,11 +754,11 @@ foreach ($protocols as $p) {
                                         <p class="research-title">
                                             <?= $title ?>
                                             <?php if ($statusLower === 'reviewed'): ?>
-                                                <span class="payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>" <?= $nextStep ? ' title="Step ' . $nextStep[0] . ' of ' . $stepCount . ': ' . htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+                                                <span class="status-dot payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>" <?= $nextStep ? ' title="Step ' . $nextStep[0] . ' of ' . $stepCount . ': ' . htmlspecialchars($nextStep[1], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
                                                     <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                                 </span>
                                             <?php elseif ($statusLower === 'approved'): ?>
-                                                <span class="payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
+                                                <span class="status-dot payment-badge payment-badge--<?= $hasHardCopyReleased ? 'paid' : 'proof_submitted' ?>">
                                                     <?= $hasHardCopyReleased ? 'Hard copy picked up' : 'Hard copy for pickup' ?>
                                                 </span>
                                             <?php endif; ?>
@@ -1002,8 +1002,8 @@ $guideSteps = [
     ['Protocol Inbox', $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
         : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
-    ['Status filters', 'Filter the inbox by status. The number next to each status is the number of protocols with that status.', '#filterPillsRow, .mobile-filter-group'],
     ['Search', "Find a protocol by its title or the researcher's name.", '.inbox-search-wrap'],
+    ['Status filters', 'Filter the inbox by status. The number next to each status is the number of protocols with that status.', '#filterPillsRow, .mobile-filter-group'],
     ['Sort', 'Change the order: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
     ['Status legend', 'Every protocol will be organized according to their status. To visit the guide for these any time, click on the question mark at the end of the line.', '.status-legend-bar'],
 ];

@@ -151,6 +151,7 @@ include 'includes/guide.php';
 
     // ===== NAVIGATION =====
     function goTo(n) {
+        if (n === 2 && state.certAlready) n = state.step < 2 ? 3 : 1;
         state.step = Math.max(0, Math.min(STEPS.length - 1, n));
         saveState();
         render();
@@ -218,17 +219,27 @@ include 'includes/guide.php';
     }
 
     // ===== STEPPER =====
+    function shownSteps() {
+        return STEPS.map((label, i) => i).filter(i => !(i === 2 && state.certAlready));
+    }
+
+    function stepTag(stepIndex) {
+        const shown = shownSteps();
+        return `<div class="page-tag">Step ${shown.indexOf(stepIndex) + 1} of ${shown.length - 1}</div>`;
+    }
+
     function renderStepper() {
         const el = document.getElementById('stepper');
         const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg>`;
         let html = '';
-        STEPS.forEach((label, i) => {
-            const cls = i < state.step ? 'done' : i === state.step ? 'active' : '';
-            const inner = i < state.step ? checkSvg : (i + 1);
-            html += `<div class="step-dot ${cls}" title="${label}">${inner}</div>`;
-            if (i < STEPS.length - 1)
-                html += `<div class="step-line ${i < state.step ? 'done' : ''}"></div>`;
+        const shown = shownSteps();
+        shown.forEach((stepIndex, position) => {
+            const cls = stepIndex < state.step ? 'done' : stepIndex === state.step ? 'active' : '';
+            const inner = stepIndex < state.step ? checkSvg : (position + 1);
+            html += `<div class="step-dot ${cls}" title="${STEPS[stepIndex]}">${inner}</div>`;
+            if (position < shown.length - 1)
+                html += `<div class="step-line ${stepIndex < state.step ? 'done' : ''}"></div>`;
         });
         el.innerHTML = html;
     }
@@ -381,10 +392,10 @@ include 'includes/guide.php';
         }, ];
 
         const process = [
-            `Submit your IACUC training certificate. <br>
+            ...(state.certAlready ? [] : [`Submit your IACUC training certificate. <br>
                 <span class="process-note">
                 This is a one-time requirement and will be referenced for subsequent IACUC protocol review applications.
-                </span>`,
+                </span>`]),
             `Download and complete the official IACUC protocol form. <br>
                 <span class="process-note">
                 Only the Principal Investigator (PI) may submit an IACUC protocol for review.
@@ -394,7 +405,7 @@ include 'includes/guide.php';
         ];
 
         return `
-    <div class="page-tag">Step 1 of 5</div>
+    ${stepTag(0)}
     <div class="page-title">Requirements and process</div>
     ${state.certBlock ? `<div class="error-messages">${escapeHtml(state.certBlock)}</div>` : ''}
 
@@ -430,7 +441,7 @@ include 'includes/guide.php';
     // ===== STEP 1:  Terms & Conditions =====
     function step1() {
         return `
-    <div class="page-tag">Step 2 of 5</div>
+    ${stepTag(1)}
     <div class="page-title">Terms and conditions</div>
     <p class="step-intro-text">Please review the following before continuing with your application.</p>
 
@@ -474,7 +485,7 @@ include 'includes/guide.php';
                 By submitting this application, you confirm that you have read, understood, and agree to be bound by these terms. You also confirm that you are the Principal Investigator of this protocol and that you are authorized to submit it.
 
                 <h3>2. Governing laws and policies</h3>
-                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, Department of Agriculture Administrative Order No. 40, Series of 1999, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission.
+                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, and the requirements of Department of Agriculture Administrative Order No. 40, Series of 1998, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission (NPC).
 
                 <h3>3. Accuracy of information</h3>
                 Information and documents you submit must be true, accurate, and complete. Any misrepresentation may result in denial, suspension, or revocation of approval.
@@ -510,10 +521,10 @@ include 'includes/guide.php';
             <h2>Privacy policy</h2>
             <div class="tc-scroll">
                 <h3>1. Who we are</h3>
-                The Benguet State University CCARD Institutional Animal Care and Use Committee (IACUC) operates this system and is the personal information controller for the data collected through it. This policy is issued in accordance with Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and the issuances of the National Privacy Commission (NPC).
+                The Institutional Animal Care and Use Committee (IACUC) under the Cordillera Center for Animal Research and Development (CCARD) in Benguet State University (BSU) operates this system and is the personal information controller for the data collected through it. This policy is issued in accordance with Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and the issuances of the National Privacy Commission (NPC).
 
                 <h3>2. Personal data we collect</h3>
-                Account details: your name, username, email address, mobile number, sex, and school or college. Application records: your IACUC protocol form, IACUC training certificate, proof of payment, and related submissions, reviewer comments, and status history. System records: audit logs of actions taken in the system and session information needed to keep your account secure.
+                Account details: your name, username, email address, mobile number, sex, researcher type, and school or college. Application records: your IACUC protocol form, IACUC training certificate, proof of payment, and related submissions, reviewer comments, and status history. System records: audit logs of actions taken in the system and session information needed to keep your account secure.
 
                 <h3>3. Why we process your data</h3>
                 We process your data only to create and manage your account, receive and review your protocol, communicate with you about its status, issue clearances, keep institutional records, and prepare aggregated statistics. We do not use your data for marketing and we do not sell it.
@@ -522,7 +533,7 @@ include 'includes/guide.php';
                 We process your personal data based on your consent, given by ticking the box on this page, and to comply with the legal and regulatory obligations of the IACUC under the laws cited in the terms of use. You may withdraw your consent at any time by contacting the CCARD office. Withdrawal does not affect processing already done, and we may be unable to continue reviewing your protocol without the data needed for it.
 
                 <h3>5. Who can see your data</h3>
-                Your data is accessible only to authorized CCARD administrative staff and IACUC reviewers, and to the relevant offices of the University who need it for your protocol. It may be disclosed to the Bureau of Animal Industry and other government or accrediting bodies when required by law. Submitted protocols are confidential institutional documents and will not be disclosed to unauthorized parties.
+                Your data is accessible only to authorized CCARD administrative staff and IACUC reviewers, and to the relevant offices of the university who need it for your protocol. It may be disclosed to the Bureau of Animal Industry and other government or accrediting bodies when required by law. Submitted protocols are confidential institutional documents and will not be disclosed to unauthorized parties.
 
                 <h3>6. How long we keep it</h3>
                 We keep personal data only for as long as needed for the purposes above and as required by law and University records policies. After that it is securely disposed of or anonymized.
@@ -531,7 +542,7 @@ include 'includes/guide.php';
                 We use reasonable and appropriate organizational, physical, and technical measures, including role-based access, secure sessions with automatic timeout, and audit logging. In case of a personal data breach, we will notify you and the NPC as required by law.
 
                 <h3>8. Your rights</h3>
-                Under the Data Privacy Act you have the right to be informed about how your data is processed, to access your data, to object to its processing, to correct inaccurate data, to request erasure or blocking of your data, to data portability, to be indemnified for damages caused by inaccurate, unlawfully obtained, or unauthorized use of your data, and to file a complaint with the National Privacy Commission (privacy.gov.ph). You may update your details or deactivate or delete your account from your account page. Some records may be retained where the law requires it.
+                Under the Data Privacy Act of 2012, you have the right to be informed about how your data is processed, to access your data, to object to its processing, to correct inaccurate data, to request erasure or blocking of your data, to data portability, to be indemnified for damages caused by inaccurate, unlawfully obtained, or unauthorized use of your data, and to file a complaint with NPC via privacy.gov.ph. You may update your details or delete your account from your account page. Some records may be retained where the law requires it.
 
                 <h3>9. Contact us</h3>
                 To exercise your rights or ask questions about this policy, contact the CCARD office at ccard@bsu.edu.ph or the university's data protection officer.
@@ -566,7 +577,7 @@ include 'includes/guide.php';
         ];
 
         return `
-    <div class="page-tag">Step 3 of 5</div>
+    ${stepTag(2)}
     <div class="page-title">Attach training certificate</div>
 
     ${!state.certAlready ? `
@@ -602,7 +613,7 @@ include 'includes/guide.php';
         const formUrl = ROOT + '/assets/forms/BSU-IACUC_Application_for_Protocol_Review_Form.docx';
 
         return `
-    <div class="page-tag">Step 4 of 5</div>
+    ${stepTag(3)}
     <div class="page-title">Download the official IACUC protocol form</div>
 
     <p class="step-intro-text">
@@ -717,7 +728,7 @@ include 'includes/guide.php';
 
     function step4() {
         return `
-    <div class="page-tag">Step 5 of 5</div>
+    ${stepTag(4)}
     <div class="page-title">Submit your protocol</div>
 
     <div class="section-label">Part 1: Upload completed form</div>
@@ -781,6 +792,7 @@ include 'includes/guide.php';
 
     // ===== RENDER =====
     function render() {
+        if (state.step === 2 && state.certAlready) state.step = 3;
         renderStepper();
         const pages = [step0, step1, step2, step3, step4, step5];
         document.getElementById('page-content').innerHTML = pages[state.step]();

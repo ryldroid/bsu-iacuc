@@ -960,6 +960,43 @@ main a.underlined:hover {
     gap: 12px;
 }
 
+/* ===== Status text: plain text with a small tone dot ===== */
+.status-dot {
+    --dot-tone: var(--muted-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--primary-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.status-dot::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--dot-tone);
+}
+
+.status-dot--danger {
+    --dot-tone: var(--status-danger-text);
+}
+
+.status-dot--warning {
+    --dot-tone: var(--status-warning-text);
+}
+
+.status-dot--success {
+    --dot-tone: var(--status-success-text);
+}
+
+.status-dot--info {
+    --dot-tone: var(--status-teal-text);
+}
+
 /* ===== Shared "label: control" row (filter + sort) ===== */
 .dashboard-field-group {
     display: flex;
@@ -1150,9 +1187,9 @@ select.records-filter-select {
 }
 
 /* ===== New announcement emphasis (shared by home and announcements) ===== */
-:is(.home-announcement-cont, .office-announcement-card).is-new {
+/* :is(.home-announcement-cont, .office-announcement-card).is-new {
     box-shadow: 0 2px 6px color-mix(in srgb, var(--brand-text) 40%, transparent), 0 8px 24px color-mix(in srgb, var(--brand-text) 30%, transparent);
-}
+} */
 
 .new-badge {
     display: inline-block;

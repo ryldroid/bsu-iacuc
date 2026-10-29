@@ -161,6 +161,7 @@ $activeTab     = $activeTab     ?? 'announcements';
                 <div class="records-form-group records-form-full">
                   <label class="field-label" for="about_text">About IACUC</label>
                   <textarea id="about_text" name="about_text" rows="12"><?= htmlspecialchars($settings['about_text'] ?? '', ENT_QUOTES) ?></textarea>
+                  <span class="helper">To add a link, write [text](https://address).</span>
                 </div>
               </div>
               <div class="cm-savebar">
@@ -510,6 +511,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         <div class="records-form-group records-form-full">
           <label class="field-label" for="faq_answer">Answer *</label>
           <textarea id="faq_answer" rows="4"></textarea>
+          <span class="helper">To add a link, write [text](https://address).</span>
         </div>
       </div>
     </div>

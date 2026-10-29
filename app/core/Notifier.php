@@ -44,6 +44,10 @@ class Notifier
 
   public const HARD_COPY_UNDONE_NEXT_STEP = 'If you already claimed it, please tell the CCARD office. Otherwise, visit the office to claim it.';
 
+  public const HARD_COPY_PICKED_UP_NEXT_STEP = 'No action needed.';
+
+  public const APPROVAL_UNDONE_NOTICE = ['Approval Undone', 'was moved back to Endorsed because its approval was undone. No action needed. You will be notified once BAI processes your animal research clearance again.'];
+
   public const REVIEW_UNDONE_NOTICE = ['Review Undone', 'was moved back to review because its review was undone. Please do not pay the clearance fee for now. You will be notified once the review is finished.'];
 
   // ===== EVERY NEXT-STEP TEXT WITH THE NOTIFICATION TYPE THAT CARRIES IT =====

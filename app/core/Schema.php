@@ -237,6 +237,8 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
+        $this->ensureColumn('audit_logs', 'old_status', "varchar(30) DEFAULT NULL AFTER `details`");
+        $this->ensureColumn('audit_logs', 'new_status', "varchar(30) DEFAULT NULL AFTER `old_status`");
         $this->addRecordCreatedAt();
 
         $this->dropColumn('protocol_return_reasons', 'wrong_auth');
@@ -307,6 +309,8 @@ class Schema
 
         $this->seeder->seedSiteSettings();
         $this->seeder->migrateAboutText();
+        $this->backfillAboutTextAgriculturalOrder();
+        $this->backfillAboutTextCompliance();
 
         // ===== CONTACT OFFICES TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `contact_offices` (
@@ -345,6 +349,7 @@ class Schema
 
         $this->seeder->seedFaqs();
         $this->backfillCertRejectedFaq();
+        $this->backfillFaqAnswers();
 
         // ===== RETURN REASONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `protocol_return_reasons` (
@@ -767,12 +772,106 @@ class Schema
         }
     }
 
+    private function backfillAboutTextAgriculturalOrder(): void
+    {
+        $this->connection->query(
+            "UPDATE `site_settings` SET setting_value = REPLACE(setting_value, ', and [Department of Agriculture', ', and the requirements of [Department of Agriculture')
+             WHERE setting_key = 'about_text'"
+        );
+    }
+
     private function backfillCertRejectedFaq(): void
     {
         $this->connection->query(
             "UPDATE `faqs` SET answer = REPLACE(answer, ' If your protocol is still under review, you can attach a revised file too.', '')
              WHERE question = 'What if my training certificate is rejected?'"
         );
+    }
+
+    private function backfillFaqAnswers(): void
+    {
+        $changes = [
+            [
+                'What are the requirements?',
+                'Researchers (or Principal Investigators) must have prior IACUC training in order to apply for protocol review.',
+                'Researchers (formally called Principal Investigators) must have prior IACUC training in order to apply for protocol review.',
+            ],
+            [
+                'When working in groups, should each member apply for an IACUC protocol review?',
+                'No, only the Principal Investigator (PI) may submit the IACUC protocol for the group.',
+                'No, only the Principal Investigator (PI) may submit the IACUC protocol for the group. Multiple submissions of the same protocol will be rejected.',
+            ],
+            [
+                'What kind of IACUC training is required?',
+                'Everyone working with animals must receive lecture and laboratory animal handling training. Please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+                'Everyone working with animals must receive lecture and laboratory animal handling training. The training does not have to be from CCARD. However, please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+            ],
+            [
+                'What kind of IACUC training is required?',
+                'Everyone working with animals must receive lecture and laboratory animal handling training. The training does not have to be from CCARD. Please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+                'Everyone working with animals must receive lecture and laboratory animal handling training. The training does not have to be from CCARD. However, please refer to the announcements page or inquire at the CCARD office to be updated with the scheduled trainings.',
+            ],
+            [
+                'Do I need an IACUC protocol to use dead animals or animal parts?',
+                'If you are obtaining animals or tissue that were already dead (rat livers from another laboratory, steaks from the supermarket, tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).',
+                'If you are obtaining animals or tissue that were already dead (e.g., rat livers from another laboratory, steaks from the supermarket, and tissues from a slaughterhouse) then you do not need an IACUC protocol. However, all work with wild mammal tissue need an approval from the Department of Environment and Natural Resources (DENR).',
+            ],
+            [
+                'What if I amend my IACUC protocol to add/change procedures / personnel / animals?',
+                'All revision must be communicated with the IACUC through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
+                'All revisions MUST be communicated with CCARD through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
+            ],
+            [
+                'Who do I contact if I have questions regarding the animal care and use program or the IACUC?',
+                'In BSU, you may visit the CCARD office. You may also refer to the contact page for additional contact information.',
+                'Feel free to reach and inquire with us. You may contact ccard@bsu.edu.ph or refer to the contact page for more information.',
+            ],
+            [
+                'Who do I contact if I found an issue or have comments or suggestions about the portal?',
+                'You may contact the developers at meryl.arnobit@gmail.com or malipe.sheldon01@gmail.com.',
+                'You may contact the developers at [meryl.arnobit@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=meryl.arnobit%40gmail.com) or [malipe.sheldon01@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=malipe.sheldon01%40gmail.com).',
+            ],
+        ];
+
+        $update = $this->connection->prepare("UPDATE `faqs` SET answer = ? WHERE question = ? AND answer = ?");
+        if (! $update) return;
+        foreach ($changes as [$question, $old, $new]) {
+            $update->bind_param('sss', $new, $question, $old);
+            $update->execute();
+        }
+
+        $question = 'Who do I contact if I found an issue or have comments or suggestions about the portal?';
+        $answer   = 'You may contact the developers at [meryl.arnobit@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=meryl.arnobit%40gmail.com) or [malipe.sheldon01@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=malipe.sheldon01%40gmail.com).';
+        $exists = $this->connection->prepare("SELECT 1 FROM `faqs` WHERE question = ?");
+        if (! $exists) return;
+        $exists->bind_param('s', $question);
+        $exists->execute();
+        if ($exists->get_result()->num_rows > 0) return;
+
+        $insert = $this->connection->prepare(
+            "INSERT INTO `faqs` (sort_order, question, answer) SELECT COALESCE(MAX(sort_order), -1) + 1, ?, ? FROM `faqs`"
+        );
+        if (! $insert) return;
+        $insert->bind_param('ss', $question, $answer);
+        $insert->execute();
+    }
+
+    private function backfillAboutTextCompliance(): void
+    {
+        $this->connection->query(
+            "UPDATE `site_settings` SET setting_value = REPLACE(setting_value, 'Series of 1999', 'Series of 1998')
+             WHERE setting_key = 'about_text'"
+        );
+
+        $clause     = Seeder::CHED_MEMO_CLAUSE;
+        $separate   = "\n\n" . 'The Commission on Higher Education (CHED) has issued memoranda as part of its compliance with Department of Agriculture Administrative Order No. 40, Series of 1998, known as the Rules and Regulations on the Conduct of Scientific Procedures Using Animals, specifically the [CHED Memorandum dated April 23, 2015](https://www.facebook.com/bai.gov.ph/posts/commission-on-higher-education-ched-has-issued-memoranda-as-part-of-its-complian/400983116759988/).';
+        $mergeCHED  = $this->connection->prepare(
+            "UPDATE `site_settings` SET setting_value = REPLACE(REPLACE(setting_value, ?, ''), '(AO 40). Researchers', CONCAT('(AO 40)', ?, '. Researchers'))
+             WHERE setting_key = 'about_text'"
+        );
+        if (! $mergeCHED) return;
+        $mergeCHED->bind_param('ss', $separate, $clause);
+        $mergeCHED->execute();
     }
 
     private function backfillReturnReasonVersions(): void

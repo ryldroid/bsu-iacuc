@@ -23,7 +23,6 @@
     background: var(--status-danger-bg);
 }
 
-.research-title .pending-sync-badge,
 .protocol-title-cell .pending-sync-badge,
 .ann-row-title .pending-sync-badge {
     margin-left: 8px;

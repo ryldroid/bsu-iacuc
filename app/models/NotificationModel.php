@@ -39,6 +39,8 @@ class NotificationModel extends Model
     'protocol_reverted'              => ['icon' => 'undo-icon', 'variant' => 'warning'],
     'protocol_review_undone'         => ['icon' => 'undo-icon', 'variant' => 'warning'],
     'payment_unverified'             => ['icon' => 'undo-icon', 'variant' => 'warning'],
+    'protocol_approval_undone'       => ['icon' => 'undo-icon', 'variant' => 'warning'],
+    'hard_copy_picked_up'            => ['icon' => 'check-circle-icon', 'variant' => 'success'],
     'hard_copy_undone'               => ['icon' => 'undo-icon', 'variant' => 'warning'],
     'clearance_expiring'             => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'backup_warning'                 => ['icon' => 'alert-triangle-icon', 'variant' => 'danger'],

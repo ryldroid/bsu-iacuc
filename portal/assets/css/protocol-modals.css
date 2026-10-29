@@ -356,18 +356,6 @@
   margin: 0 0 2px;
 }
 
-/* "Latest" tag beside a timeline title */
-.payment-event-badge {
-  margin-left: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: .68rem;
-  font-weight: 700;
-  color: var(--status-success-text);
-  background: var(--status-success-bg);
-  vertical-align: middle;
-}
-
 /* ===== Re-submit protocol modal ===== */
 .resub-card {
   width: min(540px, calc(100vw - 32px));

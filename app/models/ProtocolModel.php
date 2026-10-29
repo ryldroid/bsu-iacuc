@@ -389,7 +389,7 @@ class ProtocolModel extends Model
     {
         $marks = implode(',', array_fill(0, count($actions), '?'));
         $stmt  = $this->connection->prepare(
-            "SELECT action, username, role, details, created_at
+            "SELECT action, username, role, details, old_status, new_status, created_at
              FROM `audit_logs`
              WHERE target_type = 'protocol' AND target_id = ? AND action IN ($marks)
              ORDER BY created_at DESC, id DESC"

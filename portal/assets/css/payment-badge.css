@@ -1,36 +1,18 @@
-/* ===== Payment and certificate status badges ===== */
+/* ===== Payment and certificate status tones ===== */
 .payment-badge {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 1px 7px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 0.68em;
-  font-weight: 600;
+  font-size: 0.8em;
   vertical-align: middle;
-  white-space: nowrap;
 }
 
-.payment-badge--unpaid {
-  background: var(--danger-color-hover, #8f1d17);
-  color: #fff;
+.payment-badge--unpaid,
+.payment-badge--rejected {
+  --dot-tone: var(--status-danger-text);
 }
 
 .payment-badge--proof_submitted {
-  background: var(--warning-text, #b45309);
-  color: #fff;
-}
-
-[data-theme="dark"] .payment-badge--proof_submitted {
-  color: var(--page-background);
-}
-
-.payment-badge--rejected {
-  background: var(--danger-color, #b91c1c);
-  color: #fff;
+  --dot-tone: var(--status-warning-text);
 }
 
 .payment-badge--paid {
-  background: var(--brand-color);
-  color: #fff;
+  --dot-tone: var(--status-success-text);
 }

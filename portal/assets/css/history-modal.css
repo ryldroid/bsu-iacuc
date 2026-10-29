@@ -56,17 +56,6 @@
   border-top: 1px solid var(--divider-color);
 }
 
-.history-latest-badge {
-  margin-left: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: .68rem;
-  font-weight: 700;
-  color: var(--status-success-text);
-  background: var(--status-success-bg);
-  vertical-align: middle;
-}
-
 .history-open {
   gap: 6px;
 }

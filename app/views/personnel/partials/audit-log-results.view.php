@@ -58,7 +58,7 @@ $auditToneKeywords = [
               <?= htmlspecialchars($log['username']) ?>
               <span class="audit-viewer-role"><?= htmlspecialchars(ucfirst($log['role'])) ?></span>
             </td>
-            <td data-label="Action"><span class="audit-action audit-action--<?= $auditTone ?>"><?= htmlspecialchars($log['action_label']) ?></span></td>
+            <td data-label="Action"><span class="status-dot status-dot--<?= $auditTone ?>"><?= htmlspecialchars($log['action_label']) ?></span></td>
             <td data-label="Target"><?= htmlspecialchars($log['target_label']) ?></td>
             <td data-label="Details"><?= htmlspecialchars($log['details']) ?></td>
             <td data-label="IP Address"><?= htmlspecialchars($log['ip_address']) ?></td>
