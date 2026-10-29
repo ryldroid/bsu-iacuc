@@ -548,7 +548,7 @@ class ProtocolModel extends Model
                     ) AS last_activity_at
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
-                WHERE u.status != 'deactivated' AND p.deleted_at IS NULL
+                WHERE p.deleted_at IS NULL
                 ORDER BY last_activity_at DESC, p.id DESC";
 
         $result = $this->connection->query($sql);
@@ -663,7 +663,7 @@ class ProtocolModel extends Model
                 FROM `protocols` p";
 
         if ($userId === null) {
-            $sql .= " JOIN `users` u ON u.id = p.user_id WHERE u.status != 'deactivated' AND p.deleted_at IS NULL";
+            $sql .= " WHERE p.deleted_at IS NULL";
         } else {
             $sql .= " WHERE p.user_id = ? AND p.deleted_at IS NULL";
         }

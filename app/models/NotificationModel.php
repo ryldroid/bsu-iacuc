@@ -157,7 +157,7 @@ class NotificationModel extends Model
     $stmt->execute();
 
     foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $staff) {
-      $this->create((int) $staff['id'], 'backup_download', 'Download a Backup', 'No backup has been downloaded in the last 2 weeks. Press Save a copy on a backup and keep the file on your computer or Google Drive.', 'personnel/accounts?tab=backups');
+      $this->create((int) $staff['id'], 'backup_download', 'Download a Backup', 'No backup has been downloaded in the last 2 weeks. Press Download on a backup and keep the file on your computer or Google Drive.', 'personnel/accounts?tab=backups');
     }
   }
 

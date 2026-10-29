@@ -864,15 +864,84 @@
     margin: 1em 0;
 }
 
-#backup-manager .error-messages {
-    margin: 0 0 1em;
+#backupRestoreBackdrop .role-confirm-field {
+    margin: 0;
 }
 
-.backup-actions {
+.protocol-menu--inline {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.backup-toolbar {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: .5em;
+}
+
+@media (max-width: 768px) {
+    .backup-toolbar {
+        width: 100%;
+    }
+
+    .backup-toolbar .accounts-btn-primary {
+        flex: 1 1 0;
+        justify-content: center;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 1100px) {
+    .backup-actions-cell {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+        background: var(--card-background);
+    }
+
+    .backup-actions-cell:has(.is-open) {
+        z-index: 2;
+    }
+
+    .data-table tbody tr:hover .backup-actions-cell {
+        background: var(--table-row-hover);
+    }
+}
+
+.protocol-menu-panel.backup-actions {
+    min-width: 0;
+    padding: .5em;
+}
+
+.backup-actions .personnel-status-btn {
+    display: flex;
+    align-items: center;
+    gap: .4em;
+    width: 100%;
+    margin-bottom: .4em;
+}
+
+.backup-actions .personnel-status-btn:last-child {
+    margin-bottom: 0;
+}
+
+@media (min-width: 1101px) {
+    .protocol-menu-panel.backup-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .5em;
+        padding: 0;
+    }
+
+    .backup-actions .personnel-status-btn {
+        width: auto;
+        margin-bottom: 0;
+    }
+
+    .backup-actions .js-backup-delete {
+        margin-left: 1.25rem;
+    }
 }
 
 /* ===== Backup health ===== */
@@ -913,8 +982,4 @@
 .backup-technical summary {
     width: fit-content;
     cursor: pointer;
-}
-
-.backup-actions .js-backup-delete {
-    margin-left: 1.25rem;
 }

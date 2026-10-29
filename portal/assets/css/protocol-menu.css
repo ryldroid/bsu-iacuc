@@ -134,11 +134,11 @@
 }
 
 @media (min-width: 1101px) {
-  .protocol-menu--labeled .protocol-menu-trigger {
+  :is(.protocol-menu--labeled, .protocol-menu--inline) .protocol-menu-trigger {
     display: none;
   }
 
-  .protocol-menu--labeled .protocol-menu-panel {
+  :is(.protocol-menu--labeled, .protocol-menu--inline) .protocol-menu-panel {
     display: flex;
     position: static;
     min-width: 0;

@@ -286,6 +286,7 @@ class Schema
         $this->backfillChangedNextSteps();
         $this->backfillPersonnelApplicationNotifications();
         $this->backfillFirstSubmissionNotifications();
+        $this->backfillBackupDownloadNotifications();
 
         // ===== ANNOUNCEMENTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
@@ -770,6 +771,14 @@ class Schema
             $update->bind_param('ssss', $role, $old, $new, $old);
             $update->execute();
         }
+    }
+
+    private function backfillBackupDownloadNotifications(): void
+    {
+        $this->connection->query(
+            "UPDATE `notifications` SET message = REPLACE(message, 'Press Save a copy on', 'Press Download on')
+             WHERE type = 'backup_download'"
+        );
     }
 
     private function backfillAboutTextAgriculturalOrder(): void

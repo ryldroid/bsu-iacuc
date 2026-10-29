@@ -9,7 +9,6 @@
   const uploadInput = document.getElementById("backup-upload-input");
   const status = document.getElementById("backup-status");
   const progress = document.getElementById("backup-progress");
-  const error = document.getElementById("backup-error");
   const results = document.getElementById("backup-results");
   const health = document.getElementById("backup-health");
 
@@ -48,11 +47,12 @@
   }
 
   function showError(message) {
-    error.textContent = message;
-    error.hidden = false;
+    status.textContent = defaultStatus;
+    showToast(message, "error", { autodismiss: 8000 });
   }
 
   function flashStatus(message) {
+    showToast(message);
     status.textContent = message;
     clearTimeout(statusTimer);
     statusTimer = setTimeout(() => (status.textContent = defaultStatus), 8000);
@@ -95,7 +95,6 @@
 
   // ===== Create a backup =====
   async function createBackup() {
-    error.hidden = true;
     setButtonBusy(createButton, true, "Backing up...");
 
     try {
@@ -111,7 +110,6 @@
 
   // ===== Upload a backup =====
   async function uploadBackup(file) {
-    error.hidden = true;
     setButtonBusy(uploadButton, true, "Uploading...");
     createButton.disabled = true;
     status.textContent = "Uploading the backup...";
@@ -146,7 +144,6 @@
 
   // ===== Verify a backup =====
   async function verifyBackup(button) {
-    error.hidden = true;
     results
       .querySelectorAll("button")
       .forEach((item) => (item.disabled = true));
@@ -170,7 +167,6 @@
 
       flashStatus("Backup verified. Every file matches its checksum.");
     } catch (e) {
-      status.textContent = defaultStatus;
       showError(e.message);
     } finally {
       bar.remove();
@@ -225,12 +221,11 @@
 
     setButtonBusy(restoreSubmit, false);
     closeRestore();
-    error.hidden = true;
     setButtonBusy(createButton, true, "Restoring...");
 
     try {
       await runJob(state);
-      status.textContent = "Restore complete. Reloading...";
+      flashStatus("Restore complete. Reloading...");
       setTimeout(() => location.reload(), 1500);
     } catch (e) {
       const untouched = !["swap", "cleanup"].includes(lastPhase);
@@ -250,11 +245,11 @@
     );
     if (!confirmed) return;
 
-    error.hidden = true;
     setButtonBusy(button, true, "Deleting...");
 
     try {
       await post("delete", { name: button.dataset.name });
+      flashStatus("Backup deleted.");
       await loadBackups();
     } catch (e) {
       showError(e.message);
@@ -267,6 +262,8 @@
     const verify = event.target.closest(".js-backup-verify");
     const restore = event.target.closest(".js-backup-restore");
     const remove = event.target.closest(".js-backup-delete");
+
+    if (download || verify || restore || remove) closeProtocolMenus();
 
     if (download) {
       location.href = `${endpoint}/download/${encodeURIComponent(download.dataset.name)}`;

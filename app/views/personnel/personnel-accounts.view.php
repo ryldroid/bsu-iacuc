@@ -28,6 +28,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-base.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('pagination.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('content-manager.css') ?>">
@@ -365,7 +366,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                 </svg>
                                 Backups
                             </h2>
-                            <div class="backup-actions">
+                            <div class="backup-toolbar">
                                 <button type="button" id="backup-upload" class="accounts-btn-primary accounts-btn-outline">
                                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#upload-icon" />
@@ -384,7 +385,6 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                         <p class="audit-description" id="backup-status">A backup is a saved copy of everything in the portal: its records, protocol files and site uploads. The 10 newest are kept.</p>
                         <div id="backup-health"></div>
                         <div class="upload-progress-container" id="backup-progress"></div>
-                        <div class="alert error-messages" id="backup-error" hidden></div>
                         <div id="backup-results"></div>
                     </section>
                 </div>
@@ -426,7 +426,7 @@ $guideSteps = [
     ['Create a backup', 'Press **Create Backup**. It runs in steps, so keep this page open until the bar reaches 100%.', '#backup-create'],
     ['Upload a backup', 'Press **Restore from a file** and choose a backup ZIP you saved earlier. It is sent in small pieces and checked before it appears in the list. Then press **Restore this backup** on it to bring it back.', '#backup-upload'],
     ['Backup health', 'This line shows when the last backup was made. It turns into a warning when the newest backup is 3 days old or more, or when none exists. Open **Technical details** for server limits.', '#backup-health'],
-    ['Saved backups', '**Save a copy** to keep a backup off the server, **Verify backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
+    ['Saved backups', '**Download** to keep a backup off the server, **Verify backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
     ['Restore', '**Restore this backup** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
@@ -521,6 +521,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('tabs.js') ?>" defer></script>
 <script src="<?= asset_js('flash-dismiss.js') ?>" defer></script>
+<script src="<?= asset_js('protocol-menu.js') ?>" defer></script>
 <script src="<?= asset_js('backups.js') ?>" defer></script>
 <script src="<?= asset_js('content-manager.js') ?>" defer></script>
 

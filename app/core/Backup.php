@@ -178,6 +178,7 @@ class Backup
         'created_by' => $manifest['created_by'] ?? '',
         'encrypted'  => !empty($manifest['encrypted']),
         'label'      => $manifest['label'] ?? '',
+        'uploaded_at' => str_ends_with($name, '-uploaded.zip') ? date('Y-m-d H:i:s', (int) filemtime($path)) : null,
         'rows'       => array_sum(array_column($manifest['tables'] ?? [], 'rows')),
         'files'      => count($manifest['files'] ?? []),
         'valid'      => $manifest !== null,
