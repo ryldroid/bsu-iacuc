@@ -504,7 +504,7 @@ class Personnel extends Controller
                 ? ROOT . '/personnel/records_file/' . (int) $row['id'] . '/' . (slugify(strtok($row['file_original_name'] ?? '', '.') ?: '') ?: 'record')
                 : '';
             $row['has_signed_scan'] = !empty($row['protocol_id'])
-                && $this->protocolModel->getLatestVersion((int) $row['protocol_id'], 'signed_scan') !== null;
+                && $this->protocolModel->getCurrentSignedScan((int) $row['protocol_id']) !== null;
         }
 
         echo json_encode(

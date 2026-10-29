@@ -121,9 +121,9 @@ window.protocolRowActions = {
       () => submitStatusChange(id, "Reviewed", btn, "revert"),
     ),
 
-  "revert-endorsed-to-review": (id) =>
+  "return-endorsed-for-revision": (id) =>
     openDeleteModal(id, rowProtocol(id)?.research_title ?? "", {
-      mode: "revert",
+      mode: "agencyReturn",
     }),
 
   "mark-approved": (id, btn) =>

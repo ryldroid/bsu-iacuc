@@ -751,7 +751,7 @@ class RecordModel extends Model
     if ($version) {
       $root       = dirname(__DIR__, 2);
       $source     = $root . '/storage/uploads/protocols/' . $version['file_path'];
-      $recordsDir = $root . '/storage/uploads/records/';
+      $recordsDir = self::fileDir();
 
       if (!is_dir($recordsDir)) {
         @mkdir($recordsDir, 0750, true);
@@ -942,6 +942,22 @@ class RecordModel extends Model
     if (! $stmt) return false;
     $stmt->bind_param('i', $id);
     return $stmt->execute();
+  }
+
+  public function deleteWithFile(int $id): bool
+  {
+    $record = $this->getById($id);
+    if (! $this->delete($id)) return false;
+
+    if (! empty($record['file_path'])) {
+      @unlink(self::fileDir() . $record['file_path']);
+    }
+    return true;
+  }
+
+  public static function fileDir(): string
+  {
+    return dirname(__DIR__, 2) . '/storage/uploads/records/';
   }
 
   // ===== AUTOMATIC DEACTIVATION ON CLEARANCE EXPIRY =====

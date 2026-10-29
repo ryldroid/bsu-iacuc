@@ -481,7 +481,7 @@ class ProtocolModel extends Model
                     (SELECT pv.file_path
                      FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id
-                       AND pv.file_type IN ('protocol', 'signed_scan')
+                       AND (pv.file_type = 'protocol' OR " . self::scanIsCurrent('pv') . ")
                      ORDER BY pv.file_type = 'signed_scan' DESC, pv.version_number DESC
                      LIMIT 1) AS file_path
                 FROM `protocols` p
@@ -539,6 +539,7 @@ class ProtocolModel extends Model
                      FROM `protocol_versions` pv6
                      WHERE pv6.protocol_id = p.id
                        AND pv6.file_type = 'signed_scan'
+                       AND " . self::scanIsCurrent('pv6') . "
                      ORDER BY pv6.version_number DESC
                      LIMIT 1) AS latest_signed_scan_version_id,
                     (SELECT pv7.id
@@ -610,6 +611,7 @@ class ProtocolModel extends Model
                  FROM `protocol_versions` pv6
                  WHERE pv6.protocol_id = p.id
                    AND pv6.file_type = 'signed_scan'
+                   AND " . self::scanIsCurrent('pv6') . "
                  ORDER BY pv6.version_number DESC
                  LIMIT 1) AS latest_signed_scan_version_id,
                 (SELECT pv7.original_name
@@ -959,6 +961,29 @@ class ProtocolModel extends Model
         unset($row);
 
         return $rows;
+    }
+
+    private static function scanIsCurrent(string $alias): string
+    {
+        return "$alias.uploaded_at >= COALESCE((SELECT MAX(latest_protocol.uploaded_at) FROM `protocol_versions` latest_protocol WHERE latest_protocol.protocol_id = $alias.protocol_id AND latest_protocol.file_type = 'protocol'), $alias.uploaded_at)";
+    }
+
+    public function getCurrentSignedScan(int $protocolId): ?array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT pv.*
+             FROM `protocol_versions` pv
+             WHERE pv.protocol_id = ? AND pv.file_type = 'signed_scan' AND " . self::scanIsCurrent('pv') . "
+             ORDER BY pv.version_number DESC
+             LIMIT 1"
+        );
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc() ?: null;
     }
 
     public function getLatestVersion(int $protocolId, string $fileType = 'protocol'): ?array

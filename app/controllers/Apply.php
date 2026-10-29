@@ -149,27 +149,17 @@ class Apply extends Controller
         );
     }
 
-    private function notifyReviewersReturnedToReview(array $protocol, array $actor, string $reason): void
-    {
-        $title = $protocol['research_title'] ?? 'Untitled Protocol';
-
-        Notifier::sendToRole(
-            'reviewer',
-            'protocol_returned_to_review',
-            'Protocol Returned to Review',
-            $this->roleLabel($actor['role']) . " {$actor['name']} returned " . Notifier::boldTitle($title) . ' to To Review after Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI sent it back.' . Notifier::reasonSentence($reason) . ' ' . Notifier::NEXT_STEPS['new_submission_reviewer'],
-            'apply/viewer/' . $protocol['protocol_id']
-        );
-    }
-
     private function notifyPersonnelStatusReverted(array $protocol, array $actor, string $newStatus, string $reason, bool $reviewUndone): void
     {
         $title   = $protocol['research_title'] ?? 'Untitled Protocol';
-        $summary = $reviewUndone
-            ? 'undid the review of ' . Notifier::boldTitle($title) . '. It is back in To Review.'
-            : 'moved ' . Notifier::boldTitle($title) . ' back to ' . Notifier::bold($newStatus) . '.';
+        $summary = match (true) {
+            $reviewUndone                   => 'undid the review of ' . Notifier::boldTitle($title) . '. It is back in To Review.',
+            $newStatus === 'Needs Revision' => 'returned ' . Notifier::boldTitle($title) . ' for revision after ' . Notifier::RETURNED_BY_AGENCY_SOURCE . ' sent it back.',
+            default                         => 'moved ' . Notifier::boldTitle($title) . ' back to ' . Notifier::bold($newStatus) . '.',
+        };
+        $recipientRoles = $reviewUndone || $newStatus === 'Needs Revision' ? ['reviewer', 'staff'] : ['staff'];
 
-        foreach ($reviewUndone ? ['reviewer', 'staff'] : ['staff'] as $role) {
+        foreach ($recipientRoles as $role) {
             Notifier::sendToRole(
                 $role,
                 'protocol_reverted',
@@ -340,17 +330,16 @@ class Apply extends Controller
             $noticeKey = 'reviewed paid';
         }
 
-        $returned       = $noticeKey === 'under review' && !$reviewUndone;
-        $approvalUndone = $noticeKey === 'endorsed' && strtolower($protocol['status'] ?? '') === 'approved';
+        $returnedByAgency = $noticeKey === 'needs revision' && strtolower($protocol['status'] ?? '') === 'endorsed';
+        $approvalUndone   = $noticeKey === 'endorsed' && strtolower($protocol['status'] ?? '') === 'approved';
         [$noticeTitle, $nextStep] = match (true) {
-            $reviewUndone   => Notifier::REVIEW_UNDONE_NOTICE,
-            $returned       => Notifier::returnedToReviewNotice($reason),
-            $approvalUndone => Notifier::APPROVAL_UNDONE_NOTICE,
-            default         => Notifier::STATUS_NOTICES[$noticeKey],
+            $reviewUndone     => Notifier::REVIEW_UNDONE_NOTICE,
+            $returnedByAgency => Notifier::returnedByAgencyNotice($reason),
+            $approvalUndone   => Notifier::APPROVAL_UNDONE_NOTICE,
+            default           => Notifier::STATUS_NOTICES[$noticeKey],
         };
         $type = match (true) {
             $reviewUndone   => 'protocol_review_undone',
-            $returned       => 'protocol_returned_to_review',
             $approvalUndone => 'protocol_approval_undone',
             default         => 'protocol_status_' . str_replace(' ', '_', strtolower($newStatus)),
         };
@@ -1601,7 +1590,7 @@ class Apply extends Controller
             'isStaff'           => $perm['isStaff'],
             'backUrl'           => $backUrl,
             'latestPaymentProofVersion' => $this->protocolModel->getLatestVersion($protocolId, 'payment_proof'),
-            'latestSignedScanVersion'   => $this->protocolModel->getLatestVersion($protocolId, 'signed_scan'),
+            'latestSignedScanVersion'   => $this->protocolModel->getCurrentSignedScan($protocolId),
             'latestClearanceVersion'    => $this->protocolModel->getLatestVersion($protocolId, 'clearance'),
             'paymentRejection'  => $this->protocolModel->getLatestPaymentRejection($protocolId),
             'reviewerNote'      => $this->protocolModel->getReturnReasonForVersion((int) $version['id']),
@@ -1649,6 +1638,15 @@ class Apply extends Controller
             $this->renderError(403, 'Access Denied', [
                 'You do not have permission to view this file.',
             ]);
+        }
+
+        if ($version['file_type'] === 'clearance' && !$this->isPersonnel()) {
+            $latestClearance = $this->protocolModel->getLatestVersion((int) $version['protocol_id'], 'clearance');
+            if (strtolower($version['protocol_status']) !== 'approved' || (int) ($latestClearance['id'] ?? 0) !== $versionId) {
+                $this->renderError(404, 'File Not Found', [
+                    'The file you are looking for does not exist or may have been removed.',
+                ]);
+            }
         }
 
         $filePath = dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $version['file_path'];
@@ -1913,7 +1911,7 @@ class Apply extends Controller
             ],
             'staff'    => [
                 'reviewed' => ['Endorsed', 'Under Review'],
-                'endorsed' => ['Reviewed', 'Approved', 'Under Review'],
+                'endorsed' => ['Reviewed', 'Approved', 'Needs Revision'],
                 'approved' => ['Endorsed'],
             ],
         ];
@@ -1923,7 +1921,10 @@ class Apply extends Controller
             $this->jsonError(422, "That status change isn't allowed from the protocol's current state.");
         }
 
+        $returnedByAgency = $newStatus === 'Needs Revision' && strtolower($protocol['status']) === 'endorsed';
+
         $isRevert = $newStatus === 'Under Review'
+            || $returnedByAgency
             || ($newStatus === 'Reviewed' && strtolower($protocol['status']) === 'endorsed')
             || ($newStatus === 'Endorsed' && strtolower($protocol['status']) === 'approved');
 
@@ -1933,7 +1934,11 @@ class Apply extends Controller
             $this->jsonError(422, 'Undo the payment before undoing the review.');
         }
 
-        $reason = $newStatus === 'Under Review' ? mb_substr(trim((string) ($body['reason'] ?? '')), 0, 1000) : '';
+        $reason = ($newStatus === 'Under Review' || $returnedByAgency) ? mb_substr(trim((string) ($body['reason'] ?? '')), 0, 1000) : '';
+
+        if ($returnedByAgency && $reason === '') {
+            $this->jsonError(422, 'A reason is required so the researcher knows what to revise.');
+        }
 
         if ($newStatus === 'Endorsed' && $isRevert && !empty($protocol['hard_copy_released_at'])) {
             $this->jsonError(422, 'Undo the hard copy pickup before reverting this protocol.');
@@ -1947,8 +1952,10 @@ class Apply extends Controller
             if (empty($protocol['reference_no'])) {
                 $this->jsonError(422, 'Assign an IPN to this protocol before it can be endorsed.');
             }
-            if (!$this->protocolModel->getLatestVersion($protocolId, 'signed_scan')) {
-                $this->jsonError(422, 'A signed scan must be uploaded before this protocol can be endorsed.');
+            if (!$this->protocolModel->getCurrentSignedScan($protocolId)) {
+                $this->jsonError(422, $this->protocolModel->getLatestVersion($protocolId, 'signed_scan')
+                    ? 'This protocol was revised after its last signed scan. Upload a new signed scan before endorsing.'
+                    : 'A signed scan must be uploaded before this protocol can be endorsed.');
             }
         }
 
@@ -1976,6 +1983,10 @@ class Apply extends Controller
             $auditAction = $isRevert ? 'status_reverted' : 'status_updated';
             $this->protocolModel->logAudit($auditAction, $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Status changed to: $newStatus" . ($reason !== '' ? ". Reason: $reason" : ''), $protocol['status'], $newStatus);
 
+            if ($returnedByAgency) {
+                $this->protocolModel->insertReturnReason($protocolId, $actor['id'], $reason, $latestProtocolVersion['id'] ?? null);
+            }
+
             // ===== KEEP RECORD STATUS IN STEP WITH APPROVAL =====
             if ($newStatus === 'Approved') {
                 $this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::PENDING_STATUS, RecordModel::DEFAULT_STATUS);
@@ -1995,10 +2006,10 @@ class Apply extends Controller
                 }
             }
 
-            if ($isUndoReviewed) {
+            if ($isUndoReviewed || $returnedByAgency) {
                 $record = $this->recordModel->getByProtocolId($protocolId);
                 if ($record) {
-                    $this->recordModel->delete((int) $record['id']);
+                    $this->recordModel->deleteWithFile((int) $record['id']);
                 }
             }
 
@@ -2008,13 +2019,9 @@ class Apply extends Controller
                 $this->notifyPersonnelStatusReverted($protocol, $actor, $newStatus, $reason, $isUndoReviewed);
             }
 
-            if ($newStatus === 'Under Review' && !$isUndoReviewed) {
-                $this->notifyReviewersReturnedToReview($protocol, $actor, $reason);
-            }
-
             // ===== SUCCESS MESSAGE =====
             $flashMessages = [
-                'Under Review'   => $isUndoReviewed ? 'Review undone. Protocol is back to To Review.' : 'Endorsement reverted. Protocol is back to To Review.',
+                'Under Review'   => 'Review undone. Protocol is back to To Review.',
                 'Needs Revision' => 'Protocol returned for revision. The researcher will be notified to make changes.',
                 'Reviewed'       => $isRevert ? 'Endorsement reverted. Protocol is back to Reviewed.' : 'Review finished. Protocol details have been added to the records.',
                 'Endorsed'       => $isRevert ? 'Approval reverted. Protocol is back to Endorsed.' : 'Protocol marked as endorsed.',

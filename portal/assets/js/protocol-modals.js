@@ -131,21 +131,20 @@ const DELETE_MODES = {
     icon: "trash-icon",
     placeholder: "Explain why this protocol should be deleted...",
   },
-  revert: {
+  agencyReturn: {
     api: "/apply/status",
     label: "Mark as returned by DA-RFO-CAR or BAI",
     intro:
-      "The researcher and reviewers will be notified. Add why Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI returned it.",
-    button: "Revert",
-    busy: "Reverting...",
-    confirm: "Send this protocol back to To Review?",
+      "The protocol will go to Returned for Revision and its record will be removed until it is reviewed again. The researcher and reviewers will be notified, and the researcher will see your note. Add why Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI returned it.",
+    button: "Return",
+    busy: "Returning...",
+    confirm: "Return this protocol to the researcher for revision?",
     danger: false,
     icon: "undo-icon",
     placeholder:
       "For example: Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) asked for a corrected animal count.",
-    optional: true,
     neutral: true,
-    body: { status: "Under Review" },
+    body: { status: "Needs Revision" },
   },
 };
 const deleteBackdrop = protocolModalBind("deleteModalBackdrop", () =>

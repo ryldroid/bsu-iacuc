@@ -369,6 +369,7 @@ class Schema
         $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
         $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
         $this->backfillReturnReasonVersions();
+        $this->clearStaleReturnedRecords();
         $this->backfillMissingRecords();
         $this->backfillPendingRecordStatus();
 
@@ -911,6 +912,54 @@ class Schema
              SET r.status = 'Pending'
              WHERE r.status = 'Ongoing' AND p.status <> 'Approved'"
         );
+    }
+
+    // ===== ONE-TIME CLEANUP: records kept after Endorsed -> To Review -> Reviewed =====
+    // Deleted here, then backfillMissingRecords() recreates them from the protocol. Flag in site_settings.
+    private function clearStaleReturnedRecords(): void
+    {
+        $c       = $this->connection;
+        $flagKey = 'stale_returned_records_cleared';
+
+        $check = $c->prepare("SELECT 1 FROM `site_settings` WHERE setting_key = ?");
+        if (! $check) return;
+        $check->bind_param('s', $flagKey);
+        $check->execute();
+        if ($check->get_result()->fetch_assoc()) return;
+
+        $result = $c->query(
+            "SELECT r.id
+             FROM `records` r
+             JOIN `protocols` p ON p.id = r.protocol_id
+             WHERE p.deleted_at IS NULL
+               AND p.status IN ('Reviewed', 'Endorsed', 'Approved')
+               AND EXISTS (
+                   SELECT 1 FROM `audit_logs` endorsed
+                   JOIN `audit_logs` returned
+                        ON returned.target_type = 'protocol' AND returned.target_id = endorsed.target_id
+                       AND returned.id > endorsed.id
+                       AND (returned.action = 'protocol_revised' OR returned.details LIKE 'Status changed to: Under Review%')
+                   JOIN `audit_logs` reviewed
+                        ON reviewed.target_type = 'protocol' AND reviewed.target_id = endorsed.target_id
+                       AND reviewed.id > returned.id
+                       AND reviewed.action = 'status_updated' AND reviewed.details = 'Status changed to: Reviewed'
+                   WHERE endorsed.target_type = 'protocol' AND endorsed.target_id = p.id
+                     AND endorsed.details = 'Status changed to: Endorsed'
+               )"
+        );
+        if (! $result) return;
+
+        $records = new RecordModel();
+        foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
+            $records->deleteWithFile((int) $row['id']);
+        }
+
+        $flagValue = '1';
+        $flag      = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        if ($flag) {
+            $flag->bind_param('ss', $flagKey, $flagValue);
+            $flag->execute();
+        }
     }
 
     // Adds a record for every Reviewed (or later) protocol that has none, e.g. when the

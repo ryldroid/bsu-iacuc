@@ -664,7 +664,7 @@ foreach ($protocols as $p) {
                                             ],
                                             [
                                                 'label' => 'Mark as returned by DA-RFO-CAR or BAI',
-                                                'action' => 'revert-endorsed-to-review',
+                                                'action' => 'return-endorsed-for-revision',
                                                 'icon' => 'undo',
                                                 'menu' => true
                                             ]

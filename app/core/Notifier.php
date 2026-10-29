@@ -68,15 +68,17 @@ class Notifier
     ];
   }
 
-  // ===== RETURNED TO REVIEW (BY DA-RFO CAR OR BAI) =====
+  // ===== RETURNED FOR REVISION (BY DA-RFO CAR OR BAI) =====
+  public const RETURNED_BY_AGENCY_SOURCE = 'Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI';
+
   public static function reasonSentence(string $reason): string
   {
     return $reason === '' ? '' : ' Reason: ' . rtrim($reason, '.') . '.';
   }
 
-  public static function returnedToReviewNotice(string $reason): array
+  public static function returnedByAgencyNotice(string $reason): array
   {
-    return ['Protocol Returned to Review', 'was returned to review after Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) or BAI sent it back.' . self::reasonSentence($reason) . ' No action needed for now. You will be notified if revisions are needed or once the review is finished.'];
+    return ['Revision Needed', 'was returned for revision after ' . self::RETURNED_BY_AGENCY_SOURCE . ' sent it back.' . self::reasonSentence($reason) . ' Open it, fix your files, then re-submit.'];
   }
 
   // ===== SEND TO ONE USER =====
