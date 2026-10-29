@@ -1053,7 +1053,10 @@ include 'includes/guide.php';
 
         try {
             const res = await fetch(ROOT + '/apply/submit', {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': DRAFT_CSRF
+                }
             });
             const json = await res.json();
 
