@@ -101,7 +101,9 @@ include 'includes/guide.php';
         try {
             await fetch(ROOT + '/apply/draftsave', {
                 method: 'POST',
-                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+                headers: csrfHeaders({
+                    'Content-Type': 'application/json'
+                }),
                 body: JSON.stringify({
                     step: state.step,
                     agreedTerms: state.agreedTerms,
@@ -481,7 +483,7 @@ include 'includes/guide.php';
                 By submitting this application, you confirm that you have read, understood, and agree to be bound by these terms. You also confirm that you are the Principal Investigator of this protocol and that you are authorized to submit it.
 
                 <h3>2. Governing laws and policies</h3>
-                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, and the requirements of Department of Agriculture Administrative Order No. 40, Series of 1998, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission (NPC).
+                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, and the requirements of Department of Agriculture Administrative Order No. 40, Series of 1999, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission (NPC).
 
                 <h3>3. Accuracy of information</h3>
                 Information and documents you submit must be true, accurate, and complete. Any misrepresentation may result in denial, suspension, or revocation of approval.
@@ -987,7 +989,9 @@ include 'includes/guide.php';
         try {
             await fetch(ROOT + '/apply/draftremovefile', {
                 method: 'POST',
-                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+                headers: csrfHeaders({
+                    'Content-Type': 'application/json'
+                }),
                 body: JSON.stringify({
                     key
                 })

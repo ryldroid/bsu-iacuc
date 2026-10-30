@@ -869,12 +869,12 @@ class Schema
     private function backfillAboutTextCompliance(): void
     {
         $this->connection->query(
-            "UPDATE `site_settings` SET setting_value = REPLACE(setting_value, 'Series of 1999', 'Series of 1998')
+            "UPDATE `site_settings` SET setting_value = REPLACE(setting_value, 'Administrative Order No. 40, Series of 1998', 'Administrative Order No. 40, Series of 1999')
              WHERE setting_key = 'about_text'"
         );
 
         $clause     = Seeder::CHED_MEMO_CLAUSE;
-        $separate   = "\n\n" . 'The Commission on Higher Education (CHED) has issued memoranda as part of its compliance with Department of Agriculture Administrative Order No. 40, Series of 1998, known as the Rules and Regulations on the Conduct of Scientific Procedures Using Animals, specifically the [CHED Memorandum dated April 23, 2015](https://www.facebook.com/bai.gov.ph/posts/commission-on-higher-education-ched-has-issued-memoranda-as-part-of-its-complian/400983116759988/).';
+        $separate   = "\n\n" . 'The Commission on Higher Education (CHED) has issued memoranda as part of its compliance with Department of Agriculture Administrative Order No. 40, Series of 1999, known as the Rules and Regulations on the Conduct of Scientific Procedures Using Animals, specifically the [CHED Memorandum dated April 23, 2015](https://www.facebook.com/bai.gov.ph/posts/commission-on-higher-education-ched-has-issued-memoranda-as-part-of-its-complian/400983116759988/).';
         $mergeCHED  = $this->connection->prepare(
             "UPDATE `site_settings` SET setting_value = REPLACE(REPLACE(setting_value, ?, ''), '(AO 40). Researchers', CONCAT('(AO 40)', ?, '. Researchers'))
              WHERE setting_key = 'about_text'"
