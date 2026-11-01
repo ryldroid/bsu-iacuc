@@ -372,6 +372,7 @@ class Schema
         $this->clearStaleReturnedRecords();
         $this->backfillMissingRecords();
         $this->backfillPendingRecordStatus();
+        $this->backfillDaOfficeName();
 
         // ===== PAYMENT PROOF REJECTIONS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `payment_proof_rejections` (
@@ -912,6 +913,97 @@ class Schema
              SET r.status = 'Pending'
              WHERE r.status = 'Ongoing' AND p.status <> 'Approved'"
         );
+    }
+
+    // ===== ONE-TIME BACKFILL: DA regional office name =====
+    // The office is now "Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR)" (plain hyphens, same as the other office names).
+    // Rewrites every older spelling (DA-CARFU, DA-RFO CAR, "Field Unit" wording) already saved in the database.
+    // Audit logs are left alone on purpose. Flag in site_settings, so later edits in Site Content are kept.
+    private function backfillDaOfficeName(): void
+    {
+        $c       = $this->connection;
+        $flagKey = 'da_office_name_v2';
+
+        $check = $c->prepare("SELECT 1 FROM `site_settings` WHERE setting_key = ?");
+        if (! $check) return;
+        $check->bind_param('s', $flagKey);
+        $check->execute();
+        if ($check->get_result()->fetch_assoc()) return;
+
+        $full     = 'Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR)';
+        $patterns = [
+            // Long form, with or without "Regional Field Office" and with "Field Unit": any dash style
+            '/Department of Agriculture\s*[-–—]\s*(?:Regional Field Office\s*(?:[-–—]\s*)?)?Cordillera Administrative Region(?:\s+Field Unit)?\s*\(\s*DA-(?:CARFU|RFO[\s-]CAR)\s*\)/u' => $full,
+            // Short form on its own
+            '/\bDA-CARFU\b/u'    => 'DA-RFO-CAR',
+            '/\bDA-RFO CAR\b/u'  => 'DA-RFO-CAR',
+        ];
+
+        // table => [key column, text columns, whether to keep updated_at unchanged]
+        $targets = [
+            'contact_offices' => ['id',          ['name', 'facebook_label', 'director_role'], true],
+            'site_settings'   => ['setting_key', ['setting_value'],                            false],
+            'faqs'            => ['id',          ['question', 'answer'],                       true],
+            'announcements'   => ['id',          ['title', 'body'],                            true],
+            'notifications'   => ['id',          ['title', 'message'],                         false],
+        ];
+
+        $needles = ['%CARFU%', '%DA-RFO CAR%', '%Cordillera Administrative Region%'];
+
+        foreach ($targets as $table => [$keyCol, $columns, $keepStamp]) {
+            $where = [];
+            foreach ($columns as $col) {
+                foreach ($needles as $_) {
+                    $where[] = "`$col` LIKE ?";
+                }
+            }
+            $select = $c->prepare("SELECT `$keyCol`, " . implode(', ', array_map(fn($col) => "`$col`", $columns)) . " FROM `$table` WHERE " . implode(' OR ', $where));
+            if (! $select) continue;
+
+            $params = [];
+            foreach ($columns as $_) {
+                foreach ($needles as $needle) {
+                    $params[] = $needle;
+                }
+            }
+            $select->bind_param(str_repeat('s', count($params)), ...$params);
+            $select->execute();
+            $rows = $select->get_result()->fetch_all(MYSQLI_ASSOC);
+
+            foreach ($rows as $row) {
+                $changes = [];
+                foreach ($columns as $col) {
+                    $old = (string) ($row[$col] ?? '');
+                    $new = $old;
+                    foreach ($patterns as $pattern => $replacement) {
+                        $new = preg_replace($pattern, $replacement, $new) ?? $new;
+                    }
+                    if ($new !== $old) {
+                        $changes[$col] = $new;
+                    }
+                }
+                if (! $changes) continue;
+
+                $set = implode(', ', array_map(fn($col) => "`$col` = ?", array_keys($changes)));
+                if ($keepStamp) {
+                    $set .= ', `updated_at` = `updated_at`';
+                }
+                $update = $c->prepare("UPDATE `$table` SET $set WHERE `$keyCol` = ?");
+                if (! $update) continue;
+
+                $values   = array_values($changes);
+                $values[] = $row[$keyCol];
+                $update->bind_param(str_repeat('s', count($values)), ...$values);
+                $update->execute();
+            }
+        }
+
+        $flagValue = '1';
+        $flag      = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        if ($flag) {
+            $flag->bind_param('ss', $flagKey, $flagValue);
+            $flag->execute();
+        }
     }
 
     // ===== ONE-TIME CLEANUP: records kept after Endorsed -> To Review -> Reviewed =====

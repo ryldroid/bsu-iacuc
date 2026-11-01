@@ -214,7 +214,7 @@ function renderCertSection(cert) {
                     <span class="researcher-detail-value"><span class="status-dot payment-badge ${CERT_STATUS_BADGES[cert.status] || ""}">${escapeHtml(CERT_STATUS_LABELS[cert.status] || cert.status)}</span></span>
                 </div>
                 <div class="researcher-detail-row">
-                    <span class="researcher-detail-label">Current file</span>
+                    <span class="researcher-detail-label">File</span>
                     <span class="researcher-detail-value"><a class="researcher-name-link" href="${escapeHtml(cert.file_url)}" target="_blank" rel="noopener">View certificate</a></span>
                 </div>
             </div>

@@ -79,6 +79,25 @@ h2 {
   width: 100% !important;
 }
 
+/* ===== "Open on Facebook" link under each partner embed (the embed can show only a header when a Page restricts its timeline) ===== */
+.fb-open-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0.65em 1em;
+  border-top: 1px solid var(--divider-color);
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--brand-text);
+  text-decoration: none;
+}
+
+.fb-open-link:hover {
+  background: var(--divider-color-subtle);
+  text-decoration: underline;
+}
+
 /* ===== Empty state ===== */
 .announcements-empty {
   color: var(--secondary-text);

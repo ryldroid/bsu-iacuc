@@ -799,8 +799,20 @@
     height: 9px;
   }
 
-  .legend-icon svg {
+  /* Compact dots in the legend bar only; the info popover keeps its icons */
+  .legend-item .legend-icon svg {
     display: none;
+  }
+
+  .legend-info-row .legend-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .legend-info-row .legend-icon svg {
+    display: block;
+    width: 14px;
+    height: 14px;
   }
 
   .legend-info-panel {

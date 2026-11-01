@@ -323,14 +323,14 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#search-icon">
                         </svg>
-                        <input type="text"
+                        <input type="search"
                             name="search"
                             id="recordSearch"
                             aria-label="Search records"
                             class="inbox-search-input"
                             placeholder="Search records…"
                             value="<?= htmlspecialchars($search, ENT_QUOTES) ?>"
-                            autocomplete="off"
+                            autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"
                             form="recordsFilterForm">
                         <button type="button" class="inbox-search-clear <?= $search ? 'visible' : '' ?>" id="clearSearch" aria-label="Clear search"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#close-icon" />
@@ -1283,7 +1283,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                 picker.classList.toggle('is-hidden', !!name);
                 card.classList.toggle('is-hidden', !name);
                 card.querySelector('[data-file-name]').textContent = name;
-                card.querySelector('[data-file-sub]').textContent = chosen ? formatFileSize(chosen.size) + ' \u00b7 Not saved yet' : 'Current file';
+                card.querySelector('[data-file-sub]').textContent = chosen ? formatFileSize(chosen.size) + ' \u00b7 Not saved yet' : 'File';
                 preview.classList.toggle('is-hidden', !previewUrl);
                 preview.href = previewUrl || '#';
                 field.querySelector('[data-file-note]').textContent = state.removed ? 'The current file will be removed when you save.' : FILE_HINT;

@@ -38,13 +38,13 @@ $statusMeta = [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR) Regulatory Division.",
+        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) Regulatory Division.",
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => "No action needed.Your protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
+        'desc'  => "No action needed.Your protocol has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
     ],
     'approved' => [
         'label' => 'Approved',
@@ -890,7 +890,9 @@ include 'includes/guide.php';
                 document.getElementById('btn-sub-new').addEventListener('confirm:accepted', () => {
                     fetch('<?= ROOT ?>/apply/draftclear', {
                         method: 'POST',
-                        headers: csrfHeaders({ 'Content-Type': 'application/json' })
+                        headers: csrfHeaders({
+                            'Content-Type': 'application/json'
+                        })
                     }).finally(() => {
                         window.location.href = applyUrl;
                     });

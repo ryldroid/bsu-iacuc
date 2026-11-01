@@ -249,6 +249,20 @@
     line-height: 1.4;
 }
 
+/* type="search" keeps password managers away; drop the native look and clear button (we have our own) */
+.inbox-search-input {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.inbox-search-input::-webkit-search-cancel-button,
+.inbox-search-input::-webkit-search-decoration,
+.inbox-search-input::-webkit-search-results-button,
+.inbox-search-input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    display: none;
+}
+
 .inbox-search-input:focus {
     outline: none;
     border-color: var(--focus-ring-color);

@@ -11,9 +11,9 @@
   <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <use href="#search-icon" />
   </svg>
-  <input type="text" class="inbox-search-input" data-cm-search="<?= htmlspecialchars($cmSearchTarget, ENT_QUOTES) ?>"
+  <input type="search" class="inbox-search-input" data-cm-search="<?= htmlspecialchars($cmSearchTarget, ENT_QUOTES) ?>"
     placeholder="<?= htmlspecialchars($cmSearchPlaceholder, ENT_QUOTES) ?>"
-    aria-label="<?= htmlspecialchars($cmSearchPlaceholder, ENT_QUOTES) ?>" autocomplete="off">
+    aria-label="<?= htmlspecialchars($cmSearchPlaceholder, ENT_QUOTES) ?>" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
   <button type="button" class="inbox-search-clear" data-cm-search-clear aria-label="Clear search">
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <use href="#close-icon" />

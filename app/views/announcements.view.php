@@ -191,6 +191,12 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
                                 data-show-facepile="true">
                             </div>
                         </div>
+                        <a class="fb-open-link" href="https://www.facebook.com/bsuovpre" target="_blank" rel="noopener noreferrer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#external-link-icon" />
+                            </svg>
+                            Open on Facebook
+                        </a>
                     </section>
                     <!-- BSU CCARD FB -->
                     <section class="fb-page-section">
@@ -212,6 +218,12 @@ $renderAnnouncement = function (array $post, bool $isSlide) {
                                 data-show-facepile="true">
                             </div>
                         </div>
+                        <a class="fb-open-link" href="https://www.facebook.com/p/BSU-Cordillera-Center-for-Animal-Research-Development-100083273710247/" target="_blank" rel="noopener noreferrer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#external-link-icon" />
+                            </svg>
+                            Open on Facebook
+                        </a>
                     </section>
                 </div>
             </section>

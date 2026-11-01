@@ -47,14 +47,14 @@ $statusDescByRole = [
         'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and delete protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
         'reviewed'              => "The reviewer has finished review. Here, in a step-by-step process:\n(1) Wait for the researcher to pay their clearance processing fee,\n(2) Verify submitted payment,\n(3) Assign IPN,\n(4) Upload the scan with the IACUC chairperson's signature, and\n(5) Mark the protocol as **endorsed**.",
-        'endorsed'              => "Protocols have been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **approved**.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Upload released animal research clearances, assign AR numbers, match clearances to their protocols, then confirm to mark them **approved**.",
         'approved'              => "Digital animal research clearances issued! The protocols are now fully approved. Confirm when researchers have picked up the embossed hard copy of their clearances.",
     ],
     'reviewer' => [
         'to-review'             => "Submitted protocols waiting on your feedback. You may open, review, download, rename, and delete protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. You can still read and comment even if a certificate is rejected, but you cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed until they resubmit.',
         'reviewed'              => "You have finished the assessment. No action required. Administrative staff will now verify payments, assign IPNs, and upload the scan with the IACUC chairperson's sign.",
-        'endorsed'              => "Protocol has been endorsed to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR). No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.",
+        'endorsed'              => "Protocol has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). No action required. Administrative staff will upload the released animal research clearances and release them to the researchers.",
         'approved'              => 'Animal research clearances issued! The protocols are now fully approved.',
     ],
 ];
@@ -245,9 +245,9 @@ foreach ($protocols as $p) {
                             <circle cx="11" cy="11" r="8" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
-                        <input type="text" id="inboxSearchInput" class="inbox-search-input"
+                        <input type="search" id="inboxSearchInput" class="inbox-search-input"
                             aria-label="Search by title or researcher"
-                            placeholder="Search by title or researcher..." autocomplete="off">
+                            placeholder="Search by title or researcher..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
                         <button class="inbox-search-clear" id="inboxSearchClear" aria-label="Clear search">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#close-icon" />

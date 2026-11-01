@@ -2363,7 +2363,7 @@ class Apply extends Controller
         $this->protocolModel->logAudit('signed_scan_uploaded', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, 'Signed scan uploaded');
         $this->notifySignedScanUploaded($protocol, $actor);
 
-        $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to Department of Agriculture – Regional Field Office Cordillera Administrative Region (DA-RFO CAR).';
+        $_SESSION['flash_success'] = 'Signed scan uploaded. Mark this protocol as endorsed once delivered to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).';
         echo json_encode(['success' => true]);
         exit;
     }
