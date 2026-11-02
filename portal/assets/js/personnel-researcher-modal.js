@@ -6,6 +6,8 @@ let accountStatusChanged = false;
 let currentResearcherName = "";
 let certReviewMode = false;
 
+const RESEARCHER_TYPE_LABEL = "Researcher Type";
+
 const CERT_REVIEW_TITLES = {
   pending: "Review before you continue",
   rejected: "Resubmission requested",
@@ -110,7 +112,7 @@ function renderResearcherDetails(d) {
     ["Email", d.email],
     ["Phone", formatPhone(d.phone_number) || "N/A"],
     ["School", d.school || "N/A"],
-    ["Role", capitalize(d.role)],
+    [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
     ["Account status", d.status_label || capitalize(d.status)],
     ["Last login", d.last_login_at ? formatDate(d.last_login_at) : "Never"],
     ["Joined", joined],
@@ -160,7 +162,7 @@ function renderCertReview(d, fullName) {
         ${renderDetailRows([
           ["Researcher Name", fullName],
           ["School", d.school || "N/A"],
-          ["Role", capitalize(d.role)],
+          [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
         ])}
         ${renderCertPreview(d.cert, fullName)}
         ${renderCertActions(d.cert)}

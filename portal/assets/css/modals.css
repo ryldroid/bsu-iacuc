@@ -851,7 +851,8 @@ img[data-zoom-src] {
 }
 
 .confirm-modal-btn:focus-visible,
-.confirm-modal-btn:focus {
+.confirm-modal-btn:focus,
+.welcome-actions [data-guide-next] {
     outline: 2px solid var(--brand-color-hover);
     outline-offset: 2px;
 }

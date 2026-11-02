@@ -430,7 +430,7 @@ include 'includes/header.php';
                 <div class="panel-modal-body">
                     <textarea id="commentText" class="return-comment-textarea" rows="4" aria-labelledby="commentDialogTitle" placeholder="Type your comment…"></textarea>
                     <div class="panel-modal-actions" id="commentDialogActions">
-                        <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="cancelComment()">Cancel</button>
+                        <button class="confirm-modal-btn confirm-modal-cancel" type="button" tabindex="-1" onclick="cancelComment()">Cancel</button>
                         <button class="confirm-modal-btn confirm-modal-ok" type="button" id="commentDialogSave" onclick="saveComment()">
                             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#edit-icon" />

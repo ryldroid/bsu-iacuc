@@ -144,6 +144,7 @@ class Personnel extends Controller
                 'phone_number'   => $user['phone_number'] ?? '',
                 'school'         => $user['school'] ?? '',
                 'role'           => $user['role'],
+                'researcher_type' => $user['researcher_type'] ?? '',
                 'status'         => $user['status'],
                 'status_label'   => AccountLifecycle::statusLabel($user),
                 'last_login_at'  => $user['last_login_at'] ?? null,
@@ -1880,13 +1881,13 @@ class Personnel extends Controller
 
         $error = match (true) {
             !$target || !in_array($target['role'], ['researcher', 'staff', 'reviewer'], true) || in_array($target['status'], ['pending', 'deleted'], true)
-                => 'Account not found.',
+            => 'Account not found.',
             $this->isActor($id)
-                => 'You cannot deactivate your own account.',
+            => 'You cannot deactivate your own account.',
             $deactivate && $target['status'] !== 'active'
-                => 'This account is already deactivated.',
+            => 'This account is already deactivated.',
             !$deactivate && $target['status'] !== 'deactivated'
-                => 'This account is not deactivated.',
+            => 'This account is not deactivated.',
             default => null,
         };
 
