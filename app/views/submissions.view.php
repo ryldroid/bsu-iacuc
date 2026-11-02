@@ -32,7 +32,7 @@ $statusMeta = [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => "The reviewer found an issue and sent your protocol back.Revise it following the comments and re-submit your file.",
+        'desc'  => "The reviewer found an issue and sent your protocol back. Revise it following the comments and re-submit your file.",
     ],
     'reviewed' => [
         'label' => 'Reviewed',
@@ -44,7 +44,7 @@ $statusMeta = [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => "No action needed.Your protocol has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
+        'desc'  => "No action needed. Your protocol has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
     ],
     'approved' => [
         'label' => 'Approved',

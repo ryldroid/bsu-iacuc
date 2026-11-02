@@ -737,7 +737,7 @@ include 'includes/guide.php';
     <div class="page-title">Submit your protocol</div>
 
     <div class="section-label">Part 1: Upload completed form</div>
-    <p class="step-intro-text">Print your protocol then collected the required signatures. Afterwards, scan and upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
+    <p class="step-intro-text">Print your protocol, then collect the required signatures. Afterwards, scan and upload the signed copy. Make sure your uploads are legible, accurate, and complete.</p>
 
     ${docRow('protocol', {
         title: 'Completed IACUC protocol form',
