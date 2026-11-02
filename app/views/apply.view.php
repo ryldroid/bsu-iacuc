@@ -405,7 +405,7 @@ include 'includes/guide.php';
         return `
     ${stepTag(0)}
     <div class="page-title">Requirements and process</div>
-    ${state.certBlock ? `<div class="error-messages">${escapeHtml(state.certBlock)}</div>` : ''}
+    ${state.certBlock ? `<div class="error-messages" role="alert">${escapeHtml(state.certBlock)}</div>` : ''}
 
     <div class="section-label">You'll need</div>
     <div class="doc-list">

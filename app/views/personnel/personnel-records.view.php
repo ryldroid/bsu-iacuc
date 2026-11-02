@@ -644,11 +644,11 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         </div>
                         <div class="pagination-buttons">
                             <?php if ($page > 1): ?>
-                                <a href="<?= pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="First">«</a>
-                                <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Previous">‹</a>
+                                <a href="<?= pageUrl(1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="First" aria-label="First page">«</a>
+                                <a href="<?= pageUrl($page - 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Previous" aria-label="Previous page">‹</a>
                             <?php else: ?>
-                                <span class="pagination-btn" style="opacity:.35;cursor:default">«</span>
-                                <span class="pagination-btn" style="opacity:.35;cursor:default">‹</span>
+                                <span class="pagination-btn" style="opacity:.35;cursor:default" aria-hidden="true">«</span>
+                                <span class="pagination-btn" style="opacity:.35;cursor:default" aria-hidden="true">‹</span>
                             <?php endif; ?>
 
                             <?php
@@ -658,17 +658,17 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                             for ($i = $start; $i <= $end; $i++):
                             ?>
                                 <a href="<?= pageUrl($i, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>"
-                                    class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+                                    class="pagination-btn <?= $i === $page ? 'active' : '' ?>" <?= $i === $page ? ' aria-current="page"' : '' ?>><?= $i ?></a>
                             <?php endfor;
                             if ($end < $totalPages) echo '<span class="pagination-ellipsis">…</span>';
                             ?>
 
                             <?php if ($page < $totalPages): ?>
-                                <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Next">›</a>
-                                <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Last">»</a>
+                                <a href="<?= pageUrl($page + 1, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Next" aria-label="Next page">›</a>
+                                <a href="<?= pageUrl($totalPages, $search, $school, $animalType, $sex, $researcherType, $sort, $status) ?>" class="pagination-btn" title="Last" aria-label="Last page">»</a>
                             <?php else: ?>
-                                <span class="pagination-btn" style="opacity:.35;cursor:default">›</span>
-                                <span class="pagination-btn" style="opacity:.35;cursor:default">»</span>
+                                <span class="pagination-btn" style="opacity:.35;cursor:default" aria-hidden="true">›</span>
+                                <span class="pagination-btn" style="opacity:.35;cursor:default" aria-hidden="true">»</span>
                             <?php endif; ?>
                         </div>
                     </div>

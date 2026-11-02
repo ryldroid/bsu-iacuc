@@ -76,18 +76,18 @@ $auditToneKeywords = [
       <div class="pagination-buttons">
         <?php if ($auditPage > 1): ?>
           <a href="?audit_page=<?= $auditPage - 1 ?><?= !empty($auditFilterDate) ? '&audit_date=' . urlencode($auditFilterDate) : '' ?>#audit-log-viewer"
-            class="pagination-btn js-audit-page" data-page="<?= $auditPage - 1 ?>" title="Previous">‹</a>
+            class="pagination-btn js-audit-page" data-page="<?= $auditPage - 1 ?>" title="Previous" aria-label="Previous page">‹</a>
         <?php else: ?>
-          <span class="pagination-btn disabled">‹</span>
+          <span class="pagination-btn disabled" aria-hidden="true">‹</span>
         <?php endif; ?>
 
-        <span class="pagination-btn active"><?= $auditPage ?></span>
+        <span class="pagination-btn active" aria-current="page"><?= $auditPage ?></span>
 
         <?php if ($auditPage < $auditPages): ?>
           <a href="?audit_page=<?= $auditPage + 1 ?><?= !empty($auditFilterDate) ? '&audit_date=' . urlencode($auditFilterDate) : '' ?>#audit-log-viewer"
-            class="pagination-btn js-audit-page" data-page="<?= $auditPage + 1 ?>" title="Next">›</a>
+            class="pagination-btn js-audit-page" data-page="<?= $auditPage + 1 ?>" title="Next" aria-label="Next page">›</a>
         <?php else: ?>
-          <span class="pagination-btn disabled">›</span>
+          <span class="pagination-btn disabled" aria-hidden="true">›</span>
         <?php endif; ?>
       </div>
     </div>

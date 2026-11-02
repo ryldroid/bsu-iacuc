@@ -58,6 +58,7 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    if (versionMenu?.classList.contains("open")) versionTrigger?.focus();
     versionMenu?.classList.remove("open");
     versionTrigger?.setAttribute("aria-expanded", "false");
   }

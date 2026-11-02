@@ -853,3 +853,77 @@ document.querySelectorAll(".modal-card").forEach((card, index) => {
   card.setAttribute("aria-modal", "true");
   card.setAttribute("aria-labelledby", title.id);
 });
+
+// ===== Keyboard for every open modal: Esc closes it, Tab stays inside it, focus returns to the opener =====
+(function () {
+  const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  const openers = new WeakMap();
+  let modalAtKeydown = null;
+
+  const topModal = () =>
+    [...document.querySelectorAll(".modal-backdrop.open")].pop();
+  const focusables = (modal) =>
+    [...modal.querySelectorAll(FOCUSABLE)].filter(
+      (el) => el.getClientRects().length,
+    );
+
+  new MutationObserver((mutations) => {
+    for (const { target, oldValue } of mutations) {
+      if (!target.matches(".modal-backdrop")) continue;
+      const wasOpen = /(^|\s)open(\s|$)/.test(oldValue ?? "");
+      const isOpen = target.classList.contains("open");
+      if (isOpen && !wasOpen) {
+        openers.set(target, document.activeElement);
+        if (!target.contains(document.activeElement))
+          focusables(target)[0]?.focus();
+      } else if (!isOpen && wasOpen) {
+        openers.get(target)?.focus?.();
+      }
+    }
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+    attributeOldValue: true,
+    subtree: true,
+  });
+
+  document.addEventListener(
+    "keydown",
+    () => (modalAtKeydown = topModal()),
+    true,
+  );
+
+  document.addEventListener("keydown", (e) => {
+    const modal = topModal();
+    if (!modal || e.defaultPrevented) return;
+    if (document.activeElement?.closest('[role="alertdialog"]')) return;
+
+    if (e.key === "Escape") {
+      const handledElsewhere = modalAtKeydown !== modal;
+      if (handledElsewhere || modal.querySelector('[aria-expanded="true"]'))
+        return;
+      modal.querySelector(".modal-close")?.click();
+      return;
+    }
+
+    if (e.key !== "Tab") return;
+    const items = focusables(modal);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (!modal.contains(active) || (e.shiftKey && active === first)) {
+      e.preventDefault();
+      (modal.contains(active) ? last : first).focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+})();
+
+// ===== Error boxes are announced to screen readers the moment they appear =====
+document
+  .querySelectorAll(".error-messages")
+  .forEach((box) => box.setAttribute("role", "alert"));

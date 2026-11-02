@@ -111,9 +111,9 @@ function notifDateGroup(string $dateStr): string
         </div>
         <div class="notif-page-pagination-buttons">
           <?php if ($page > 1): ?>
-            <a href="<?= notifPageUrl($page - 1) ?>" class="notif-page-btn" title="Previous">‹</a>
+            <a href="<?= notifPageUrl($page - 1) ?>" class="notif-page-btn" title="Previous" aria-label="Previous page">‹</a>
           <?php else: ?>
-            <span class="notif-page-btn disabled">‹</span>
+            <span class="notif-page-btn disabled" aria-hidden="true">‹</span>
           <?php endif; ?>
 
           <?php
@@ -122,15 +122,15 @@ function notifDateGroup(string $dateStr): string
           if ($start > 1) echo '<span class="notif-page-ellipsis">…</span>';
           for ($i = $start; $i <= $end; $i++):
           ?>
-            <a href="<?= notifPageUrl($i) ?>" class="notif-page-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+            <a href="<?= notifPageUrl($i) ?>" class="notif-page-btn <?= $i === $page ? 'active' : '' ?>" <?= $i === $page ? ' aria-current="page"' : '' ?>><?= $i ?></a>
           <?php endfor;
           if ($end < $totalPages) echo '<span class="notif-page-ellipsis">…</span>';
           ?>
 
           <?php if ($page < $totalPages): ?>
-            <a href="<?= notifPageUrl($page + 1) ?>" class="notif-page-btn" title="Next">›</a>
+            <a href="<?= notifPageUrl($page + 1) ?>" class="notif-page-btn" title="Next" aria-label="Next page">›</a>
           <?php else: ?>
-            <span class="notif-page-btn disabled">›</span>
+            <span class="notif-page-btn disabled" aria-hidden="true">›</span>
           <?php endif; ?>
         </div>
       </div>
@@ -170,7 +170,9 @@ function notifDateGroup(string $dateStr): string
       try {
         await fetch(<?= json_encode(ROOT . '/notifications/markallread') ?>, {
           method: 'POST',
-          headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+          headers: csrfHeaders({
+            'Content-Type': 'application/json'
+          }),
         });
         location.reload();
       } catch (e) {}
