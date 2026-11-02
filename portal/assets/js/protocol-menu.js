@@ -28,7 +28,7 @@ const PROTOCOL_MENU_ACTIONS = {
     openAmendmentModal(id, title, {
       redirectUrl: menu.dataset.amendRedirect || null,
     }),
-  "cancel-deletion": (id) => cancelDeletionRequest(id),
+  "cancel-deletion": (id, title) => cancelDeletionRequest(id, title),
   delete: (id, title, item, menu) =>
     openDeleteModal(id, title, {
       mode: menu.dataset.deleteMode,

@@ -45,7 +45,7 @@ async function completeReview(btn) {
     return;
   }
   const ok = await confirmAction(
-    "Finish your review? The protocol will be marked as reviewed.",
+    `Finish your review of ${confirmName(PROTOCOL_TITLE)}? The protocol will be marked as reviewed.`,
     {
       okText: "Proceed",
       cancelText: "Back",
@@ -84,7 +84,7 @@ returnComment.addEventListener("input", () => {
 async function submitReturnRevision() {
   if (await commentsStillSyncing()) return;
   const ok = await confirmAction(
-    "Return this protocol for revision? The researcher will be notified and asked to resubmit.",
+    `Return ${confirmName(PROTOCOL_TITLE)} for revision? The researcher will be notified and asked to resubmit.`,
     {
       okText: "Return for Revision",
       cancelText: "Cancel",

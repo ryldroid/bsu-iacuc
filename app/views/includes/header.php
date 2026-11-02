@@ -10,9 +10,10 @@ $previewMode     = $previewMode     ?? false;
 $pubRoot         = $previewMode ? ROOT . '/preview' : ROOT;
 
 $accountUser     = $user ? ($accountUser ?? (new UserModel())->getUser((int) $user['user_id'])) : null;
-$accountRequired = isset($_GET['required']);
 $needsProfile    = $role === 'researcher' && (empty($accountUser['sex']) || empty($accountUser['researcher_type']));
-$showVerifyModal = $accountRequired && !$needsProfile && empty($accountUser['email_verified']);
+$emailPending    = empty($accountUser['email_verified']) && ($_SESSION['verify_snoozed_until'] ?? 0) <= time();
+$accountRequired = isset($_GET['required']) && ($needsProfile || $emailPending);
+$showVerifyModal = $accountRequired && !$needsProfile;
 
 $themeModes = [
   ['light', 'Light', 'sun-icon'],
@@ -34,6 +35,9 @@ $guideContact = ['Contact Us', 'Find how to reach relevant offices.', ...$navLin
 $guideSidebar = ['Expand the sidebar', 'Show or hide page names beside the icons.', '#sidebar-toggle', '', true];
 $guideNotifications = ['Notifications', 'The bell shows a badge when there are updates relevant to you.', '.notif-bell svg'];
 $guideTheme = ['Theme', 'Switch between light, dark, or system to match your device settings.', '#theme-toggle'];
+$guideDeactivation = ['Account Deactivation', $role === 'researcher'
+  ? "Your account becomes inactive when your clearance has ended and none of your protocols are still being processed.\n\n**What happens:** you stop receiving email notifications. Your protocols and records are kept.\n**To come back:** log in and confirm. Everything is as you left it."
+  : "Your account is deactivated after " . AccountLifecycle::PERSONNEL_DORMANT_MONTHS . " months without logging in, or when administrative staff deactivate it.\n\n**What happens:** you are signed out, cannot log in, and stop receiving email notifications. Protocols and records are not affected.\n**To come back:** ask an administrative staff member to reactivate your account."];
 $guideHelp = ['Guide', 'Click here to replay this tour anytime.', '.header-help'];
 $guideAccount = ['Account', 'Open this to update your account, ' . ($role === 'researcher' ? '' : 'preview the public site, ') . 'switch between light, dark, or system theme to match your device settings, change your email preferences, or log out.', '.header-account'];
 $welcomeSteps = [];
@@ -48,6 +52,7 @@ if ($role === 'researcher') {
     $guideContact,
     $guideNotifications,
     $guideAccount,
+    $guideDeactivation,
     $guideHelp,
   ];
 } elseif ($role === 'staff') {
@@ -61,6 +66,7 @@ if ($role === 'researcher') {
     ['Administration', 'View and download audit logs, manage personnel accounts, and create system and data backups.', ...$navLink('/personnel/accounts')],
     $guideNotifications,
     $guideAccount,
+    $guideDeactivation,
     $guideHelp,
   ];
 } elseif ($role === 'reviewer') {
@@ -72,6 +78,7 @@ if ($role === 'researcher') {
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,
+    $guideDeactivation,
     $guideHelp,
   ];
 } elseif (!$user && !$previewMode && !$hideHeader && !$hideHeaderAuth) {
@@ -145,7 +152,10 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
   ?>
     <script>
       const NOTIF_CSRF_TOKEN = <?= json_encode($_SESSION['csrf_token']) ?>;
-      const csrfHeaders = (extra = {}) => ({ 'X-CSRF-Token': NOTIF_CSRF_TOKEN, ...extra });
+      const csrfHeaders = (extra = {}) => ({
+        'X-CSRF-Token': NOTIF_CSRF_TOKEN,
+        ...extra
+      });
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const CURRENT_USER_ID = <?= json_encode((int) ($user['user_id'] ?? 0)) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
@@ -316,7 +326,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
 
                 <!-- ===== Resend verification form ===== -->
                 <form id="resend-verification-form" method="POST" action="<?= ROOT ?>/user/resend_verification" hidden
-                  data-confirm-message="Send a verification link to <?= htmlspecialchars($accountUser['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>?"
+                  data-confirm-message="Send a verification link to <?= htmlspecialchars(confirm_bold($accountUser['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>?"
                   data-confirm-ok-text="Send">
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 </form>
@@ -632,8 +642,8 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
     $guideSteps    = $welcomeSteps;
     $guideOpen     = $showWelcome;
     $guideShowOnce = !$user;
+    $guideRequired = $showWelcome;
     include __DIR__ . '/guide.php';
   } ?>
-  <?php if ($showWelcome && $welcomeSteps) unset($_SESSION['user']['show_welcome']); ?>
 
   <div id="sidebar-backdrop" aria-hidden="true"></div>

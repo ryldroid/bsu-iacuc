@@ -790,14 +790,14 @@
     font-size: 0.95rem;
   }
 
-  .status-badge,
-  .status-badge+.pending-sync-badge {
+  .version-switcher {
     order: 5;
-    font-size: 0.8rem;
   }
 
-  .version-switcher {
+  .status-badge,
+  .status-badge+.pending-sync-badge {
     order: 6;
+    font-size: 0.8rem;
   }
 
   .page-indicator {

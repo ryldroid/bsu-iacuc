@@ -11,7 +11,11 @@
 
     function update(animate) {
       const active = bar.querySelector(".status-card.active");
-      if (!active || active.offsetWidth === 0) return;
+      if (!active || active.offsetWidth === 0) {
+        indicator.style.setProperty("--underline-width", "0px");
+        lastWidth = 0;
+        return;
+      }
 
       indicator.classList.toggle("no-transition", !animate || lastWidth === 0);
       indicator.style.setProperty("--underline-left", active.offsetLeft + "px");

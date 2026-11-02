@@ -82,7 +82,8 @@ $backups = $backups ?? [];
                     </button>
                   <?php endif; ?>
                   <button type="button" class="reject-btn personnel-status-btn js-backup-delete"
-                    data-name="<?= htmlspecialchars($backup['name']) ?>">
+                    data-name="<?= htmlspecialchars($backup['name']) ?>"
+                    data-created="<?= date(DATETIME_FORMAT, strtotime($backup['created_at'])) ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                       <use href="#trash-icon" />
                     </svg>

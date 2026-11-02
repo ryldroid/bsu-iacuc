@@ -13,6 +13,12 @@ function escapeHtml(value) {
   );
 }
 
+// ===== Actor label ("Staff - Juan Admin") =====
+function formatActor(name, role) {
+  if (!name) return "";
+  return role ? role.charAt(0).toUpperCase() + role.slice(1) + " - " + name : name;
+}
+
 // ===== File size =====
 function formatFileSize(bytes) {
   if (bytes === null || bytes === undefined) return "";

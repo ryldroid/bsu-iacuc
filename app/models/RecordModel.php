@@ -962,32 +962,50 @@ class RecordModel extends Model
 
   // ===== AUTOMATIC DEACTIVATION ON CLEARANCE EXPIRY =====
 
+  // A researcher with a record that has no end date is treated as still cleared, so they are never auto-deactivated or warned
+  private const NO_OPEN_ENDED_RECORD = "AND NOT EXISTS (
+         SELECT 1 FROM `records` open_r WHERE open_r.user_id = r.user_id AND open_r.research_duration_end IS NULL
+       )";
+
+  // Researchers whose LAST clearance expited before this month began: they go inactive on the 1st of the month after it ended.
+  // An older expired clearance never counts while a newer one is still running.
+  // A researcher who was reactivated on or after that inactive date is skipped, otherwise the next sweep would undo the reactivation
+  // at once. They become eligible again only when a clearance ending later than their reactivation expires.
   public function getUsersWithExpiredClearances(): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT DISTINCT r.user_id
+      "SELECT r.user_id
        FROM `records` r
        JOIN `users` u ON u.id = r.user_id
        WHERE r.user_id IS NOT NULL
          AND r.research_duration_end IS NOT NULL
-         AND r.research_duration_end < CURDATE()
-         AND u.status = 'active'"
+         AND u.status = 'active'
+         AND u.role = 'researcher'
+         " . self::NO_OPEN_ENDED_RECORD . "
+       GROUP BY r.user_id, u.reactivated_at
+       HAVING MAX(r.research_duration_end) < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+         AND (u.reactivated_at IS NULL OR u.reactivated_at < DATE_ADD(LAST_DAY(MAX(r.research_duration_end)), INTERVAL 1 DAY))"
     );
     if (! $stmt) return [];
     $stmt->execute();
     return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
   }
 
+  // Researchers whose account becomes inactive within $daysAhead days and who have not been warned about that clearance yet
   public function getUsersWithClearancesExpiringSoon(int $daysAhead): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT u.id, u.first_name, u.email, MIN(r.research_duration_end) AS ends_on
+      "SELECT u.id, u.first_name, u.email, MAX(r.research_duration_end) AS ends_on
        FROM `records` r
        JOIN `users` u ON u.id = r.user_id
-       WHERE r.research_duration_end BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+       WHERE r.research_duration_end IS NOT NULL
          AND u.status = 'active'
-       GROUP BY u.id, u.first_name, u.email, u.expiry_warned_for
-       HAVING u.expiry_warned_for IS NULL OR u.expiry_warned_for != ends_on"
+         AND u.role = 'researcher'
+         " . self::NO_OPEN_ENDED_RECORD . "
+       GROUP BY u.id, u.first_name, u.email, u.expiry_warned_for, u.reactivated_at
+       HAVING DATE_ADD(LAST_DAY(ends_on), INTERVAL 1 DAY) BETWEEN DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND DATE_ADD(CURDATE(), INTERVAL ? DAY)
+         AND (u.expiry_warned_for IS NULL OR u.expiry_warned_for != ends_on)
+         AND (u.reactivated_at IS NULL OR u.reactivated_at < DATE_ADD(LAST_DAY(ends_on), INTERVAL 1 DAY))"
     );
     if (! $stmt) return [];
     $stmt->bind_param('i', $daysAhead);
@@ -1007,16 +1025,19 @@ class RecordModel extends Model
         continue;
       }
 
-      $expiryDate = date('F j, Y', strtotime($user['ends_on']));
+      $endsOn       = strtotime($user['ends_on']);
+      $ended        = $endsOn < strtotime('today');
+      $expiryDate   = date('F j, Y', $endsOn);
+      $inactiveDate = date('F j, Y', strtotime('first day of next month', $endsOn));
       Notifier::send(
         $userId,
         'clearance_expiring',
         'Clearance Expiring Soon',
-        'Your animal research clearance expires on ' . Notifier::bold($expiryDate) . '. Your account will be marked inactive after that unless you have a pending protocol. No action needed. You may reactivate it at any time by logging in.',
+        'Your animal research clearance ' . ($ended ? 'ended' : 'ends') . ' on ' . Notifier::bold($expiryDate) . '. Your account will be marked inactive on ' . Notifier::bold($inactiveDate) . ' unless you have a pending protocol. No action needed. You may reactivate it at any time by logging in and confirming.',
         'submissions',
         [
           'template' => 'clearance_expiring',
-          'vars'     => ['first_name' => $user['first_name'], 'expiry_date' => $expiryDate],
+          'vars'     => ['first_name' => $user['first_name'], 'expiry_date' => $expiryDate, 'inactive_date' => $inactiveDate, 'ended' => $ended],
           'to'       => $user['email'],
           'name'     => $user['first_name'],
           'subject'  => 'Clearance Expiring Soon',
@@ -1032,7 +1053,6 @@ class RecordModel extends Model
   public function runExpiryDeactivationSweep(): int
   {
     $protocolModel = new ProtocolModel();
-    $userModel     = new UserModel();
 
     $deactivated = 0;
     foreach ($this->getUsersWithExpiredClearances() as $userId) {
@@ -1040,16 +1060,7 @@ class RecordModel extends Model
       if ($protocolModel->hasActiveProtocols($userId)) {
         continue;
       }
-      if ($userModel->deactivateUser($userId)) {
-        $userModel->logAudit(
-          'account_deactivated',
-          null,
-          'System',
-          'system',
-          'user',
-          $userId,
-          'Auto-deactivated: animal research clearance expired with no protocols pending'
-        );
+      if (AccountLifecycle::deactivate($userId, AccountLifecycle::REASON_EXPIRED)) {
         $deactivated++;
       }
     }

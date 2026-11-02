@@ -519,6 +519,7 @@ class ProtocolModel extends Model
                     u.first_name,
                     u.last_name,
                     u.school,
+                    u.status AS researcher_status,
                     (SELECT MAX(pv.version_number)
                      FROM `protocol_versions` pv
                      WHERE pv.protocol_id = p.id
@@ -1468,22 +1469,6 @@ class ProtocolModel extends Model
         $stmt = $this->connection->prepare(
             "SELECT 1 FROM `protocols`
              WHERE user_id = ? AND deleted_at IS NULL AND status != 'Approved'
-             LIMIT 1"
-        );
-        if (! $stmt) {
-            return true;
-        }
-        $stmt->bind_param('i', $userId);
-        $stmt->execute();
-        return (bool) $stmt->get_result()->fetch_row();
-    }
-
-    public function hasLockedProtocols(int $userId): bool
-    {
-        $deletable = "'" . implode("','", ProtocolPermissions::DELETABLE_STATUSES) . "'";
-        $stmt = $this->connection->prepare(
-            "SELECT 1 FROM `protocols`
-             WHERE user_id = ? AND deleted_at IS NULL AND LOWER(status) NOT IN ($deletable)
              LIMIT 1"
         );
         if (! $stmt) {

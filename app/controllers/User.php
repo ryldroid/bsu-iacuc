@@ -119,6 +119,8 @@ class User extends Controller
       $this->redirect('submissions');
     }
 
+    unset($_SESSION['pending_reactivation']);
+
     $prefill = $_SESSION['new_username'] ?? $_SESSION['new_email'] ?? '';
     unset($_SESSION['new_username'], $_SESSION['new_email']);
 
@@ -149,7 +151,7 @@ class User extends Controller
     }
 
     $this->verifyCsrfToken(true);
-    unset($_SESSION['pending_verification']);
+    unset($_SESSION['pending_verification'], $_SESSION['pending_reactivation']);
 
     // ===== READ INPUT =====
     $input    = trim($_POST['username'] ?? '');
@@ -213,6 +215,13 @@ class User extends Controller
       $this->redirect('user/login');
     }
 
+    // ===== DEACTIVATED BY STAFF: ONLY STAFF CAN BRING THE ACCOUNT BACK =====
+    if ($blocked = AccountLifecycle::signInBlock($user)) {
+      $this->userModel->logAudit('login_blocked_deactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Login blocked: the account is deactivated');
+      $_SESSION['flash_error'] = $blocked;
+      $this->redirect('user/login');
+    }
+
     // ===== EMAIL MUST BE VERIFIED FIRST =====
     if (empty($user['email_verified'])) {
       $_SESSION['pending_verification'] = (int) $user['id'];
@@ -221,20 +230,59 @@ class User extends Controller
       $this->redirect('user/login');
     }
 
+    // ===== INACTIVE BECAUSE THE CLEARANCE EXPIRED: CONFIRM BEFORE COMING BACK =====
+    if (AccountLifecycle::canSelfReactivate($user)) {
+      $_SESSION['pending_reactivation'] = ['id' => (int) $user['id'], 'until' => time() + 300];
+      $this->redirect('user/reactivate');
+    }
+
     $this->startResearcherSession($user);
 
     $this->redirect('submissions');
   }
 
-  // Signs a researcher in: reactivates a deactivated account, starts the session, queues the welcome guide, and logs it
-  private function startResearcherSession(array $user): void
+  // ===== REACTIVATE (RESEARCHER WHOSE LATEST CLEARANCE EXPIRED) =====
+  // Reached only right after a correct password. The flag lasts 5 minutes and is cleared on the login page,
+  // so an unattended browser cannot be used to reactivate and sign in.
+  public function reactivate()
   {
-    $reactivated = false;
-    if (($user['status'] ?? 'active') === 'deactivated') {
-      $this->userModel->reactivateUser((int) $user['id']);
-      $reactivated = true;
+    if ($this->isLoggedIn()) {
+      $this->redirect('submissions');
     }
 
+    $pending = $_SESSION['pending_reactivation'] ?? null;
+    $user    = is_array($pending) && ($pending['until'] ?? 0) > time() ? $this->userModel->getUser((int) $pending['id']) : null;
+
+    if (!$user || !AccountLifecycle::canSelfReactivate($user)) {
+      unset($_SESSION['pending_reactivation']);
+      $this->redirect('user/login');
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+      $this->view('user/reactivate', [
+        'csrf'          => $this->generateCsrfToken(),
+        'firstName'     => $user['first_name'],
+        'deactivatedAt' => $user['deactivated_at'] ?? null,
+      ]);
+      return;
+    }
+
+    $this->verifyCsrfToken(true);
+    unset($_SESSION['pending_reactivation']);
+
+    if (!AccountLifecycle::reactivate((int) $user['id'])) {
+      $_SESSION['flash_error'] = 'Your account could not be reactivated. Please try again.';
+      $this->redirect('user/login');
+    }
+
+    $this->startResearcherSession($this->userModel->getUser((int) $user['id']));
+    $_SESSION['flash_success'] = $this->welcomeBackMessage($user) . ' Your account has been reactivated.';
+    $this->redirect('submissions');
+  }
+
+  // Signs a researcher in: starts the session, records the login, and queues the welcome guide
+  private function startResearcherSession(array $user): void
+  {
     // ===== START SESSION =====
     session_regenerate_id(true);
     $_SESSION['user'] = [
@@ -261,11 +309,8 @@ class User extends Controller
       targetId: (int)$user['id'],
       description: 'Researcher logged in'
     );
-
-    if ($reactivated) {
-      $this->userModel->logAudit('account_reactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Account reactivated by logging in');
-      $_SESSION['flash_success'] = 'Welcome back! Your account has been reactivated.';
-    }
+    $this->flashWelcomeBack($user);
+    $this->userModel->touchLastLogin((int) $user['id']);
   }
 
   // ===== REGISTER =====
@@ -381,6 +426,20 @@ class User extends Controller
     $this->verifyCsrfHeader();
 
     $_SESSION['verify_snoozed_until'] = time() + EMAIL_VERIFY_SNOOZE;
+
+    $this->jsonResponse(['ok' => true]);
+  }
+
+  // ===== WELCOME GUIDE FINISHED (POST /user/welcome_done) =====
+
+  public function welcome_done(): void
+  {
+    $this->requireLogin();
+    $this->requirePostMethod();
+    $this->verifyCsrfHeader();
+
+    $this->userModel->markWelcomeSeen((int) $_SESSION['user']['user_id']);
+    unset($_SESSION['user']['show_welcome']);
 
     $this->jsonResponse(['ok' => true]);
   }
@@ -613,34 +672,42 @@ class User extends Controller
       $this->redirect('user/account');
     }
 
+    // ===== RESEARCHER RULE: protocols still being processed block deletion, approved ones are archived =====
     if ($role === 'researcher') {
       $protocolModel = new ProtocolModel();
-
-      if ($protocolModel->hasLockedProtocols($id)) {
-        $_SESSION['flash_error'] = 'You cannot delete your account while you have endorsed or approved protocols.';
-        $this->redirect('user/account');
-      }
 
       if ($protocolModel->hasActiveProtocols($id)) {
         $_SESSION['flash_error'] = 'You cannot delete your account while you have protocols that are still being processed.';
         $this->redirect('user/account');
-      }
-
-      $protocolModel->softDeleteAllForUser($id, 'Deleted User', 'Account deleted by owner');
-
-      (new DraftModel())->clear($id);
-      $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';
-      if (is_dir($draftDir)) {
-        $this->rrmdir($draftDir);
       }
     } elseif ($role === 'staff' && $this->userModel->isLastActiveStaff($id)) {
       $_SESSION['flash_error'] = 'You are the only active Administrative Staff account. Give another account the staff role before deleting yours.';
       $this->redirect('user/account');
     }
 
-    $ok = $this->userModel->deleteUser($id);
+    $certFiles = $this->userModel->getCertFiles($id);
+    $db        = $this->userModel->connection;
+    $db->begin_transaction();
 
-    if ($ok) {
+    $failedStep = null;
+    if ($role === 'researcher' && !$protocolModel->softDeleteAllForUser($id, 'Deleted User', 'Account deleted by owner')) {
+      $failedStep = 'archiving protocols';
+    } elseif ($role === 'researcher' && !(new DraftModel())->clear($id)) {
+      $failedStep = 'clearing drafts';
+    } elseif (!$this->userModel->deleteUser($id)) {
+      $failedStep = 'removing account details';
+    } elseif (!$db->commit()) {
+      $failedStep = 'saving the changes';
+    }
+
+    if ($failedStep === null) {
+      $this->userModel->removeCertFiles($certFiles);
+
+      $draftDir = dirname(__DIR__, 2) . '/storage/uploads/drafts/' . $id . '/';
+      if ($role === 'researcher' && is_dir($draftDir) && !$this->rrmdir($draftDir)) {
+        $this->userModel->logAudit('draft_cleanup_failed', $id, $username, $role, 'user', $id, 'Could not remove the draft folder of the deleted account');
+      }
+
       $this->userModel->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
       Mailer::sendTemplate('account_deleted', ['first_name' => $account['first_name'], 'deleted_by_admin' => false], $account['email'], $account['first_name'], 'Account Deleted');
 
@@ -650,16 +717,19 @@ class User extends Controller
       $this->redirect($role === 'researcher' ? 'user/login' : 'personnel/login');
     }
 
+    $db->rollback();
+    $this->userModel->logAudit('account_delete_failed', $id, $username, $role, 'user', $id, 'Account deletion failed while ' . $failedStep);
     $_SESSION['flash_error'] = 'Account deletion failed. Please try again or contact support.';
     $this->redirect('user/account');
   }
 
   // ===== FOLDER CLEANUP HELPER =====
-  private function rrmdir(string $dir): void
+  private function rrmdir(string $dir): bool
   {
+    $dir   = rtrim($dir, '/') . '/';
     $items = @scandir($dir);
     if ($items === false) {
-      return;
+      return false;
     }
 
     foreach ($items as $item) {
@@ -674,7 +744,7 @@ class User extends Controller
       }
     }
 
-    @rmdir($dir);
+    return @rmdir($dir);
   }
 
   // ===== FORGOT / RESET PASSWORD =====
@@ -726,7 +796,9 @@ class User extends Controller
     // The browser that registered (or was blocked at login) is signed in as soon as the link is opened
     if (!$this->isLoggedIn() && (int) ($_SESSION['pending_verification'] ?? 0) === $userId && $verified['role'] === 'researcher') {
       unset($_SESSION['pending_verification']);
-      $this->startResearcherSession($verified);
+      if ($verified['status'] === 'active') {
+        $this->startResearcherSession($verified);
+      }
     }
 
     // The tab that asked for the link reloads itself and shows this message
@@ -749,7 +821,7 @@ class User extends Controller
     // Verified on another device or browser: this one is the one that registered, so it signs in here
     if ($ok && !$this->isLoggedIn()) {
       unset($_SESSION['pending_verification']);
-      if ($user['role'] === 'researcher') {
+      if ($user['role'] === 'researcher' && $user['status'] === 'active') {
         $this->startResearcherSession($user);
         $_SESSION['flash_success'] = 'Your email has been verified!';
       }

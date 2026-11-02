@@ -1,12 +1,10 @@
 (function () {
   // ===== Elements & settings =====
-  const banner = document.querySelector("#updateBanner");
-  if (!banner) return;
+  const watcher = document.querySelector("#updateWatcher");
+  if (!watcher) return;
 
-  const endpoint = banner.dataset.updatesEndpoint;
-  const baseline = banner.dataset.updatesBaseline;
-  const dismissBtn = banner.querySelector(".update-banner-dismiss");
-  const refreshBtn = banner.querySelector(".update-banner-refresh");
+  const endpoint = watcher.dataset.updatesEndpoint;
+  const baseline = watcher.dataset.updatesBaseline;
   const POLL_MS = 25000;
 
   // ===== Date helper =====
@@ -28,21 +26,15 @@
       const latestDate = toDate(data.latest);
 
       if (latestDate && (!baselineDate || latestDate > baselineDate)) {
-        banner.hidden = false;
         clearInterval(pollId);
+        showToast("New activity detected.", "info", {
+          autodismiss: 0,
+          action: { label: "Click to refresh.", onClick: () => location.reload() },
+        });
       }
     } catch (e) {
     }
   }
-
-  // ===== Dismiss & refresh buttons =====
-  dismissBtn?.addEventListener("click", () => {
-    banner.hidden = true;
-  });
-
-  refreshBtn?.addEventListener("click", () => {
-    location.reload();
-  });
 
   // ===== Start polling =====
   pollId = setInterval(checkForUpdates, POLL_MS);

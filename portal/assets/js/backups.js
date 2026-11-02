@@ -240,7 +240,7 @@
   // ===== Download and delete =====
   async function deleteBackup(button) {
     const confirmed = await confirmAction(
-      "Delete this backup permanently? This cannot be undone.",
+      `Delete the backup from **${button.dataset.created}** permanently? This cannot be undone.`,
       { okText: "Delete", danger: true },
     );
     if (!confirmed) return;

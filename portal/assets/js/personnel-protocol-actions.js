@@ -17,6 +17,9 @@ function openProtocolViewer(protocolId) {
     encodeURIComponent(activeFilter);
 }
 
+const protocolName = (protocolId) =>
+  confirmName(rowProtocol(protocolId)?.research_title ?? "") || "this protocol";
+
 function confirmThen(message, okText, onConfirm, options = {}) {
   confirmAction(message, { okText, cancelText: "Cancel", ...options }).then(
     (ok) => ok && onConfirm(),
@@ -102,21 +105,21 @@ window.protocolRowActions = {
 
   "mark-endorsed": (id, btn) =>
     confirmThen(
-      "Mark this protocol as endorsed? Double-check that payment is verified and the signed scan is correct before proceeding.",
+      `Mark ${protocolName(id)} as endorsed? Double-check that payment is verified and the signed scan is correct before proceeding.`,
       "Mark as Endorsed",
       () => submitStatusChange(id, "Endorsed", btn),
     ),
 
   "revert-reviewed": (id, btn) =>
     confirmThen(
-      'Undo the review? The protocol will go back to To Review and its record will be removed. Use this if "Finish Review" was clicked by mistake.',
+      `Undo the review of ${protocolName(id)}? It will go back to **To Review** and its record will be removed. Use this if **Finish Review** was clicked by mistake.`,
       "Undo",
       () => submitStatusChange(id, "Under Review", btn, "revert"),
     ),
 
   "revert-endorsed": (id, btn) =>
     confirmThen(
-      'Revert this protocol back to Reviewed? Use this if "Mark as Endorsed" was clicked by mistake.',
+      `Revert ${protocolName(id)} back to **Reviewed**? Use this if **Mark as Endorsed** was clicked by mistake.`,
       "Revert",
       () => submitStatusChange(id, "Reviewed", btn, "revert"),
     ),
@@ -128,14 +131,14 @@ window.protocolRowActions = {
 
   "mark-approved": (id, btn) =>
     confirmThen(
-      "Mark this protocol as approved? Double-check that the attached clearance is correct before proceeding.",
+      `Mark ${protocolName(id)} as approved? Double-check that the attached clearance is correct before proceeding.`,
       "Mark as Approved",
       () => submitStatusChange(id, "Approved", btn),
     ),
 
   "revert-approved": (id, btn) =>
     confirmThen(
-      'Revert this protocol back to Endorsed? Use this if "Mark as Approved" was clicked by mistake.',
+      `Revert ${protocolName(id)} back to **Endorsed**? Use this if **Mark as Approved** was clicked by mistake.`,
       "Revert",
       () => submitStatusChange(id, "Endorsed", btn, "revert"),
     ),
@@ -150,7 +153,7 @@ window.protocolRowActions = {
     const open = () => openNumberModal("ipn", id, protocol?.reference_no ?? "");
     if (!protocol?.latest_signed_scan_version_id) return open();
     confirmThen(
-      "This protocol already has a signed scan. Changing the IPN will make the signed scan not match the record.",
+      `${protocolName(id)} already has a signed scan. Changing the IPN will make the signed scan not match the record.`,
       "Edit IPN",
       open,
       { danger: true },
@@ -159,21 +162,21 @@ window.protocolRowActions = {
 
   "undo-payment": (id, btn) =>
     confirmThen(
-      'Undo this "Mark as Paid"? The protocol will go back to "Proof Submitted".',
+      `Undo **Mark as Paid** for ${protocolName(id)}? It will go back to **Proof Submitted**.`,
       "Undo",
       () => submitPaymentUndo(id, btn),
     ),
 
   "release-hard-copy": (id, btn) =>
     confirmThen(
-      "Confirm that the researcher has picked up the embossed hard copy? This will be recorded under your name.",
+      `Confirm that the researcher has picked up the embossed hard copy of ${protocolName(id)}? This will be recorded under your name.`,
       "Confirm Pickup",
       () => submitHardCopy(id, "release", btn),
     ),
 
   "undo-hard-copy": (id, btn) =>
     confirmThen(
-      "Undo the pickup? The protocol will show as awaiting pickup again.",
+      `Undo the pickup of ${protocolName(id)}? It will show as awaiting pickup again.`,
       "Undo",
       () => submitHardCopy(id, "undo", btn),
     ),

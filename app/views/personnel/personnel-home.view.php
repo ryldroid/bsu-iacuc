@@ -92,6 +92,15 @@ $statusMeta = [
     ],
 ];
 
+// ===== Archived: approved protocols of inactive researchers, kept out of the status tabs =====
+$archivedMeta = [
+    'label' => 'Archive',
+    'color' => '#6B7280',
+    'icon'  => 'archive-icon',
+    'desc'  => 'Approved protocols of researchers whose accounts are inactive (accounts whose latest clearances have expired and have no pending protocols).',
+];
+$allStatusMeta = $statusMeta + ['archived' => $archivedMeta];
+
 function statusIconSvg(string $iconId, int $size = 14): string
 {
     return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -105,6 +114,10 @@ foreach ($protocols as &$protocol) {
     $protocol['status_display'] = $statusDisplayMap[$key] ?? $protocol['status'];
     $protocol['badge_class']    = $badgeClassMap[$key]    ?? 'badge-to-review';
     $protocol['filter_slug']    = $filterSlugMap[$key]    ?? 'other';
+
+    if (($protocol['researcher_status'] ?? '') === 'deactivated' && $key === 'approved') {
+        $protocol['filter_slug'] = 'archived';
+    }
     $protocol['version_display'] = submission_round_label((int) ($protocol['latest_version'] ?? 1));
 }
 unset($protocol);
@@ -122,6 +135,7 @@ $revisionCount  = $countsBySlug['returned-for-revision'] ?? 0;
 $reviewedCount  = $countsBySlug['reviewed']              ?? 0;
 $endorsedCount  = $countsBySlug['endorsed']              ?? 0;
 $approvedCount  = $countsBySlug['approved']              ?? 0;
+$archivedCount  = $countsBySlug['archived']              ?? 0;
 
 // ===== Count reviewed protocols with a file to download, so the =====
 $reviewedDownloadableCount = 0;
@@ -151,7 +165,7 @@ foreach ($protocols as $p) {
     <?php include dirname(__DIR__) . '/includes/navigation.php'; ?>
 
     <main class="main-content" id="main-content" tabindex="-1">
-        <?php include dirname(__DIR__) . '/includes/update-banner.php'; ?>
+        <?php include dirname(__DIR__) . '/includes/update-watcher.php'; ?>
 
         <div class="page-banner">
             <div class="page-banner-text">
@@ -291,7 +305,15 @@ foreach ($protocols as $p) {
                             </div>
                         </div>
                     </div>
-                    <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
+                    <div class="results-bar-end">
+                        <p class="results-summary" id="resultsSummary" aria-live="polite"></p>
+                        <button type="button" class="action-link archived-link" id="archivedLink" data-label="Archived" aria-pressed="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#archive-icon" />
+                            </svg>
+                            Archive (<?= $archivedCount ?>)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- ===== Status legend ===== -->
@@ -747,7 +769,7 @@ foreach ($protocols as $p) {
                                 <?php endif; ?>
 
                                 <span class="protocol-status-icon">
-                                    <?= statusIconSvg($statusMeta[$filterSlug]['icon'] ?? 'check-circle-icon', 15) ?>
+                                    <?= statusIconSvg($allStatusMeta[$filterSlug]['icon'] ?? 'check-circle-icon', 15) ?>
                                 </span>
 
                                 <div class="protocol-body">
@@ -766,7 +788,7 @@ foreach ($protocols as $p) {
                                             <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
                                         </p>
                                         <p class="protocol-meta-line">
-                                            <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; Submitted <?= $submittedDate ?> &middot; Last updated <?= $updatedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                                            <?= $protocol['version_display'] ?> &middot; <button type="button" class="researcher-name-link" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>"><?= $researcherName ?></button><?php if (($protocol['researcher_status'] ?? 'active') === 'deactivated'): ?> <span class="status-dot status-dot--warning">Inactive</span><?php endif; ?><?php if (!empty($protocol['school'])): ?> &middot; <?= htmlspecialchars($protocol['school'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?> &middot; Submitted <?= $submittedDate ?> &middot; Last updated <?= $updatedDate ?><?php if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)): ?> &middot; IPN <?= htmlspecialchars($protocol['reference_no'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
                                         </p>
                                         <?php if ($nextStep): ?>
                                             <div class="protocol-next-step<?= $nextStep[2] ? ' protocol-next-step--waiting' : '' ?>">
@@ -991,7 +1013,7 @@ foreach ($protocols as $p) {
     const USER_ROLE = <?= json_encode($user['role'] ?? '') ?>;
     const CSRF_TOKEN = <?= json_encode($csrf) ?>;
     // ===== Status metadata (mirrors My Protocols) =====
-    const statusMeta = <?= json_encode($statusMeta) ?>;
+    const statusMeta = <?= json_encode($allStatusMeta) ?>;
     const REVIEWED_DOWNLOADABLE_COUNT = <?= (int) $reviewedDownloadableCount ?>;
 </script>
 <script src="<?= asset_js('personnel-home.js') ?>"></script>
@@ -1011,6 +1033,7 @@ $guideSteps = [
 foreach (array_values($statusMeta) as $index => $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
 }
+$guideSteps[] = [$archivedMeta['label'], $archivedMeta['desc'] . "\n\nProtocols here are separated or hidden from All, and are moved back to Approved when the researcher reactivates their account.", '#archivedLink'];
 $guideSteps = array_merge($guideSteps, [
     ['Protocol card', "Each card represents one protocol. It shows the status icon, the research title, the number of rounds it has been resubmitted, the researcher's name and school, and the dates it was submitted and last updated.\n\nYou may press the researcher's name to see their contact details or review their training certificate.", '.protocols-list .protocol:first-visible'],
     ['Card buttons', $personnelRole === 'staff'

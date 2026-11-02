@@ -246,7 +246,10 @@
     }
 
     const confirmed = await confirmAction(
-      id ? entity.text.confirmEdit : entity.text.confirmAdd,
+      (id ? entity.text.confirmEdit : entity.text.confirmAdd).replace(
+        "{name}",
+        () => confirmName(payload[entity.nameField] || "Untitled"),
+      ),
       {
         okText: id ? entity.text.editOk : entity.text.addOk,
         cancelText: "Cancel",
@@ -302,7 +305,7 @@
   async function deleteRow(entity, row) {
     const label = row.dataset.cmLabel || "#" + row.dataset.id;
     const confirmed = await confirmAction(
-      entity.text.confirmDelete.replace("{name}", label),
+      entity.text.confirmDelete.replace("{name}", () => confirmName(label)),
       {
         okText: "Delete",
         cancelText: "Cancel",

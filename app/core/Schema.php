@@ -239,6 +239,7 @@ class Schema
         $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
         $this->ensureColumn('audit_logs', 'old_status', "varchar(30) DEFAULT NULL AFTER `details`");
         $this->ensureColumn('audit_logs', 'new_status', "varchar(30) DEFAULT NULL AFTER `old_status`");
+        $this->addAccountLifecycle();
         $this->addRecordCreatedAt();
 
         $this->dropColumn('protocol_return_reasons', 'wrong_auth');
@@ -524,6 +525,39 @@ class Schema
                  FROM `users` WHERE cert_path IS NOT NULL"
             );
         }
+    }
+
+    // ===== ACCOUNT LIFECYCLE: LAST LOGIN, WHEN AND WHY AN ACCOUNT WAS DEACTIVATED =====
+    private function addAccountLifecycle(): void
+    {
+        $c = $this->connection;
+
+        $loginIsNew = $c->query("SHOW COLUMNS FROM `users` LIKE 'last_login_at'")->num_rows === 0;
+
+        $this->ensureColumn('users', 'last_login_at', "timestamp NULL DEFAULT NULL AFTER `welcome_seen`");
+        $this->ensureColumn('users', 'deactivated_at', "timestamp NULL DEFAULT NULL AFTER `last_login_at`");
+        $this->ensureColumn('users', 'deactivation_reason', "varchar(20) DEFAULT NULL AFTER `deactivated_at`");
+        $this->ensureColumn('users', 'reactivated_at', "timestamp NULL DEFAULT NULL AFTER `deactivation_reason`");
+
+        if ($loginIsNew) {
+            // The dormancy clock starts at each account's real last login, or now when it has never logged one
+            $c->query(
+                "UPDATE `users` u
+                 SET u.last_login_at = COALESCE(
+                     (SELECT MAX(al.created_at) FROM `audit_logs` al WHERE al.user_id = u.id AND al.action = 'login_success'),
+                     NOW()
+                 )
+                 WHERE u.status IN ('active', 'deactivated')"
+            );
+        }
+
+        // Accounts deactivated before reasons were tracked: only the clearance expiry sweep ever deactivated anyone, and only researchers
+        $c->query(
+            "UPDATE `users`
+             SET deactivation_reason = IF(role = 'researcher', 'expired', 'manual'),
+                 deactivated_at = COALESCE(deactivated_at, NOW())
+             WHERE status = 'deactivated' AND deactivation_reason IS NULL"
+        );
     }
 
     // ===== ONE-TIME DATA MIGRATIONS =====

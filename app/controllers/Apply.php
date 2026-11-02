@@ -3397,10 +3397,17 @@ class Apply extends Controller
         }
         foreach ($this->protocolModel->getAuditEvents((int) $protocol['protocol_id'], ['payment_verified', 'payment_unmarked']) as $audit) {
             $verified = $audit['action'] === 'payment_verified';
-            $events[] = ['type' => $verified ? 'paid' : 'unmarked', 'at' => $audit['created_at'], 'method' => $verified ? ($protocol['payment_method'] ?? '') : ''];
+            $events[] = ['type' => $verified ? 'paid' : 'unmarked', 'at' => $audit['created_at'], 'method' => $verified ? ($protocol['payment_method'] ?? '') : '', 'actor_name' => $audit['username'], 'actor_role' => $audit['role']];
         }
         if (($protocol['payment_status'] ?? '') === 'paid' && !empty($protocol['paid_at']) && !in_array('paid', array_column($events, 'type'), true)) {
-            $events[] = ['type' => 'paid', 'at' => $protocol['paid_at'], 'method' => $protocol['payment_method'] ?? ''];
+            $verifier = !empty($protocol['paid_by']) ? $this->userModel->getUser((int) $protocol['paid_by']) : null;
+            $events[] = [
+                'type'       => 'paid',
+                'at'         => $protocol['paid_at'],
+                'method'     => $protocol['payment_method'] ?? '',
+                'actor_name' => $verifier ? trim($verifier['first_name'] . ' ' . $verifier['last_name']) : '',
+                'actor_role' => $verifier['role'] ?? '',
+            ];
         }
         usort($events, fn($a, $b) => strcmp($b['at'], $a['at']));
         return $events;
@@ -3477,6 +3484,7 @@ class Apply extends Controller
                 'original_name' => $h['original_name'],
                 'created_at'    => $h['created_at'],
                 'actor_name'    => $h['actor_name'],
+                'actor_role'    => $h['actor_role'],
                 'file_url'      => ROOT . '/personnel/cert_file/' . $h['id'],
             ], $this->userModel->getCertHistory((int) $protocol['user_id']))
             : [];

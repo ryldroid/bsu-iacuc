@@ -177,6 +177,20 @@
     margin-top: 1em;
 }
 
+.welcome-step-hint {
+    margin-top: .75rem;
+}
+
+@media (hover: none) {
+    .welcome-step-hint {
+        display: none;
+    }
+}
+
+.guide-modal[data-guide-required] .modal-close {
+    display: none;
+}
+
 /* ===== Spotlight guide (steps that point at a page element) ===== */
 .modal-backdrop.guide-targeting {
     background: transparent;
@@ -785,6 +799,7 @@ img[data-zoom-src] {
     color: var(--primary-text);
     font-size: 1rem;
     line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
 .confirm-modal .input-group {

@@ -5,7 +5,6 @@
 // The decision belongs to the researcher, so whoever makes it first settles it for everyone.
 let certState = CERT_STATUS;
 const finishReviewBtn = document.getElementById("btnFinishReview");
-const verifiedBadge = document.getElementById("certVerifiedBadge");
 
 const REJECT_NOTE = IS_STAFF
   ? "The researcher is asked to resubmit their certificate. While waiting, the reviewer can still review and comment on this protocol. Their comments are saved. Finishing the review is unavailable until the certificate is verified."
@@ -30,10 +29,6 @@ document.addEventListener("cert-reviewed", (e) => {
   certState = e.detail.status;
   syncFinishReviewButton();
   removePendingNote();
-  if (verifiedBadge) {
-    verifiedBadge.hidden = certState !== "verified";
-    verifiedBadge.title = "Verified just now.";
-  }
 });
 
 document.addEventListener("researcher-modal-rendered", (e) => {

@@ -61,6 +61,15 @@ function asset_js(string $file): string
   return JSPATH . '/' . $file . ($v ? '?v=' . $v : '');
 }
 
+// ===== CONFIRM MESSAGE HELPERS =====
+function confirm_bold(string $text, int $maxLength = 60): string
+{
+  $clean = trim(str_replace('*', '', $text));
+  if ($clean === '') return '';
+  if (mb_strlen($clean) > $maxLength) $clean = rtrim(mb_substr($clean, 0, $maxLength)) . '…';
+  return '**' . $clean . '**';
+}
+
 // ===== LINK HELPERS =====
 function gmail_compose_url(string $email): string
 {

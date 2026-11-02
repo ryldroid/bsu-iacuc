@@ -24,7 +24,10 @@ class Access
     'home'          => ['index' => 'public'],
     'announcements' => ['index' => 'public'],
     'contact'       => ['index' => 'public'],
-    'webhooks'      => ['brevo' => 'public'], // authenticated by its own bearer secret
+    'webhooks'      => [
+      'brevo' => 'public',  // authenticated by its own bearer secret
+      'expiry' => 'public', // authenticated by its own bearer secret (the external pinger)
+    ],
 
     'preview' => [
       'index' => 'personnel',
@@ -49,6 +52,7 @@ class Access
       // signed out
       'login' => 'public',
       'login_process' => 'public',
+      'reactivate' => 'public', // only after signing in with the password; checks its own short-lived session flag
       'register' => 'public',
       'register_process' => 'public',
       'forgot_password' => 'public',
@@ -63,6 +67,7 @@ class Access
       'notifications' => 'auth',
       'ping' => 'auth',
       'snooze_verification' => 'auth', // "Remind me later" on the verify email modal
+      'welcome_done' => 'auth', // finishing the required welcome guide
       'resend_verification' => 'public', // signed-in users, or a sign-in blocked until the email is verified
       'school_options' => 'auth',
       'delete' => 'auth',
@@ -119,6 +124,8 @@ class Access
       'reject' => 'staff',
       'update_role' => 'staff',
       'delete_personnel' => 'staff',
+      'deactivate_account' => 'staff',
+      'reactivate_account' => 'staff',
     ],
 
     'backups' => [
@@ -215,8 +222,12 @@ class Access
 
     if ($loggedIn) {
       $account = (new UserModel())->getUser((int) $_SESSION['user']['user_id']);
-      if (!$account || $account['status'] === 'deleted') {
+      if (!$account || $account['status'] !== 'active') {
+        // Deleted or deactivated while signed in: the session ends on the very next request
         unset($_SESSION['user']);
+        if ($account) {
+          $_SESSION['flash_error'] = AccountLifecycle::sessionEndedMessage($account);
+        }
         $loggedIn = false;
       }
     }

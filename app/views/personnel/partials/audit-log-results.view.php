@@ -8,7 +8,7 @@ $auditOffset     = $auditOffset     ?? 0;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditToneKeywords = [
   'danger'  => ['delete', 'fail', 'lock', 'denied', 'reject'],
-  'warning' => ['restore', 'edit', 'update', 'change', 'reset', 'unassign', 'return'],
+  'warning' => ['restore', 'edit', 'update', 'change', 'reset', 'unassign', 'return', 'deactivated'],
   'success' => ['success', 'approve', 'verified', 'confirm', 'reactivated', 'claimed'],
   'info'    => ['creat', 'add', 'upload', 'download', 'submit', 'request'],
 ];

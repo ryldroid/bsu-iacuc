@@ -122,11 +122,31 @@ function formatDateTime(value) {
     resolve(result && password ? password : result);
   }
 
+  // ===== Names in confirm messages: bold and shortened (**text** renders bold) =====
+  window.confirmName = function (text, maxLength = 60) {
+    const clean = String(text).replace(/\*/g, "").trim();
+    if (!clean) return "";
+    return (
+      "**" +
+      (clean.length > maxLength
+        ? clean.slice(0, maxLength).trimEnd() + "\u2026"
+        : clean) +
+      "**"
+    );
+  };
+
   window.confirmAction = function (message, options) {
     buildModal();
 
     options = options || {};
-    messageEl.textContent = message;
+    messageEl.replaceChildren(
+      ...message.split(/\*\*(.+?)\*\*/g).map((part, i) => {
+        if (i % 2 === 0) return part;
+        const strong = document.createElement("strong");
+        strong.textContent = part;
+        return strong;
+      }),
+    );
     okBtn.textContent = options.okText || "Yes";
     cancelBtn.textContent = options.cancelText || "Cancel";
     cancelBtn.hidden = !!options.hideCancel;
@@ -537,23 +557,40 @@ function formatDateTime(value) {
     const guideId = modal.dataset.guide;
     const closeBtn = modal.querySelector(".modal-close");
     const nextBtn = modal.querySelector("[data-guide-next]");
+    const card = modal.querySelector(".welcome-modal-card");
 
     function close() {
       modal.classList.remove("open");
       setMobileMenu(false);
     }
 
-    closeBtn.addEventListener("click", close);
+    function dismiss() {
+      if (modal.hasAttribute("data-guide-required")) shake(card);
+      else close();
+    }
+
+    function finish() {
+      if (modal.hasAttribute("data-guide-required")) {
+        modal.removeAttribute("data-guide-required");
+        fetch(`${NOTIF_ROOT}/user/welcome_done`, {
+          method: "POST",
+          headers: csrfHeaders({ Accept: "application/json" }),
+        }).catch(() => {});
+      }
+      close();
+    }
+
+    closeBtn.addEventListener("click", dismiss);
 
     modal.addEventListener("click", (e) => {
-      if (e.target === modal) close();
+      if (e.target === modal) dismiss();
     });
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && modal.classList.contains("open")) close();
+      if (e.key === "Escape" && modal.classList.contains("open")) dismiss();
     });
 
-    const restart = bindGuideSteps(modal, close);
+    const restart = bindGuideSteps(modal, finish);
 
     function openGuide() {
       restart();
@@ -720,6 +757,16 @@ function formatDateTime(value) {
     });
     window.addEventListener("resize", () => {
       if (modal.classList.contains("open")) place();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !modal.classList.contains("open")) return;
+      if (e.repeat) {
+        e.preventDefault();
+        return;
+      }
+      if (e.target.closest("button, a, input, textarea, select")) return;
+      e.preventDefault();
+      nextBtn.click();
     });
 
     show(0);

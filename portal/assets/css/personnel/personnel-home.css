@@ -358,6 +358,28 @@
     color: var(--primary-text);
 }
 
+.results-bar-end {
+    display: flex;
+    align-items: center;
+    gap: 4px 16px;
+    margin-left: auto;
+}
+
+/* ===== Archived: quieter than the status tabs ===== */
+.archived-link {
+    font-size: 0.9em;
+    color: var(--secondary-text);
+}
+
+.archived-link:hover {
+    color: var(--primary-text);
+}
+
+.archived-link.active {
+    color: var(--primary-text);
+    font-weight: 500;
+}
+
 /* ===== Upload Clearance modal ===== */
 .clearance-modal-subtitle {
     margin-bottom: 1rem;

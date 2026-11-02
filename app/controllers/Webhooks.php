@@ -58,13 +58,15 @@ class Webhooks extends Controller
     }
 
     $recordModel = new RecordModel();
+    $sweeps      = AccountLifecycle::runSweeps();
 
     http_response_code(200);
     header('Content-Type: application/json');
     echo json_encode([
-      'ok'          => true,
-      'warned'      => $recordModel->sendExpiryWarnings(),
-      'deactivated' => $recordModel->runExpiryDeactivationSweep(),
+      'ok'                    => true,
+      'warned'                => $recordModel->sendExpiryWarnings(),
+      'deactivated'           => $sweeps['expired'],
+      'deactivated_personnel' => $sweeps['dormant'],
     ]);
   }
 }

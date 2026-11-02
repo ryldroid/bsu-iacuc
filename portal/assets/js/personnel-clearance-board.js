@@ -30,6 +30,7 @@ function thumbHtml(item, { allowDelete = true, zoomImage = false } = {}) {
   const deleteBtn = allowDelete
     ? `
     <button type="button" class="clearance-delete-btn" title="Delete" aria-label="Delete"
+        data-name="${escapeHtml(item.original_name)}"
         onclick="event.stopPropagation(); deletePoolItem(${item.id}, this)">
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg>
     </button>`
@@ -473,10 +474,13 @@ async function unstage(poolId) {
 }
 
 async function deletePoolItem(poolId, btn) {
-  const ok = await confirmAction("Delete uploaded clearance?", {
-    okText: "Delete",
-    danger: true,
-  });
+  const ok = await confirmAction(
+    `Delete the uploaded clearance ${confirmName(btn.dataset.name)}?`,
+    {
+      okText: "Delete",
+      danger: true,
+    },
+  );
   if (!ok) return;
 
   setButtonBusy(btn, true, "Deleting...");

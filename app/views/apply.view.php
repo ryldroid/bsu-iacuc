@@ -483,7 +483,7 @@ include 'includes/guide.php';
                 By submitting this application, you confirm that you have read, understood, and agree to be bound by these terms. You also confirm that you are the Principal Investigator of this protocol and that you are authorized to submit it.
 
                 <h3>2. Governing laws and policies</h3>
-                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, and the requirements of Department of Agriculture Administrative Order No. 40, Series of 1999, and the policies of Benguet State University. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission (NPC).
+                Animal use activities covered by this application must comply with Republic Act No. 8485 (Animal Welfare Act of 1998), as amended by Republic Act No. 10631, and the requirements of Department of Agriculture Administrative Order No. 40, Series of 1999, and the policies of Benguet State university. The processing of personal data through this system is governed by Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and issuances of the National Privacy Commission (NPC).
 
                 <h3>3. Accuracy of information</h3>
                 Information and documents you submit must be true, accurate, and complete. Any misrepresentation may result in denial, suspension, or revocation of approval.
@@ -497,10 +497,17 @@ include 'includes/guide.php';
                 <h3>6. Account responsibility</h3>
                 You are responsible for keeping your login credentials confidential and for all activity under your account. Notify the CCARD office immediately if you suspect unauthorized access.
 
-                <h3>7. Personal data</h3>
+                <h3>7. Account deactivation</h3>
+                Your account is marked inactive once your animal research clearance has ended and none of your protocols are still being processed. Administrative staff of CCARD may also deactivate an account. While an account is inactive, you will not receive email notifications from this system. Your protocols, records, and files are kept and are not deleted.
+                <br><br>
+                If your account became inactive because your clearance ended, you may reactivate it at any time by logging in and confirming. 
+                <br><br>
+                Deactivation limits the use of your account and the further processing of your personal data to what is still needed for your records. The Data Privacy Act of 2012 (Republic Act No. 10173) allows personal data to be processed only for its declared purpose and kept only as long as needed, subject to records that the law or university policy requires us to retain.
+
+                <h3>8. Personal data</h3>
                 Your personal data is handled as described in the privacy policy, which forms part of these terms.
 
-                <h3>8. Changes to these terms</h3>
+                <h3>9. Changes to these terms</h3>
                 The IACUC may update these terms from time to time. Continued use of this system after an update means you accept the revised terms. These terms are governed by the laws of the Republic of the Philippines.
             </div>
             <div class="modal-actions">
@@ -534,7 +541,7 @@ include 'includes/guide.php';
                 Your data is accessible only to authorized CCARD administrative staff and IACUC reviewers, and to the relevant offices of the university who need it for your protocol. It may be disclosed to the Bureau of Animal Industry and other government or accrediting bodies when required by law. Submitted protocols are confidential institutional documents and will not be disclosed to unauthorized parties.
 
                 <h3>6. How long we keep it</h3>
-                We keep personal data only for as long as needed for the purposes above and as required by law and University records policies. After that it is securely disposed of or anonymized.
+                We keep personal data only for as long as needed for the purposes above and as required by law and university records policies. After that it is securely disposed of or anonymized.
 
                 <h3>7. How we protect it</h3>
                 We use reasonable and appropriate organizational, physical, and technical measures, including role-based access, secure sessions with automatic timeout, and audit logging. In case of a personal data breach, we will notify you and the NPC as required by law.

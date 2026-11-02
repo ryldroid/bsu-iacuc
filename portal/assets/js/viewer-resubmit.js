@@ -260,7 +260,7 @@ async function submitReupload() {
   }
 
   const ok = await confirmAction(
-    "Resubmit this protocol for review? It will be sent back to the reviewer.",
+    `Resubmit ${confirmName(PROTOCOL_TITLE)} for review? It will be sent back to the reviewer.`,
     {
       okText: "Resubmit",
       cancelText: "Cancel",

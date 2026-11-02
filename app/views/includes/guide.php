@@ -3,8 +3,9 @@ $guideId       = $guideId ?? '';
 $guideSteps    = $guideSteps ?? [];
 $guideOpen     = $guideOpen ?? false;
 $guideShowOnce = $guideShowOnce ?? false;
+$guideRequired = $guideRequired ?? false;
 ?>
-<div class="modal-backdrop guide-modal<?= $guideOpen ? ' open' : '' ?>" data-guide="<?= htmlspecialchars($guideId, ENT_QUOTES, 'UTF-8') ?>" <?= $guideShowOnce ? ' data-show-once' : '' ?>>
+<div class="modal-backdrop guide-modal<?= $guideOpen ? ' open' : '' ?>" data-guide="<?= htmlspecialchars($guideId, ENT_QUOTES, 'UTF-8') ?>" <?= $guideShowOnce ? ' data-show-once' : '' ?><?= $guideRequired ? ' data-guide-required' : '' ?>>
   <div class="guide-spotlight" aria-hidden="true"></div>
   <div class="modal-card welcome-modal-card">
     <button type="button" class="modal-close" aria-label="Close">
@@ -19,6 +20,9 @@ $guideShowOnce = $guideShowOnce ?? false;
         <span class="welcome-step-label">Step <?= $i + 1 ?> of <?= count($guideSteps) ?></span>
         <h3><?= htmlspecialchars($stepTitle, ENT_QUOTES, 'UTF-8') ?></h3>
         <p><?= nl2br(preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', htmlspecialchars($stepText, ENT_QUOTES, 'UTF-8'))) ?></p>
+        <?php if ($i === 0 && $guideId === 'welcome'): ?>
+          <p class="helper welcome-step-hint">Press <strong>Enter</strong> to move through the guide quickly.</p>
+        <?php endif; ?>
       </section>
     <?php endforeach; ?>
     <div class="modal-actions welcome-actions">
@@ -37,4 +41,4 @@ $guideShowOnce = $guideShowOnce ?? false;
     </div>
   </div>
 </div>
-<?php unset($guideId, $guideSteps, $guideOpen, $guideShowOnce); ?>
+<?php unset($guideId, $guideSteps, $guideOpen, $guideShowOnce, $guideRequired); ?>

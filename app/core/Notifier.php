@@ -98,7 +98,7 @@ class Notifier
 
     $recipient = (new UserModel())->getUser($userId);
 
-    if ($recipient && !empty($recipient['email_verified']) && !empty($recipient['email_notifications'])) {
+    if ($recipient && $recipient['status'] === 'active' && !empty($recipient['email_verified']) && !empty($recipient['email_notifications'])) {
       self::sendEmail($email);
     }
   }

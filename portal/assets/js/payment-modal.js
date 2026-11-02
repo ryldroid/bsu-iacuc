@@ -90,6 +90,8 @@ async function submitPaymentProof() {
   formData.append("payment_method", method);
   formData.append("csrf_token", CSRF_TOKEN);
 
+  const protocolTitle =
+    document.getElementById("paymentModalTitle").textContent;
   let confirmMessage;
 
   if (method === "in_person") {
@@ -99,8 +101,7 @@ async function submitPaymentProof() {
       return;
     }
     formData.append("confirm_in_person", "1");
-    confirmMessage =
-      "Confirm that you have paid the Php 100.00 fee in person? Administrative staff will verify this.";
+    confirmMessage = `Confirm that you have paid the Php 100.00 fee for ${confirmName(protocolTitle)} in person? Administrative staff will verify this.`;
   } else {
     const fileInput = document.getElementById("payment_proof_file");
     if (!fileInput.files.length) {
@@ -109,8 +110,7 @@ async function submitPaymentProof() {
       return;
     }
     formData.append("payment_proof_file", fileInput.files[0]);
-    confirmMessage =
-      "Submit this as your proof of payment? Make sure the file clearly shows the receipt or payment before continuing.";
+    confirmMessage = `Submit this as your proof of payment for ${confirmName(protocolTitle)}? Make sure the file clearly shows the receipt or payment before continuing.`;
   }
 
   errBox.hidden = true;

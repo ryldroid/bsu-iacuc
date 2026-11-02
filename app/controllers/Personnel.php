@@ -59,7 +59,7 @@ class Personnel extends Controller
     {
         $this->requirePersonnel();
 
-        $this->recordModel->runExpiryDeactivationSweep();
+        AccountLifecycle::runSweeps();
 
         $protocols = $this->protocolModel->getAll();
 
@@ -145,11 +145,19 @@ class Personnel extends Controller
                 'school'         => $user['school'] ?? '',
                 'role'           => $user['role'],
                 'status'         => $user['status'],
+                'status_label'   => AccountLifecycle::statusLabel($user),
+                'last_login_at'  => $user['last_login_at'] ?? null,
+                'can_manage'     => $_SESSION['user']['role'] === 'staff'
+                    && $user['role'] === 'researcher'
+                    && in_array($user['status'], ['active', 'deactivated'], true),
                 'created_at'     => $user['created_at'],
                 'protocol_count' => count($protocols),
                 'cert'           => $cert ? [
                     'status'      => $cert['cert_status'],
                     'uploaded_at' => $cert['cert_uploaded_at'],
+                    'reviewed_at' => $cert['cert_reviewed_at'],
+                    'reviewer_name' => $cert['cert_reviewer_name'],
+                    'reviewer_role' => $cert['cert_reviewer_role'],
                     'note'        => $cert['cert_note'],
                     'file_url'    => ROOT . '/apply/cert/' . $id,
                     'is_image'    => (bool) preg_match('/\.(jpe?g|png)$/i', $cert['cert_path']),
@@ -273,7 +281,7 @@ class Personnel extends Controller
     {
         $this->requirePersonnel();
 
-        $this->recordModel->runExpiryDeactivationSweep();
+        AccountLifecycle::runSweeps();
 
         $search         = trim($_GET['search'] ?? '');
         $school         = trim($_GET['school'] ?? '');
@@ -1167,6 +1175,8 @@ class Personnel extends Controller
     {
         $this->requireStaff();
 
+        AccountLifecycle::runSweeps();
+
         $inviteUrl = $_SESSION['invite_url'] ?? '';
         unset($_SESSION['invite_url']);
 
@@ -1472,11 +1482,6 @@ class Personnel extends Controller
             $this->redirect('personnel/login');
         }
 
-        if (($user['status'] ?? 'active') === 'pending') {
-            $_SESSION['flash_error'] = 'Your account is pending administrative staff approval.';
-            $this->redirect('personnel/login');
-        }
-
         if (!password_verify($password, $user['password'])) {
             $this->userModel->recordLoginAttempt($ip);
             $this->userModel->recordLoginAttempt($input);
@@ -1487,6 +1492,20 @@ class Personnel extends Controller
 
         $this->userModel->clearLoginAttempts($ip);
         $this->userModel->clearLoginAttempts($input);
+
+        if (($user['status'] ?? 'active') === 'pending') {
+            $_SESSION['flash_error'] = 'Your account is pending administrative staff approval.';
+            $this->redirect('personnel/login');
+        }
+
+        // Deactivated personnel stay locked out until administrative staff reactivate them
+        $user = AccountLifecycle::enforceDormancy($user);
+
+        if ($blocked = AccountLifecycle::signInBlock($user)) {
+            $this->userModel->logAudit('login_blocked_deactivated', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Login blocked: the account is deactivated');
+            $_SESSION['flash_error'] = $blocked;
+            $this->redirect('personnel/login');
+        }
 
         session_regenerate_id(true);
         $_SESSION['user'] = [
@@ -1500,6 +1519,8 @@ class Personnel extends Controller
         $this->showWelcomeOnce($user);
 
         $this->userModel->logAudit('login_success', (int) $user['id'], $user['username'], $user['role'], 'user', (int) $user['id'], 'Personnel logged in');
+        $this->flashWelcomeBack($user);
+        $this->userModel->touchLastLogin((int) $user['id']);
         $this->redirect('personnel/home');
     }
 
@@ -1775,7 +1796,7 @@ class Personnel extends Controller
         }
 
         $target = $this->userModel->getUser($id);
-        if ($target && in_array($target['role'], ['staff', 'reviewer'], true)) {
+        if ($target && in_array($target['role'], ['staff', 'reviewer'], true) && !in_array($target['status'], ['pending', 'deleted'], true)) {
             $this->userModel->updateUserRole($id, $role);
             $this->userModel->logAudit('user_role_changed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Changed role for {$target['username']} from {$target['role']} to $role");
             $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
@@ -1808,16 +1829,87 @@ class Personnel extends Controller
         } elseif (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
             $this->userModel->logAudit('personnel_delete_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting to delete an account');
             $_SESSION['flash_error'] = 'Incorrect password. Account not deleted.';
-        } elseif (!$target || !in_array($target['role'], ['staff', 'reviewer'], true) || $target['status'] === 'deleted') {
+        } elseif (!$target || !in_array($target['role'], ['staff', 'reviewer'], true) || in_array($target['status'], ['pending', 'deleted'], true)) {
             $_SESSION['flash_error'] = 'Personnel account not found.';
-        } elseif ($this->userModel->deleteUser($id)) {
-            $this->userModel->logAudit('personnel_deleted', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Deleted personnel account: {$target['username']}");
-            Mailer::sendTemplate('account_deleted', ['first_name' => $target['first_name'], 'deleted_by_admin' => true], $target['email'], $target['first_name'], 'Account Deleted');
-            $_SESSION['flash_success'] = 'Personnel account deleted.';
         } else {
-            $_SESSION['flash_error'] = 'Account deletion failed. Please try again.';
+            $certFiles = $this->userModel->getCertFiles($id);
+            $db        = $this->userModel->connection;
+            $db->begin_transaction();
+
+            if ($this->userModel->deleteUser($id) && $db->commit()) {
+                $this->userModel->removeCertFiles($certFiles);
+                $this->userModel->logAudit('personnel_deleted', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Deleted personnel account: {$target['username']}");
+                Mailer::sendTemplate('account_deleted', ['first_name' => $target['first_name'], 'deleted_by_admin' => true], $target['email'], $target['first_name'], 'Account Deleted');
+                $_SESSION['flash_success'] = 'Personnel account deleted.';
+            } else {
+                $db->rollback();
+                $this->userModel->logAudit('personnel_delete_failed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Failed to delete personnel account: {$target['username']}");
+                $_SESSION['flash_error'] = 'Account deletion failed. Please try again.';
+            }
         }
 
+        $this->redirect('personnel/accounts?tab=accounts');
+    }
+
+    // ===== DEACTIVATE / REACTIVATE ANY ACCOUNT (ADMINISTRATIVE STAFF) =====
+    // Answers JSON when asked for it (the researcher modal) and redirects with a flash otherwise (the personnel list)
+    public function deactivate_account(): void
+    {
+        $this->changeAccountStatus(true);
+    }
+
+    public function reactivate_account(): void
+    {
+        $this->changeAccountStatus(false);
+    }
+
+    private function changeAccountStatus(bool $deactivate): void
+    {
+        $json = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+
+        $this->requireStaff($json);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $json ? $this->jsonError(405, 'Method not allowed.') : $this->redirect('personnel/accounts?tab=accounts');
+        }
+        $this->verifyCsrfToken();
+
+        $id     = (int) ($_POST['user_id'] ?? 0);
+        $actor  = $this->actor();
+        $target = $id > 0 ? $this->userModel->getUser($id) : null;
+        $name   = $target ? trim($target['first_name'] . ' ' . $target['last_name']) : '';
+
+        $error = match (true) {
+            !$target || !in_array($target['role'], ['researcher', 'staff', 'reviewer'], true) || in_array($target['status'], ['pending', 'deleted'], true)
+                => 'Account not found.',
+            $this->isActor($id)
+                => 'You cannot deactivate your own account.',
+            $deactivate && $target['status'] !== 'active'
+                => 'This account is already deactivated.',
+            !$deactivate && $target['status'] !== 'deactivated'
+                => 'This account is not deactivated.',
+            default => null,
+        };
+
+        if ($error === null) {
+            $done = $deactivate
+                ? AccountLifecycle::deactivate($id, AccountLifecycle::REASON_MANUAL, $actor)
+                : AccountLifecycle::reactivate($id, $actor);
+
+            if (!$done) {
+                $error = 'The account could not be updated. Please try again.';
+            }
+        }
+
+        $message = $error ?? ($deactivate ? "$name's account has been deactivated." : "$name's account has been reactivated.");
+
+        if ($json) {
+            $error === null
+                ? $this->jsonResponse(['ok' => true, 'message' => $message, 'status' => $deactivate ? 'deactivated' : 'active'])
+                : $this->jsonError(422, $message);
+            return;
+        }
+
+        $_SESSION[$error === null ? 'flash_success' : 'flash_error'] = $message;
         $this->redirect('personnel/accounts?tab=accounts');
     }
 

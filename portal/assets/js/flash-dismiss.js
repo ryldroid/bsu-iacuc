@@ -21,24 +21,32 @@
   document.querySelectorAll(".form-alert").forEach(setupAlert);
 
   // `into` puts the alert inside a form instead of the toast stack; `autodismiss: 0` keeps it until dismissed
+  const TOAST_ICONS = {
+    success: "check-circle-icon",
+    error: "alert-triangle-icon",
+    info: "info-icon",
+  };
+
   window.showToast = function (
     message,
     type = "success",
-    { into, autodismiss } = {},
+    { into, autodismiss, action } = {},
   ) {
     const stack = into ?? document.getElementById("toast-stack");
     const messages = [].concat(message).filter(Boolean);
     if (!stack || !messages.length) return;
 
-    const isError = type === "error";
+    const kind = TOAST_ICONS[type] ? type : "success";
+    const isError = kind === "error";
     const el = document.createElement("div");
-    el.className = "form-alert form-alert--" + (isError ? "error" : "success");
+    el.className =
+      "form-alert form-alert--" + kind + (action ? " form-alert--action" : "");
     el.setAttribute("role", isError ? "alert" : "status");
     // Same delays as includes/alert.php: 5s for errors, 4s for success
     el.dataset.autodismiss = autodismiss ?? (isError ? 5000 : 4000);
     el.innerHTML =
       '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#' +
-      (isError ? "alert-triangle-icon" : "check-circle-icon") +
+      TOAST_ICONS[kind] +
       '" /></svg>' +
       '<div class="form-alert-body"></div>' +
       '<button type="button" class="form-alert-close" aria-label="Dismiss message">' +
@@ -51,6 +59,16 @@
       item.textContent = text;
       list.appendChild(item);
     });
+    if (action) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "form-alert-action";
+      button.textContent = action.label;
+      list.lastElementChild.append(" ", button);
+      el.addEventListener("click", (e) => {
+        if (!e.target.closest(".form-alert-close")) action.onClick();
+      });
+    }
     stack.append(el);
     setupAlert(el);
   };

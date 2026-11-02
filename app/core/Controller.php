@@ -139,12 +139,25 @@ class Controller
     }
   }
 
-  // Welcome guide shows once, and only after the email is verified (so it never overlaps the verify modal)
+  // Welcome guide is required until it is finished (User::welcome_done), and only after the email is verified (so it never overlaps the verify modal)
   protected function showWelcomeOnce(array $user): void
   {
     if (empty($user['welcome_seen']) && !empty($user['email_verified'])) {
       $_SESSION['user']['show_welcome'] = true;
-      $this->userModel->markWelcomeSeen((int) $user['id']);
+    }
+  }
+
+  protected function welcomeBackMessage(array $user): string
+  {
+    $name = trim((string) ($user['first_name'] ?? ''));
+
+    return $name === '' ? 'Welcome back!' : "Welcome back, $name!";
+  }
+
+  protected function flashWelcomeBack(array $user): void
+  {
+    if (!empty($user['last_login_at'])) {
+      $_SESSION['flash_success'] = $this->welcomeBackMessage($user);
     }
   }
 

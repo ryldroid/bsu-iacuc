@@ -599,6 +599,10 @@ main button svg {
 }
 
 /* ===== Terms/privacy modal ===== */
+.modal-card:has(.tc-scroll) {
+    max-width: 720px;
+}
+
 .modal-card .tc-scroll {
     margin-top: .75rem;
     height: 50vh;

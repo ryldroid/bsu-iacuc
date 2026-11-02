@@ -64,6 +64,14 @@ function historyEvent(tone, icon, title, time, detail, action) {
         </div>`;
 }
 
+function historyWhen(name, role, at) {
+  const actor = formatActor(name, role);
+  return (
+    (actor ? escapeHtml(actor) + " &middot; " : "") +
+    escapeHtml(formatDateTime(at))
+  );
+}
+
 function signedScanLabel(referenceNo) {
   return referenceNo
     ? "Protocol Signed by IACUC Chairperson \u00b7 IPN " + referenceNo
@@ -186,7 +194,7 @@ function buildPaymentHistorySection(events, resubmit) {
         look.tone,
         look.icon,
         look.title,
-        `${escapeHtml(formatDate(e.at))} &middot; ${escapeHtml(formatTime(e.at))}`,
+        historyWhen(e.actor_name, e.actor_role, e.at),
         detail,
         action,
       );
@@ -220,18 +228,14 @@ function buildTitleHistorySection(titleHistory) {
 
   const rows = titleHistory
     .map((h) => {
-      const role = h.changed_by_role
-        ? h.changed_by_role.charAt(0).toUpperCase() + h.changed_by_role.slice(1)
-        : "";
-      const who = h.changed_by_name
-        ? `${escapeHtml(role)} - ${escapeHtml(h.changed_by_name)}`
-        : "Initial title";
+      const who =
+        formatActor(h.changed_by_name, h.changed_by_role) || "Initial title";
 
       return historyEvent(
         "info",
         "edit-icon",
         escapeHtml(h.title),
-        `${who} &middot; ${escapeHtml(formatDateTime(h.changed_at))}`,
+        `${escapeHtml(who)} &middot; ${escapeHtml(formatDateTime(h.changed_at))}`,
         "",
       );
     })
@@ -246,9 +250,6 @@ function buildUndoHistorySection(undoHistory) {
 
   const rows = undoHistory
     .map((h) => {
-      const role = h.actor_role
-        ? h.actor_role.charAt(0).toUpperCase() + h.actor_role.slice(1) + " - "
-        : "";
       const detail = h.note
         ? `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(h.note)}</span>`
         : "";
@@ -257,7 +258,7 @@ function buildUndoHistorySection(undoHistory) {
         "warning",
         "undo-icon",
         escapeHtml(h.title),
-        `${escapeHtml(role + (h.actor_name || ""))} &middot; ${escapeHtml(formatDateTime(h.created_at))}`,
+        historyWhen(h.actor_name, h.actor_role, h.created_at),
         detail,
       );
     })
@@ -286,7 +287,6 @@ function buildCertHistorySection(certHistory) {
         "history-icon",
         h.action,
       ];
-      const who = h.actor_name ? escapeHtml(h.actor_name) + " &middot; " : "";
       const detail = h.note
         ? `<span class="payment-event-detail">${escapeHtml(h.note)}</span>`
         : "";
@@ -302,7 +302,7 @@ function buildCertHistorySection(certHistory) {
         tone,
         icon,
         title,
-        `${who}${escapeHtml(formatDateTime(h.created_at))}`,
+        historyWhen(h.actor_name, h.actor_role, h.created_at),
         detail,
         action,
       );

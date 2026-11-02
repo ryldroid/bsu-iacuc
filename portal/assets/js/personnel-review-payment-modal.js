@@ -3,6 +3,7 @@ const reviewPaymentModal = document.getElementById(
   "reviewPaymentModalBackdrop",
 );
 let currentReviewPaymentProtocolId = null;
+let currentReviewPaymentLabel = "";
 
 function openReviewPaymentModal(
   protocolId,
@@ -12,6 +13,9 @@ function openReviewPaymentModal(
   school,
 ) {
   currentReviewPaymentProtocolId = protocolId;
+  currentReviewPaymentLabel = researcherName
+    ? `${confirmName(title)} by ${confirmName(researcherName)}`
+    : confirmName(title);
   document.getElementById("reviewPaymentSummaryTitle").textContent = title;
   document.getElementById("reviewPaymentSummaryMeta").textContent = [
     researcherName,
@@ -117,7 +121,7 @@ function hideRejectPaymentReason() {
 // ===== Approve reviewed payment =====
 function approveReviewedPayment() {
   confirmAction(
-    "Mark this protocol as paid? Make sure the payment checks out before approving.",
+    `Mark ${currentReviewPaymentLabel} as paid? Make sure the payment checks out before approving.`,
     {
       okText: "Mark as Paid",
       cancelText: "Cancel",
@@ -146,7 +150,7 @@ async function submitRejectPayment() {
   errBox.hidden = true;
 
   const ok = await confirmAction(
-    "Reject this payment? The researcher will be notified and asked to resubmit.",
+    `Reject the payment for ${currentReviewPaymentLabel}? The researcher will be notified and asked to resubmit.`,
     {
       okText: "Reject Proof",
       cancelText: "Cancel",

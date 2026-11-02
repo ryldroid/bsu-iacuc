@@ -53,7 +53,7 @@ function selectDeletionAction(action) {
   if (action === "approve") {
     deletionReviewLabel.textContent = "Approve Deletion Request";
     deletionReviewIntro.textContent =
-      "This will permanently delete the protocol and notify the researcher. This cannot be undone.";
+      "This will delete the protocol and notify the researcher. This cannot be undone.";
     deletionReviewReasonWrap.style.display = "none";
     deletionReviewSubmitLabel.textContent = "Approve & Delete";
     deletionReviewSubmitIcon.setAttribute("href", "#trash-icon");
@@ -103,8 +103,8 @@ async function submitDeletionReview() {
   }
 
   const confirmMessage = isApprove
-    ? "Approve this deletion request? The protocol will be permanently deleted."
-    : "Reject this deletion request with the explanation you provided?";
+    ? `Approve the deletion request for ${confirmName(PROTOCOL_TITLE)}? The protocol will be removed from the portal and the researcher notified.`
+    : `Reject the deletion request for ${confirmName(PROTOCOL_TITLE)} with the explanation you provided?`;
 
   const ok = await confirmAction(confirmMessage, {
     okText: isApprove ? "Approve & Delete" : "Reject Request",

@@ -138,9 +138,6 @@ if ($isPersonnel && $researcherCertStatus === 'rejected') {
 if ($isPersonnel && $researcherCertStatus === 'pending') {
     $viewerNotes[] = ['info', 'info-icon', 'Training certificate not verified yet', 'Reload this page to review it. Finishing the review or returning the protocol is unavailable until it is verified.', 'cert-pending'];
 }
-$certVerifiedTitle = $certReview && $researcherCertStatus === 'verified'
-    ? 'Verified by ' . trim($certReview['actor_name'] ?? '') . ' on ' . date(DATE_FORMAT, strtotime($certReview['created_at'])) . '.'
-    : '';
 $latestClearanceFileUrl    = ! empty($latestClearanceVersion['id']) ? ROOT . '/apply/file/' . (int) $latestClearanceVersion['id'] : null;
 
 $resubmitDocs      = [
@@ -192,26 +189,6 @@ include 'includes/header.php';
             <h1 class="sr-only">Protocol Viewer</h1>
             <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
 
-            <span class="status-badge">
-                <span class="status-badge-icon status-badge-icon--<?= $statusBadgeMeta['class'] ?>">
-                    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#<?= $statusBadgeMeta['icon'] ?>" />
-                    </svg>
-                </span>
-                <?= htmlspecialchars($statusBadgeLabel, ENT_QUOTES, 'UTF-8') ?>
-            </span>
-            <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
-            <?php if ($isPersonnel && $researcherCertStatus !== null): ?>
-                <span class="status-badge" id="certVerifiedBadge" title="<?= htmlspecialchars($certVerifiedTitle, ENT_QUOTES, 'UTF-8') ?>" <?= $researcherCertStatus === 'verified' ? '' : 'hidden' ?>>
-                    <span class="status-badge-icon status-badge-icon--approved">
-                        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-circle-icon" />
-                        </svg>
-                    </span>
-                    Training certificate verified
-                </span>
-            <?php endif; ?>
-
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
                     <?= $prevVersion ? 'href="' . versionViewerUrl($viewerRef, (int) $prevVersion['id'], $fromFilter) . '"' : 'aria-disabled="true" tabindex="-1"' ?>
@@ -241,7 +218,6 @@ include 'includes/header.php';
                     <?php foreach ($versions as $v): ?>
                         <?php
                         $vId    = (int) $v['id'];
-                        $vName  = trim(($v['first_name'] ?? '') . ' ' . ($v['last_name'] ?? ''));
                         $vDate  = !empty($v['uploaded_at']) ? date(DATETIME_FORMAT, strtotime($v['uploaded_at'])) : '';
                         $vIsCur = $vId === $versionId;
                         ?>
@@ -260,6 +236,16 @@ include 'includes/header.php';
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <span class="status-badge">
+                <span class="status-badge-icon status-badge-icon--<?= $statusBadgeMeta['class'] ?>">
+                    <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#<?= $statusBadgeMeta['icon'] ?>" />
+                    </svg>
+                </span>
+                <?= htmlspecialchars($statusBadgeLabel, ENT_QUOTES, 'UTF-8') ?>
+            </span>
+            <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
         </div>
 
         <div class="viewer-topbar-right">
@@ -751,6 +737,7 @@ endif; ?>
     const PDF_URL = <?= json_encode($fileUrl) ?>;
     const VERSION_ID = <?= $versionId              ?>;
     const PROTOCOL_ID = <?= $protocolId             ?>;
+    const PROTOCOL_TITLE = <?= json_encode($protocol['research_title']) ?>;
     const IS_PERSONNEL = <?= $isPersonnel    ? 'true' : 'false' ?>;
     const IS_STAFF = <?= $isStaff    ? 'true' : 'false' ?>;
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;

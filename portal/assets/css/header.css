@@ -196,6 +196,12 @@ html:has(#sidebar-backdrop.active, .modal-backdrop.open) {
     scrollbar-gutter: stable;
 }
 
+@media (pointer: coarse) {
+    html:has(#sidebar-backdrop.active, .modal-backdrop.open) {
+        scrollbar-gutter: auto;
+    }
+}
+
 .nav-sidebar li {
     list-style: none;
     width: 100%;

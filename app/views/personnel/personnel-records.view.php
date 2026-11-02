@@ -1528,7 +1528,7 @@ include dirname(__DIR__) . '/includes/guide.php';
             btn.addEventListener('click', async () => {
                 const title = btn.dataset.title || '#' + btn.dataset.id;
                 const confirmed = await confirmAction(
-                    'Delete "' + title + '"? This cannot be undone.', {
+                    'Delete ' + confirmName(title) + '? This cannot be undone.', {
                         okText: 'Delete',
                         cancelText: 'Cancel',
                         danger: true

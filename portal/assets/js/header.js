@@ -7,7 +7,8 @@ const backdrop = document.querySelector("#sidebar-backdrop");
 const mobileNav = document.querySelector('nav[aria-label="Mobile navigation"]');
 const media = window.matchMedia("(max-width: 768px)");
 const accountDrawer = document.querySelector("#account-drawer");
-const accountRequired = new URLSearchParams(location.search).has("required");
+const accountRequired =
+  !!accountDrawer && !accountDrawer.querySelector(".account-close");
 document.documentElement.classList.toggle("account-required", accountRequired);
 
 function setBackdrop(active) {
@@ -286,7 +287,7 @@ function applySavedAccount(user) {
   resendVerification.hidden = user.email_verified;
   accountDrawer.querySelector(
     "#resend-verification-form",
-  ).dataset.confirmMessage = `Send a verification link to ${user.email}?`;
+  ).dataset.confirmMessage = `Send a verification link to ${confirmName(user.email)}?`;
   accountForm.elements.email.dispatchEvent(new Event("input"));
 
   accountForm.querySelectorAll(".account-password input").forEach((input) => {
@@ -308,8 +309,8 @@ accountForm?.addEventListener("submit", async (event) => {
   );
   delete accountForm.dataset.confirmed;
 
-  if (ok && data.redirect) {
-    location.href = data.redirect;
+  if (ok && (data.redirect || accountRequired)) {
+    location.href = data.redirect ?? location.pathname;
     return;
   }
 

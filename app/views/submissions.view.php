@@ -84,7 +84,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
 
     <!-- ===== My protocols page ===== -->
     <main class="main-content" id="main-content" tabindex="-1">
-        <?php include 'includes/update-banner.php'; ?>
+        <?php include 'includes/update-watcher.php'; ?>
 
         <div class="submission-header page-banner">
             <div class="page-banner-text">

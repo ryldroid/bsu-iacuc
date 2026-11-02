@@ -19,6 +19,7 @@ const mobileSortLabel = document.getElementById("mobileSortLabel");
 const mobileFilterTrigger = document.querySelector(".mobile-filter-trigger");
 const mobileFilterOptions = document.getElementById("mobileFilterOptions");
 const mobileFilterLabel = document.getElementById("mobileFilterLabel");
+const archivedLink = document.getElementById("archivedLink");
 const searchInput = document.getElementById("inboxSearchInput");
 const searchClearBtn = document.getElementById("inboxSearchClear");
 const resultsSummary = document.getElementById("resultsSummary");
@@ -46,6 +47,7 @@ const allRows = protocolsList
   : [];
 
 const DEFAULT_FILTER = "to-review";
+const ARCHIVED_FILTER = "archived";
 const DEFAULT_ROWS = 10;
 
 let activeFilter = DEFAULT_FILTER;
@@ -386,8 +388,10 @@ function syncMobileFilter() {
     );
   if (mobileFilterLabel) {
     mobileFilterLabel.textContent =
-      [...filterPills].find((pill) => pill.dataset.filter === activeFilter)
-        ?.dataset.label ?? "";
+      activeFilter === ARCHIVED_FILTER
+        ? archivedLink.dataset.label
+        : ([...filterPills].find((pill) => pill.dataset.filter === activeFilter)
+            ?.dataset.label ?? "");
   }
 }
 
@@ -407,28 +411,40 @@ mobileFilterOptions?.querySelectorAll(".status-card").forEach((btn) => {
 });
 
 // ===== Status filter tabs =====
-filterPills.forEach((pill) => {
-  pill.addEventListener("click", () => {
-    filterPills.forEach((p) => p.classList.remove("active"));
-    pill.classList.add("active");
-    activeFilter = pill.dataset.filter;
-    pager.page = 1;
+function markArchivedActive(on) {
+  archivedLink?.classList.toggle("active", on);
+  archivedLink?.setAttribute("aria-pressed", on);
+}
 
-    pill.scrollIntoView({
-      block: "nearest",
-      inline: "center",
-    });
+function selectFilter(filter) {
+  activeFilter = filter;
+  pager.page = 1;
 
-    updateStatusGuide(activeFilter);
-    syncMobileFilter();
-
-    const url = new URL(window.location);
-    url.searchParams.set("status", activeFilter);
-    history.replaceState(null, "", url);
-    updateBulkActionsBarVisibility();
-    renderTable();
+  filterPills.forEach((pill) => {
+    const isActive = pill.dataset.filter === filter;
+    pill.classList.toggle("active", isActive);
+    if (isActive) pill.scrollIntoView({ block: "nearest", inline: "center" });
   });
+  markArchivedActive(filter === ARCHIVED_FILTER);
+
+  updateStatusGuide(activeFilter);
+  syncMobileFilter();
+
+  const url = new URL(window.location);
+  url.searchParams.set("status", activeFilter);
+  history.replaceState(null, "", url);
+  updateBulkActionsBarVisibility();
+  renderTable();
+}
+
+filterPills.forEach((pill) => {
+  pill.addEventListener("click", () => selectFilter(pill.dataset.filter));
 });
+
+// ===== Archived: a quiet extra section, not one of the status tabs. Press again to go back =====
+archivedLink?.addEventListener("click", () =>
+  selectFilter(activeFilter === ARCHIVED_FILTER ? DEFAULT_FILTER : ARCHIVED_FILTER),
+);
 
 // ===== Payment status filter =====
 paymentFilterSelect?.addEventListener("change", () => {
@@ -469,11 +485,12 @@ searchClearBtn?.addEventListener("click", () => {
     const matchingPill = [...filterPills].find(
       (p) => p.dataset.filter === requestedStatus,
     );
-    if (matchingPill) {
-      filterPills.forEach((p) => p.classList.remove("active"));
-      matchingPill.classList.add("active");
+    const showArchived = requestedStatus === ARCHIVED_FILTER && !!archivedLink;
+    if (matchingPill || showArchived) {
+      filterPills.forEach((p) => p.classList.toggle("active", p === matchingPill));
+      markArchivedActive(showArchived);
       activeFilter = requestedStatus;
-      matchingPill.scrollIntoView({
+      matchingPill?.scrollIntoView({
         block: "nearest",
         inline: "center",
       });
@@ -497,7 +514,8 @@ function renderTable() {
       row.querySelector(".research-title")?.textContent.toLowerCase() ?? "";
     const researcher = row.dataset.researcher ?? "";
 
-    const matchesFilter = activeFilter === "all" || slug === activeFilter;
+    const matchesFilter =
+      activeFilter === "all" ? slug !== ARCHIVED_FILTER : slug === activeFilter;
     if (matchesFilter) tabTotal++;
 
     const matchesSearch =

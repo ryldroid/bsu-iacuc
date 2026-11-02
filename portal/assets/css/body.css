@@ -772,6 +772,36 @@ main a.underlined:hover {
     color: var(--error-text);
 }
 
+.form-alert--info {
+    background-color: var(--status-info-bg);
+    color: var(--status-info-text);
+    font-weight: 600;
+}
+
+.form-alert--action {
+    cursor: pointer;
+}
+
+.form-alert-action,
+.form-alert-action:hover,
+.form-alert-action:active {
+    display: inline;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+    transform: none;
+    box-shadow: none;
+}
+
 .form-alert.is-leaving {
     max-height: 0 !important;
     margin-bottom: 0;

@@ -74,10 +74,13 @@ async function submitRename() {
     return;
   }
 
-  const ok = await confirmAction(`Rename this protocol to "${newTitle}"?`, {
-    okText: "Rename",
-    cancelText: "Cancel",
-  });
+  const ok = await confirmAction(
+    `Rename this protocol to ${confirmName(newTitle)}?`,
+    {
+      okText: "Rename",
+      cancelText: "Cancel",
+    },
+  );
   if (!ok) return;
 
   setButtonBusy(submitBtn, true, "Renaming...");
@@ -114,7 +117,7 @@ const DELETE_MODES = {
     button: "Delete",
     busy: "Deleting...",
     confirm:
-      "Delete this protocol? The researcher will be notified with your reason. This cannot be undone.",
+      'Delete {title}? The researcher will be notified with your reason. This cannot be undone.',
     danger: true,
     icon: "trash-icon",
     placeholder: "Explain why this protocol should be deleted...",
@@ -126,7 +129,7 @@ const DELETE_MODES = {
       "CCARD will be notified of your request along with the reason below.",
     button: "Send Request",
     busy: "Sending...",
-    confirm: "Send a deletion request with this reason?",
+    confirm: 'Send a deletion request for {title} with this reason?',
     danger: false,
     icon: "trash-icon",
     placeholder: "Explain why this protocol should be deleted...",
@@ -138,7 +141,7 @@ const DELETE_MODES = {
       "The protocol will go to Returned for Revision and its record will be removed until it is reviewed again. The researcher and reviewers will be notified, and the researcher will see your note. Add why Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) or BAI returned it.",
     button: "Return",
     busy: "Returning...",
-    confirm: "Return this protocol to the researcher for revision?",
+    confirm: 'Return {title} to the researcher for revision?',
     danger: false,
     icon: "undo-icon",
     placeholder:
@@ -156,7 +159,7 @@ let deleteCtx = null;
 
 function openDeleteModal(protocolId, title, opts) {
   const mode = DELETE_MODES[opts?.mode] ?? DELETE_MODES.request;
-  deleteCtx = { protocolId, opts, mode };
+  deleteCtx = { protocolId, title, opts, mode };
   document.getElementById("deleteModalLabel").textContent = mode.label;
   document.getElementById("deleteModalTitle").textContent = title;
   document.getElementById("deleteModalIntro").textContent = mode.intro;
@@ -192,7 +195,7 @@ async function submitDelete() {
   const reason = deleteReasonText.value.trim();
   const errBox = document.getElementById("deleteError");
   const submitBtn = document.getElementById("deleteSubmitBtn");
-  const { mode, protocolId, opts } = deleteCtx;
+  const { mode, protocolId, title, opts } = deleteCtx;
   errBox.hidden = true;
 
   if (!reason && !mode.optional) {
@@ -200,11 +203,14 @@ async function submitDelete() {
     return;
   }
 
-  const ok = await confirmAction(mode.confirm, {
-    okText: mode.button,
-    cancelText: "Cancel",
-    danger: mode.danger,
-  });
+  const ok = await confirmAction(
+    mode.confirm.replace("{title}", () => confirmName(title)),
+    {
+      okText: mode.button,
+      cancelText: "Cancel",
+      danger: mode.danger,
+    },
+  );
   if (!ok) return;
 
   setButtonBusy(submitBtn, true, mode.busy);
@@ -232,9 +238,9 @@ async function submitDelete() {
 }
 
 // ===== Cancel a pending deletion request (researcher) =====
-async function cancelDeletionRequest(protocolId, opts) {
+async function cancelDeletionRequest(protocolId, title, opts) {
   const ok = await confirmAction(
-    "Cancel your deletion request? The protocol stays active.",
+    `Cancel your deletion request for ${confirmName(title)}? The protocol stays active.`,
     { okText: "Cancel Request", cancelText: "Keep Request" },
   );
   if (!ok) return;

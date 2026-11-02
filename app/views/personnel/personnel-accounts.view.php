@@ -182,12 +182,16 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                         <?php else: ?>
                             <?php foreach ($pending as $applicant): ?>
+                                <?php
+                                $applicantName = $applicant['first_name'] . ' ' . $applicant['last_name'];
+                                $applicantRole = $roleLabels[$applicant['role']] ?? $applicant['role'];
+                                ?>
                                 <div class="pending-box">
                                     <span class="personnel-avatar" aria-hidden="true"><?= htmlspecialchars(mb_strtoupper(mb_substr($applicant['first_name'], 0, 1) . mb_substr($applicant['last_name'], 0, 1))) ?></span>
                                     <div class="pending-info">
                                         <span class="personnel-name">
-                                            <?= htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?>
-                                            <span class="personnel-status-pill personnel-role-<?= htmlspecialchars($applicant['role']) ?> personnel-you-tag"><?= htmlspecialchars($roleLabels[$applicant['role']] ?? $applicant['role']) ?></span>
+                                            <?= htmlspecialchars($applicantName); ?>
+                                            <span class="personnel-status-pill personnel-role-<?= htmlspecialchars($applicant['role']) ?> personnel-you-tag"><?= htmlspecialchars($applicantRole) ?></span>
                                         </span>
                                         <span class="personnel-username">@<?= htmlspecialchars($applicant['username']); ?></span>
                                         <div class="pending-meta">
@@ -198,7 +202,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 
                                     <div class="actions">
                                         <form method="POST" action="<?= ROOT ?>/personnel/approve"
-                                            data-confirm-message="Approve this application?"
+                                            data-confirm-message="<?= htmlspecialchars('Approve the ' . confirm_bold(mb_strtolower($applicantRole)) . ' account application of ' . confirm_bold($applicantName) . '?') ?>"
                                             data-confirm-ok-text="Approve">
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
                                             <input type="hidden" name="user_id" value="<?= (int) $applicant['id']; ?>">
@@ -206,7 +210,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                         </form>
 
                                         <form method="POST" action="<?= ROOT ?>/personnel/reject"
-                                            data-confirm-message="Reject and delete this application?"
+                                            data-confirm-message="<?= htmlspecialchars('Reject and delete the ' . confirm_bold(mb_strtolower($applicantRole)) . ' account application of ' . confirm_bold($applicantName) . '? They will be notified by email.') ?>"
                                             data-confirm-ok-text="Confirm"
                                             data-confirm-danger="true">
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf); ?>">
@@ -317,8 +321,11 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                                     <span class="personnel-status-pill personnel-status-active personnel-you-tag">You</span>
                                                 <?php endif; ?>
                                             </span>
-                                            <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?></span>
+                                            <span class="personnel-username">@<?= htmlspecialchars($p['username']) ?> &middot; Last login <?= !empty($p['last_login_at']) ? date(DATE_FORMAT, strtotime($p['last_login_at'])) : 'never' ?></span>
                                         </div>
+                                        <?php if ($p['status'] === 'deactivated'): ?>
+                                            <span class="personnel-status-pill personnel-status-inactive" title="<?= htmlspecialchars(AccountLifecycle::statusLabel($p)) ?>">Deactivated</span>
+                                        <?php endif; ?>
                                         <span class="personnel-status-pill personnel-role-<?= htmlspecialchars($p['role']) ?>"><?= htmlspecialchars($roleLabels[$p['role']] ?? $p['role']) ?></span>
                                         <form method="POST" action="<?= ROOT ?>/personnel/update_role" class="personnel-role-form">
                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
@@ -338,6 +345,20 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                             <?php endif; ?>
                                         </form>
                                         <?php if (!$isSelf): ?>
+                                            <?php
+                                            $isDeactivated = $p['status'] === 'deactivated';
+                                            $fullName      = $p['first_name'] . ' ' . $p['last_name'];
+                                            ?>
+                                            <form method="POST" action="<?= ROOT ?>/personnel/<?= $isDeactivated ? 'reactivate_account' : 'deactivate_account' ?>"
+                                                data-confirm-message="<?= htmlspecialchars($isDeactivated
+                                                                            ? 'Reactivate the account of ' . confirm_bold($fullName) . '? They can sign in again and will be notified by email.'
+                                                                            : 'Deactivate the account of ' . confirm_bold($fullName) . '? They will be signed out and cannot sign in until administrative staff reactivate it. They will be notified by email.') ?>"
+                                                data-confirm-ok-text="<?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?>"
+                                                <?= $isDeactivated ? '' : 'data-confirm-danger="true"' ?>>
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
+                                                <button type="submit" class="accounts-btn-primary accounts-btn-outline personnel-status-btn"><?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?></button>
+                                            </form>
                                             <form method="POST" action="<?= ROOT ?>/personnel/delete_personnel">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                                                 <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
@@ -416,7 +437,7 @@ if ($isStaff) {
     $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
     $guideSteps[] = ['Registration link', 'Choose a role and generate a registration link to send to a new staff member or reviewer. The link works for 48 hours.', '.invite-section'];
 }
-$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed. Press **Delete** to remove someone\'s account. They receive an email letting them know. You can delete your own account from the account panel.', '.personnel-manage-section'];
+$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed. Press **Deactivate** to lock a user out of their account, and **Reactivate** to let them back in. Personnel who have not signed in for 6 months are deactivated automatically, and only administrative staff can reactivate them. Press **Delete** to remove a user\'s account. You can delete your own account from your account settings.', '.personnel-manage-section'];
 $guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
 include dirname(__DIR__) . '/includes/guide.php';
 

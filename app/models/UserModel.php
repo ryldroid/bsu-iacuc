@@ -186,8 +186,10 @@ class UserModel extends Model
   public function getCert(int $userId): ?array
   {
     $stmt = $this->connection->prepare(
-      "SELECT cert_path, cert_original_name, cert_uploaded_at, cert_status, cert_reviewed_by, cert_reviewed_at, cert_note
-      FROM $this->table WHERE id = ? AND cert_path IS NOT NULL"
+      "SELECT u.cert_path, u.cert_original_name, u.cert_uploaded_at, u.cert_status, u.cert_reviewed_by, u.cert_reviewed_at, u.cert_note,
+        NULLIF(TRIM(CONCAT(r.first_name, ' ', r.last_name)), '') AS cert_reviewer_name, r.role AS cert_reviewer_role
+      FROM $this->table u LEFT JOIN $this->table r ON r.id = u.cert_reviewed_by
+      WHERE u.id = ? AND u.cert_path IS NOT NULL"
     );
     $stmt->bind_param('i', $userId);
     $stmt->execute();
@@ -244,7 +246,7 @@ class UserModel extends Model
   public function getCertHistory(int $userId): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT h.id, h.action, h.note, h.file_path, h.original_name, h.created_at, CONCAT(u.first_name, ' ', u.last_name) AS actor_name
+      "SELECT h.id, h.action, h.note, h.file_path, h.original_name, h.created_at, CONCAT(u.first_name, ' ', u.last_name) AS actor_name, u.role AS actor_role
       FROM cert_history h LEFT JOIN $this->table u ON u.id = h.actor_id
       WHERE h.user_id = ? ORDER BY h.id DESC"
     );
@@ -354,13 +356,23 @@ class UserModel extends Model
   }
 
   // ===== DELETE / DEACTIVATE ACCOUNT =====
-  public function deleteUser(int $id): bool
+  public function getCertFiles(int $id): array
   {
     $stmt = $this->connection->prepare("SELECT file_path FROM cert_history WHERE user_id = ?");
     $stmt->bind_param('i', $id);
     $stmt->execute();
-    $certFiles = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'file_path');
+    return array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'file_path');
+  }
 
+  public function removeCertFiles(array $certFiles): void
+  {
+    foreach ($certFiles as $certFile) {
+      @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $certFile);
+    }
+  }
+
+  public function deleteUser(int $id): bool
+  {
     $anonUsername   = 'deleted_user_' . $id . '_' . bin2hex(random_bytes(3));
     $anonEmail      = $anonUsername . '@deleted.local';
     $randomPassword = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
@@ -378,12 +390,9 @@ class UserModel extends Model
     $ok = $stmt->execute();
 
     if ($ok) {
-      foreach ($certFiles as $certFile) {
-        @unlink(dirname(__DIR__, 2) . '/storage/uploads/protocols/' . $certFile);
-      }
       $stmt = $this->connection->prepare("DELETE FROM cert_history WHERE user_id = ?");
       $stmt->bind_param('i', $id);
-      $stmt->execute();
+      $ok = $stmt->execute();
     }
 
     return $ok;
@@ -399,11 +408,14 @@ class UserModel extends Model
     return (int) $stmt->get_result()->fetch_row()[0] === 0;
   }
 
-  public function deactivateUser(int $id): bool
+  // Only an active account can be deactivated, so a pending or deleted one can never be revived by accident
+  public function deactivateUser(int $id, string $reason): bool
   {
-    $stmt = $this->connection->prepare("UPDATE $this->table SET status = 'deactivated' WHERE id = ?");
-    $stmt->bind_param('i', $id);
-    return $stmt->execute();
+    $stmt = $this->connection->prepare(
+      "UPDATE $this->table SET status = 'deactivated', deactivated_at = NOW(), deactivation_reason = ? WHERE id = ? AND status = 'active'"
+    );
+    $stmt->bind_param('si', $reason, $id);
+    return $stmt->execute() && $stmt->affected_rows > 0;
   }
 
   public function markExpiryWarned(int $id, string $expiryDate): bool
@@ -413,13 +425,37 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // Restarts the dormancy clock too, and stamps reactivated_at so the clearance expiry sweep leaves the account alone
+  // until a clearance that ends AFTER this moment expires (see RecordModel::getUsersWithExpiredClearances)
   public function reactivateUser(int $id): bool
   {
     $stmt = $this->connection->prepare(
-      "UPDATE $this->table SET status = 'active' WHERE id = ? AND status = 'deactivated'"
+      "UPDATE $this->table SET status = 'active', deactivated_at = NULL, deactivation_reason = NULL, reactivated_at = NOW(), last_login_at = NOW()
+       WHERE id = ? AND status = 'deactivated'"
     );
     $stmt->bind_param('i', $id);
+    return $stmt->execute() && $stmt->affected_rows > 0;
+  }
+
+  public function touchLastLogin(int $id): bool
+  {
+    $stmt = $this->connection->prepare("UPDATE $this->table SET last_login_at = NOW() WHERE id = ?");
+    $stmt->bind_param('i', $id);
     return $stmt->execute();
+  }
+
+  // Active personnel who have not signed in for $months months (never-signed-in accounts count from when they were created)
+  // Pass $onlyId to check a single account instead of everyone
+  public function getDormantPersonnelIds(int $months, int $exceptId = 0, int $onlyId = 0): array
+  {
+    $stmt = $this->connection->prepare(
+      "SELECT id FROM $this->table
+       WHERE role IN ('staff', 'reviewer') AND status = 'active' AND id != ? AND (? = 0 OR id = ?)
+         AND COALESCE(last_login_at, created_at) < DATE_SUB(NOW(), INTERVAL ? MONTH)"
+    );
+    $stmt->bind_param('iiii', $exceptId, $onlyId, $onlyId, $months);
+    $stmt->execute();
+    return array_map('intval', array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'id'));
   }
 
   // ===== OTHER =====
@@ -437,7 +473,7 @@ class UserModel extends Model
   public function approveUser(int $id): bool
   {
     $stmt = $this->connection->prepare(
-      "UPDATE $this->table SET status = 'active' WHERE id = ? AND status = 'pending'"
+      "UPDATE $this->table SET status = 'active', last_login_at = NOW() WHERE id = ? AND status = 'pending'"
     );
     $stmt->bind_param('i', $id);
     return $stmt->execute();
@@ -457,9 +493,9 @@ class UserModel extends Model
   public function getPersonnelAccounts(): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT id, username, first_name, last_name, email, role, status
+      "SELECT id, username, first_name, last_name, email, role, status, last_login_at, deactivated_at, deactivation_reason
       FROM $this->table
-      WHERE role IN ('staff', 'reviewer') AND status != 'deleted'
+      WHERE role IN ('staff', 'reviewer') AND status NOT IN ('pending', 'deleted')
       ORDER BY FIELD(role, 'staff', 'reviewer'), first_name, last_name"
     );
     $stmt->execute();
