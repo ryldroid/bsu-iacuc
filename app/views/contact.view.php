@@ -115,7 +115,16 @@ $openLine = function (string $url, string $label) use ($linkButton) {
                                             <use href="#location-icon" />
                                         </svg>Address
                                     </dt>
-                                    <dd><?= nl2br(htmlspecialchars($office['address'], ENT_QUOTES)) ?></dd>
+                                    <dd>
+                                        <?php if ($isFeatured): ?>
+                                            <span class="contact-line">
+                                                <?= nl2br(htmlspecialchars($office['address'], ENT_QUOTES)) ?>
+                                                <?= $linkButton(htmlspecialchars(CCARD_MAP_LINK, ENT_QUOTES), 'external-link-icon', 'Open address in Google Maps', ' target="_blank" rel="noopener noreferrer"') ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <?= nl2br(htmlspecialchars($office['address'], ENT_QUOTES)) ?>
+                                        <?php endif; ?>
+                                    </dd>
                                 </div>
                             <?php endif; ?>
 

@@ -12,7 +12,6 @@ $bannerTitle     = $siteSettings['banner_title'] ?? 'Benguet State University - 
 $aboutText       = $siteSettings['about_text'] ?? '';
 
 $ccardMapEmbed = 'https://www.google.com/maps?cid=10697978370393166203&z=18&output=embed';
-$ccardMapLink  = 'https://www.google.com/maps/place/Cordillera+Center+for+Animal+Research+and+Development+(CCARD)/data=!4m2!3m1!1s0x0:0x9476daa5c618d17b';
 
 
 include "includes/header.php";
@@ -91,7 +90,7 @@ include "includes/scroll-top.php";
                 <article class="map-section">
                     <div class="map-header">
                         <h2>Where to Find Us</h2>
-                        <a href="<?= htmlspecialchars($ccardMapLink, ENT_QUOTES) ?>"
+                        <a href="<?= htmlspecialchars(CCARD_MAP_LINK, ENT_QUOTES) ?>"
                             class="underlined see_all"
                             target="_blank"
                             rel="noopener noreferrer">Open in Google Maps ></a>

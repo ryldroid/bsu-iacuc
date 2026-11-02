@@ -26,6 +26,7 @@ define('DATE_FORMAT', 'M j, Y');
 define('MONTH_FORMAT', 'M Y');
 define('DATETIME_FORMAT', "M j, Y \xC2\xB7 g:i A");
 define('ANNOUNCEMENT_NEW_DAYS', 7);
+define('CCARD_MAP_LINK', 'https://www.google.com/maps/place/Cordillera+Center+for+Animal+Research+and+Development+(CCARD)/data=!4m2!3m1!1s0x0:0x9476daa5c618d17b');
 define('VIEWSPATH', dirname(__DIR__) . '/views/');
 define('CSSPATH', ROOT . '/assets/css');
 define('JSPATH', ROOT . '/assets/js');
