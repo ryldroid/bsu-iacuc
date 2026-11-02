@@ -1,5 +1,5 @@
 // ===== Cache settings =====
-const CACHE_VERSION = "bsu-iacuc-v9";
+const CACHE_VERSION = "bsu-iacuc-v10";
 const FILE_CACHE = "bsu-iacuc-files-v1";
 const MAX_CACHED_FILES = 150;
 const NETWORK_TIMEOUT_MS = 4000;
@@ -8,6 +8,7 @@ const PRECACHE_URLS = [
   "offline.html",
   "assets/css/body.css",
   "assets/css/404.css",
+  "assets/images/background.webp",
   "assets/images/bsu.webp",
   "assets/images/ccard.webp",
   "assets/images/favicon.ico",
@@ -120,6 +121,20 @@ function fetchWithTimeout(request) {
   });
 }
 
+// ===== Offline page =====
+// Served at the URL that failed, so its relative links need the scope as their base
+async function offlinePage(cache) {
+  const page = await cache.match("offline.html");
+  if (!page) return null;
+  const html = (await page.text()).replace(
+    "<head>",
+    `<head>\n  <base href="${self.registration.scope}">`,
+  );
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
 // ===== Navigation handler =====
 async function navigationHandler(request) {
   const cache = await caches.open(CACHE_VERSION);
@@ -137,7 +152,7 @@ async function navigationHandler(request) {
     return (
       (await cache.match(request, { ignoreVary: true })) ||
       (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ||
-      (await cache.match("offline.html")) ||
+      (await offlinePage(cache)) ||
       new Response(
         "<h1>You are offline</h1><p>This page is not saved on this device.</p>",
         {

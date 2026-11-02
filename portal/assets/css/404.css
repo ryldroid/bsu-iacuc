@@ -49,6 +49,12 @@ div a.button {
   border-radius: var(--btn-radius);
 }
 
+.offline-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--secondary-text);
+}
+
 h1 {
   font-family: var(--font-title);
   color: var(--primary-text);

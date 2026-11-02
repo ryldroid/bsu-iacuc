@@ -6,6 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>You're Offline - BSU-IACUC</title>
 
+  <script>
+    (function () {
+      var mode = localStorage.getItem('theme') || 'auto';
+      var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var resolvedTheme = (mode === 'light' || mode === 'dark') ? mode : (systemPrefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      document.documentElement.setAttribute('data-theme-mode', mode);
+    })();
+  </script>
+
   <link rel="stylesheet" href="assets/css/body.css">
   <link rel="stylesheet" href="assets/css/404.css">
 </head>
@@ -13,6 +23,15 @@
 <body>
   <main>
     <div>
+      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 20h.01" />
+        <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+        <path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
+        <path d="M19 12.859a10 10 0 0 0-2.007-1.523" />
+        <path d="M2 8.82a15 15 0 0 1 4.177-2.643" />
+        <path d="M22 8.82a15 15 0 0 0-11.288-3.764" />
+        <path d="m2 2 20 20" />
+      </svg>
       <h1>You're Offline</h1>
       <p>This page hasn't been loaded before, so it isn't available without an internet connection.</p>
       <p class="helper-note">Pages you've already visited (like your dashboard or protocol list) should still work. Try
