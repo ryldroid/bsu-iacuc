@@ -444,6 +444,48 @@ class Schema
         $this->dropColumn('protocol_drafts', 'is_pi');
         $this->dropColumn('protocol_drafts', 'auth_file_path');
         $this->dropColumn('protocol_drafts', 'auth_file_name');
+
+        $this->addForeignKeys();
+    }
+
+    // ===== FOREIGN KEYS =====
+    // Links that were plain int columns. audit_logs stays unlinked on purpose: it keeps its own username/role snapshot
+    private function addForeignKeys(): void
+    {
+        foreach (['user_id', 'title_changed_by', 'title_change_seen_by', 'deletion_requested_by', 'deleted_by', 'paid_by', 'hard_copy_released_by'] as $column) {
+            $this->ensureForeignKey('protocols', $column, 'users', 'SET NULL');
+        }
+
+        $this->ensureForeignKey('records', 'user_id', 'users', 'SET NULL');
+        $this->ensureForeignKey('records', 'protocol_id', 'protocols', 'SET NULL');
+        $this->ensureForeignKey('protocol_title_history', 'changed_by', 'users', 'SET NULL');
+        $this->ensureForeignKey('protocol_return_reasons', 'version_id', 'protocol_versions', 'SET NULL');
+        $this->ensureForeignKey('clearance_pool', 'version_id', 'protocol_versions', 'SET NULL');
+        $this->ensureForeignKey('invite_tokens', 'used_by', 'users', 'SET NULL');
+        $this->ensureForeignKey('users', 'cert_reviewed_by', 'users', 'SET NULL');
+        $this->ensureForeignKey('idempotency_keys', 'user_id', 'users', 'CASCADE');
+    }
+
+    // Skips a column that already has a key. Rows pointing at a missing id are cleared first, since MySQL refuses the key otherwise
+    private function ensureForeignKey(string $table, string $column, string $refTable, string $onDelete): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query(
+            "SELECT 1 FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table'
+               AND COLUMN_NAME = '$column' AND REFERENCED_TABLE_NAME IS NOT NULL"
+        );
+        if (! $exists || $exists->num_rows > 0) return;
+
+        $orphans = "FROM `$table` t LEFT JOIN `$refTable` r ON r.id = t.`$column` WHERE t.`$column` IS NOT NULL AND r.id IS NULL";
+        $c->query($onDelete === 'SET NULL'
+            ? "UPDATE `$table` t LEFT JOIN `$refTable` r ON r.id = t.`$column` SET t.`$column` = NULL WHERE t.`$column` IS NOT NULL AND r.id IS NULL"
+            : "DELETE t $orphans");
+
+        if (! $c->query("ALTER TABLE `$table` ADD CONSTRAINT `fk_{$table}_{$column}` FOREIGN KEY (`$column`) REFERENCES `$refTable`(`id`) ON DELETE $onDelete")) {
+            error_log("Schema: could not add foreign key `fk_{$table}_{$column}`: " . $c->error);
+        }
     }
 
     // ===== SCHEMA HELPERS =====
