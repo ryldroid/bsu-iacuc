@@ -307,6 +307,17 @@ class Personnel extends Controller
         $page           = max(1, (int) ($_GET['page'] ?? 1));
         $offset         = ($page - 1) * $perPage;
 
+        // A link from a notification opens the page that holds the record, with no filters hiding it
+        $highlightId = (int) ($_GET['highlight'] ?? 0);
+        if ($highlightId > 0 && $this->recordModel->exists($highlightId)) {
+            $search = $school = $animalType = $sex = $researcherType = $status = '';
+            $incompleteOnly = false;
+            $sort           = 'newest';
+            $listPeriod     = null;
+            $page           = intdiv($this->recordModel->countNewerThan($highlightId), $perPage) + 1;
+            $offset         = ($page - 1) * $perPage;
+        }
+
         $total      = $this->recordModel->count($search, $school, $animalType, $sex, $researcherType, $status, $listPeriod, $incompleteOnly);
         $records    = $this->recordModel->getAll($search, $school, $animalType, $sex, $researcherType, $sort, $perPage, $offset, $listPeriod, $status, $incompleteOnly);
         $totalPages = (int) ceil($total / $perPage);
@@ -1425,6 +1436,11 @@ class Personnel extends Controller
     }
 
     // ===== STAFF LOG IN =====
+    public function index(): void
+    {
+        $this->redirect('personnel/login');
+    }
+
     public function login(): void
     {
         if ($this->isLoggedIn()) {
@@ -1468,18 +1484,13 @@ class Personnel extends Controller
             $this->redirect('personnel/login');
         }
 
-        $user = $this->userModel->getUserByUsername($input) ?? $this->userModel->getUserByEmail($input);
+        $user = $this->userModel->getUserByUsername($input) ?? $this->userModel->getUserByEmail($input, 'personnel');
 
         if (!$user) {
             $this->userModel->recordLoginAttempt($ip);
             $this->userModel->recordLoginAttempt($input);
             $this->userModel->logAudit('login_failed', null, $input, '', '', null, 'Failed personnel login attempt');
             $_SESSION['flash_error'] = 'No account found with that username or email.';
-            $this->redirect('personnel/login');
-        }
-
-        if (!in_array($user['role'], ['staff', 'reviewer'])) {
-            $_SESSION['flash_error'] = 'This portal is for CCARD personnel only.';
             $this->redirect('personnel/login');
         }
 
@@ -1493,6 +1504,11 @@ class Personnel extends Controller
 
         $this->userModel->clearLoginAttempts($ip);
         $this->userModel->clearLoginAttempts($input);
+
+        if (!in_array($user['role'], ['staff', 'reviewer'])) {
+            $_SESSION['flash_error'] = 'This portal is for CCARD personnel only.';
+            $this->redirect('personnel/login');
+        }
 
         if (($user['status'] ?? 'active') === 'pending') {
             $_SESSION['flash_error'] = 'Your account is pending administrative staff approval.';
@@ -1615,11 +1631,8 @@ class Personnel extends Controller
         }
 
         if (empty($errors)) {
-            $existing = $this->userModel->getUserByEmail($email);
-            if ($existing) {
-                $errors[] = $existing['role'] === 'researcher'
-                    ? 'This email belongs to a researcher account. Please use a different email, or delete your researcher account first.'
-                    : 'That email is already taken.';
+            if ($this->userModel->getUserByEmail($email, 'personnel')) {
+                $errors[] = 'That email is already taken.';
             }
             if ($this->userModel->getUserByUsername($username)) {
                 $errors[] = 'That username is already taken.';
@@ -1917,7 +1930,7 @@ class Personnel extends Controller
     // ===== FORGOT / RESET PASSWORD =====
     public function forgot_password(): void
     {
-        $this->handleForgotPassword('personnel/forgot_password', 'personnel/reset_password', 'personnel/login');
+        $this->handleForgotPassword('personnel/forgot_password', 'personnel/reset_password', 'personnel/login', 'personnel');
     }
 
     public function reset_password(): void

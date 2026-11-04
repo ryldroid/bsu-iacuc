@@ -831,6 +831,14 @@ main a.underlined:hover {
     pointer-events: auto;
 }
 
+.toast-stack .form-alert--welcome {
+    width: fit-content;
+    max-width: 100%;
+    align-self: center;
+    background-color: var(--accent-color);
+    color: var(--accent-text);
+}
+
 /* Same width as the form fields */
 @media (max-width: 600px) {
     .form-alert {

@@ -75,6 +75,7 @@ class Access
 
     'personnel' => [
       // signed out
+      'index' => 'public',
       'login' => 'public',
       'login_process' => 'public',
       'logout' => 'public',
@@ -162,6 +163,7 @@ class Access
       'amendment_upload' => 'researcher',
       'request_deletion' => 'researcher',
       'cancel_deletion' => 'researcher',
+      'report_outcome' => 'researcher',
       'withdraw_amendment' => 'researcher',
       // signed in; each also checks protocol ownership / personnel inside
       'versions' => 'auth',
@@ -174,6 +176,7 @@ class Access
       'returnreason' => 'auth',
       'rename' => 'auth',
       'annotate' => 'auth',
+      'commentsreport' => 'auth',
       'mark_title_seen' => 'auth',
       // staff + reviewer
       'status' => 'personnel',

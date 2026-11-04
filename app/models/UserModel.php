@@ -78,19 +78,29 @@ class UserModel extends Model
 
   // ===== GETTING USERS =====
 
-  public function getUserByEmail($email)
+  // An email is unique within an account type ('researcher' or 'personnel'), so the same address can hold one of each
+  public function getUserByEmail(string $email, string $accountType)
   {
-    $stmt = $this->connection->prepare("SELECT * FROM $this->table WHERE email = ?");
-    $stmt->bind_param('s', $email);
+    $stmt = $this->connection->prepare("SELECT * FROM $this->table WHERE email = ? AND account_type = ?");
+    $stmt->bind_param('ss', $email, $accountType);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc() ?: null;
   }
 
-  // True when any account other than $excludeId already uses this email
+  // Every account that uses this address (for events that concern the address itself)
+  public function getUsersByEmail(string $email): array
+  {
+    $stmt = $this->connection->prepare("SELECT * FROM $this->table WHERE email = ?");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+  }
+
+  // True when another account of the same type already uses this email
   public function isEmailTakenByAnother(string $email, int $excludeId): bool
   {
-    $stmt = $this->connection->prepare("SELECT 1 FROM $this->table WHERE email = ? AND id != ? LIMIT 1");
-    $stmt->bind_param('si', $email, $excludeId);
+    $stmt = $this->connection->prepare("SELECT 1 FROM $this->table WHERE email = ? AND id != ? AND account_type = (SELECT account_type FROM $this->table WHERE id = ?) LIMIT 1");
+    $stmt->bind_param('sii', $email, $excludeId, $excludeId);
     $stmt->execute();
     return $stmt->get_result()->num_rows > 0;
   }

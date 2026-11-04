@@ -257,6 +257,10 @@ include 'includes/header.php';
                 'hasUpdate'      => $showTitleChangeBanner,
                 'deleteRedirect' => $canDelete ? $backUrl : null,
                 'amendRedirect'  => $amendRedirect,
+                'extraItems'     => $isReadOnlyFile ? [] : array_filter([
+                    ['action' => 'extract-comments', 'label' => 'Extract comments', 'icon' => 'download-icon', 'mobileOnly' => true, 'disabled' => true],
+                    $versionNum > 1 ? ['action' => 'extract-all-comments', 'label' => 'Extract all versions', 'icon' => 'download-icon', 'mobileOnly' => true] : null,
+                ]),
             ]);
             include 'includes/protocol-menu.php';
             ?>
@@ -375,6 +379,22 @@ include 'includes/header.php';
                     <p class="helper" id="annotOfflineNote" hidden></p>
                     <div id="annotList">
                         <p class="annot-empty">Loading…</p>
+                    </div>
+
+                    <!-- ===== Extract comments ===== -->
+                    <div class="annot-extract">
+                        <?php if ($versionNum > 1): ?>
+                            <label class="annot-extract-option">
+                                <input type="checkbox" id="extractAllVersions">
+                                Include all past versions
+                            </label>
+                        <?php endif; ?>
+                        <button type="button" class="tool-btn tool-btn--success" id="extractComments" disabled>
+                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#download-icon" />
+                            </svg>
+                            Extract comments
+                        </button>
                     </div>
                 </div>
             </div>

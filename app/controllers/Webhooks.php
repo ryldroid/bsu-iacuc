@@ -32,9 +32,7 @@ class Webhooks extends Controller
       return;
     }
 
-    $user = $this->userModel->getUserByEmail($email);
-
-    if ($user) {
+    foreach ($this->userModel->getUsersByEmail($email) as $user) {
       $this->stopEmailUpdates($user, $event);
     }
 

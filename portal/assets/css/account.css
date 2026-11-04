@@ -272,12 +272,6 @@ main button:hover {
     }
 }
 
-.hidden-login-link {
-    text-decoration: none;
-    color: inherit;
-    cursor: text;
-}
-
 .create-acc-helper {
     text-align: center;
 }

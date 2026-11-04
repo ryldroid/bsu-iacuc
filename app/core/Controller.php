@@ -157,7 +157,7 @@ class Controller
   protected function flashWelcomeBack(array $user): void
   {
     if (!empty($user['last_login_at'])) {
-      $_SESSION['flash_success'] = $this->welcomeBackMessage($user);
+      $_SESSION['flash_welcome'] = $this->welcomeBackMessage($user);
     }
   }
 
@@ -281,7 +281,7 @@ class Controller
   }
 
   // ===== FORGOT PASSWORD FLOW =====
-  protected function handleForgotPassword(string $forgotRoute, string $resetRoute, string $loginRoute): void
+  protected function handleForgotPassword(string $forgotRoute, string $resetRoute, string $loginRoute, string $accountType): void
   {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
       $this->view('user/forgot_password', [
@@ -297,8 +297,8 @@ class Controller
     $cooldown = 45;
     $success  = "Please check your email inbox or spam folder for the password reset link. If you need to request another link, please wait {$cooldown} seconds before trying again.";
 
-    $user     = $this->userModel->getUserByEmail($email);
-    $elapsed  = $user ? $this->userModel->secondsSinceLastPasswordReset((int) $user['id']) : null;
+    $user     = $this->userModel->getUserByEmail($email, $accountType);
+    $elapsed = $user ? $this->userModel->secondsSinceLastPasswordReset((int) $user['id']) : null;
 
     if ($user && ($elapsed === null || $elapsed >= $cooldown)) {
       $token = bin2hex(random_bytes(32));

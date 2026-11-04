@@ -12,7 +12,6 @@ $title = 'My Protocols';
 include 'includes/header.php';
 include 'includes/scroll-top.php';
 
-$count = count($protocols);
 
 $countsByStatusSlug = [];
 foreach ($protocols as $p) {
@@ -50,7 +49,7 @@ $statusMeta = [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => "Congratulations, your protocol has been approved!\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.",
+        'desc'  => "Congratulations, your protocol has been approved!\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.\nWhen your research is completed or cancelled, press **Report as Completed** or **Report as Cancelled** on the protocol card so CCARD can update its records.",
     ],
 ];
 
@@ -281,6 +280,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
                     $isApproved    = strtolower($protocol['status']) === 'approved';
+                    $recordStatus  = $protocol['record_status'] ?? '';
                     $clearanceExpired = $isApproved && !empty($protocol['clearance_ends_on']) && strtotime($protocol['clearance_ends_on']) < strtotime('today');
                     $isReviewedStatus = strtolower($protocol['status']) === 'reviewed';
                     $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
@@ -310,7 +310,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         </span>
                                     <?php endif; ?>
                                     <?php if ($clearanceExpired): ?>
-                                        <span class="status-dot status-dot--danger" title="Clearance ended <?= date(MONTH_FORMAT, strtotime($protocol['clearance_ends_on'])) ?>">Clearance expired</span>
+                                        <!-- <span class="status-dot status-dot--danger" title="Clearance ended <?= date(MONTH_FORMAT, strtotime($protocol['clearance_ends_on'])) ?>">Clearance expired</span> -->
                                     <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line" title="Submission round and submission date">
@@ -324,14 +324,48 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if ($isApproved): ?>
-                                    <div class="clearance-reminder">
-                                        <?php if (!empty($protocol['hard_copy_released_at'])): ?>
-                                            <strong>Embossed hard copy picked up</strong> on <?= date(DATE_FORMAT, strtotime($protocol['hard_copy_released_at'])) ?>.
-                                        <?php else: ?>
-                                            <strong>Your embossed hard copy is ready for pickup.</strong> The downloadable clearance is for temporary reference only. Please visit the BSU-CCARD Office to claim your embossed hard copy during office hours, Monday to Friday, 8:00 AM to 5:00 PM. Office staff will record the pickup once you have received it. For the office location, please visit our <a href="<?= ROOT ?>/contact" class="underlined">Contact Us</a> page.
+                                <?php if ($isApproved):
+                                    $hardCopyPending = empty($protocol['hard_copy_released_at']);
+                                    $outcomeReported = in_array($recordStatus, RecordModel::OUTCOME_STATUSES, true);
+                                ?>
+                                    <?php if ($hardCopyPending || $recordStatus === RecordModel::DEFAULT_STATUS || $outcomeReported): ?>
+                                    <div class="clearance-notes">
+                                        <?php if ($hardCopyPending): ?>
+                                            <p class="clearance-reminder">
+                                                <?= statusIconSvg('clock-icon', 14) ?>
+                                                <span><strong>Embossed hard copy ready for pickup</strong> at the BSU-CCARD Office, Monday to Friday, 8:00 AM to 5:00 PM. Your downloaded clearance is for temporary reference only. <a href="<?= ROOT ?>/contact" class="underlined">Find the office</a></span>
+                                            </p>
+                                        <?php endif; ?>
+                                        <?php if ($recordStatus === RecordModel::DEFAULT_STATUS): ?>
+                                            <div class="clearance-reminder">
+                                                <?= statusIconSvg('beaker-icon', 14) ?>
+                                                <span>
+                                                    <?php if ($clearanceExpired): ?>
+                                                        <strong>Your research period ended on <?= date(DATE_FORMAT, strtotime($protocol['clearance_ends_on'])) ?>.</strong> Kindly let us know if you have completed or cancelled your research.
+                                                    <?php else: ?>
+                                                        <strong>Finished or stopped your research?</strong> Kindly let us know so we can update our records.
+                                                    <?php endif; ?>
+                                                </span>
+                                                <div class="research-outcome-actions">
+                                                    <?php foreach (RecordModel::OUTCOME_STATUSES as $outcome): ?>
+                                                        <button type="button" class="button"
+                                                            data-protocol-id="<?= $protocolIdInt ?>"
+                                                            data-outcome="<?= $outcome ?>"
+                                                            data-research-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
+                                                            onclick="reportResearchOutcome(+this.dataset.protocolId, this.dataset.outcome, this.dataset.researchTitle)">
+                                                            Report as <?= $outcome ?>
+                                                        </button>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php elseif ($outcomeReported): ?>
+                                            <p class="clearance-reminder">
+                                                <?= statusIconSvg('check-icon', 14) ?>
+                                                <span><strong>Congratulations on completing your research!</strong> If this is not correct, please contact us.</span>
+                                            </p>
                                         <?php endif; ?>
                                     </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
 
                                 <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
@@ -368,9 +402,8 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                 <?php if ($isApproved):
                                     $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
                                     $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
-                                    $clearanceClaimedOn = !empty($protocol['clearance_claimed_at']) ? date(DATE_FORMAT, strtotime($protocol['clearance_claimed_at'])) : '';
                                 ?>
-                                    <a class="download-clearance-btn button button--primary<?= $clearanceClaimedOn ? ' is-claimed' : '' ?>"
+                                    <a class="download-clearance-btn button button--primary"
                                         href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
                                         data-view-href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>"
                                         data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>"
@@ -378,11 +411,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <use href="#download-icon" />
                                         </svg>
-                                        <span class="claim-label">
-                                            <span class="label-claim">Download Clearance</span>
-                                            <span class="label-claimed">Clearance downloaded!</span>
-                                            <span class="label-claimed-on">Downloaded <span class="claimed-date"><?= htmlspecialchars($clearanceClaimedOn, ENT_QUOTES) ?></span></span>
-                                        </span>
+                                        Download Clearance
                                     </a>
                                 <?php elseif ($canConfirmPayment): ?>
                                     <button class="button button--primary"
@@ -414,8 +443,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                             </div>
                         </div>
                     </div>
-                <?php $count--;
-                endforeach; ?>
+                <?php endforeach; ?>
 
                 <p class="no-results">
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -935,16 +963,10 @@ include 'includes/guide.php';
         });
     })();
 
-    // ===== Download Clearance: always download, also open images in a new tab =====
-    document.querySelectorAll('.download-clearance-btn').forEach(btn => {
+    // ===== Download Clearance: also open images in a new tab =====
+    document.querySelectorAll('.download-clearance-btn[data-is-image="1"]').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (!btn.classList.contains('is-claimed')) {
-                btn.querySelector('.claimed-date').textContent = formatDate(new Date());
-                btn.classList.add('is-claimed');
-            }
-            if (btn.dataset.isImage === '1' && btn.dataset.viewHref) {
-                window.open(btn.dataset.viewHref, '_blank', 'noopener');
-            }
+            if (btn.dataset.viewHref) window.open(btn.dataset.viewHref, '_blank', 'noopener');
         });
     });
 </script>

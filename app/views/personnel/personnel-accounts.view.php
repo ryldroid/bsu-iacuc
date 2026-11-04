@@ -271,7 +271,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                     </button>
                                 </div>
 
-                                <span class="helper">Valid for 48 hours. Send this link to the person registering so they can create their own account. Once they register, approve their account under Pending Personnel Approvals.</span>
+                                <span class="helper">Valid for 48 hours. Send this link to the person registering so they can create their own account.</span>
                             </div>
                         <?php endif; ?>
                     </section>

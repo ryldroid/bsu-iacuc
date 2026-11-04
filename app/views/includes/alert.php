@@ -14,7 +14,7 @@ $alertDelay    = $alertIsError ? 5000 : (int) ($alertAutoDismiss ?? 4000);
 
 if ($alertMessages):
 ?>
-  <div class="form-alert form-alert--<?= $alertIsError ? 'error' : 'success' ?>"
+  <div class="form-alert form-alert--<?= $alertIsError ? 'error' : 'success' ?> <?= $alertClass ?? '' ?>"
     role="<?= $alertIsError ? 'alert' : 'status' ?>"
     <?= $alertDelay ? 'data-autodismiss="' . $alertDelay . '"' : '' ?>>
     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -42,4 +42,4 @@ if ($alertMessages):
 
   <?php include __DIR__ . '/alert-js.php'; ?>
 <?php endif; ?>
-<?php unset($alertType, $alertMessages, $alertIsError, $alertDelay, $alertAutoDismiss); ?>
+<?php unset($alertType, $alertMessages, $alertIsError, $alertDelay, $alertAutoDismiss, $alertClass); ?>

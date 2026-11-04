@@ -56,7 +56,7 @@ $role = $user['role'] ?? '';
                     </div>
                     <h1>Application Submitted</h1>
                     <p class="success-desc">
-                        Your application has been received and is pending approval. We'll email you once your account has been reviewed. You can verify your email anytime from your account page. You may now close this window.
+                        Your application has been received and is pending approval. We'll email you once your account has been reviewed. After approval, log in through <a class="underlined" href="<?= ROOT ?>/personnel"><?= ROOT ?>/personnel</a>. You may now close this window.
                     </p>
                 </div>
 
@@ -131,7 +131,7 @@ $role = $user['role'] ?? '';
                         </ul>
                     </div>
 
-                    <label class="center">Applying as <span class="preset-role bold"><?= htmlspecialchars(ucfirst($preset_role ?? '')); ?></span>.</label>
+                    <label class="center">Applying as <span class="preset-role bold"><?= htmlspecialchars(ucfirst($preset_role ?? '')); ?></span>. When approved, paste this in your browser's address bar to log in: <a class="underlined" href="<?= ROOT ?>/personnel"><?= ROOT ?>/personnel</a>.</label>
 
                     <button type="submit">Submit Application</button>
                 </form>

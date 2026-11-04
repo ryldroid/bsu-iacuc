@@ -204,6 +204,30 @@ function buildPaymentHistorySection(events, resubmit) {
   return historySection("Payment History", rows);
 }
 
+const CLEARANCE_EVENT_LOOKS = {
+  downloaded: { icon: "download-icon", title: "Clearance downloaded" },
+  picked_up: { icon: "check-circle-icon", title: "Embossed hard copy picked up" },
+};
+
+function buildClearanceHistorySection(events) {
+  if (!events || events.length === 0) return "";
+
+  const rows = events
+    .map((e) => {
+      const look = CLEARANCE_EVENT_LOOKS[e.type];
+      return historyEvent(
+        "success",
+        look.icon,
+        look.title,
+        escapeHtml(formatDateTime(e.at)),
+        "",
+      );
+    })
+    .join("");
+
+  return historySection("Clearance History", rows);
+}
+
 function bindPaymentProofButtons(events, resubmit) {
   const latestProofIndex = events.findIndex((e) => e.type === "proof");
 
@@ -326,6 +350,7 @@ function renderHistory(data) {
   const sections = [
     buildVersionRows(data),
     buildPaymentHistorySection(paymentEvents, resubmit),
+    buildClearanceHistorySection(data.clearance_history),
     buildTitleHistorySection(data.title_history),
     buildUndoHistorySection(data.undo_history),
     buildCertHistorySection(data.cert_history),

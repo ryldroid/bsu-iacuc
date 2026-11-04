@@ -10,8 +10,9 @@
  */
 $toastSuccess   = $toastSuccess ?? ($_SESSION['flash_success'] ?? '');
 $toastError     = $toastError ?? ($_SESSION['flash_error'] ?? '');
+$toastWelcome   = $_SESSION['flash_welcome'] ?? '';
 $toastLoadJs    = !defined('FORM_ALERT_JS_LOADED');
-unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+unset($_SESSION['flash_success'], $_SESSION['flash_error'], $_SESSION['flash_welcome']);
 if ($toastLoadJs) {
   define('FORM_ALERT_JS_LOADED', true);
 }
@@ -22,6 +23,11 @@ if ($toastLoadJs) {
   $alertMessages = $toastSuccess;
   include __DIR__ . '/alert.php';
 
+  $alertType     = 'success';
+  $alertMessages = $toastWelcome;
+  $alertClass    = 'form-alert--welcome';
+  include __DIR__ . '/alert.php';
+
   $alertType     = 'error';
   $alertMessages = $toastError;
   include __DIR__ . '/alert.php';
@@ -30,4 +36,4 @@ if ($toastLoadJs) {
 <?php if ($toastLoadJs): ?>
   <script src="<?= asset_js('flash-dismiss.js') ?>"></script>
 <?php endif; ?>
-<?php unset($toastSuccess, $toastError, $toastLoadJs); ?>
+<?php unset($toastSuccess, $toastError, $toastWelcome, $toastLoadJs); ?>

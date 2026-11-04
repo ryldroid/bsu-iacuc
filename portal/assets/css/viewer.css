@@ -1,5 +1,5 @@
 /* ===== Viewer canvas ===== */
-.viewer-body {
+:root {
   --viewer-canvas: #202124;
 }
 
@@ -9,7 +9,7 @@
   color: var(--primary-text);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - var(--header-offset, 52px));
   overflow: hidden;
 }
 
@@ -274,7 +274,7 @@
   font-size: 1rem;
 }
 
-.zoom-controls .tool-btn:disabled {
+.tool-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -315,7 +315,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 1rem 1.5rem 0;
+  padding: 1rem 1.5rem .5rem;
   background: var(--viewer-canvas);
   flex-shrink: 0;
 }
@@ -563,7 +563,7 @@
   background: var(--sidebar-background);
   box-shadow: -2px 0 4px var(--shadow-color-soft);
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1rem 1rem 0;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -661,6 +661,52 @@
   font-size: 0.82rem;
   text-align: center;
   padding: 1.5rem 0;
+}
+
+.annot-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+#annotList {
+  flex: 1;
+}
+
+.annot-extract {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding: 0.75rem 0 1rem;
+  background: var(--sidebar-background);
+  border-top: 1px solid var(--divider-color);
+}
+
+.annot-extract .tool-btn {
+  justify-content: center;
+}
+
+.annot-extract-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--secondary-text);
+  cursor: pointer;
+}
+
+.annot-extract-option input {
+  accent-color: var(--brand-color);
+}
+
+/* Mobile has no sidebar, so Extract comments lives in the More menu there */
+@media (min-width: 768px) {
+  .protocol-menu .protocol-menu-item--mobile-only {
+    display: none;
+  }
 }
 
 /* ===== Comment popup (small screens) ===== */
@@ -811,7 +857,7 @@
   }
 
   .tool-btn {
-    min-height: 34px;
+    min-height: 27px;
     padding: 0.3rem 0.65rem;
     font-size: 0.8rem;
   }

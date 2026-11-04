@@ -50,26 +50,58 @@
     /* font-style: italic; */
 }
 
-/* ===== Embossed copy reminder shown on an approved card once the clearance is claimed ===== */
-.clearance-reminder {
+/* ===== Approved card notes: pickup status and research outcome ===== */
+.clearance-notes {
+    display: grid;
+    gap: .5rem;
     margin-top: .6rem;
-    padding: .5rem .75rem;
-    background: var(--success-background-soft);
-    border-radius: 6px;
+    padding-top: .6rem;
+    border-top: 1px solid var(--divider-color);
+}
+
+.clearance-reminder {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .4rem .5rem;
     font-size: .78rem;
-    max-width: 720px;
+    line-height: 1.5;
+    color: var(--primary-text);
+}
+
+.clearance-reminder>svg {
+    margin-top: .2em;
     color: var(--status-success-text);
 }
 
-[data-theme="dark"] .clearance-reminder {
-    background: var(--success-background);
-    color: var(--success-text);
+.research-outcome-actions {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.research-outcome-actions .button {
+    padding: 5px 12px;
+    box-shadow: none;
+}
+
+.research-outcome-actions .button[data-outcome="Cancelled"]:is(:hover, :focus-visible) {
+    background-color: var(--danger-solid);
+    color: var(--text-on-brand);
+}
+
+.research-outcome-actions .button[data-outcome="Cancelled"]:active {
+    background-color: var(--danger-solid-hover);
 }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 767px) {
     h1 {
         margin-bottom: 0;
+    }
+
+    .research-outcome-actions .button {
+        min-height: 38px;
     }
 }
 
@@ -136,4 +168,8 @@ main:has(> .pagination-bar--pinned) {
 
 .submission-header {
     margin-bottom: 1em;
+}
+
+.research-title .status-dot {
+    margin-left: 0.5em;
 }

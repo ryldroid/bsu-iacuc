@@ -2,6 +2,8 @@
 
 class User extends Controller
 {
+  private const NOT_RESEARCHER_MESSAGE = 'No researcher account found with that username or email.';
+
   // ===== INPUT HELPERS =====
   private function normalizePhoneNumber(string $raw): string
   {
@@ -178,13 +180,13 @@ class User extends Controller
 
     // ===== FIND USER & CHECK PASSWORD =====
     $user = $this->userModel->getUserByUsername($input)
-      ?? $this->userModel->getUserByEmail($input);
+      ?? $this->userModel->getUserByEmail($input, 'researcher');
 
     if (!$user) {
       $this->userModel->recordLoginAttempt($ip);
       $this->userModel->recordLoginAttempt($input);
       $this->userModel->logAudit('login_failed', null, $input, '', '', null, 'Failed login attempt (no account found)');
-      $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
+      $_SESSION['flash_error'] = self::NOT_RESEARCHER_MESSAGE;
       $this->redirect('user/login');
     }
 
@@ -211,7 +213,7 @@ class User extends Controller
     $this->userModel->clearLoginAttempts($input);
 
     if ($user['role'] !== 'researcher') {
-      $_SESSION['flash_error'] = 'No researcher account found with that username or email.';
+      $_SESSION['flash_error'] = self::NOT_RESEARCHER_MESSAGE;
       $this->redirect('user/login');
     }
 
@@ -349,7 +351,7 @@ class User extends Controller
     }
 
     if (empty($errors)) {
-      if ($this->userModel->getUserByEmail($email)) {
+      if ($this->userModel->getUserByEmail($email, 'researcher')) {
         $errors[] = 'That email is already taken.';
       }
       if ($this->userModel->getUserByUsername($username)) {
@@ -371,7 +373,7 @@ class User extends Controller
 
     if ($ok) {
       // No email goes out yet: the verify page lets the person send the link when they are ready
-      $newUser = $this->userModel->getUserByEmail($email);
+      $newUser = $this->userModel->getUserByEmail($email, 'researcher');
       $_SESSION['pending_verification'] = (int) $newUser['id'];
       $_SESSION['flash_success']        = 'Account created! Activate your account through email verification.';
       $this->redirect('user/login');
@@ -491,21 +493,26 @@ class User extends Controller
   {
     $email = trim((string) ($_GET['email'] ?? ''));
     $token = (string) ($_GET['token'] ?? '');
-    $user  = hash_equals(Mailer::preferencesToken($email), $token) ? $this->userModel->getUserByEmail($email) : null;
+    $users = hash_equals(Mailer::preferencesToken($email), $token) ? $this->userModel->getUsersByEmail($email) : [];
 
-    if (!$user) {
+    if (!$users) {
       $this->renderError(403, 'Invalid Link', ['This email preferences link is invalid or no longer works.']);
       return;
     }
 
-    $enabled = (bool) $user['email_notifications'];
+    $enabled = (bool) $users[0]['email_notifications'];
     $success = '';
     $error   = '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $this->verifyCsrfToken();
       $wanted = ($_POST['email_notifications'] ?? '') === '1';
-      [$ok, $message] = $this->saveEmailNotifications((int) $user['id'], $user['email'], $wanted);
+      foreach ($users as $user) {
+        [$ok, $message] = $this->saveEmailNotifications((int) $user['id'], $user['email'], $wanted);
+        if (!$ok) {
+          break;
+        }
+      }
       $enabled = $ok ? $wanted : $enabled;
       $success = $ok ? $message : '';
       $error   = $ok ? '' : $message;
@@ -757,7 +764,8 @@ class User extends Controller
     $this->handleForgotPassword(
       'user/forgot_password',
       'user/reset_password',
-      'user/login'
+      'user/login',
+      'researcher'
     );
   }
 

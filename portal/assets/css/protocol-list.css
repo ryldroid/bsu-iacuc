@@ -25,38 +25,6 @@
   color: var(--text-on-brand);
 }
 
-/* ===== Download clearance button ===== */
-.download-clearance-btn .label-claimed,
-.download-clearance-btn .label-claimed-on {
-  display: none;
-}
-
-.download-clearance-btn.is-claimed {
-  opacity: 0.6;
-}
-
-.download-clearance-btn.is-claimed .claim-label {
-  display: inline-grid;
-  justify-items: center;
-}
-
-.download-clearance-btn.is-claimed .claim-label>span {
-  grid-area: 1 / 1;
-  display: inline;
-}
-
-.download-clearance-btn.is-claimed .label-claim,
-.download-clearance-btn.is-claimed .label-claimed-on,
-.download-clearance-btn.is-claimed:is(:hover, :focus-visible) .label-claimed {
-  visibility: hidden;
-  font-size: .95em;
-}
-
-.download-clearance-btn.is-claimed:is(:hover, :focus-visible) .label-claimed-on {
-  visibility: visible;
-  /* font-size: .9em; */
-}
-
 /* ===== Apply button ===== */
 .btn-apply {
   display: flex;

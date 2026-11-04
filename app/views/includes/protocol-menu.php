@@ -53,7 +53,8 @@ if ($menuFlags['canDelete']) {
       <?php
       $itemClass = 'protocol-menu-item'
         . (!empty($item['danger']) ? ' protocol-menu-item--danger' : '')
-        . (!empty($item['update']) ? ' has-update' : '');
+        . (!empty($item['update']) ? ' has-update' : '')
+        . (!empty($item['mobileOnly']) ? ' protocol-menu-item--mobile-only' : '');
       ?>
       <?php if (isset($item['href'])): ?>
         <a class="<?= $itemClass ?>" role="menuitem"
@@ -67,6 +68,7 @@ if ($menuFlags['canDelete']) {
       <?php else: ?>
         <button type="button" class="<?= $itemClass ?>" role="menuitem"
           data-menu-action="<?= $item['action'] ?>"
+          <?= !empty($item['disabled']) ? 'disabled' : '' ?>
           <?= isset($item['fileUrl']) ? 'data-file-url="' . htmlspecialchars($item['fileUrl'], ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#<?= $item['icon'] ?>" />

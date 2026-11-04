@@ -6,6 +6,16 @@ class RecordModel extends Model
   public const STATUSES = ['Pending', 'Ongoing', 'Completed', 'Cancelled'];
   public const PENDING_STATUS = 'Pending';
   public const DEFAULT_STATUS = 'Ongoing';
+  public const OUTCOME_STATUSES = ['Completed', 'Cancelled'];
+
+  public const STATUS_HELP = [
+    'Pending'   => 'Reviewed by CCARD, but the protocol is not approved yet, so no clearance has been issued.',
+    'Ongoing'   => 'The protocol is approved and the research is running.',
+    'Completed' => 'The research is finished.',
+    'Cancelled' => 'The research was stopped before it was finished.',
+  ];
+
+  public const EXPIRED_HELP = 'The research period has ended, but the record is still Ongoing. The researcher has not reported it as Completed or Cancelled yet.';
 
   public const ANIMAL_TYPES = [
     'Bats',
@@ -823,13 +833,24 @@ class RecordModel extends Model
     return $stmt->execute();
   }
 
-  // Moves a record between statuses only if it is still in $from, so manual changes are never overwritten
+  // Moves a record between statuses only if it is still in $from, so manual changes are never overwritten.
+  // Returns true only when a record was actually moved.
   public function changeStatusByProtocolId(int $protocolId, string $from, string $to): bool
   {
     $stmt = $this->connection->prepare("UPDATE `records` SET status = ? WHERE protocol_id = ? AND status = ?");
     if (! $stmt) return false;
     $stmt->bind_param('sis', $to, $protocolId, $from);
-    return $stmt->execute();
+    return $stmt->execute() && $stmt->affected_rows > 0;
+  }
+
+  // The record's place in the default list (newest first), so a link can open the right page
+  public function countNewerThan(int $id): int
+  {
+    $stmt = $this->connection->prepare("SELECT COUNT(*) FROM `records` WHERE id > ?");
+    if (! $stmt) return 0;
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    return (int) $stmt->get_result()->fetch_row()[0];
   }
 
   // ===== FILL BLANKS FROM RESEARCHER PROFILE =====

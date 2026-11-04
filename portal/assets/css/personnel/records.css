@@ -1164,6 +1164,22 @@
   color: var(--status-danger-text);
 }
 
+/* ===== Record opened from a notification ===== */
+.records-table tbody tr.records-row--highlight,
+.records-table tbody tr.records-row--highlight td {
+  animation: recordsHighlightFade 2s ease forwards;
+}
+
+@keyframes recordsHighlightFade {
+  0% {
+    background-color: var(--brand-color-light);
+  }
+
+  100% {
+    background-color: var(--brand-surface-tint);
+  }
+}
+
 /* ===== Delete record button ===== */
 .delete-record-btn:hover {
   background: var(--danger-solid) !important;

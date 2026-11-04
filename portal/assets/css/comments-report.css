@@ -1,0 +1,107 @@
+/* ===== Comments report ===== */
+body {
+  background: var(--viewer-canvas);
+}
+
+/* White sheet on the dark canvas, like the protocol viewer; stays light in dark theme */
+.report-paper {
+  --primary-text: #1a1a1a;
+  --secondary-text: #595959;
+  --brand-text: rgb(22, 71, 11);
+  --divider-color: #e4e4e4;
+  padding: 2.5rem 2rem;
+  background: #ffffff;
+  color: var(--primary-text);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.report {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.report-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--brand-text);
+}
+
+.report-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--brand-text);
+}
+
+.report-title {
+  margin: 0.4rem 0 0;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.report-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--secondary-text);
+}
+
+.report-section {
+  margin-bottom: 2rem;
+}
+
+.report-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--brand-text);
+}
+
+.report-section-date {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--secondary-text);
+}
+
+.report-comment {
+  margin-bottom: 1.5rem;
+  break-inside: avoid;
+}
+
+.report-excerpt {
+  margin: 0 0 0.6rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.report-excerpt canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.report-comment .annot-comment {
+  font-size: 0.95rem;
+}
+
+@media print {
+  .report-toolbar {
+    display: none;
+  }
+
+  .report {
+    padding: 0;
+  }
+
+  .report-paper {
+    padding: 0;
+    box-shadow: none;
+  }
+}

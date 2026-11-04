@@ -76,6 +76,39 @@ let renderToken = 0;
 let renderedWidth = 0;
 let renderTimer = null;
 
+// ===== Extract comments =====
+const extractButton = document.getElementById("extractComments");
+const extractAllVersions = document.getElementById("extractAllVersions");
+const extractMenuItem = document.querySelector('[data-menu-action="extract-comments"]');
+
+function updateExtractButton() {
+  if (!extractButton) return;
+  const noComments =
+    !annotations.some((ann) => !ann._queued) && !extractAllVersions?.checked;
+  extractButton.disabled = noComments;
+  if (extractMenuItem)
+    extractMenuItem.disabled = !annotations.some((ann) => !ann._queued);
+}
+
+function openCommentsReport(allVersions) {
+  const params = new URLSearchParams({ version_id: VERSION_ID });
+  if (allVersions) params.set("all", "1");
+  window.open(
+    ROOT_URL + "/apply/commentsreport/" + PROTOCOL_ID + "?" + params,
+    "_blank",
+    "noopener",
+  );
+}
+
+extractAllVersions?.addEventListener("change", updateExtractButton);
+extractButton?.addEventListener("click", () =>
+  openCommentsReport(extractAllVersions?.checked),
+);
+window.protocolRowActions = {
+  "extract-comments": () => openCommentsReport(false),
+  "extract-all-comments": () => openCommentsReport(true),
+};
+
 // ===== Load PDF =====
 async function loadPdf() {
   if (SCAN_IS_IMAGE) {
@@ -537,6 +570,7 @@ function renderAnnotations() {
 
 function renderSidebar() {
   if (IS_READ_ONLY_FILE) return;
+  updateExtractButton();
   const list = document.getElementById("annotList");
   const offlineNote = document.getElementById("annotOfflineNote");
   offlineNote.hidden = navigator.onLine || !annotations.length;

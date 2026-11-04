@@ -106,6 +106,29 @@ async function submitRename() {
   setButtonBusy(submitBtn, false);
 }
 
+// ===== Report research outcome (approved protocols, researcher only) =====
+async function reportResearchOutcome(protocolId, outcome, title) {
+  const ok = await confirmAction(
+    `Report your research ${confirmName(title)} as ${outcome}?`,
+    {
+      okText: `Report as ${outcome}`,
+      cancelText: "Cancel",
+    },
+  );
+  if (!ok) return;
+
+  try {
+    const data = await protocolModalPost("/apply/report_outcome", {
+      protocol_id: protocolId,
+      outcome,
+    });
+    if (data.ok) return finishProtocolAction();
+    showToast(data.error ?? "Could not report the research outcome.", "error");
+  } catch {
+    showToast("Network error. Please try again.", "error");
+  }
+}
+
 // ===== Delete / request deletion =====
 // opts.mode: "delete" (personnel) or "request" (researcher)
 const DELETE_MODES = {
@@ -117,7 +140,7 @@ const DELETE_MODES = {
     button: "Delete",
     busy: "Deleting...",
     confirm:
-      'Delete {title}? The researcher will be notified with your reason. This cannot be undone.',
+      "Delete {title}? The researcher will be notified with your reason. This cannot be undone.",
     danger: true,
     icon: "trash-icon",
     placeholder: "Explain why this protocol should be deleted...",
@@ -129,7 +152,7 @@ const DELETE_MODES = {
       "CCARD will be notified of your request along with the reason below.",
     button: "Send Request",
     busy: "Sending...",
-    confirm: 'Send a deletion request for {title} with this reason?',
+    confirm: "Send a deletion request for {title} with this reason?",
     danger: false,
     icon: "trash-icon",
     placeholder: "Explain why this protocol should be deleted...",
@@ -141,7 +164,7 @@ const DELETE_MODES = {
       "The protocol will go to Returned for Revision and its record will be removed until it is reviewed again. The researcher and reviewers will be notified, and the researcher will see your note. Add why Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) or BAI returned it.",
     button: "Return",
     busy: "Returning...",
-    confirm: 'Return {title} to the researcher for revision?',
+    confirm: "Return {title} to the researcher for revision?",
     danger: false,
     icon: "undo-icon",
     placeholder:

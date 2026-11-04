@@ -393,7 +393,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         <select name="status" class="records-filter-select" aria-label="Filter by status" onchange="this.form.submit()">
                             <option value="">All Statuses</option>
                             <?php foreach (RecordModel::STATUSES as $st): ?>
-                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" <?= $status === $st ? 'selected' : '' ?>><?= htmlspecialchars($st) ?></option>
+                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" title="<?= htmlspecialchars(RecordModel::STATUS_HELP[$st], ENT_QUOTES) ?>" <?= $status === $st ? 'selected' : '' ?>><?= htmlspecialchars($st) ?></option>
                             <?php endforeach; ?>
                         </select>
 
@@ -538,7 +538,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                         $durationLabel = RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null);
                                         $releasedLabel = $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '';
                                         $addedLabel    = !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '';
-                                        $isExpired     = !empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today');
+                                        $isExpired     = $rowStatus === RecordModel::DEFAULT_STATUS && !empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today');
                                         $fileUrl       = !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] . '/' . (slugify(strtok($r['file_original_name'] ?? 'record', '.')) ?: 'record') : '';
                                         $viewDetails   = [
                                             ['IPN', $r['reference_no'] ?? ''],
@@ -560,7 +560,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                             ['Protocol File', $r['file_original_name'] ?? ''],
                                         ];
                                         ?>
-                                        <tr>
+                                        <tr id="record-<?= (int)$r['id'] ?>">
                                             <td class="records-detail date-cell records-ref"><?= htmlspecialchars($r['reference_no'] ?? '') ?></td>
                                             <td class="records-detail date-cell records-ar"><?= htmlspecialchars($r['ar_number'] ?? '') ?></td>
                                             <td class="records-title-cell">
@@ -577,11 +577,11 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                             <td class="records-detail date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars($durationLabel) ?><?php if ($isExpired): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars($durationLabel) ?><?php if ($isExpired): ?><span class="records-expired-tag" title="<?= htmlspecialchars(RecordModel::EXPIRED_HELP, ENT_QUOTES) ?>">Expired</span><?php endif; ?></td>
                                             <td class="records-detail date-cell" data-label="Date Released"><?= $releasedLabel ?></td>
                                             <td class="records-detail date-cell" data-label="Date Added"><?= $addedLabel ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
-                                            <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
+                                            <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>" title="<?= htmlspecialchars(RecordModel::STATUS_HELP[$rowStatus], ENT_QUOTES) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
                                             <td class="records-detail date-cell" data-label="File"><?php if ($fileUrl): ?><a class="researcher-name-link" href="<?= $fileUrl ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
                                             <td class="actions-cell">
                                                 <div class="row-actions">
@@ -848,6 +848,7 @@ if ($isStaff) {
 }
 $guideSteps[] = ['Filters', 'Narrow the table by school, animal type, sex, researcher type, status, or **Needs Completion**. The number beside **Filters** shows how many are on. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 $guideSteps[] = ['Sort', 'Change the order with **Sort by** above the table, or by clicking a column heading. A third click on the same heading resets the order.', '.records-sort-group'];
+$guideSteps[] = ['Statuses', '**Pending** means CCARD reviewed the protocol but it is not approved yet. **Ongoing** means it is approved and the research is running. **Completed** and **Cancelled** mean the research ended. **Expired** appears on an Ongoing record whose research period has ended. Researchers report Completed or Cancelled from My Protocols, which updates the record and notifies you. You can also change a status with **Edit**.', '.records-status'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
@@ -966,7 +967,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <label class="field-label" for="add_status">Status</label>
                     <select id="add_status" name="status">
                         <?php foreach (RecordModel::STATUSES as $st): ?>
-                            <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
+                            <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" title="<?= htmlspecialchars(RecordModel::STATUS_HELP[$st], ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -1027,7 +1028,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                         <label class="field-label" for="edit_status">Status</label>
                         <select id="edit_status" name="status">
                             <?php foreach (RecordModel::STATUSES as $st): ?>
-                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
+                                <option value="<?= htmlspecialchars($st, ENT_QUOTES) ?>" title="<?= htmlspecialchars(RecordModel::STATUS_HELP[$st], ENT_QUOTES) ?>"><?= htmlspecialchars($st) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -1185,6 +1186,22 @@ include dirname(__DIR__) . '/includes/guide.php';
                 btn.setAttribute('aria-expanded', open);
             });
         });
+
+        // ===== Record opened from a notification =====
+        (function highlightFromUrl() {
+            const url = new URL(window.location);
+            const id = url.searchParams.get('highlight');
+            if (!id) return;
+            url.searchParams.delete('highlight');
+            history.replaceState(null, '', url);
+
+            const row = document.getElementById('record-' + id);
+            if (!row) return;
+            row.scrollIntoView({
+                block: 'center'
+            });
+            row.classList.add('records-row--highlight');
+        })();
 
         // ===== AJAX helper =====
         function post(url, body) {

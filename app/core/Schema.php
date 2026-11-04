@@ -41,7 +41,9 @@ class Schema
         $this->ensureColumn('users', 'school', "varchar(150) DEFAULT NULL AFTER `phone_number`");
         $this->ensureColumn('users', 'sex', "varchar(20) DEFAULT NULL AFTER `phone_number`");
         $this->ensureColumn('users', 'welcome_seen', "tinyint(1) NOT NULL DEFAULT 0 AFTER `status`");
-        $this->ensureIndex('users', 'unique_email', "(`email`)", true);
+        $this->ensureColumn('users', 'account_type', "varchar(10) AS (IF(`role` = 'researcher', 'researcher', 'personnel')) STORED");
+        $this->ensureIndex('users', 'unique_email_per_account_type', "(`email`, `account_type`)", true);
+        $this->dropIndex('users', 'unique_email');
         $this->addCertVerification();
 
         // ===== RECORDS TABLE =====
@@ -1216,6 +1218,16 @@ class Schema
         $target = "enum(" . implode(',', array_map(fn($v) => "'" . $c->real_escape_string($v) . "'", $values)) . ")";
         if ($row['Type'] !== $target) {
             $c->query("ALTER TABLE `$table` MODIFY COLUMN `$column` $target NOT NULL DEFAULT '$default'");
+        }
+    }
+
+    private function dropIndex(string $table, string $indexName): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query("SHOW INDEX FROM `$table` WHERE Key_name = '$indexName'");
+        if ($exists && $exists->num_rows > 0 && !$c->query("ALTER TABLE `$table` DROP INDEX `$indexName`")) {
+            error_log("Schema: could not drop index `$indexName` on `$table`: " . $c->error);
         }
     }
 

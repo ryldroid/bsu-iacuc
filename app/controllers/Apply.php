@@ -246,6 +246,31 @@ class Apply extends Controller
         );
     }
 
+    private function notifyResearchOutcomeReported(array $protocol, array $record, string $outcome, array $actor): void
+    {
+        $roleLabel = $this->roleLabel($actor['role']);
+        $title     = $protocol['research_title'] ?? 'Untitled Protocol';
+
+        Notifier::sendToRole(
+            'staff',
+            'research_outcome_reported',
+            'Research Reported as ' . $outcome,
+            "$roleLabel {$actor['name']} reported " . Notifier::boldTitle($title) . ' as ' . Notifier::bold($outcome) . '. The record was updated automatically. ' . Notifier::NEXT_STEPS['research_outcome_reported'],
+            'personnel/records?highlight=' . (int) $record['id'],
+            [
+                'template' => 'research_outcome_reported',
+                'vars'     => [
+                    'title'      => $title,
+                    'role_label' => $roleLabel,
+                    'actor_name' => $actor['name'],
+                    'outcome'    => $outcome,
+                    'record_id'  => (int) $record['id'],
+                ],
+                'subject' => 'Research Reported as ' . $outcome,
+            ]
+        );
+    }
+
     private function notifyProtocolDeleted(array $protocol, string $reason, array $actor): void
     {
         $owner = $this->ownerOf($protocol);
@@ -1795,18 +1820,73 @@ class Apply extends Controller
             $this->jsonError(403, 'Forbidden.');
         }
 
+        echo json_encode($this->visibleAnnotations($version));
+        exit;
+    }
+
+    // ===== ANNOTATIONS THE CURRENT USER MAY SEE =====
+    private function visibleAnnotations(array $version): array
+    {
         if (!$this->isPersonnel()) {
             $latestVersion   = $this->protocolModel->getLatestVersion((int) $version['protocol_id'], 'protocol');
-            $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === $versionId;
+            $isLatestVersion = $latestVersion && (int) $latestVersion['id'] === (int) $version['id'];
 
             if ($isLatestVersion && strtolower($version['protocol_status'] ?? '') !== 'needs revision') {
-                echo json_encode([]);
-                exit;
+                return [];
             }
         }
 
-        echo json_encode($this->protocolModel->getAnnotations($versionId, $this->isPersonnel()));
-        exit;
+        return $this->protocolModel->getAnnotations((int) $version['id'], $this->isPersonnel());
+    }
+
+    // ===== COMMENTS REPORT  (GET /apply/commentsreport/{protocolId}?version_id=N&all=1) =====
+    public function commentsreport(string $protocolRef = '0'): void
+    {
+        $this->requireLogin();
+
+        $protocolId = (int) $protocolRef;
+        $protocol   = $protocolId > 0 ? $this->protocolModel->getById($protocolId) : null;
+
+        if (!$protocol) {
+            $this->renderError(404, 'Protocol Not Found', [
+                'The protocol you are looking for does not exist or may have been removed.',
+            ]);
+        }
+
+        $actor = $this->actor();
+        $this->requireProtocolAccess($protocol, $actor['id'], $actor['role'], true);
+
+        $current = $this->protocolModel->getVersionById((int) ($_GET['version_id'] ?? 0));
+
+        if (!$current || (int) $current['protocol_id'] !== $protocolId || $current['file_type'] !== 'protocol') {
+            $this->renderError(404, 'Version Not Found', [
+                'That protocol version could not be found.',
+            ]);
+        }
+
+        $includeAll = !empty($_GET['all']);
+        $sections   = [];
+
+        foreach (array_reverse($this->protocolModel->getVersions($protocolId, 'protocol')) as $row) {
+            $isCurrent = (int) $row['id'] === (int) $current['id'];
+
+            if ((!$includeAll && !$isCurrent) || (int) $row['version_number'] > (int) $current['version_number']) {
+                continue;
+            }
+
+            $sections[] = [
+                'label'       => submission_round_label((int) $row['version_number']),
+                'fileUrl'     => ROOT . '/apply/file/' . (int) $row['id'],
+                'uploadedAt'  => $row['uploaded_at'],
+                'annotations' => $this->visibleAnnotations($this->protocolModel->getVersionById((int) $row['id'])),
+            ];
+        }
+
+        $this->view('comments-report', [
+            'protocol'   => $protocol,
+            'sections'   => $sections,
+            'includeAll' => $includeAll,
+        ]);
     }
 
     private function handleSaveAnnotation(array $body): void
@@ -2658,6 +2738,62 @@ class Apply extends Controller
         exit;
     }
 
+    // ===== REPORT RESEARCH OUTCOME  (POST /apply/report_outcome): owner researcher only, approved protocols =====
+
+    public function report_outcome(): void
+    {
+        $this->requireLogin();
+        header('Content-Type: application/json');
+
+        $this->requirePostMethod();
+        $this->verifyCsrfHeader();
+
+        $actor         = $this->actor();
+        $actor['name'] = $this->actorDisplayName($actor);
+        if ($actor['role'] !== 'researcher') {
+            $this->jsonError(403, 'Only the researcher can report the outcome of their research.');
+        }
+
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $protocolId = (int) ($body['protocol_id'] ?? 0);
+        $outcome    = (string) ($body['outcome'] ?? '');
+
+        if ($protocolId < 1) {
+            $this->jsonError(400, 'Missing protocol ID.');
+        }
+        if (!in_array($outcome, RecordModel::OUTCOME_STATUSES, true)) {
+            $this->jsonError(422, 'Choose Completed or Cancelled.');
+        }
+
+        $protocol = $this->protocolModel->getById($protocolId);
+
+        if (!$protocol) {
+            $this->jsonError(404, 'Protocol not found.');
+        }
+        if (!$this->isActor($protocol['user_id'])) {
+            $this->jsonError(403, 'Access denied.');
+        }
+        if (strtolower((string) $protocol['status']) !== 'approved') {
+            $this->jsonError(422, 'Only approved protocols can be reported as completed or cancelled.');
+        }
+
+        $record = $this->recordModel->getByProtocolId($protocolId);
+
+        if (!$record) {
+            $this->jsonError(422, 'This protocol has no record yet. Please contact the CCARD office.');
+        }
+        if (!$this->recordModel->changeStatusByProtocolId($protocolId, RecordModel::DEFAULT_STATUS, $outcome)) {
+            $this->jsonError(422, 'This research is already marked as ' . $record['status'] . '. Please contact the CCARD office if that is not correct.');
+        }
+
+        $this->protocolModel->logAudit('research_outcome_reported', $actor['id'], $actor['name'], $actor['role'], 'protocol', $protocolId, "Reported the research as $outcome", RecordModel::DEFAULT_STATUS, $outcome);
+        $this->notifyResearchOutcomeReported($protocol, $record, $outcome, $actor);
+        $_SESSION['flash_success'] = "Research reported as $outcome. CCARD has been notified.";
+
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
     // ===== DELETE  (POST /apply/delete): staff and reviewers only, up to Reviewed status =====
 
     public function delete(): void
@@ -3384,6 +3520,21 @@ class Apply extends Controller
         }, $this->protocolModel->getAuditEvents($protocolId, ['status_reverted', 'hard_copy_pickup_undone']));
     }
 
+    // ===== CLEARANCE EVENTS (downloaded, hard copy picked up), newest first =====
+
+    private function clearanceEvents(array $protocol): array
+    {
+        $events = [];
+        if (!empty($protocol['clearance_claimed_at'])) {
+            $events[] = ['type' => 'downloaded', 'at' => $protocol['clearance_claimed_at']];
+        }
+        if (!empty($protocol['hard_copy_released_at'])) {
+            $events[] = ['type' => 'picked_up', 'at' => $protocol['hard_copy_released_at']];
+        }
+        usort($events, fn($a, $b) => strcmp($b['at'], $a['at']));
+        return $events;
+    }
+
     // ===== PAYMENT EVENTS (proofs, rejections, verification, undo), newest first =====
 
     private function paymentEvents(array $protocol, array $proofFiles): array
@@ -3498,6 +3649,7 @@ class Apply extends Controller
             'versions'            => $versions,
             'payment_proof_files' => $proofFiles,
             'payment_history'     => $this->paymentEvents($protocol, $proofFiles),
+            'clearance_history'   => $this->clearanceEvents($protocol),
             'title_history'       => count($titleHistory) > 1 ? $titleHistory : [],
             'cert_history'        => $certHistory,
             'undo_history'        => $this->undoHistory($protocolId),

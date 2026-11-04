@@ -9,7 +9,7 @@ class Notifier
     'reviewed'       => ['Review Passed: Pay Clearance Fee', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to My Protocols and press "Pay Clearance Fee" on this protocol.'],
     'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for it to be endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).'],
     'endorsed'       => ['Protocol Endorsed', 'has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). No action needed. Please wait while BAI processes your animal research clearance.'],
-    'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy.'],
+    'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy. Once your research is completed or cancelled, press "Report as Completed" or "Report as Cancelled" on this protocol in My Protocols so CCARD can update its records.'],
   ];
 
   public const SIGNED_SCAN_NEXT_STEP = 'No action needed. It will be endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) next.';
@@ -27,6 +27,7 @@ class Notifier
     'protocol_resubmitted_staff'  => 'No action needed for now. A reviewer will assess the revisions first.',
     'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
     'protocol_deletion_requested' => 'Open it to approve or reject the request.',
+    'research_outcome_reported'   => 'Open the record to check it.',
     'payment_proof_uploaded'      => 'Open it to verify the payment.',
     'cert_verification_reviewer'  => 'Open it to verify the certificate.',
     'cert_verification_staff'     => 'Open it to verify the certificate.',
