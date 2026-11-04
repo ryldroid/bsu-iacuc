@@ -56,6 +56,7 @@ $flash_error     = $flash_error     ?? '';
 $offset      = ($page - 1) * $perPage;
 $incompleteOnly = $incompleteOnly ?? false;
 $hasFilters  = $incompleteOnly || $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
+$activeFilterCount = count(array_filter([$school, $animalType, $sex, $researcherType, $status])) + ($incompleteOnly ? 1 : 0);
 $isStaff = $role === 'staff';
 $colCount = 18;
 
@@ -354,19 +355,13 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#filter-icon" />
                         </svg>
-                        Filters
+                        Filters<?= $activeFilterCount ? ' (' . $activeFilterCount . ')' : '' ?>
                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#chev-down-icon" />
                         </svg>
                     </button>
 
                     <div class="records-filters-row<?= $hasFilters ? ' open' : '' ?>" id="recordsFilters">
-                        <p class="sort-filter-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#filter-icon" />
-                            </svg>
-                            Filter by:
-                        </p>
                         <select name="school" class="records-filter-select" aria-label="Filter by school" onchange="this.form.submit()">
                             <option value="">All Schools</option>
                             <?php foreach ($schools as $s): ?>
@@ -415,20 +410,6 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                 Clear all
                             </a>
                         <?php endif; ?>
-
-                        <div class="records-sort-group">
-                            <p class="sort-filter-label">
-                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#sort-icon" />
-                                </svg>
-                                Sort by:
-                            </p>
-                            <select name="sort" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
-                                <?php foreach (RecordModel::sortOptions() as $key => $opt): ?>
-                                    <option value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($opt['label']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                     </div>
 
                     <input type="hidden" name="page" value="1">
@@ -487,12 +468,23 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
 
                 <div class="records-table-toolbar">
                     <p class="pagination-info records-count"><?= number_format($total) ?> <?= pluralize($total, 'record') ?></p>
+                    <div class="records-sort-group">
+                        <p class="sort-filter-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#sort-icon" />
+                            </svg>
+                            Sort by:
+                        </p>
+                        <select name="sort" form="recordsFilterForm" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
+                            <?php foreach (RecordModel::sortOptions() as $key => $opt): ?>
+                                <option value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" <?= $sort === $key ? 'selected' : '' ?>><?= htmlspecialchars($opt['label']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="records-columns">
                         <button type="button" class="records-columns-toggle" id="recordsColumnsToggle" aria-expanded="false" aria-controls="recordsColumnsMenu">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                                <rect width="18" height="18" x="3" y="3" rx="2" />
-                                <path d="M9 3v18" />
-                                <path d="M15 3v18" />
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#columns-icon" />
                             </svg>
                             Columns
                         </button>
@@ -546,6 +538,8 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                         $durationLabel = RecordModel::formatDuration($r['research_duration_start'] ?? null, $r['research_duration_end'] ?? null);
                                         $releasedLabel = $r['date_released'] ? date(DATE_FORMAT, strtotime($r['date_released'])) : '';
                                         $addedLabel    = !empty($r['created_at']) ? date(DATE_FORMAT, strtotime($r['created_at'])) : '';
+                                        $isExpired     = !empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today');
+                                        $fileUrl       = !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] . '/' . (slugify(strtok($r['file_original_name'] ?? 'record', '.')) ?: 'record') : '';
                                         $viewDetails   = [
                                             ['IPN', $r['reference_no'] ?? ''],
                                             ['AR No.', $r['ar_number'] ?? ''],
@@ -583,20 +577,12 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                             <td class="records-detail date-cell" data-label="Researcher Type"><?= htmlspecialchars($r['researcher_type'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Research Adviser"><?= htmlspecialchars($r['research_adviser'] ?? '') ?></td>
                                             <td class="records-detail researcher-cell" data-label="Veterinarian"><?= htmlspecialchars($r['veterinarian'] ?? '') ?></td>
-                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars($durationLabel) ?><?php if (!empty($r['user_id']) && !empty($r['research_duration_end']) && strtotime($r['research_duration_end']) < strtotime('today')): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
+                                            <td class="records-detail date-cell" data-label="Duration"><?= htmlspecialchars($durationLabel) ?><?php if ($isExpired): ?><span class="records-expired-tag">Expired</span><?php endif; ?></td>
                                             <td class="records-detail date-cell" data-label="Date Released"><?= $releasedLabel ?></td>
                                             <td class="records-detail date-cell" data-label="Date Added"><?= $addedLabel ?></td>
                                             <td class="records-detail researcher-cell" data-label="Received By"><?= htmlspecialchars($r['received_by'] ?? '') ?></td>
                                             <td class="date-cell" data-label="Status"><span class="records-status records-status-<?= strtolower($rowStatus) ?>"><?= htmlspecialchars($rowStatus) ?></span></td>
-                                            <td class="records-detail date-cell" data-label="File"><?php if (!empty($r['file_path'])): ?><a class="researcher-name-link" href="<?= ROOT ?>/personnel/records_file/<?= (int)$r['id'] ?>/<?= slugify(strtok($r['file_original_name'] ?? 'record', '.')) ?: 'record' ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
-                                            <td class="records-details-cell">
-                                                <button type="button" class="records-toggle records-details-toggle" aria-expanded="false">
-                                                    Details
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                        <use href="#chev-down-icon" />
-                                                    </svg>
-                                                </button>
-                                            </td>
+                                            <td class="records-detail date-cell" data-label="File"><?php if ($fileUrl): ?><a class="researcher-name-link" href="<?= $fileUrl ?>" target="_blank" rel="noopener noreferrer">View file</a><?php endif; ?></td>
                                             <td class="actions-cell">
                                                 <div class="row-actions">
                                                     <?php if ($isStaff): ?>
@@ -618,12 +604,19 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                                             </svg>
                                                         </button>
                                                     <?php endif; ?>
+                                                    <?php if ($fileUrl): ?>
+                                                        <a class="row-btn view-file-btn" href="<?= $fileUrl ?>" target="_blank" rel="noopener noreferrer" aria-label="Open protocol file">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                                <use href="#eye-icon">
+                                                            </svg>
+                                                        </a>
+                                                    <?php endif; ?>
                                                     <button type="button" class="row-btn view-record-btn"
                                                         data-details="<?= htmlspecialchars(json_encode($viewDetails, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8') ?>"
-                                                        data-file-url="<?= !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] . '/' . slugify(strtok($r['file_original_name'] ?? 'record', '.')) ?: 'record' : '' ?>"
+                                                        data-file-url="<?= $fileUrl ?>"
                                                         aria-label="View record details">
                                                         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                            <use href="#eye-icon">
+                                                            <use href="#info-icon">
                                                         </svg>
                                                     </button>
                                                 </div>
@@ -853,7 +846,8 @@ $guideSteps = [
 if ($isStaff) {
     $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
 }
-$guideSteps[] = ['Filters and sort', 'Narrow the table by school, animal type, sex, researcher type, status, or **Needs Completion**, and change the order with **Sort** or by clicking a column heading. A third click on the same heading resets the order. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Filters', 'Narrow the table by school, animal type, sex, researcher type, status, or **Needs Completion**. The number beside **Filters** shows how many are on. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Sort', 'Change the order with **Sort by** above the table, or by clicking a column heading. A third click on the same heading resets the order.', '.records-sort-group'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
@@ -1122,7 +1116,7 @@ include dirname(__DIR__) . '/includes/guide.php';
         <div class="modal-header">
             <span class="modal-header-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-                    <use href="#eye-icon" />
+                    <use href="#info-icon" />
                 </svg>
             </span>
             <p class="modal-title" id="viewModalTitle">Record Details</p>
@@ -1188,13 +1182,6 @@ include dirname(__DIR__) . '/includes/guide.php';
         document.querySelectorAll('.records-filters-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
                 const open = document.getElementById(btn.getAttribute('aria-controls')).classList.toggle('open');
-                btn.setAttribute('aria-expanded', open);
-            });
-        });
-
-        document.querySelectorAll('.records-details-toggle').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const open = btn.closest('tr').classList.toggle('details-open');
                 btn.setAttribute('aria-expanded', open);
             });
         });

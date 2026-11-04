@@ -281,6 +281,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
                     $isApproved    = strtolower($protocol['status']) === 'approved';
+                    $clearanceExpired = $isApproved && !empty($protocol['clearance_ends_on']) && strtotime($protocol['clearance_ends_on']) < strtotime('today');
                     $isReviewedStatus = strtolower($protocol['status']) === 'reviewed';
                     $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
                     $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
@@ -307,6 +308,9 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                         <span class="status-dot payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
                                             <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
                                         </span>
+                                    <?php endif; ?>
+                                    <?php if ($clearanceExpired): ?>
+                                        <span class="status-dot status-dot--danger" title="Clearance ended <?= date(MONTH_FORMAT, strtotime($protocol['clearance_ends_on'])) ?>">Clearance expired</span>
                                     <?php endif; ?>
                                 </p>
                                 <p class="protocol-meta-line" title="Submission round and submission date">

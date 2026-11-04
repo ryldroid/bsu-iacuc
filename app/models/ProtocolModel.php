@@ -598,6 +598,9 @@ class ProtocolModel extends Model
                 p.paid_at,
                 p.clearance_claimed_at,
                 p.hard_copy_released_at,
+                (SELECT MAX(rc.research_duration_end)
+                 FROM `records` rc
+                 WHERE rc.protocol_id = p.id) AS clearance_ends_on,
                 (SELECT MAX(pv.version_number)
                  FROM `protocol_versions` pv
                  WHERE pv.protocol_id = p.id

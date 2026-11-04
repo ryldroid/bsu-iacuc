@@ -581,15 +581,6 @@
   border-radius: var(--btn-radius);
 }
 
-.records-filters-row p {
-  font-size: .78em;
-  font-weight: 700;
-  letter-spacing: .02em;
-  color: var(--muted-text);
-  margin: 0;
-  white-space: nowrap;
-}
-
 .records-period-bar {
   position: sticky;
   top: var(--header-offset, 52px);
@@ -683,9 +674,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   margin-left: auto;
-  padding-left: 10px;
-  border-left: 1px solid var(--divider-color);
 }
 
 .records-filter-select {
@@ -710,6 +700,18 @@
   outline: none;
   border-color: var(--focus-ring-color);
   box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+/* A select is as wide as its longest option, so one long school name used to
+   stretch the whole row. Let the selects shrink and cap the school one. */
+.records-filters-row .records-filter-select {
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.records-filters-row select[name="school"] {
+  flex: 0 1 260px;
 }
 
 .records-clear-btn {
@@ -764,12 +766,9 @@
   transform: rotate(180deg);
 }
 
-.records-details-cell {
-  display: none;
-}
-
 .records-count {
   margin: 0;
+  white-space: nowrap;
 }
 
 .records-table-toolbar {
@@ -1022,33 +1021,50 @@
   background: var(--card-background);
 }
 
+/* Actions have a real column, so they never sit on top of Status or File */
 .records-table .col-actions,
 .records-table .actions-cell {
-  width: 0;
-  padding: 0;
+  width: 1%;
+  white-space: nowrap;
 }
 
 .records-table .actions-cell {
   position: sticky;
   right: 0;
   z-index: 2;
+  background-color: var(--card-background);
+  box-shadow: -2px 0 4px -2px var(--shadow-color-soft);
 }
 
-.records-table thead .col-title {
-  left: 0;
+.records-table thead .col-actions {
+  right: 0;
   z-index: 4;
 }
 
-.records-table .records-title-cell {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: var(--card-background);
-  box-shadow: 2px 0 4px -2px var(--shadow-color-soft);
+/* The title is only pinned when there is room left to read the other columns */
+@media (min-width: 1100px) {
+  .records-table thead .col-title {
+    left: 0;
+    z-index: 4;
+  }
+
+  .records-table .records-title-cell {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: var(--card-background);
+    box-shadow: 2px 0 4px -2px var(--shadow-color-soft);
+  }
+
+  .records-table tbody tr:hover .records-title-cell {
+    background-color: var(--table-row-hover);
+  }
 }
 
-.records-table tbody tr:hover .records-title-cell {
-  background-color: var(--table-row-hover);
+@media (max-width: 1099px) {
+  .records-table .col-title {
+    min-width: 260px;
+  }
 }
 
 .records-table tbody td[data-label]:empty::after,
@@ -1086,16 +1102,9 @@
 }
 
 .records-table .row-actions {
-  position: absolute;
-  top: 50%;
-  right: 14px;
-  transform: translateY(-50%);
   display: flex;
+  justify-content: flex-end;
   gap: 6px;
-  padding: 6px;
-  border-radius: var(--radius);
-  /* background: var(--card-background); */
-  /* box-shadow: 0 1px 3px var(--shadow-color-soft); */
   opacity: 0;
   transition: opacity 0.12s;
 }
@@ -1132,6 +1141,27 @@
   background: var(--brand-fill-hover);
   border-color: var(--brand-fill-hover);
   color: var(--text-on-brand);
+}
+
+/* ===== View buttons: file link on desktop, info icon on mobile ===== */
+.records-table .row-actions .view-record-btn {
+  display: none;
+}
+
+.records-table .row-actions .view-file-btn {
+  text-decoration: none;
+}
+
+/* ===== Expired duration tag ===== */
+.records-expired-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: var(--status-danger-bg);
+  color: var(--status-danger-text);
 }
 
 /* ===== Delete record button ===== */
@@ -1314,10 +1344,6 @@
     padding: 12px;
   }
 
-  .records-filters-row>p {
-    grid-column: 1 / -1;
-  }
-
   .records-period-bar {
     position: static;
     padding: 12px;
@@ -1339,22 +1365,14 @@
     justify-self: start;
   }
 
-  .records-filters-row select[name="status"] {
+  .records-filters-row select[name="status"],
+  .records-filters-row select[name="completion"] {
     grid-column: 1 / -1;
-  }
-
-  .records-sort-group {
-    grid-column: 1 / -1;
-    width: 100%;
-    margin-left: 0;
-    padding-left: 0;
-    border-left: none;
-    padding-top: 6px;
-    border-top: 1px solid var(--divider-color);
   }
 
   .records-sort-group .records-filter-select {
-    flex: 1 1 auto;
+    width: auto;
+    text-overflow: ellipsis;
   }
 
   .records-filters-toggle {
@@ -1371,18 +1389,16 @@
     display: none;
   }
 
-  .records-table tbody tr:not(.details-open) td.records-detail {
+  .records-table tbody td.records-detail {
     display: none;
   }
 
-  .records-table tbody tr td.records-details-cell {
+  .records-table .row-actions .view-record-btn {
     display: flex;
-    order: 8;
-    flex: 1 0 100%;
   }
 
-  .records-details-toggle {
-    display: inline-flex;
+  .records-table .row-actions .view-file-btn {
+    display: none;
   }
 
   .records-table-wrap .protocol-table-scroll {
@@ -1421,10 +1437,15 @@
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px 12px;
     padding: 14px 16px;
     background: var(--card-background);
     border-bottom: 1px solid var(--divider-color);
+  }
+
+  /* Touch leaves :hover stuck on the last tapped card, so keep cards flat */
+  .records-table tbody tr:hover td {
+    background: none;
   }
 
   .records-table tbody tr:last-child {
@@ -1501,19 +1522,27 @@
     margin-left: auto;
     position: static;
     width: auto;
+    background-color: transparent;
+    box-shadow: none;
   }
 
   .records-table .row-actions {
-    position: static;
-    transform: none;
-    padding: 0;
-    background: none;
-    box-shadow: none;
+    gap: 4px;
     opacity: 1;
   }
 
+  /* Quiet outlined icons instead of three solid green blocks */
   .records-table .row-actions .row-btn {
-    padding: 9px 11px;
+    padding: 8px 9px;
+    background: none;
+    border-color: var(--divider-color);
+    color: var(--brand-text);
+  }
+
+  .records-table .row-actions .row-btn:hover {
+    background: var(--brand-surface-tint);
+    border-color: var(--brand-color-hover);
+    color: var(--brand-text);
   }
 
   /* ===== Card title ===== */
@@ -1532,14 +1561,26 @@
 
   /* ===== Card key details ===== */
   .records-table tbody td[data-label="Researcher"],
-  .records-table tbody td[data-label="Researcher Type"],
-  .records-table tbody td[data-label="School"] {
-    font-size: .95em;
+  .records-table tbody td[data-label="Researcher Type"] {
+    font-size: .9em;
     font-weight: 600;
+  }
+
+  /* Researcher and school read as plain lines under the title, no caption labels */
+  .records-table tbody td[data-label="Researcher"]::before,
+  .records-table tbody td[data-label="School"]::before {
+    display: none;
+  }
+
+  .records-table tbody td[data-label="School"] {
+    font-size: .85em;
+    font-weight: 400;
+    color: var(--secondary-text);
   }
 
   .records-table tbody td[data-label="Researcher"] {
     order: 6;
+    flex: 1 0 100%;
   }
 
   .records-table tbody td[data-label="Researcher Type"] {
@@ -1555,15 +1596,8 @@
     border-bottom: none;
   }
 
-  .records-expired-tag {
-    display: inline-block;
-    margin-top: 2px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-size: .72rem;
-    font-weight: 600;
-    background: var(--status-danger-bg);
-    color: var(--status-danger-text);
+  .records-table-toolbar {
+    margin-top: .5em;
   }
 }
 
