@@ -916,6 +916,11 @@ class Schema
                 'Feel free to reach and inquire with us. You may contact ccard@bsu.edu.ph or refer to the contact page for more information.',
             ],
             [
+                'Who do I contact if I have questions regarding the animal care and use program or the IACUC?',
+                'Feel free to reach and inquire with us. You may contact ccard@bsu.edu.ph or refer to the contact page for more information.',
+                'Feel free to reach and inquire with us. You may contact [ccard@bsu.edu.ph](https://mail.google.com/mail/?view=cm&fs=1&to=ccard%40bsu.edu.ph) or refer to the contact page for more information.',
+            ],
+            [
                 'Who do I contact if I found an issue or have comments or suggestions about the portal?',
                 'You may contact the developers at meryl.arnobit@gmail.com or malipe.sheldon01@gmail.com.',
                 'You may contact the developers at [meryl.arnobit@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=meryl.arnobit%40gmail.com) or [malipe.sheldon01@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=malipe.sheldon01%40gmail.com).',

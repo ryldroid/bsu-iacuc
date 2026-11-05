@@ -278,7 +278,7 @@ class Seeder
             'What if I amend my IACUC protocol to add/change procedures / personnel / animals?' => 'All revisions MUST be communicated with CCARD through the portal. Please note that even the most minor changes must be revised and reviewed for approval.',
             'Will my account become inactive after my clearance expires?' => 'Yes. Your account is marked inactive once your clearance expires and you have no pending protocols. You may reactivate it at any time by logging in to the portal.',
             'What if my training certificate is rejected?' => 'Your review is on hold until you resubmit it. Press Resubmit Certificate on My Protocols or on your protocol and upload a new certificate.',
-            'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'Feel free to reach and inquire with us. You may contact ccard@bsu.edu.ph or refer to the contact page for more information.',
+            'Who do I contact if I have questions regarding the animal care and use program or the IACUC?' => 'Feel free to reach and inquire with us. You may contact [ccard@bsu.edu.ph](https://mail.google.com/mail/?view=cm&fs=1&to=ccard%40bsu.edu.ph) or refer to the contact page for more information.',
             'Who do I contact if I found an issue or have comments or suggestions about the portal?' => 'You may contact the developers at [meryl.arnobit@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=meryl.arnobit%40gmail.com) or [malipe.sheldon01@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=malipe.sheldon01%40gmail.com).',
         ];
 
