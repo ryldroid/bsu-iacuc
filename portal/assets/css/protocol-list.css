@@ -91,6 +91,7 @@
   padding: 30px;
   text-align: center;
   gap: 6px;
+  background: var(--card-background);
 }
 
 .no-results.is-visible {

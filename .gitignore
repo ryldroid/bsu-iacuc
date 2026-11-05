@@ -31,3 +31,4 @@ app.zip
 # ── Backups ────────────────────────────────────────────────────────
 storage/backups/**
 tools/check-contrast.php
+before extraction of comments.zip

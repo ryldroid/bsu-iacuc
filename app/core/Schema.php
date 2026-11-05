@@ -375,6 +375,7 @@ class Schema
         $this->clearStaleReturnedRecords();
         $this->backfillMissingRecords();
         $this->backfillPendingRecordStatus();
+        $this->backfillRecordDetails();
         $this->backfillDaOfficeName();
 
         // ===== PAYMENT PROOF REJECTIONS TABLE =====
@@ -996,6 +997,101 @@ class Schema
              SET r.status = 'Pending'
              WHERE r.status = 'Ongoing' AND p.status <> 'Approved'"
         );
+    }
+
+    // ===== ONE-TIME BACKFILL: missing record details (demo data) =====
+    // Fills blank details on records linked to a protocol with random values. Fields that already have a value are kept.
+    // Sex and researcher type come from the submitting user first. Flag in site_settings, so it runs only once.
+    private function backfillRecordDetails(): void
+    {
+        $c       = $this->connection;
+        $flagKey = 'record_details_random_v1';
+
+        $check = $c->prepare("SELECT 1 FROM `site_settings` WHERE setting_key = ?");
+        if (! $check) return;
+        $check->bind_param('s', $flagKey);
+        $check->execute();
+        if ($check->get_result()->fetch_assoc()) return;
+
+        $counts = [
+            'Bats' => [5, 15],
+            'Chickens' => [10, 30],
+            'Ducks' => [10, 30],
+            'Fish' => [20, 60],
+            'Frogs' => [10, 30],
+            'Fruit Flies' => [100, 300],
+            'Goats' => [3, 8],
+            'Guinea Pigs' => [8, 24],
+            'Mice' => [12, 36],
+            'Rabbits' => [4, 12],
+            'Rats' => [12, 36],
+        ];
+        $advisers = ['Dr. Maria Santos', 'Dr. Ramon Dela Cruz', 'Dr. Elena Bautista', 'Prof. Carlos Mendoza', 'Dr. Angela Villanueva', 'Prof. Joseph Ramos'];
+        $vets     = ['Dr. Jose Ramirez, DVM', 'Dr. Liza Fernandez, DVM', 'Dr. Mark Aquino, DVM', 'Dr. Patricia Navarro, DVM'];
+
+        $result = $c->query(
+            "SELECT r.id, r.animal_type, r.animal_count, r.sex, r.researcher_type, r.research_adviser, r.veterinarian,
+                    r.research_duration_start, r.research_duration_end,
+                    u.sex AS user_sex, u.researcher_type AS user_researcher_type
+             FROM `records` r
+             LEFT JOIN `users` u ON u.id = r.user_id
+             WHERE r.protocol_id IS NOT NULL
+               AND (r.animal_type IS NULL OR r.animal_type = '' OR r.animal_count IS NULL OR r.animal_count < 1
+                    OR r.sex IS NULL OR r.sex = '' OR r.researcher_type IS NULL OR r.researcher_type = ''
+                    OR r.research_adviser IS NULL OR r.research_adviser = ''
+                    OR r.veterinarian IS NULL OR r.veterinarian = ''
+                    OR r.research_duration_start IS NULL OR r.research_duration_end IS NULL)"
+        );
+
+        if ($result) {
+            foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
+                $changes = [];
+
+                $type = $row['animal_type'];
+                if ($type === null || $type === '') {
+                    $type = RecordModel::ANIMAL_TYPES[array_rand(RecordModel::ANIMAL_TYPES)];
+                    $changes['animal_type'] = $type;
+                }
+                if ($row['animal_count'] === null || (int) $row['animal_count'] < 1) {
+                    [$min, $max] = $counts[$type] ?? [10, 30];
+                    $changes['animal_count'] = random_int($min, $max);
+                }
+                if ($row['sex'] === null || $row['sex'] === '') {
+                    $changes['sex'] = $row['user_sex'] ?: ['Male', 'Female'][random_int(0, 1)];
+                }
+                if ($row['researcher_type'] === null || $row['researcher_type'] === '') {
+                    $changes['researcher_type'] = $row['user_researcher_type'] ?: UserModel::RESEARCHER_TYPES[array_rand(UserModel::RESEARCHER_TYPES)];
+                }
+                if ($row['research_adviser'] === null || $row['research_adviser'] === '') {
+                    $changes['research_adviser'] = $advisers[array_rand($advisers)];
+                }
+                if ($row['veterinarian'] === null || $row['veterinarian'] === '') {
+                    $changes['veterinarian'] = $vets[array_rand($vets)];
+                }
+                if ($row['research_duration_start'] === null && $row['research_duration_end'] === null) {
+                    $start = new DateTimeImmutable('-' . random_int(7, 60) . ' days');
+                    $changes['research_duration_start'] = $start->format('Y-m-d');
+                    $changes['research_duration_end']   = $start->modify('+' . random_int(90, 180) . ' days')->format('Y-m-d');
+                }
+                if (! $changes) continue;
+
+                $set    = implode(', ', array_map(fn($col) => "`$col` = ?", array_keys($changes)));
+                $update = $c->prepare("UPDATE `records` SET $set WHERE id = ?");
+                if (! $update) continue;
+
+                $values   = array_values($changes);
+                $values[] = $row['id'];
+                $update->bind_param(str_repeat('s', count($values)), ...$values);
+                $update->execute();
+            }
+        }
+
+        $flagValue = '1';
+        $flag      = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        if ($flag) {
+            $flag->bind_param('ss', $flagKey, $flagValue);
+            $flag->execute();
+        }
     }
 
     // ===== ONE-TIME BACKFILL: DA regional office name =====

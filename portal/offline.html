@@ -23,7 +23,8 @@
 <body>
   <main>
     <div>
-      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 20h.01" />
         <path d="M8.5 16.429a5 5 0 0 1 7 0" />
         <path d="M5 12.859a10 10 0 0 1 5.17-2.69" />
@@ -36,12 +37,30 @@
       <p>This page hasn't been loaded before, so it isn't available without an internet connection.</p>
       <p class="helper-note">Pages you've already visited (like your dashboard or protocol list) should still work. Try
         going back.</p>
-      <a href="javascript:history.back()" class="button">← Go Back</a>
-      <a href="javascript:location.reload()" class="button">Try Again</a>
+      <a href="./" class="button" id="go-back">← Go Back</a>
+      <a href="#" class="button" id="try-again">Try Again</a>
     </div>
   </main>
 
   <script>
+    const goBack = document.getElementById('go-back');
+    const tryAgain = document.getElementById('try-again');
+
+    goBack.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (history.length <= 1) {
+        location.href = goBack.href;
+        return;
+      }
+      history.back();
+      setTimeout(() => { location.href = goBack.href; }, 500);
+    });
+
+    tryAgain.addEventListener('click', (event) => {
+      event.preventDefault();
+      location.reload();
+    });
+
     window.addEventListener('online', () => location.reload());
   </script>
 </body>
