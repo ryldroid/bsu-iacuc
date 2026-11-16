@@ -5,37 +5,33 @@ class Notifier
   // ===== STATUS NOTIFICATION TEXT =====
   public const STATUS_NOTICES = [
     'under review'   => ['Protocol Under Review', 'is now under review by CCARD. No action needed for now. You will be notified if revisions are needed or once the review is finished.'],
-    'needs revision' => ['Revision Needed', 'was returned by CCARD for revision. Open it, read the comments, then fix your files and re-submit.'],
+    'needs revision' => ['Revision Needed', 'was returned by CCARD for revision. Read the comments, fix your files, then re-submit.'],
     'reviewed'       => ['Review Passed: Pay Clearance Fee', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to My Protocols and press "Pay Clearance Fee" on this protocol.'],
-    'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for it to be endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).'],
+    'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for endorsement to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).'],
     'endorsed'       => ['Protocol Endorsed', 'has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). No action needed. Please wait while BAI processes your animal research clearance.'],
     'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy. Once your research is completed or cancelled, press "Report as Completed" or "Report as Cancelled" on this protocol in My Protocols so CCARD can update its records.'],
   ];
 
-  public const SIGNED_SCAN_NEXT_STEP = 'No action needed. It will be endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) next.';
-
   public const NEXT_STEPS = [
     'protocol_submitted'          => 'No action needed. You will be notified of any feedback.',
     'protocol_renamed'            => 'Review your protocol.',
-    'protocol_deleted'            => 'No action needed.',
-    'protocol_deletion_rejected'  => 'Your protocol stays active, so no action is needed.',
-    'new_submission_reviewer'     => 'Open it to start the review. Your part ends once it is marked Reviewed or returned for revision.',
-    'new_submission_staff'        => 'No action needed for now. A reviewer will assess it first.',
-    'first_submission_reviewer'   => 'This is their first submission. Open it to verify their training certificate, then start the review.',
-    'first_submission_staff'      => 'This is their first submission. Open it to verify their training certificate.',
-    'protocol_resubmitted_reviewer' => 'Open it to review the revisions.',
+    'protocol_deleted'            => 'It is hidden from the portal but kept for record-keeping purposes.',
+    'new_submission_reviewer'     => 'Open to start the review.',
+    'new_submission_staff'        => 'No action needed. A reviewer will assess first.',
+    'first_submission_reviewer'   => 'This is their first submission, with a training certificate to verify. Open to verify, then start the review.',
+    'first_submission_staff'      => 'This is their first submission, with a training certificate to verify. Open to verify.',
+    'protocol_resubmitted_reviewer' => 'Open to review the revisions.',
     'protocol_resubmitted_staff'  => 'No action needed for now. A reviewer will assess the revisions first.',
-    'protocol_amended'            => 'No action needed. It does not need to be reviewed again.',
-    'protocol_deletion_requested' => 'Open it to approve or reject the request.',
-    'research_outcome_reported'   => 'Open the record to check it.',
-    'payment_proof_uploaded'      => 'Open it to verify the payment.',
-    'cert_verification_reviewer'  => 'Open it to verify the certificate.',
-    'cert_verification_staff'     => 'Open it to verify the certificate.',
+    'protocol_amended'            => 'No action needed. No further review is required.',
+    'research_outcome_reported'   => 'Open the record to check the update.',
+    'payment_proof_uploaded'      => 'Open to verify the payment.',
+    'cert_verification_reviewer'  => 'Open to verify.',
+    'cert_verification_staff'     => 'Open to verify.',
   ];
 
-  public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign your protocol and endorse it to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).';
+  public const PAYMENT_VERIFIED_NEXT_STEP = 'No action needed. CCARD will now sign and endorse your protocol to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).';
 
-  public const CERT_VERIFIED_NEXT_STEP = 'No action needed. Your protocol review continues and you can submit new protocols.';
+  public const CERT_VERIFIED_NEXT_STEP = 'No action needed. The review of your protocol continues and you may now submit new protocols.';
 
   public const CERT_REJECTED_NEXT_STEP = 'Press Resubmit Certificate on My Protocols or on your protocol.';
 
@@ -43,7 +39,7 @@ class Notifier
 
   public const PAYMENT_UNDONE_NEXT_STEP = 'No action needed. CCARD will verify your payment again.';
 
-  public const HARD_COPY_UNDONE_NEXT_STEP = 'If you already claimed it, please tell the CCARD office. Otherwise, visit the office to claim it.';
+  public const HARD_COPY_UNDONE_NEXT_STEP = 'If you already claimed the copy, please tell the CCARD office. Otherwise, visit the office to claim the copy.';
 
   public const HARD_COPY_PICKED_UP_NEXT_STEP = 'No action needed.';
 
@@ -61,7 +57,6 @@ class Notifier
     }
 
     return $steps + [
-      'signed_scan_uploaded'   => ['signed_scan_uploaded', self::SIGNED_SCAN_NEXT_STEP],
       'payment_verified'       => ['payment_verified', self::PAYMENT_VERIFIED_NEXT_STEP],
       'cert_verified'          => ['cert_verified', self::CERT_VERIFIED_NEXT_STEP],
       'cert_rejected'          => ['cert_rejected', self::CERT_REJECTED_NEXT_STEP],
@@ -79,7 +74,7 @@ class Notifier
 
   public static function returnedByAgencyNotice(string $reason): array
   {
-    return ['Revision Needed', 'was returned for revision after ' . self::RETURNED_BY_AGENCY_SOURCE . ' sent it back.' . self::reasonSentence($reason) . ' Open it, fix your files, then re-submit.'];
+    return ['Revision Needed', 'was returned for revision after ' . self::RETURNED_BY_AGENCY_SOURCE . ' sent the protocol back.' . self::reasonSentence($reason) . ' Fix your files, then re-submit.'];
   }
 
   // ===== SEND TO ONE USER =====
@@ -141,7 +136,7 @@ class Notifier
     ?string $link = null,
     array $email = []
   ): void {
-    foreach (['staff', 'reviewer'] as $role) {
+    foreach (Access::PERSONNEL_ROLES as $role) {
       self::sendToRole($role, $type, $title, $message . ' ' . self::NEXT_STEPS[$nextStepKey . '_' . $role], $link, $email);
     }
   }

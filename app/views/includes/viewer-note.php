@@ -1,7 +1,7 @@
 <?php
 
 /**
- * One note card for the protocol viewer (amendment note, CCARD note, deletion request).
+ * One note card for the protocol viewer (amendment note, CCARD note).
  *
  * @var string $noteVariant 'info', 'warning' or 'danger'
  * @var string $noteIcon    sprite id

@@ -66,9 +66,9 @@ class Personnel extends Controller
         foreach ($protocols as &$protocol) {
             $protocol['viewer_ref'] = protocol_ref((int) $protocol['protocol_id'], (string) $protocol['research_title']);
             $protocol['can_endorse'] = $protocol['status'] === 'Reviewed'
+                && empty($protocol['discontinued_at'])
                 && ($protocol['payment_status'] ?? 'unpaid') === 'paid'
-                && !empty($protocol['reference_no'])
-                && !empty($protocol['latest_signed_scan_version_id']);
+                && !empty($protocol['reference_no']);
         }
         unset($protocol);
 
@@ -274,7 +274,7 @@ class Personnel extends Controller
     {
         $this->requireStaff();
 
-        $this->redirect('personnel/home?status=endorsed');
+        $this->redirect('personnel/home');
     }
 
     // ===== RECORDS LIST =====
@@ -400,8 +400,8 @@ class Personnel extends Controller
         if ($ref === '') {
             $this->jsonError(422, 'IPN is required.');
         }
-        if (!preg_match('/^\d{6}$/', $ref)) {
-            $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+        if (!preg_match('/' . NumberFormat::of('ipn')->pattern() . '/', $ref)) {
+            $this->jsonError(422, NumberFormat::of('ipn')->message());
         }
         if ($this->recordModel->refExists($ref)) {
             $this->jsonError(422, 'That IPN already exists.');
@@ -409,6 +409,9 @@ class Personnel extends Controller
 
         $d = $this->sanitizeRecordPost();
         $this->requireStatFields($d, true);
+        if ($d['ar_number'] !== '' && !preg_match('/' . NumberFormat::of('ar')->pattern() . '/', $d['ar_number'])) {
+            $this->jsonError(422, NumberFormat::of('ar')->message());
+        }
         if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'])) {
             $this->jsonError(422, 'That AR number already exists.');
         }
@@ -523,8 +526,6 @@ class Personnel extends Controller
             $row['file_url'] = !empty($row['file_path'])
                 ? ROOT . '/personnel/records_file/' . (int) $row['id'] . '/' . (slugify(strtok($row['file_original_name'] ?? '', '.') ?: '') ?: 'record')
                 : '';
-            $row['has_signed_scan'] = !empty($row['protocol_id'])
-                && $this->protocolModel->getCurrentSignedScan((int) $row['protocol_id']) !== null;
         }
 
         echo json_encode(
@@ -554,8 +555,12 @@ class Personnel extends Controller
         $existingRec = $this->recordModel->getById($id);
         $this->requireStatFields($d, empty($existingRec['user_id']));
         $ipnChanged  = $d['reference_no'] !== '' && $d['reference_no'] !== ($existingRec['reference_no'] ?? '');
-        if ($ipnChanged && !preg_match('/^\d{6}$/', $d['reference_no'])) {
-            $this->jsonError(422, 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+        if ($ipnChanged && !preg_match('/' . NumberFormat::of('ipn')->pattern() . '/', $d['reference_no'])) {
+            $this->jsonError(422, NumberFormat::of('ipn')->message());
+        }
+        $arChanged   = $d['ar_number'] !== '' && $d['ar_number'] !== ($existingRec['ar_number'] ?? '');
+        if ($arChanged && !preg_match('/' . NumberFormat::of('ar')->pattern() . '/', $d['ar_number'])) {
+            $this->jsonError(422, NumberFormat::of('ar')->message());
         }
         if ($d['ar_number'] !== '' && $this->recordModel->arExists($d['ar_number'], $id)) {
             $this->jsonError(422, 'That AR number already exists.');
@@ -658,7 +663,7 @@ class Personnel extends Controller
             'IPN',
             'AR Number',
             'Title of Research',
-            'School',
+            'School/Affiliation',
             'Animal Type',
             'Count',
             'Researcher',
@@ -744,7 +749,6 @@ class Personnel extends Controller
                 ['Revision Submissions', $stats['revision_submissions']],
                 ['Average Revisions per Revised Protocol', $stats['avg_revisions']],
                 ['Protocols Endorsed', $stats['endorsed']],
-                ['Protocols Signed by IACUC Chairperson', $stats['signed']],
                 ['Clearances Received', $stats['clearances_returned']],
                 ['Total Records', $stats['total_records']],
                 ['Total Animals Used', $stats['total_animals']],
@@ -757,7 +761,7 @@ class Personnel extends Controller
         $row++;
 
         $row = $this->writeBreakdownTable($sheet, $row, 'Animals Used by Species', $stats['species_breakdown'], 'Species');
-        $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by School', $stats['school_breakdown'], 'School');
+        $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by School/Affiliation', $stats['school_breakdown'], 'School/Affiliation');
         $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Sex', $stats['sex_breakdown'], 'Researcher Sex');
         $row = $this->writeBreakdownTable($sheet, $row, 'Protocols by Researcher Type', $stats['researcher_type_breakdown'], 'Researcher Type');
         $row = $this->writeBreakdownTable($sheet, $row, 'Revisions per Protocol', $stats['revisions_by_protocol'], 'Protocol');
@@ -807,7 +811,7 @@ class Personnel extends Controller
     // Demographics come from the researcher's account when linked.
     private function requireStatFields(array $d, bool $needsDemographics): void
     {
-        $required = ['title_of_research' => 'Title of research', 'principal_investigator' => 'Principal investigator', 'school' => 'School', 'animal_type' => 'Animal type', 'animal_count' => 'Animal count'];
+        $required = ['title_of_research' => 'Title of research', 'principal_investigator' => 'Principal investigator', 'school' => 'School/Affiliation', 'animal_type' => 'Animal type', 'animal_count' => 'Animal count'];
         if ($needsDemographics) {
             $required += ['sex' => 'Researcher sex', 'researcher_type' => 'Researcher type'];
         }
@@ -1182,6 +1186,29 @@ class Personnel extends Controller
         ];
     }
 
+    // ===== NUMBER FORMATS: SAVE =====
+    public function number_formats_save(): void
+    {
+        $this->requireStaff();
+        $this->requirePostMethod();
+        $this->verifyCsrfToken(true);
+
+        $kind   = (string) ($_POST['kind'] ?? '');
+        $format = isset(NumberFormat::LABELS[$kind]) ? NumberFormat::clean($kind, $_POST) : null;
+        if ($format === null) {
+            $_SESSION['flash_error'] = 'The number format is not valid. Use up to 6 letters, numbers, dots or dashes for the prefix.';
+        } else {
+            $this->settingsModel->setMany($format);
+
+            $actor = $this->actor();
+            $this->settingsModel->logAudit('site_settings_updated', $actor['id'], $actor['name'], $actor['role'], 'site_settings', null, 'Updated ' . NumberFormat::LABELS[$kind] . ' format');
+
+            $_SESSION['flash_success'] = NumberFormat::LABELS[$kind] . ' format updated.';
+        }
+
+        $this->redirect('personnel/accounts?tab=number-formats');
+    }
+
     // ===== ACCOUNTS PAGE =====
     public function accounts(): void
     {
@@ -1445,7 +1472,7 @@ class Personnel extends Controller
     {
         if ($this->isLoggedIn()) {
             $role = $_SESSION['user']['role'] ?? '';
-            $this->redirect(in_array($role, ['staff', 'reviewer']) ? 'personnel/home' : 'submissions');
+            $this->redirect(Access::isPersonnelRole($role) ? 'personnel/home' : 'submissions');
         }
 
         $this->view('personnel/personnel-login', [
@@ -1505,7 +1532,7 @@ class Personnel extends Controller
         $this->userModel->clearLoginAttempts($ip);
         $this->userModel->clearLoginAttempts($input);
 
-        if (!in_array($user['role'], ['staff', 'reviewer'])) {
+        if (!Access::isPersonnelRole($user['role'])) {
             $_SESSION['flash_error'] = 'This portal is for CCARD personnel only.';
             $this->redirect('personnel/login');
         }
@@ -1525,6 +1552,7 @@ class Personnel extends Controller
         }
 
         session_regenerate_id(true);
+        unset($_SESSION['flash_error']);
         $_SESSION['user'] = [
             'user_id'        => $user['id'],
             'first_name'     => $user['first_name'],
@@ -1693,7 +1721,7 @@ class Personnel extends Controller
         $this->verifyCsrfToken();
 
         $role = $_POST['invite_role'] ?? 'staff';
-        if (!in_array($role, ['staff', 'reviewer'])) {
+        if (!Access::isPersonnelRole($role)) {
             $role = 'staff';
         }
 
@@ -1776,6 +1804,26 @@ class Personnel extends Controller
         $this->redirect('personnel/accounts?tab=accounts');
     }
 
+    // ===== CONFIRM ACTING STAFF PASSWORD =====
+    private function passwordCheckError(array $actor, string $password, string $deniedAction, int $targetId, string $deniedNote): ?string
+    {
+        $identifier = 'confirm:' . $actor['id'];
+
+        if ($this->userModel->countRecentAttempts($identifier) >= 5) {
+            return 'Too many incorrect passwords. Please wait 15 minutes before trying again.';
+        }
+
+        $actorRecord = $this->userModel->getUser($actor['id']);
+        if ($password === '' || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
+            $this->userModel->recordLoginAttempt($identifier);
+            $this->userModel->logAudit($deniedAction, $actor['id'], $actor['name'], $actor['role'], 'user', $targetId, $deniedNote);
+            return 'Incorrect password.';
+        }
+
+        $this->userModel->clearLoginAttempts($identifier);
+        return null;
+    }
+
     // ===== CHANGE ROLE =====
     public function update_role(): void
     {
@@ -1797,69 +1845,24 @@ class Personnel extends Controller
             $this->redirect('personnel/accounts?tab=accounts');
         }
 
-        if (!in_array($role, ['staff', 'reviewer'], true)) {
+        if (!Access::isPersonnelRole($role)) {
             $_SESSION['flash_error'] = 'Invalid role selected.';
             $this->redirect('personnel/accounts?tab=accounts');
         }
 
-        $actorRecord = $this->userModel->getUser($actor['id']);
-        if (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
-            $this->userModel->logAudit('user_role_change_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting a role change');
-            $_SESSION['flash_error'] = 'Incorrect password. Role not changed.';
+        $passwordError = $this->passwordCheckError($actor, $password, 'user_role_change_denied', $id, 'Incorrect password entered while attempting a role change');
+        if ($passwordError) {
+            $_SESSION['flash_error'] = "$passwordError Role not changed.";
             $this->redirect('personnel/accounts?tab=accounts');
         }
 
         $target = $this->userModel->getUser($id);
-        if ($target && in_array($target['role'], ['staff', 'reviewer'], true) && !in_array($target['status'], ['pending', 'deleted'], true)) {
+        if ($target && Access::isPersonnelRole($target['role']) && !in_array($target['status'], ['pending', 'deleted'], true)) {
             $this->userModel->updateUserRole($id, $role);
             $this->userModel->logAudit('user_role_changed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Changed role for {$target['username']} from {$target['role']} to $role");
             $_SESSION['flash_success'] = 'Role updated to ' . ucfirst($role) . '.';
         } else {
             $_SESSION['flash_error'] = 'Personnel account not found.';
-        }
-
-        $this->redirect('personnel/accounts?tab=accounts');
-    }
-
-    // ===== DELETE PERSONNEL ACCOUNT =====
-    public function delete_personnel(): void
-    {
-        $this->requireStaff();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('personnel/accounts?tab=accounts');
-        }
-
-        $this->verifyCsrfToken();
-
-        $id          = (int) ($_POST['user_id'] ?? 0);
-        $password    = $_POST['password'] ?? '';
-        $actor       = $this->actor();
-        $actorRecord = $this->userModel->getUser($actor['id']);
-        $target      = $this->userModel->getUser($id);
-
-        if ($this->isActor($id)) {
-            $_SESSION['flash_error'] = 'Use the account panel to delete your own account.';
-        } elseif (empty($password) || !$actorRecord || !password_verify($password, $actorRecord['password'])) {
-            $this->userModel->logAudit('personnel_delete_denied', $actor['id'], $actor['name'], $actor['role'], 'user', $id, 'Incorrect password entered while attempting to delete an account');
-            $_SESSION['flash_error'] = 'Incorrect password. Account not deleted.';
-        } elseif (!$target || !in_array($target['role'], ['staff', 'reviewer'], true) || in_array($target['status'], ['pending', 'deleted'], true)) {
-            $_SESSION['flash_error'] = 'Personnel account not found.';
-        } else {
-            $certFiles = $this->userModel->getCertFiles($id);
-            $db        = $this->userModel->connection;
-            $db->begin_transaction();
-
-            if ($this->userModel->deleteUser($id) && $db->commit()) {
-                $this->userModel->removeCertFiles($certFiles);
-                $this->userModel->logAudit('personnel_deleted', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Deleted personnel account: {$target['username']}");
-                Mailer::sendTemplate('account_deleted', ['first_name' => $target['first_name'], 'deleted_by_admin' => true], $target['email'], $target['first_name'], 'Account Deleted');
-                $_SESSION['flash_success'] = 'Personnel account deleted.';
-            } else {
-                $db->rollback();
-                $this->userModel->logAudit('personnel_delete_failed', $actor['id'], $actor['name'], $actor['role'], 'user', $id, "Failed to delete personnel account: {$target['username']}");
-                $_SESSION['flash_error'] = 'Account deletion failed. Please try again.';
-            }
         }
 
         $this->redirect('personnel/accounts?tab=accounts');
@@ -1903,6 +1906,13 @@ class Personnel extends Controller
             => 'This account is not deactivated.',
             default => null,
         };
+
+        $isPersonnelTarget = $target && Access::isPersonnelRole($target['role']);
+        if ($error === null && $isPersonnelTarget) {
+            $verb          = $deactivate ? 'deactivate' : 'reactivate';
+            $passwordError = $this->passwordCheckError($actor, (string) ($_POST['password'] ?? ''), "user_{$verb}_denied", $id, "Incorrect password entered while attempting to $verb an account");
+            $error         = $passwordError ? "$passwordError The account was not {$verb}d." : null;
+        }
 
         if ($error === null) {
             $done = $deactivate

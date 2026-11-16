@@ -8,7 +8,11 @@ const notifMarkAll = document.querySelector(".notif-mark-all");
 const NOTIF_INDEX_URL = NOTIF_ROOT + "/notifications";
 const NOTIF_MARKREAD_URL = NOTIF_ROOT + "/notifications/markread";
 const NOTIF_MARKALLREAD_URL = NOTIF_ROOT + "/notifications/markallread";
-const NOTIF_POLL_MS = 30000;
+const NOTIF_PUSH_ENABLED = Boolean(PUSHER_KEY) && typeof Pusher !== "undefined";
+const NOTIF_POLL_MS = 15000;
+const NOTIF_SAFETY_POLL_MS = 15000;
+let notifPushReady = false;
+let notifLastLoadAt = 0;
 
 // ===== Time-ago label =====
 function timeAgo(dateStr) {
@@ -91,6 +95,7 @@ function syncEmailToggle(data, requestedAt) {
 // ===== Load & mark as read =====
 async function loadNotifications() {
   const requestedAt = Date.now();
+  notifLastLoadAt = requestedAt;
   try {
     const res = await fetch(NOTIF_INDEX_URL, {
       headers: { Accept: "application/json" },
@@ -100,6 +105,7 @@ async function loadNotifications() {
     renderBadge(data.unread_count);
     renderList(data.items);
     syncEmailToggle(data, requestedAt);
+    document.dispatchEvent(new Event("notifications-updated"));
   } catch (e) {}
 }
 
@@ -185,7 +191,35 @@ if (notifBell && notifDropdown) {
 
   notifMarkAll?.addEventListener("click", markAllRead);
 
+  // ===== Push =====
+  if (NOTIF_PUSH_ENABLED) {
+    const pusher = new Pusher(PUSHER_KEY, {
+      cluster: PUSHER_CLUSTER,
+      channelAuthorization: {
+        endpoint: NOTIF_ROOT + "/notifications/pusherauth",
+      },
+    });
+    const channel = pusher.subscribe("private-user-" + CURRENT_USER_ID);
+    channel.bind("notification", loadNotifications);
+    channel.bind("pusher:subscription_succeeded", () => {
+      notifPushReady = true;
+      loadNotifications();
+    });
+    channel.bind("pusher:subscription_error", () => (notifPushReady = false));
+    pusher.connection.bind("state_change", ({ current }) => {
+      if (current !== "connected") notifPushReady = false;
+    });
+  }
+
   // ===== Start polling =====
   loadNotifications();
-  setInterval(loadNotifications, NOTIF_POLL_MS);
+  setInterval(() => {
+    const wait = notifPushReady ? NOTIF_SAFETY_POLL_MS : NOTIF_POLL_MS;
+    if (!document.hidden && Date.now() - notifLastLoadAt >= wait - 1000) {
+      loadNotifications();
+    }
+  }, NOTIF_POLL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadNotifications();
+  });
 }

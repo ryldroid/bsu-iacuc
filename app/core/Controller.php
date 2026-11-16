@@ -75,7 +75,7 @@ class Controller
 
   protected function isPersonnel(): bool
   {
-    return in_array($this->actor()['role'], ['staff', 'reviewer'], true);
+    return Access::isPersonnelRole($this->actor()['role']);
   }
 
   // ===== FILE STREAMING =====
@@ -181,6 +181,7 @@ class Controller
     if ($fresh) {
       $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
       $_SESSION['user']['email']          = $fresh['email'];
+      $_SESSION['user']['view_preferences'] = json_decode($fresh['view_preferences'] ?? '', true) ?: [];
     }
   }
 

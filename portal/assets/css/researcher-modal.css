@@ -30,6 +30,11 @@
   transform: none;
 }
 
+.researcher-name-link svg {
+  vertical-align: -3px;
+  margin-right: 4px;
+}
+
 .researcher-modal-card {
   max-width: 460px;
 }

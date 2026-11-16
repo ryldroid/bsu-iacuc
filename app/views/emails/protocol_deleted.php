@@ -7,7 +7,7 @@ ob_start();
 ?>
 
 <p>Hi <?= htmlspecialchars($first_name) ?>,</p>
-<p>Your protocol <strong><?= htmlspecialchars($title) ?></strong> has been deleted by <?= htmlspecialchars($actor_name) ?>. No action needed.</p>
+<p>Your protocol <strong><?= htmlspecialchars($title) ?></strong> has been archived by <?= htmlspecialchars($actor_name) ?>. It is now hidden from the portal but kept for record-keeping purposes.</p>
 <p><strong>Reason:</strong> <?= htmlspecialchars($reason) ?></p>
 <p>You can <?= Mailer::link(ROOT . '/submissions', 'view your other protocols here') ?>.</p>
 <p>If you have questions about this, please contact BSU-CCARD.</p>

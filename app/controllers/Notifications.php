@@ -4,7 +4,6 @@ class Notifications extends Controller
 {
   private const HIGHLIGHT_TYPES = [
     'protocol_renamed',
-    'signed_scan_uploaded',
     'protocol_status_under_review',
     'protocol_status_reviewed',
     'protocol_status_endorsed',
@@ -49,6 +48,22 @@ class Notifications extends Controller
       'provider_blocked'    => !empty($user['email_provider_blocked']),
     ]);
     exit;
+  }
+
+  // ===== PUSHER CHANNEL AUTH =====
+  public function pusherauth(): void
+  {
+    $this->requireLogin();
+    $this->requirePostMethod();
+
+    $socketId = (string) ($_POST['socket_id'] ?? '');
+    $channel  = (string) ($_POST['channel_name'] ?? '');
+
+    if (!preg_match('/^\d+\.\d+$/', $socketId) || $channel !== 'private-user-' . (int) $_SESSION['user']['user_id']) {
+      $this->jsonError(403, 'Forbidden.');
+    }
+
+    $this->jsonResponse(['auth' => Broadcaster::authorize($socketId, $channel)]);
   }
 
   // ===== LOAD MORE (PAGINATION) =====

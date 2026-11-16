@@ -4,6 +4,7 @@ include 'sprites.php';
 /** @var array|null $user */
 $first_name = $user['first_name'] ?? '';
 $role = $user['role'] ?? '';
+$isPersonnel = Access::isPersonnelRole($role);
 $hideHeaderAuth = $hideHeaderAuth ?? false;
 $hideHeader     = $hideHeader     ?? false;
 $previewMode     = $previewMode     ?? false;
@@ -25,9 +26,9 @@ $showWelcome = $user && !empty($user['show_welcome']);
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
 $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'];
 if ($role === 'reviewer') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents. Return them for revision or finish review. You may also verify training certificates and rename or delete protocols.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents. Return them for revision or finish review. You may also verify training certificates and rename or archive protocols.";
 } elseif ($role === 'staff') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nManage protocols post-review, including the verification of payments, assignment of IPNs and digital clearances, and confirmation of pickups of the hard copies. You may also rename or delete protocols. Moreover, manage the records, site content, audit logs, personnel accounts, and data backups.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nManage protocols post-review, including the verification of payments, assignment of IPNs and digital clearances, and confirmation of pickups of the hard copies. You may also rename or archive protocols. Moreover, manage the records, site content, audit logs, personnel accounts, and data backups.";
 }
 $guideHome = ['Home', 'Go here to read about IACUC, how to apply for protocol review, the frequently asked questions, and more.', ...$navLink('/home')];
 $guideAnnouncements = ['Announcements', 'Read the latest news and updates from CCARD.', ...$navLink('/announcements')];
@@ -95,7 +96,7 @@ if ($role === 'researcher') {
   ];
 }
 if ($hideWelcomeGuide ?? false) $welcomeSteps = [];
-$canPreviewSite = $role === 'staff' || $role === 'reviewer';
+$canPreviewSite = $isPersonnel;
 $canReplayGuide = $welcomeSteps && !$accountRequired;
 ?>
 
@@ -158,13 +159,21 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
       });
       const NOTIF_ROOT = <?= json_encode(ROOT) ?>;
       const CURRENT_USER_ID = <?= json_encode((int) ($user['user_id'] ?? 0)) ?>;
+      const VIEW_PREFERENCES = <?= json_encode((object) ($user['view_preferences'] ?? [])) ?>;
+      const IS_PERSONNEL = <?= json_encode($isPersonnel) ?>;
+      const PUSHER_KEY = <?= json_encode(PUSHER_KEY) ?>;
+      const PUSHER_CLUSTER = <?= json_encode(PUSHER_CLUSTER) ?>;
       const SESSION_IDLE_LIMIT_MS = <?= json_encode(SESSION_TIMEOUT * 1000) ?>;
       const OFFLINE_SAVE_PROTOCOLS = <?= json_encode(OFFLINE_SAVE_PROTOCOLS) ?>;
-      const SESSION_LOGIN_PATH = <?= json_encode(in_array($role, ['staff', 'reviewer'], true) ? 'personnel/login' : 'user/login') ?>;
+      const STATUS_DISPLAY_NAMES = <?= json_encode($isPersonnel ? ProtocolPermissions::PERSONNEL_STATUS_LABELS : new stdClass()) ?>;
+      const SESSION_LOGIN_PATH = <?= json_encode($isPersonnel ? 'personnel/login' : 'user/login') ?>;
     </script>
+    <?php if (PUSHER_KEY !== ''): ?>
+      <script src="https://js.pusher.com/8.4.0/pusher.min.js" defer></script>
+    <?php endif; ?>
     <script src="<?= asset_js('notifications.js') ?>" defer></script>
     <script src="<?= asset_js('session-timeout.js') ?>" defer></script>
-    <?php if (in_array($role, ['staff', 'reviewer'], true)): ?>
+    <?php if ($isPersonnel): ?>
       <script src="<?= asset_js('background-tasks.js') ?>" <?= $role === 'staff' ? ' data-backup' : '' ?> defer></script>
     <?php endif; ?>
   <?php endif; ?>
@@ -214,7 +223,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
 
           <?php if ($user) { ?>
             <!-- OFFLINE MARK -->
-            <span class="offline-tag" role="status" <?= in_array($role, ['staff', 'reviewer'], true) ? 'data-offline-saved ' : '' ?>hidden>Offline</span>
+            <span class="offline-tag" role="status" <?= $isPersonnel ? 'data-offline-saved ' : '' ?>hidden>Offline</span>
 
             <button class="notif-bell"
               aria-expanded="false"
@@ -333,7 +342,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
 
                 <!-- ===== Account form ===== -->
                 <form id="account-form" class="account-form" method="POST" action="<?= ROOT ?>/user/update"
-                  data-confirm-message="Save changes to your account?"
+                  data-confirm-message="<?= $role === 'researcher' ? 'Save changes to your account? Changes here are linked to your new protocol submissions, so kindly double check your information.' : 'Save changes to your account?' ?>"
                   data-confirm-ok-text="Save Changes">
                   <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
@@ -377,7 +386,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                     <div class="input-group">
                       <input type="text" id="school" name="school" list="school-options" placeholder=" " autocomplete="organization"
                         value="<?= htmlspecialchars($accountUser['school'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
-                      <label for="school">School <span class="required-asterisk">*</span></label>
+                      <label for="school">School/Affiliation <span class="required-asterisk">*</span></label>
                     </div>
 
                     <div class="input-group">

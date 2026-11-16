@@ -47,98 +47,120 @@ document.addEventListener("keydown", (e) => {
     closeHistoryModal();
 });
 
-// ===== Row builders =====
+// ===== Steps =====
+const HISTORY_STEPS = [
+  { label: "Under Review", key: "under-review", icon: "clock-icon" },
+  { label: "Reviewed", key: "reviewed", icon: "checkbox-icon" },
+  { label: "Endorsed", key: "endorsed", icon: "shield-check-icon" },
+  { label: "Approved", key: "approved", icon: "check-circle-icon" },
+];
+const HISTORY_RETURNED_STEP = {
+  label: "Needs Revision",
+  key: "needs-revision",
+  icon: "alert-triangle-icon",
+};
+const HISTORY_ROLE_LABELS = {
+  researcher: "Researcher",
+  staff: "CCARD Staff",
+  reviewer: "Reviewer",
+};
 const HISTORY_ICON_SIZE = 16;
 
-function historyEvent(tone, icon, title, time, detail, action) {
-  return `<div class="payment-event payment-tone-${tone}">
+let historyData = null;
+let historySteps = [];
+let historyCurrent = 0;
+let historySelected = 0;
+let historyResubmit = null;
+
+const historyTime = (value) => new Date(value).getTime();
+const historyDate = (value) => new Date(value).toLocaleDateString("en-PH");
+
+function historyStatusName(status) {
+  return STATUS_DISPLAY_NAMES[String(status).toLowerCase()] || status;
+}
+
+function historyStepIndex(status) {
+  const name = String(status || "")
+    .toLowerCase()
+    .replace("needs revision", "under review");
+  return HISTORY_STEPS.findIndex((s) => s.label.toLowerCase() === name);
+}
+
+// ===== Event row =====
+function historyActor(name, role, id) {
+  if (id && Number(id) === CURRENT_USER_ID) return "You";
+  const label = HISTORY_ROLE_LABELS[role];
+  return name + (label ? " (" + label + ")" : "");
+}
+
+function historyBy(name, role, id) {
+  if (!name) return "";
+  if (role === "researcher") return "";
+  return "by " + escapeHtml(historyActor(name, role, id));
+}
+
+function historyWhen(at) {
+  return `<span>${escapeHtml(historyDate(at))}</span><span>${escapeHtml(formatTime(at))}</span>`;
+}
+
+function historyEvent(e) {
+  const by = historyBy(e.name, e.role, e.actorId);
+  const lines = [
+    by && `<span class="payment-event-time">${by}</span>`,
+    e.detail &&
+      `<span class="payment-event-detail">${e.detailLabel ? `<strong>${e.detailLabel}</strong> ` : ""}${escapeHtml(e.detail)}</span>`,
+    e.reason &&
+      `<span class="payment-event-detail"><strong>Reason:</strong> ${escapeHtml(e.reason)}</span>`,
+    e.note && `<span class="payment-event-note">${escapeHtml(e.note)}</span>`,
+  ]
+    .filter(Boolean)
+    .join("");
+
+  return `<div class="payment-event history-event history-tone-${e.tone}">
             <span class="payment-event-icon">
-                <svg width="${HISTORY_ICON_SIZE}" height="${HISTORY_ICON_SIZE}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${icon}" /></svg>
+                <svg width="${HISTORY_ICON_SIZE}" height="${HISTORY_ICON_SIZE}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${e.icon}" /></svg>
             </span>
             <div class="payment-event-body">
-                <span class="payment-event-title">${title}</span>
-                <span class="payment-event-time">${time}</span>
-                ${detail}
+                <span class="payment-event-title">${escapeHtml(e.title)}</span>
+                ${lines}
             </div>
-            ${action || ""}
+            <div class="history-event-aside">${historyWhen(e.at)}${e.action || ""}</div>
         </div>`;
 }
 
-function historyWhen(name, role, at) {
-  const actor = formatActor(name, role);
-  return (
-    (actor ? escapeHtml(actor) + " &middot; " : "") +
-    escapeHtml(formatDateTime(at))
-  );
+// ===== Event builders =====
+function historyOpenLink(href, label, extra = "", text = "Open") {
+  return `<a class="action-link" href="${escapeHtml(href)}"${extra} aria-label="${escapeHtml(label)}">${text}</a>`;
 }
 
-function signedScanLabel(referenceNo) {
-  return referenceNo
-    ? "Protocol Signed by IACUC Chairperson \u00b7 IPN " + referenceNo
-    : "Protocol Signed by IACUC Chairperson";
-}
+function versionEvents(data) {
+  return data.versions.map((v) => {
+    const isScan = v.file_type === "signed_scan";
+    const title = isScan
+      ? "Signed protocol uploaded"
+      : v.version_number <= 1
+        ? "Protocol submitted"
+        : `Protocol resubmitted (${v.label.toLowerCase()})`;
 
-function roundTitleNote(titles, i) {
-  if (i === titles.length - 1) {
-    return titles.length > 1 && titles[i] !== titles[i - 1]
-      ? "Titled: " + titles[i]
-      : "";
-  }
-  return titles[i] !== titles[i + 1] ? "Renamed to: " + titles[i] : "";
-}
+    const href = `${ROOT_URL}/apply/viewer/${data.viewer_ref}/${v.id}`;
 
-function buildVersionRows(data) {
-  const versions = data.versions;
-  if (!versions || versions.length === 0) return "";
-
-  const rounds = versions.filter((v) => v.file_type === "protocol");
-  const titles = rounds.map((v) => v.title_at_version || v.original_name || "");
-
-  const rows = versions
-    .map((v, index) => {
-      const isScan = v.file_type === "signed_scan";
-      const roundIndex = rounds.indexOf(v);
-      const wasReturned =
-        !isScan &&
-        (roundIndex > 0 ||
-          String(data.status || "").toLowerCase() === "needs revision");
-
-      const titleNote = isScan
-        ? signedScanLabel(data.reference_no)
-        : roundTitleNote(titles, roundIndex);
-
-      const tone = isScan ? "success" : wasReturned ? "warning" : "info";
-      const icon = isScan
-        ? "shield-check-icon"
-        : wasReturned
-          ? "alert-triangle-icon"
-          : "upload-icon";
-      const badge =
-        index === 0
-          ? ' <span class="status-dot status-dot--success">Current</span>'
-          : "";
-
-      const detail = titleNote
-        ? `<span class="payment-event-detail">${escapeHtml(titleNote)}</span>`
-        : "";
-
-      const action = `<a class="button button-compact history-open" href="${ROOT_URL}/apply/viewer/${data.viewer_ref}/${v.id}" aria-label="Open ${escapeHtml(v.label)}, ${formatDate(v.uploaded_at)}">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
-                Open
-            </a>`;
-
-      return historyEvent(
-        tone,
-        icon,
-        escapeHtml(v.label) + badge,
-        `${escapeHtml(formatDate(v.uploaded_at))} &middot; ${escapeHtml(formatTime(v.uploaded_at))}`,
-        detail,
-        action,
-      );
-    })
-    .join("");
-
-  return historySection("Protocol Submissions", rows);
+    return {
+      tone: isScan ? "success" : "info",
+      icon: isScan ? "shield-check-icon" : "upload-icon",
+      title,
+      name: (v.first_name + " " + v.last_name).trim(),
+      role: v.uploader_role,
+      actorId: v.actor_id,
+      at: v.uploaded_at,
+      href,
+      label: `Open ${v.label}, ${formatDate(v.uploaded_at)}`,
+      action: historyOpenLink(
+        href,
+        `Open ${v.label}, ${formatDate(v.uploaded_at)}`,
+      ),
+      step: isScan ? undefined : 0,
+    };
+  });
 }
 
 const PAYMENT_EVENT_LOOKS = {
@@ -164,201 +186,424 @@ const PAYMENT_EVENT_LOOKS = {
   },
 };
 
-function buildPaymentHistorySection(events, resubmit) {
-  if (!events || events.length === 0) return "";
+function paymentEvents(events) {
+  return events.map((e, i) => {
+    const look = PAYMENT_EVENT_LOOKS[e.type] || PAYMENT_EVENT_LOOKS.paid;
+    const event = {
+      ...look,
+      name: e.actor_name,
+      role: e.actor_role,
+      actorId: e.actor_id,
+      at: e.at,
+      detail:
+        e.method === "in_person"
+          ? "Paid in person at CCARD" +
+            (e.receipt_no ? ` (receipt no. ${e.receipt_no})` : "")
+          : "",
+    };
 
-  const rows = events
-    .map((e, i) => {
-      const look = PAYMENT_EVENT_LOOKS[e.type] || PAYMENT_EVENT_LOOKS.paid;
-      let detail = `<span class="payment-event-detail">${e.method === "in_person" ? "Paid in person at CCARD" : "Paid online"}</span>`;
-      let action = "";
-
-      if (e.type === "proof") {
-        detail = `<span class="payment-event-detail">${escapeHtml(e.original_name || "")}</span>`;
-        action = `<button class="button button-compact history-open" type="button" data-payment-index="${i}">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
-                View
-            </button>`;
-      } else if (e.type === "rejected") {
-        detail = `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(e.comment || "No reason given.")}</span>`;
-        if (i === 0 && resubmit) {
-          detail +=
-            '<span class="payment-event-note">Open the latest proof below to resubmit your payment.</span>';
-        }
-      } else if (e.type === "unmarked") {
-        detail =
-          '<span class="payment-event-detail">Waiting to be verified again</span>';
+    if (e.type === "proof") {
+      event.detail = "Paid online";
+      event.action = `<button class="action-link" type="button" data-payment-index="${i}" aria-label="View proof of payment, ${formatDate(e.at)}">View</button>`;
+    } else if (e.type === "rejected") {
+      event.detail = "";
+      event.reason = e.comment || "No reason given.";
+      if (i === 0 && historyResubmit) {
+        event.note = "Open the latest proof below to resubmit your payment.";
       }
+    } else if (e.type === "unmarked") {
+      event.detail = "Waiting to be verified again";
+    }
 
-      return historyEvent(
-        look.tone,
-        look.icon,
-        look.title,
-        historyWhen(e.actor_name, e.actor_role, e.at),
-        detail,
-        action,
-      );
-    })
-    .join("");
+    return event;
+  });
+}
 
-  return historySection("Payment History", rows);
+const IPN_EVENT_LOOKS = {
+  assigned: { icon: "check-icon", title: "IPN assigned", tone: "success" },
+  changed: { icon: "edit-icon", title: "IPN changed", tone: "warning" },
+};
+
+function ipnEvents(events) {
+  return events.map((e) => ({
+    ...IPN_EVENT_LOOKS[e.type],
+    name: e.actor_name,
+    role: e.actor_role,
+    actorId: e.actor_id,
+    at: e.at,
+    detail: e.detail,
+  }));
 }
 
 const CLEARANCE_EVENT_LOOKS = {
-  downloaded: { icon: "download-icon", title: "Clearance downloaded" },
-  picked_up: { icon: "check-circle-icon", title: "Embossed hard copy picked up" },
+  downloaded: {
+    icon: "download-icon",
+    title: "Clearance downloaded",
+    tone: "success",
+  },
+  picked_up: {
+    icon: "check-circle-icon",
+    title: "Embossed hard copy picked up",
+    tone: "success",
+    by: "Confirmed by ",
+  },
+  pickup_undone: {
+    icon: "undo-icon",
+    title: "Hard copy pickup undone",
+    tone: "warning",
+    by: "Undone by ",
+  },
 };
 
-function buildClearanceHistorySection(events) {
-  if (!events || events.length === 0) return "";
-
-  const rows = events
-    .map((e) => {
-      const look = CLEARANCE_EVENT_LOOKS[e.type];
-      return historyEvent(
-        "success",
-        look.icon,
-        look.title,
-        escapeHtml(formatDateTime(e.at)),
-        "",
-      );
-    })
-    .join("");
-
-  return historySection("Clearance History", rows);
+function clearanceEvents(events) {
+  return events.map((e) => {
+    const look = CLEARANCE_EVENT_LOOKS[e.type];
+    return {
+      ...look,
+      at: e.at,
+      detail:
+        e.actor_name && look.by
+          ? look.by + historyActor(e.actor_name, e.actor_role, e.actor_id)
+          : "",
+    };
+  });
 }
 
-function bindPaymentProofButtons(events, resubmit) {
-  const latestProofIndex = events.findIndex((e) => e.type === "proof");
-
-  document
-    .querySelectorAll("#historyModalBody [data-payment-index]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const index = Number(button.dataset.paymentIndex);
-        historyBackdrop.classList.remove("open");
-        openFilePopup(
-          events[index].file_url,
-          "Proof of Payment",
-          index === latestProofIndex ? resubmit : null,
-          () => historyBackdrop.classList.add("open"),
-        );
-      });
-    });
+function titleEvents(titleHistory) {
+  return titleHistory
+    .filter((h) => h.changed_by_name)
+    .map((h) => ({
+      tone: "info",
+      icon: "edit-icon",
+      title: "Title renamed",
+      name: h.changed_by_name,
+      role: h.changed_by_role,
+      actorId: h.changed_by_id,
+      at: h.changed_at,
+      detailLabel: "Renamed to:",
+      detail: h.title,
+    }));
 }
 
-function buildTitleHistorySection(titleHistory) {
-  if (!titleHistory || titleHistory.length === 0) return "";
-
-  const rows = titleHistory
-    .map((h) => {
-      const who =
-        formatActor(h.changed_by_name, h.changed_by_role) || "Initial title";
-
-      return historyEvent(
-        "info",
-        "edit-icon",
-        escapeHtml(h.title),
-        `${escapeHtml(who)} &middot; ${escapeHtml(formatDateTime(h.changed_at))}`,
-        "",
-      );
-    })
-    .join("");
-
-  return historySection("Title Name History", rows);
-}
-
-// ===== Undo history =====
-function buildUndoHistorySection(undoHistory) {
-  if (!undoHistory || undoHistory.length === 0) return "";
-
-  const rows = undoHistory
-    .map((h) => {
-      const detail = h.note
-        ? `<span class="payment-event-reason"><strong>Reason</strong> ${escapeHtml(h.note)}</span>`
-        : "";
-
-      return historyEvent(
-        "warning",
-        "undo-icon",
-        escapeHtml(h.title),
-        historyWhen(h.actor_name, h.actor_role, h.created_at),
-        detail,
-      );
-    })
-    .join("");
-
-  return historySection("Undo History", rows);
-}
-
+const HISTORY_MERGE_MS = 60000;
+const CERT_LINK_ATTRS = ' target="_blank" rel="noopener"';
 const CERT_HISTORY_EVENTS = {
-  submitted: ["info", "upload-icon", "Certificate submitted"],
-  verified: ["success", "shield-check-icon", "Certificate verified"],
+  submitted: ["info", "upload-icon", "Training certificate submitted"],
+  verified: ["success", "shield-check-icon", "Training certificate verified"],
   rejected: [
     "warning",
     "alert-triangle-icon",
-    "Certificate resubmission requested",
+    "Training certificate resubmission requested",
   ],
 };
 
-function buildCertHistorySection(certHistory) {
-  if (!certHistory || certHistory.length === 0) return "";
+function certEvents(certHistory) {
+  return certHistory.map((h) => {
+    const [tone, icon, title] = CERT_HISTORY_EVENTS[h.action] || [
+      "info",
+      "history-icon",
+      h.action,
+    ];
 
-  const rows = certHistory
-    .map((h) => {
-      const [tone, icon, title] = CERT_HISTORY_EVENTS[h.action] || [
-        "info",
-        "history-icon",
-        h.action,
-      ];
-      const detail = h.note
-        ? `<span class="payment-event-detail">${escapeHtml(h.note)}</span>`
-        : "";
-      const action =
+    return {
+      tone,
+      icon,
+      title,
+      name: h.actor_name,
+      role: h.actor_role,
+      actorId: h.actor_id,
+      at: h.created_at,
+      [h.action === "rejected" ? "reason" : "detail"]: h.note,
+      href: h.file_url,
+      action:
         h.action === "submitted"
-          ? `<a class="button button-compact history-open" href="${escapeHtml(h.file_url)}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(h.original_name || "certificate")}">
-                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#eye-icon" /></svg>
-                Open
-            </a>`
-          : "";
-
-      return historyEvent(
-        tone,
-        icon,
-        title,
-        historyWhen(h.actor_name, h.actor_role, h.created_at),
-        detail,
-        action,
-      );
-    })
-    .join("");
-
-  return historySection("Training Certificate History", rows);
+          ? historyOpenLink(
+              h.file_url,
+              "Open training certificate",
+              CERT_LINK_ATTRS,
+            )
+          : "",
+    };
+  });
 }
 
-function historySection(label, rows) {
-  return `<section class="history-section">
-            <p class="history-section-label">${label}</p>
-            <div class="payment-timeline">${rows}</div>
-        </section>`;
+// The first protocol upload and its training certificate are saved together, so they share one row.
+function mergeCertSubmission(versions, certs) {
+  const first = versions.find((v) => v.title === "Protocol submitted");
+  const cert =
+    first &&
+    certs.find(
+      (c) =>
+        c.title === CERT_HISTORY_EVENTS.submitted[2] &&
+        Math.abs(historyTime(c.at) - historyTime(first.at)) <= HISTORY_MERGE_MS,
+    );
+  if (!cert) return [...versions, ...certs];
+
+  first.title = "Protocol submitted with training certificate";
+  first.action =
+    historyOpenLink(first.href, first.label, "", "Protocol") +
+    historyOpenLink(
+      cert.href,
+      "Open training certificate",
+      CERT_LINK_ATTRS,
+      "Certificate",
+    );
+  return [...versions, ...certs.filter((c) => c !== cert)];
 }
+
+function discontinuedEvents(discontinued) {
+  if (!discontinued) return [];
+  return [
+    {
+      tone: "danger",
+      icon: "archive-icon",
+      title: "Protocol discontinued",
+      reason: discontinued.reason,
+      at: discontinued.at,
+    },
+  ];
+}
+
+// ===== Status changes =====
+// What a change means comes from where the protocol was and where it went.
+// A submission or resubmission is skipped here: the protocol version rows already show it.
+// An undo is filed under the step that got undone, so "Reviewed" holds the whole review story.
+const STATUS_CHANGES = {
+  "Under Review>Reviewed": {
+    tone: "success",
+    icon: "checkbox-icon",
+    title: "Review completed",
+    detail: "",
+  },
+  "Under Review>Needs Revision": {
+    tone: "danger",
+    icon: "alert-triangle-icon",
+    title: "Returned for revision",
+    detail: "",
+  },
+  "Reviewed>Under Review": {
+    tone: "warning",
+    icon: "undo-icon",
+    title: "Review undone",
+    detail: "Back to " + historyStatusName("Under Review"),
+    undo: true,
+  },
+  "Reviewed>Endorsed": {
+    tone: "success",
+    icon: "shield-check-icon",
+    title: "Endorsed to DA-RFO-CAR and BAI Central Office",
+    detail: "",
+  },
+  "Endorsed>Approved": {
+    tone: "success",
+    icon: "check-circle-icon",
+    title: "Approved",
+    detail: "Clearance attached",
+  },
+  "Endorsed>Reviewed": {
+    tone: "warning",
+    icon: "undo-icon",
+    title: "Endorsement undone",
+    detail: "Back to Reviewed",
+    undo: true,
+  },
+  "Endorsed>Needs Revision": {
+    tone: "danger",
+    icon: "alert-triangle-icon",
+    title: "Returned by DA-RFO-CAR or BAI",
+    detail: "",
+  },
+  "Approved>Endorsed": {
+    tone: "warning",
+    icon: "undo-icon",
+    title: "Approval undone",
+    detail: "Back to Endorsed",
+    undo: true,
+  },
+};
+
+function statusEvents(statusHistory) {
+  return statusHistory
+    .filter(
+      (h) =>
+        !(
+          h.to_status === "Under Review" &&
+          (!h.from_status || h.from_status === "Needs Revision")
+        ),
+    )
+    .map((h) => {
+      const toStep = historyStepIndex(h.to_status);
+      const look = STATUS_CHANGES[h.from_status + ">" + h.to_status] || {
+        tone: "info",
+        icon: HISTORY_STEPS[toStep]?.icon || "history-icon",
+        title: "Moved to " + historyStatusName(h.to_status),
+        detail: h.from_status ? "From " + historyStatusName(h.from_status) : "",
+      };
+      const step = look.undo ? historyStepIndex(h.from_status) : toStep;
+
+      return {
+        tone: look.tone,
+        icon: look.icon,
+        title: look.title,
+        detail: look.detail,
+        name: h.actor_name,
+        role: h.actor_role,
+        actorId: h.actor_id,
+        at: h.created_at,
+        reason: h.reason,
+        step: step < 0 ? undefined : step,
+      };
+    });
+}
+
+// ===== Group events into steps =====
+// An event belongs to the step the protocol was in at that moment.
+// Every status change is stored with the step it moved to.
+function historyTransitions(data) {
+  return data.status_history
+    .map((h) => ({ step: historyStepIndex(h.to_status), at: h.created_at }))
+    .filter((t) => t.step >= 0)
+    .sort((a, b) => historyTime(a.at) - historyTime(b.at));
+}
+
+function historyStepAt(transitions, at) {
+  let step = 0;
+  for (const t of transitions) {
+    if (historyTime(t.at) > historyTime(at)) break;
+    step = t.step;
+  }
+  return step;
+}
+
+function buildHistorySteps(data) {
+  const transitions = historyTransitions(data);
+  const events = [
+    ...mergeCertSubmission(versionEvents(data), certEvents(data.cert_history)),
+    ...paymentEvents(data.payment_history),
+    ...ipnEvents(data.ipn_history),
+    ...clearanceEvents(data.clearance_history),
+    ...titleEvents(data.title_history),
+    ...statusEvents(data.status_history),
+    ...discontinuedEvents(data.discontinued),
+  ].map((e) => ({ ...e, step: e.step ?? historyStepAt(transitions, e.at) }));
+
+  const steps =
+    data.status === HISTORY_RETURNED_STEP.label
+      ? [HISTORY_RETURNED_STEP, ...HISTORY_STEPS.slice(1)]
+      : HISTORY_STEPS;
+
+  return steps.map((s, i) => {
+    const entered = transitions.filter((t) => t.step === i);
+    return {
+      ...s,
+      at: entered.length ? entered[entered.length - 1].at : null,
+      events: events
+        .filter((e) => e.step === i)
+        .sort((a, b) => historyTime(b.at) - historyTime(a.at)),
+    };
+  });
+}
+
+// ===== Stepper and panel =====
+function buildHistoryStepper() {
+  return (
+    '<ol class="history-stepper">' +
+    historySteps
+      .map((s, i) => {
+        const empty = s.events.length === 0;
+        const cls = [
+          "history-step",
+          "history-step--" + s.key,
+          empty ? "is-upcoming" : "",
+          i === historySelected ? "is-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const date = s.at
+          ? historyDate(s.at)
+          : i > historyCurrent
+            ? "Pending"
+            : "None";
+
+        return `<li class="${cls}"${i === historyCurrent ? ' aria-current="step"' : ""}>
+            <button type="button" class="history-step-button" data-step="${i}" ${empty ? "disabled" : ""} aria-pressed="${i === historySelected}">
+                <span class="payment-event-icon"><svg width="${HISTORY_ICON_SIZE}" height="${HISTORY_ICON_SIZE}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${s.icon}" /></svg></span>
+                <span class="history-step-label">${historyStatusName(s.label)}</span>
+                <span class="history-step-date">${date}</span>
+                ${i === historyCurrent ? '<span class="history-step-current">Current</span>' : ""}
+            </button>
+        </li>`;
+      })
+      .join("") +
+    "</ol>"
+  );
+}
+
+function buildHistoryPanel() {
+  return `<div class="history-step-panel"><div class="payment-timeline">${historySteps[historySelected].events.map(historyEvent).join("")}</div></div>`;
+}
+
+function selectHistoryStep(index) {
+  historySelected = index;
+  document
+    .querySelectorAll("#historyModalBody .history-step")
+    .forEach((item, i) => {
+      item.classList.toggle("is-selected", i === index);
+      item
+        .querySelector("[data-step]")
+        .setAttribute("aria-pressed", i === index);
+    });
+  document.querySelector("#historyModalBody .history-step-panel").outerHTML =
+    buildHistoryPanel();
+}
+
+function openPaymentProof(index) {
+  const events = historyData.payment_history;
+  const latestProofIndex = events.findIndex((e) => e.type === "proof");
+
+  historyBackdrop.classList.remove("open");
+  openFilePopup(
+    events[index].file_url,
+    "Proof of Payment",
+    index === latestProofIndex ? historyResubmit : null,
+    () => historyBackdrop.classList.add("open"),
+  );
+}
+
+document.getElementById("historyModalBody").addEventListener("click", (e) => {
+  const step = e.target.closest("[data-step]");
+  if (step) return selectHistoryStep(Number(step.dataset.step));
+
+  const proof = e.target.closest("[data-payment-index]");
+  if (proof) openPaymentProof(Number(proof.dataset.paymentIndex));
+});
 
 // ===== Render history =====
 function renderHistory(data) {
-  const paymentEvents = data.payment_history || [];
-  const resubmit = window.protocolMenuHooks?.paymentResubmit?.();
-  const sections = [
-    buildVersionRows(data),
-    buildPaymentHistorySection(paymentEvents, resubmit),
-    buildClearanceHistorySection(data.clearance_history),
-    buildTitleHistorySection(data.title_history),
-    buildUndoHistorySection(data.undo_history),
-    buildCertHistorySection(data.cert_history),
-  ].filter(Boolean);
+  historyData = data;
+  historyResubmit = window.protocolMenuHooks?.paymentResubmit?.();
+  historySteps = buildHistorySteps(data);
 
-  document.getElementById("historyModalBody").innerHTML = sections.length
-    ? sections.join("")
-    : '<p class="helper history-empty">No history found.</p>';
+  const withEvents = historySteps.flatMap((s, i) =>
+    s.events.length ? [i] : [],
+  );
+  if (!withEvents.length) {
+    document.getElementById("historyModalBody").innerHTML =
+      '<p class="helper history-empty">No history found.</p>';
+    return;
+  }
 
-  bindPaymentProofButtons(paymentEvents, resubmit);
+  const transitions = historyTransitions(data);
+  historyCurrent = historyStepIndex(data.status);
+  if (historyCurrent < 0) {
+    historyCurrent = transitions.length
+      ? transitions[transitions.length - 1].step
+      : 0;
+  }
+  historySelected = withEvents.includes(historyCurrent)
+    ? historyCurrent
+    : withEvents[withEvents.length - 1];
+
+  document.getElementById("historyModalBody").innerHTML =
+    buildHistoryStepper() + buildHistoryPanel();
 }

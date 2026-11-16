@@ -31,7 +31,7 @@ function openPaymentModal(protocolId = PROTOCOL_ID) {
   if (title) document.getElementById("paymentModalTitle").textContent = title;
   document.getElementById("payment_proof_file").value = "";
   resetPaymentFilePicker();
-  document.getElementById("confirm_in_person_paid").checked = false;
+  document.getElementById("payment_receipt_no").value = "";
   if (!MUST_PAY_IN_PERSON) {
     document.querySelector(
       'input[name="payment_method"][value="in_person"]',
@@ -95,13 +95,14 @@ async function submitPaymentProof() {
   let confirmMessage;
 
   if (method === "in_person") {
-    if (!document.getElementById("confirm_in_person_paid").checked) {
-      errBox.textContent = "Please confirm that you have paid in person.";
+    const receiptNo = document.getElementById("payment_receipt_no").value.trim();
+    if (!receiptNo) {
+      errBox.textContent = "Please enter your temporary receipt number.";
       errBox.hidden = false;
       return;
     }
-    formData.append("confirm_in_person", "1");
-    confirmMessage = `Confirm that you have paid the Php 100.00 fee for ${confirmName(protocolTitle)} in person? Administrative staff will verify this.`;
+    formData.append("receipt_no", receiptNo);
+    confirmMessage = `Confirm that you paid the Php 100.00 fee for ${confirmName(protocolTitle)} in person with temporary receipt no. ${receiptNo}? Administrative staff will check it against their records.`;
   } else {
     const fileInput = document.getElementById("payment_proof_file");
     if (!fileInput.files.length) {

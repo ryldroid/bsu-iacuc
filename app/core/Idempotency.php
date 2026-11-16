@@ -5,6 +5,8 @@ class Idempotency extends Model
     private const PROCESSING_SECONDS = 30;
     private const KEEP_DAYS = 7;
 
+    private static int $bufferLevel = 0;
+
     // ===== START (CALLED BY THE ROUTER BEFORE A CONTROLLER RUNS) =====
     public static function begin(): void
     {
@@ -15,7 +17,11 @@ class Idempotency extends Model
             return;
         }
 
-        (new self())->claim($userId, $key);
+        try {
+            (new self())->claim($userId, $key);
+        } catch (Throwable $e) {
+            error_log('Idempotency claim failed: ' . $e->getMessage());
+        }
     }
 
     // ===== CLAIM THE KEY OR REPLAY THE SAVED ANSWER =====
@@ -34,6 +40,7 @@ class Idempotency extends Model
 
         if ($insert->affected_rows === 1) {
             ob_start();
+            self::$bufferLevel = ob_get_level();
             register_shutdown_function(fn() => $this->finish($userId, $key));
             return;
         }
@@ -67,6 +74,10 @@ class Idempotency extends Model
     // ===== SAVE THE ANSWER (SUCCESS ONLY) =====
     private function finish(int $userId, string $key): void
     {
+        while (ob_get_level() > self::$bufferLevel) {
+            ob_end_flush();
+        }
+
         $body = (string) ob_get_contents();
         $code = http_response_code() ?: 200;
         $data = json_decode($body, true);

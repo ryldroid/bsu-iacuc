@@ -1,7 +1,6 @@
 <?php
 
 /** @var array $protocols */
-/** @var array $statuses  */
 /** @var array|null $cert */
 /** @var bool  $mustPayInPerson */
 /** @var string $csrf */
@@ -13,53 +12,54 @@ include 'includes/header.php';
 include 'includes/scroll-top.php';
 
 
-$countsByStatusSlug = [];
-foreach ($protocols as $p) {
-    $slug = strtolower(str_replace(' ', '-', $p['status']));
-    $countsByStatusSlug[$slug] = ($countsByStatusSlug[$slug] ?? 0) + 1;
-}
-$totalProtocolCount = count($protocols);
-
 $statusMeta = [
-    'under-review' => [
+    'to-review' => [
         'label' => 'Under Review',
         'color' => '#0072B2',
         'icon'  => 'clock-icon',
-        'desc'  => "Your protocols and/or IACUC training certificate are being reviewed, and you will be notified for every feedback given. Your protocols will not move forward unless you have a verified training certificate. If it is rejected, resubmit.",
+        'desc'  => "CCARD is reviewing your protocol and IACUC training certificate, and you will be notified of every feedback. Your protocol cannot move forward without a verified training certificate. If it is rejected, resubmit it.",
     ],
-    'needs-revision' => [
+    'returned-for-revision' => [
         'label' => 'Needs Revision',
         'color' => '#D55E00',
         'icon'  => 'alert-triangle-icon',
-        'desc'  => "The reviewer found an issue and sent your protocol back. Revise it following the comments and re-submit your file.",
+        'desc'  => "The reviewer sent your protocol back. Revise it following the comments and resubmit your file.",
     ],
     'reviewed' => [
         'label' => 'Reviewed',
         'color' => '#CC79A7',
         'icon'  => 'checkbox-icon',
-        'desc'  => "Your protocol passed IACUC review by CCARD. Press **Pay Clearance Fee** on the protocol card to see your payment options for the Php 100.00 animal research clearance fee. Researchers from BSU La Trinidad Campus and the BSU Secondary Laboratory School must pay in person, while other researchers may either pay in person or online by contacting the CCARD director.\nOnce CCARD verifies your payment, kindly wait for your protocol to be endorsed to the Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR) Regulatory Division.",
+        'desc'  => "Your protocol passed IACUC review. Press **Pay Clearance Fee** on the protocol card to pay the Php 100.00 clearance fee. BSU La Trinidad Campus and BSU Secondary Laboratory School researchers pay in person; other researchers may also pay online through the CCARD director. Then wait for CCARD to verify your payment and endorse your protocol.",
     ],
     'endorsed' => [
         'label' => 'Endorsed',
         'color' => '#E69F00',
         'icon'  => 'shield-check-icon',
-        'desc'  => "No action needed. Your protocol has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Please wait as the Bureau of Animal Industry (BAI) Central Office processes your animal research clearance.",
+        'desc'  => "No action needed. Your protocol was endorsed to the Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). Please wait while the Bureau of Animal Industry (BAI) Central Office processes your clearance.",
     ],
     'approved' => [
         'label' => 'Approved',
         'color' => '#009E73',
         'icon'  => 'check-circle-icon',
-        'desc'  => "Congratulations, your protocol has been approved!\nYou may now download the soft copy of your animal research clearance. Please also visit the CCARD office to pick up your embossed copy.\nWhen your research is completed or cancelled, press **Report as Completed** or **Report as Cancelled** on the protocol card so CCARD can update its records.",
+        'desc'  => "Congratulations, your protocol has been approved! Download the soft copy of your animal research clearance and pick up the embossed copy at the CCARD office. When your research is completed or cancelled, press **Report as Completed** or **Report as Cancelled** on the protocol card so CCARD can update its records.",
     ],
 ];
 
-// ===== Status icon helper =====
-function statusIconSvg(string $iconId, int $size = 14): string
-{
-    return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
-        . '<use href="#' . htmlspecialchars($iconId, ENT_QUOTES, 'UTF-8') . '" />'
-        . '</svg>';
+$stageSlugByStatus = [
+    'under review'   => 'to-review',
+    'needs revision' => 'returned-for-revision',
+];
+
+// ===== Counts for the status tabs and the archive link =====
+$countsBySlug = [];
+foreach ($protocols as $protocol) {
+    $slug = !empty($protocol['discontinued_at'])
+        ? 'archived'
+        : ($stageSlugByStatus[strtolower($protocol['status'])] ?? strtolower($protocol['status']));
+    $countsBySlug[$slug] = ($countsBySlug[$slug] ?? 0) + 1;
 }
+$archivedCount = $countsBySlug['archived'] ?? 0;
+$allCount      = count($protocols) - $archivedCount;
 ?>
 
 <link rel="stylesheet" href="<?= asset_css('protocol-list.css') ?>">
@@ -69,14 +69,13 @@ function statusIconSvg(string $iconId, int $size = 14): string
 <link rel="stylesheet" href="<?= asset_css('submissions.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
-<link rel="stylesheet" href="<?= asset_css('status-underline.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('consent.css') ?>">
 <?php if (($cert['cert_status'] ?? '') === 'rejected'): ?>
     <link rel="stylesheet" href="<?= asset_css('researcher-modal.css') ?>">
 <?php endif; ?>
 
 <!-- ===== Scripts ===== -->
 <script src="<?= asset_js('dashboard-updates.js') ?>" defer></script>
-<script src="<?= asset_js('status-underline.js') ?>" defer></script>
 
 <div class="body">
     <?php include 'includes/navigation.php'; ?>
@@ -106,12 +105,7 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
         </div>
 
-        <?php
-        $toastSuccess = isset($_GET['submitted'])
-            ? 'Your protocol has been submitted successfully. We will review it shortly.'
-            : ($_SESSION['flash_success'] ?? '');
-        include __DIR__ . '/includes/flash.php';
-        ?>
+        <?php include __DIR__ . '/includes/flash.php'; ?>
 
         <?php if (!empty($cert) && $cert['cert_status'] !== 'verified'): ?>
             <div class="notice notice-warning">
@@ -126,135 +120,66 @@ function statusIconSvg(string $iconId, int $size = 14): string
             </div>
         <?php endif; ?>
 
-        <!-- Status filter bar -->
-        <div class="dashboard-filter-row">
-            <div class="filter-wrapper">
-                <div class="status-filters">
-                    <button class="status-card active" data-status="all" data-label="All">
-                        <p>All <span class="status-count"><?= $totalProtocolCount ?></span></p>
-                    </button>
-                    <?php foreach ($statuses as $status):
-                        $statusSlug  = strtolower(str_replace(' ', '-', $status));
-                        $statusCount = $countsByStatusSlug[$statusSlug] ?? 0;
-                    ?>
-                        <button class="status-card"
-                            data-status="<?= htmlspecialchars($statusSlug, ENT_QUOTES, 'UTF-8') ?>"
-                            data-label="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">
-                            <p><?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?> <span class="status-count"><?= $statusCount ?></span></p>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
+        <!-- ===== Sort, status tabs, search, archive and stage guide ===== -->
+        <div class="results-bar results-bar--tabs">
+            <?php $sortSelectId = 'submissionsSortSelect';
+            $sortDefault  = 'updated_desc';
+            $sortTarget   = '.protocols-list';
+            $sortCompact  = true;
+            include __DIR__ . '/includes/sort-control.php'; ?>
+            <?php include __DIR__ . '/includes/status-filters.php'; ?>
 
-                <div class="dashboard-field-group mobile-filter-group">
-                    <p class="sort-filter-label">
-                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#filter-icon" />
-                        </svg>
-                        Status:
-                    </p>
-
-                    <div class="sort-wrapper">
-                        <button type="button" class="mobile-filter-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                            <span id="mobileFilterLabel">All</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#chev-down-icon" />
-                            </svg>
-                        </button>
-
-                        <div class="dropdown-panel" id="mobileFilterOptions">
-                            <button class="status-card active" type="button" data-mobile-filter="all">All <span class="status-count"><?= $totalProtocolCount ?></span></button>
-                            <?php foreach ($statuses as $status):
-                                $statusSlug  = strtolower(str_replace(' ', '-', $status));
-                                $statusCount = $countsByStatusSlug[$statusSlug] ?? 0;
-                            ?>
-                                <button class="status-card" type="button" data-mobile-filter="<?= htmlspecialchars($statusSlug, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?> <span class="status-count"><?= $statusCount ?></span></button>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-sort-group dashboard-field-group">
-                <p class="sort-filter-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#sort-icon" />
-                    </svg>
-                    Sort by:
-                </p>
-
-                <div class="sort-wrapper">
-                    <select id="submissionsSortSelect" class="dashboard-sort-select dashboard-select-trigger" data-sort-target=".protocols-list" aria-label="Sort protocols">
-                        <option value="newest">Newest Submitted</option>
-                        <option value="oldest">Oldest Submitted</option>
-                        <option value="updated">Recently Updated</option>
-                        <option value="title_asc">Title (A–Z)</option>
-                        <option value="title_desc">Title (Z–A)</option>
-                    </select>
-
-                    <button type="button" class="mobile-sort-trigger dashboard-select-trigger mobile-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
-                        <span id="mobileSortLabel">Newest Submitted</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#chev-down-icon" />
-                        </svg>
-                    </button>
-
-                    <div class="dropdown-panel" id="mobileSortOptions">
-                        <button class="status-card active" data-sort="newest">Newest Submitted</button>
-                        <button class="status-card" data-sort="oldest">Oldest Submitted</button>
-                        <button class="status-card" data-sort="updated">Recently Updated</button>
-                        <button class="status-card" data-sort="title_asc">Title (A–Z)</button>
-                        <button class="status-card" data-sort="title_desc">Title (Z–A)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ===== Status legend ===== -->
-        <div class="status-legend-bar">
-            <span class="legend-title">Current Status</span>
-
-            <div class="legend-items">
-                <?php foreach ($statusMeta as $meta): ?>
-                    <span class="legend-item">
-                        <span class="legend-icon" style="background:<?= $meta['color'] ?>">
-                            <?= statusIconSvg($meta['icon'], 13) ?>
-                        </span>
-                        <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
-                    </span>
-                <?php endforeach; ?>
-            </div>
-
-            <div class="legend-info-wrapper" id="legendInfoWrapper">
-                <button type="button" class="legend-info-btn" id="legendInfoBtn"
-                    aria-expanded="false" aria-controls="legendInfoPanel"
-                    aria-label="What do the statuses mean? What should I do?">
-                    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#question-info-icon" />
+            <div class="results-bar-end">
+                <button type="button" class="legend-info-btn inbox-search-btn" id="inboxSearchBtn"
+                    aria-haspopup="dialog" aria-label="Search protocols" title="Search protocols">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#search-icon" />
                     </svg>
                 </button>
+                <button type="button" class="action-link archived-link" id="archivedLink" data-label="Archived" aria-pressed="false">
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#archive-icon" />
+                    </svg>
+                    Archive (<?= $archivedCount ?>)
+                </button>
 
-                <div class="legend-info-panel" id="legendInfoPanel" role="dialog" aria-label="What the statuses mean">
-                    <?php foreach ($statusMeta as $meta): ?>
-                        <div class="legend-info-row">
-                            <span class="legend-icon" style="background:<?= $meta['color'] ?>">
-                                <?= statusIconSvg($meta['icon'], 11) ?>
-                            </span>
-                            <div>
-                                <p class="legend-info-title" style="color:<?= $meta['color'] ?>">
-                                    <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
-                                </p>
-                                <p class="legend-info-desc">
-                                    <?= nl2br(Notifier::toHtml($meta['desc'])) ?>
-                                </p>
+                <!-- ===== Stage guide ===== -->
+                <div class="legend-info-wrapper" id="legendInfoWrapper">
+                    <button type="button" class="legend-info-btn" id="legendInfoBtn"
+                        aria-expanded="false" aria-controls="legendInfoPanel"
+                        aria-label="What do the stages mean? What should I do?">
+                        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#question-info-icon" />
+                        </svg>
+                    </button>
+
+                    <div class="legend-info-panel" id="legendInfoPanel" role="dialog" aria-label="What the stages mean">
+                        <?php foreach ($statusMeta as $slug => $meta): ?>
+                            <div class="legend-info-row">
+                                <span class="legend-icon" style="background:<?= $meta['color'] ?>">
+                                    <?= statusIconSvg($meta['icon'], 11) ?>
+                                </span>
+                                <div>
+                                    <p class="legend-info-title" style="color:<?= $meta['color'] ?>">
+                                        <?= htmlspecialchars($meta['label'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if ($slug === 'returned-for-revision'): ?><span class="legend-info-tag">If applicable</span><?php endif; ?>
+                                    </p>
+                                    <p class="legend-info-desc">
+                                        <?= nl2br(Notifier::toHtml($meta['desc'])) ?>
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== Status guide (shows description for the active filter) ===== -->
-        <div class="status-guide" id="statusGuide"></div>
+        <?php $searchPlaceholder = 'Search by title...';
+        include __DIR__ . '/includes/inbox-search-modal.php'; ?>
+
+        <?php $archiveBannerText = 'Protocols you discontinued are kept here for your records. They no longer move forward.';
+        include 'includes/archive-banner.php'; ?>
 
         <?php if (empty($protocols)): ?>
             <div class="empty-state">
@@ -272,63 +197,67 @@ function statusIconSvg(string $iconId, int $size = 14): string
                 <?php foreach ($protocols as $protocol):
                     $date          = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
                     $updatedDate   = date(DATE_FORMAT, strtotime($protocol['last_activity_at']));
-                    $statusKey     = strtolower(str_replace(' ', '-', $protocol['status']));
-                    $statusLabel   = htmlspecialchars($protocol['status'], ENT_QUOTES, 'UTF-8');
-                    $needsRevision  = strtolower($protocol['status']) === 'needs revision';
+                    $statusLower   = strtolower($protocol['status']);
+                    $stageSlug     = $stageSlugByStatus[$statusLower] ?? $statusLower;
+                    $isDiscontinued = !empty($protocol['discontinued_at']);
+                    $needsRevision  = !$isDiscontinued && $statusLower === 'needs revision';
                     $returnIssues   = [];
                     if ($needsRevision) {
                         if (!empty($protocol['rr_other_reason'])) $returnIssues[] = 'Other';
                     }
-                    $isApproved    = strtolower($protocol['status']) === 'approved';
+                    $isApproved    = $statusLower === 'approved';
                     $recordStatus  = $protocol['record_status'] ?? '';
                     $clearanceExpired = $isApproved && !empty($protocol['clearance_ends_on']) && strtotime($protocol['clearance_ends_on']) < strtotime('today');
-                    $isReviewedStatus = strtolower($protocol['status']) === 'reviewed';
+                    $isReviewedStatus = $statusLower === 'reviewed';
                     $paymentStatus = $protocol['payment_status'] ?? 'unpaid';
-                    $canConfirmPayment = $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
+                    $canConfirmPayment = !$isDiscontinued && $isReviewedStatus && in_array($paymentStatus, ['unpaid', 'rejected'], true);
                     $versionNum    = submission_round_label((int) ($protocol['latest_version'] ?? 1));
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $viewerRef     = protocol_ref($protocolIdInt, (string) $protocol['research_title']);
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
                 ?>
-                    <div class="protocol" id="protocol-<?= $protocolIdInt ?>" data-status="<?= $statusKey ?>"
+                    <div class="protocol protocol--timeline" id="protocol-<?= $protocolIdInt ?>"
+                        data-filter-slug="<?= $isDiscontinued ? 'archived' : htmlspecialchars($stageSlug, ENT_QUOTES, 'UTF-8') ?>"
                         data-submitted="<?= htmlspecialchars($submittedIso, ENT_QUOTES, 'UTF-8') ?>"
                         data-updated="<?= htmlspecialchars(date('c', strtotime($protocol['last_activity_at'])), ENT_QUOTES, 'UTF-8') ?>"
-                        data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>"
-                        data-signed-scan-url="<?= !empty($protocol['latest_signed_scan_version_id']) ? ROOT . '/apply/file/' . (int) $protocol['latest_signed_scan_version_id'] : '' ?>">
+                        data-title="<?= htmlspecialchars(strtolower($protocol['research_title']), ENT_QUOTES, 'UTF-8') ?>">
 
-                        <span class="protocol-status-icon">
-                            <?= statusIconSvg($statusMeta[$statusKey]['icon'] ?? 'check-circle-icon', 19) ?>
-                        </span>
-
-                        <div class="protocol-body">
-                            <div class="protocol-meta">
-                                <p class="research-title">
-                                    <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
-                                    <?php if ($statusKey === 'reviewed'): ?>
-                                        <span class="status-dot payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
-                                            <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
-                                        </span>
-                                    <?php endif; ?>
-                                    <?php if ($clearanceExpired): ?>
-                                        <!-- <span class="status-dot status-dot--danger" title="Clearance ended <?= date(MONTH_FORMAT, strtotime($protocol['clearance_ends_on'])) ?>">Clearance expired</span> -->
-                                    <?php endif; ?>
-                                </p>
-                                <p class="protocol-meta-line" title="Submission round and submission date">
-                                    <?= $versionNum ?> &middot; Submitted <?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?> &middot; Last updated <?= htmlspecialchars($updatedDate, ENT_QUOTES, 'UTF-8') ?>
-                                </p>
-
-                                <?php if ($paymentStatus === 'rejected' && !empty($protocol['payment_rejection_comment'])): ?>
-                                    <div class="return-reason-inline">
-                                        <p class="return-reason-by">Your payment was rejected:</p>
-                                        <p class="return-reason-comment"><?= htmlspecialchars($protocol['payment_rejection_comment'], ENT_QUOTES, 'UTF-8') ?></p>
-                                    </div>
+                        <div class="protocol-meta">
+                            <p class="research-title">
+                                <?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>
+                                <?php if ($isDiscontinued): ?>
+                                    <span class="status-dot status-dot--danger">Discontinued</span>
+                                <?php elseif ($isReviewedStatus): ?>
+                                    <span class="status-dot payment-badge payment-badge--<?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars(ProtocolModel::PAYMENT_LABELS[$paymentStatus] ?? 'Unpaid', ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
                                 <?php endif; ?>
+                            </p>
+                            <p class="protocol-meta-line">
+                                <span class="protocol-updated">Last updated <?= $updatedDate ?></span>
+                            </p>
+                            <?php if ($isDiscontinued):
+                                $archiveReason = [
+                                    'tone'    => 'danger',
+                                    'label'   => 'Archived because you discontinued it',
+                                    'text'    => 'Discontinued on ' . date(DATE_FORMAT, strtotime($protocol['discontinued_at'])) . ' while ' . $protocol['status'] . '.',
+                                    'comment' => (string) $protocol['discontinued_reason'],
+                                ];
+                                include 'includes/archive-reason.php';
+                            endif; ?>
 
-                                <?php if ($isApproved):
-                                    $hardCopyPending = empty($protocol['hard_copy_released_at']);
-                                    $outcomeReported = in_array($recordStatus, RecordModel::OUTCOME_STATUSES, true);
-                                ?>
-                                    <?php if ($hardCopyPending || $recordStatus === RecordModel::DEFAULT_STATUS || $outcomeReported): ?>
+                            <?php if (!$isDiscontinued && $paymentStatus === 'rejected' && !empty($protocol['payment_rejection_comment'])): ?>
+                                <div class="return-reason-inline">
+                                    <p class="return-reason-by">Your payment was rejected:</p>
+                                    <p class="return-reason-comment"><?= htmlspecialchars($protocol['payment_rejection_comment'], ENT_QUOTES, 'UTF-8') ?></p>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($isApproved && !$isDiscontinued):
+                                $hardCopyPending = empty($protocol['hard_copy_released_at']);
+                                $outcomeReported = in_array($recordStatus, RecordModel::OUTCOME_STATUSES, true);
+                            ?>
+                                <?php if ($hardCopyPending || $recordStatus === RecordModel::DEFAULT_STATUS || $outcomeReported): ?>
                                     <div class="clearance-notes">
                                         <?php if ($hardCopyPending): ?>
                                             <p class="clearance-reminder">
@@ -365,91 +294,101 @@ function statusIconSvg(string $iconId, int $size = 14): string
                                             </p>
                                         <?php endif; ?>
                                     </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
+                                <div class="return-reason-inline">
+                                    <p class="return-reason-by">
+                                        Note from CCARD:
+                                    </p>
+                                    <?php if (!empty($returnIssues)): ?>
+                                        <ul class="return-reason-issues">
+                                            <?php foreach ($returnIssues as $issue): ?>
+                                                <li><?= htmlspecialchars($issue, ENT_QUOTES, 'UTF-8') ?></li>
+                                            <?php endforeach; ?>
+                                        </ul>
                                     <?php endif; ?>
-                                <?php endif; ?>
-
-                                <?php if ($needsRevision && (!empty($returnIssues) || !empty($protocol['rr_comment']))): ?>
-                                    <div class="return-reason-inline">
-                                        <p class="return-reason-by">
-                                            Note from CCARD:
-                                        </p>
-                                        <?php if (!empty($returnIssues)): ?>
-                                            <ul class="return-reason-issues">
-                                                <?php foreach ($returnIssues as $issue): ?>
-                                                    <li><?= htmlspecialchars($issue, ENT_QUOTES, 'UTF-8') ?></li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        <?php endif; ?>
-                                        <?php if (!empty($protocol['rr_comment'])): ?>
-                                            <p class="return-reason-comment"><?= htmlspecialchars($protocol['rr_comment'], ENT_QUOTES, 'UTF-8') ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="actions">
-                                <?php if ($needsRevision): ?>
-                                    <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?>"
-                                        onclick="event.preventDefault(); openProtocol(this.href)">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#upload-icon" />
-                                        </svg>
-                                        Review Comments &amp; Re-submit
-                                    </a>
-                                <?php endif; ?>
-
-                                <?php if ($isApproved):
-                                    $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
-                                    $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
-                                ?>
-                                    <a class="download-clearance-btn button button--primary"
-                                        href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
-                                        data-view-href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>"
-                                        data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>"
-                                        rel="noopener">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#download-icon" />
-                                        </svg>
-                                        Download Clearance
-                                    </a>
-                                <?php elseif ($canConfirmPayment): ?>
-                                    <button class="button button--primary"
-                                        data-protocol-id="<?= $protocolIdInt ?>"
-                                        data-rejection-reason="<?= htmlspecialchars($paymentStatus === 'rejected' ? ($protocol['payment_rejection_comment'] ?? '') : '', ENT_QUOTES, 'UTF-8') ?>"
-                                        data-research-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
-                                        onclick="<?= $paymentStatus === 'rejected' ? 'openPaymentRejectedModal' : 'openPaymentModal' ?>(+this.dataset.protocolId)">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#upload-icon" />
-                                        </svg>
-                                        <?= $paymentStatus === 'rejected' ? 'View rejection and resubmit' : 'Pay Clearance Fee' ?>
-                                    </button>
-                                <?php endif; ?>
-
-                                <div class="actions-secondary">
-                                    <?php if (!$needsRevision): ?>
-                                        <a class="action-link protocol-view-btn" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?>"
-                                            title="View Protocol" aria-label="View Protocol"
-                                            onclick="event.preventDefault(); openProtocol(this.href)">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                <use href="#eye-icon" />
-                                            </svg>
-                                            View
-                                        </a>
+                                    <?php if (!empty($protocol['rr_comment'])): ?>
+                                        <p class="return-reason-comment"><?= htmlspecialchars($protocol['rr_comment'], ENT_QUOTES, 'UTF-8') ?></p>
                                     <?php endif; ?>
-                                    <?php $menu = ProtocolMenu::forRow($protocol, $actor);
-                                    include 'includes/protocol-menu.php'; ?>
                                 </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="protocol-progress">
+                            <?php include 'includes/protocol-stepper.php'; ?>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="actions">
+                            <?php if ($needsRevision): ?>
+                                <a class="button button--primary" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?>">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#upload-icon" />
+                                    </svg>
+                                    Review Comments &amp; Re-submit
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if ($isApproved):
+                                $clearanceExt = strtolower(pathinfo($protocol['latest_clearance_original_name'] ?? '', PATHINFO_EXTENSION));
+                                $clearanceIsImage = in_array($clearanceExt, ['jpg', 'jpeg', 'png'], true);
+                            ?>
+                                <a class="download-clearance-btn button button--primary"
+                                    href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>?download=1"
+                                    data-view-href="<?= ROOT ?>/apply/clearance/<?= $protocolIdInt ?>"
+                                    data-is-image="<?= $clearanceIsImage ? '1' : '0' ?>"
+                                    rel="noopener">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#download-icon" />
+                                    </svg>
+                                    Download Clearance
+                                </a>
+                            <?php elseif ($canConfirmPayment): ?>
+                                <button class="button button--primary"
+                                    data-protocol-id="<?= $protocolIdInt ?>"
+                                    data-rejection-reason="<?= htmlspecialchars($paymentStatus === 'rejected' ? ($protocol['payment_rejection_comment'] ?? '') : '', ENT_QUOTES, 'UTF-8') ?>"
+                                    data-research-title="<?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?>"
+                                    onclick="<?= $paymentStatus === 'rejected' ? 'openPaymentRejectedModal' : 'openPaymentModal' ?>(+this.dataset.protocolId)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <use href="#upload-icon" />
+                                    </svg>
+                                    <?= $paymentStatus === 'rejected' ? 'View rejection and resubmit' : 'Pay Clearance Fee' ?>
+                                </button>
+                            <?php endif; ?>
+
+                            <div class="actions-secondary">
+                                <?php if (!$needsRevision): ?>
+                                    <a class="action-link protocol-view-btn" href="<?= ROOT ?>/apply/viewer/<?= $viewerRef ?><?= $isDiscontinued ? '?from=archived' : '' ?>"
+                                        title="View Protocol" aria-label="View Protocol">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <use href="#eye-icon" />
+                                        </svg>
+                                        View
+                                    </a>
+                                <?php endif; ?>
+                                <?php $menu = ProtocolMenu::forRow($protocol, $actor);
+                                include 'includes/protocol-menu.php'; ?>
                             </div>
                         </div>
+
+                        <?php
+                        $detailsId   = $protocolIdInt;
+                        $detailItems = [
+                            ['Round', $versionNum],
+                            ['Submitted', $date],
+                        ];
+                        include 'includes/protocol-details.php';
+                        ?>
                     </div>
                 <?php endforeach; ?>
 
-                <p class="no-results">
+                <p class="no-results" id="noResultsMsg">
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#file-x-icon" />
                     </svg>
-                    No protocols found with this status
+                    <span id="noResultsText"></span>
                 </p>
             </div>
 
@@ -475,17 +414,20 @@ $guideId    = 'protocols';
 $guideSteps = [
     ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
     ['New Application', 'Start a new protocol application here. If you have one in progress, you can click on **resume**.', '#apply-actions-sub'],
-    ['Status filters', 'Filter your list by status. The number next to each name is how many of your protocols have that status.', '.status-filters, .mobile-filter-group'],
     ['Sort', 'Change the order of your list: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
-    ['Status legend', 'Every status has its own color and icon. The next steps explain what each one means and what you need to do. Press the question mark at the end of this bar to read them again anytime.', '.status-legend-bar'],
+    ['Status tabs', 'Show one stage at a time, with the number of protocols in each.', '#statusFilters'],
+    ['Search', 'Press the magnifier to find a protocol by its title. It stays highlighted while a search is active.', '#inboxSearchBtn'],
+    ['Archive', 'Discontinued protocols move to the archive, out of your main list. Press **Archive** to open it and **Back to protocols** to return.', '#archivedLink'],
+    ['Stage guide', 'Press the question mark to read what each stage means and what you need to do.', '.legend-info-wrapper'],
 ];
-foreach (array_values($statusMeta) as $index => $meta) {
-    $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-items .legend-item:nth-child(' . ($index + 1) . ')'];
+foreach ($statusMeta as $meta) {
+    $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-info-wrapper'];
 }
 $guideSteps = array_merge($guideSteps, [
-    ['Your protocols', 'Each card is one protocol. The icon on the left shows its current status, and the card shows its title, submission date and the date it was last updated.', '.protocols-list .protocol:first-visible'],
+    ['Your protocols', 'Each card is one protocol. It shows the title and a timeline of the stage it is at.', '.protocols-list .protocol:first-visible'],
+    ['Details', 'Press the **show details** bar at the bottom of the card to see the round and the dates the protocol was submitted and last updated.', '.protocols-list .protocol .protocol-details-toggle:first-visible'],
     ['Actions', 'The **view** button opens the protocol so you can read your submission and any comments made. When applicable, you will be able to resubmit, pay your clearance processing fee, and download your digital animal research clearance.', '.protocols-list .protocol .actions:first-visible'],
-    ['More actions', "The three dots menu holds everything else you can do with a protocol. You may download, rename, or request deletion of your protocol. View your protocol history, and submit an amendment to your protocol. \n\nSubmit an amendment of your protocol **IF AND ONLY IF** you absolutely must change details in your protocol after you have received your animal research clearance. Submitting an amendment informs CCARD of these necessary changes.", '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
+    ['More actions', "The three dots menu holds everything else you can do with a protocol. You may download, rename, or discontinue your protocol, which moves it to your archive. View your protocol history, and submit an amendment to your protocol. \n\nSubmit an amendment of your protocol **IF AND ONLY IF** you absolutely must change details in your protocol after you have received your animal research clearance. Submitting an amendment informs CCARD of these necessary changes.", '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],
 ]);
 include 'includes/guide.php';
@@ -503,6 +445,8 @@ include 'includes/guide.php';
 
 <?php include 'includes/protocol-modals.php'; ?>
 <script src="<?= asset_js('protocol-menu.js') ?>"></script>
+<script src="<?= asset_js('protocol-details.js') ?>"></script>
+<script src="<?= asset_js('protocol-list.js') ?>"></script>
 
 <!-- Verify Payment modal -->
 
@@ -640,19 +584,12 @@ include 'includes/guide.php';
 </script>
 
 <script src="<?= asset_js('pagination.js') ?>"></script>
+<script src="<?= asset_js('archive-view.js') ?>"></script>
+<script src="<?= asset_js('inbox-search.js') ?>"></script>
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
-    const statusMeta = <?= json_encode($statusMeta) ?>;
-    const filterBtns = document.querySelectorAll('.status-filters .status-card');
     const protocolsContainer = document.querySelector('.protocols-list');
     const sortSelect = document.getElementById('submissionsSortSelect');
-    const mobileSortTrigger = document.querySelector('.mobile-sort-trigger');
-    const mobileSortOptions = document.getElementById('mobileSortOptions');
-    const mobileSortLabel = document.getElementById('mobileSortLabel');
-    const mobileFilterTrigger = document.querySelector('.mobile-filter-trigger');
-    const mobileFilterOptions = document.getElementById('mobileFilterOptions');
-    const mobileFilterLabel = document.getElementById('mobileFilterLabel');
-    let currentFilter = 'all';
 
     const pager = createPagination({
         info: document.getElementById('paginationInfo'),
@@ -663,36 +600,87 @@ include 'includes/guide.php';
         onChange: () => renderProtocols()
     });
 
-    // ===== Remember the page per status filter, so coming back from a protocol lands on the same page =====
+    // ===== Remember the page, so coming back from a protocol lands on the same page =====
     const PAGE_STORAGE_KEY = CURRENT_USER_ID + ':protocolsPage';
-    const savedPage = JSON.parse(sessionStorage.getItem(PAGE_STORAGE_KEY) || 'null');
+    const savedPage = parseInt(sessionStorage.getItem(PAGE_STORAGE_KEY), 10) || 1;
 
-    // ===== Render: status filter first, then the current page (cards are already in sorted order) =====
-    function matchingCards() {
-        if (!protocolsContainer) return [];
-        return [...protocolsContainer.querySelectorAll('.protocol')]
-            .filter(card => currentFilter === 'all' || card.dataset.status === currentFilter);
+    // ===== Archive: discontinued protocols live in their own view =====
+    const noResultsMsg = document.getElementById('noResultsMsg');
+    const noResultsText = document.getElementById('noResultsText');
+    const statusFilters = document.getElementById('statusFilters');
+    let statusFilter = '';
+    const archiveView = createArchiveView({
+        link: document.getElementById('archivedLink'),
+        banner: document.getElementById('archiveBanner'),
+        backButton: document.getElementById('archiveBackBtn'),
+        onChange: on => {
+            statusFilters.hidden = on;
+            pager.page = 1;
+            renderProtocols();
+        }
+    });
+    statusFilters.hidden = archiveView.active;
+
+    // ===== Search =====
+    const inboxSearch = createInboxSearch({
+        onChange: () => {
+            pager.page = 1;
+            renderProtocols();
+        }
+    });
+
+    // ===== Status filter =====
+    statusFilters.addEventListener('click', e => {
+        const tab = e.target.closest('.status-card');
+        if (!tab) return;
+        statusFilter = tab.dataset.status;
+        statusFilters.querySelectorAll('.status-card').forEach(btn => {
+            btn.classList.toggle('active', btn === tab);
+            btn.setAttribute('aria-pressed', btn === tab);
+        });
+        pager.page = 1;
+        renderProtocols();
+    });
+
+    // ===== Render the current page (cards are already in sorted order) =====
+    function protocolCards() {
+        return protocolsContainer ? [...protocolsContainer.querySelectorAll('.protocol')] : [];
+    }
+
+    function inCurrentTab(card) {
+        const slug = card.dataset.filterSlug;
+        return (slug === 'archived') === archiveView.active &&
+            (archiveView.active || !statusFilter || slug === statusFilter);
+    }
+
+    function viewCards() {
+        return protocolCards().filter(card =>
+            inCurrentTab(card) && (!inboxSearch.query || card.dataset.title.includes(inboxSearch.query)));
     }
 
     function renderProtocols() {
         if (!protocolsContainer) return;
-        const matching = matchingCards();
-        const pageCards = pager.paginate(matching);
-        sessionStorage.setItem(PAGE_STORAGE_KEY, JSON.stringify({
-            filter: currentFilter,
-            page: pager.page
-        }));
+        const shownCards = viewCards();
+        const pageCards = pager.paginate(shownCards);
+        sessionStorage.setItem(PAGE_STORAGE_KEY, pager.page);
 
-        protocolsContainer.querySelectorAll('.protocol').forEach(card => {
+        protocolCards().forEach(card => {
             card.classList.toggle('protocol-row-hidden', !pageCards.includes(card));
         });
 
-        const emptyMsg = protocolsContainer.querySelector('.no-results');
-        if (emptyMsg) emptyMsg.classList.toggle('is-visible', matching.length === 0);
+        noResultsMsg.classList.toggle('is-visible', shownCards.length === 0);
+        if (archiveView.active) noResultsText.textContent = 'No archived protocols.';
+        else if (inboxSearch.query) noResultsText.textContent = 'No protocols match your search.';
+        else noResultsText.textContent = statusFilter ? 'No protocols in this stage.' : 'All your protocols are in the archive.';
+
+        const tabTotal = protocolCards().filter(inCurrentTab).length;
+        inboxSearch.setSummary(inboxSearch.query ?
+            `Showing ${shownCards.length} of ${tabTotal} protocol${tabTotal === 1 ? '' : 's'}` :
+            '');
     }
 
     // ===== Sort by =====
-    const SORT_STORAGE_KEY = CURRENT_USER_ID + ':protocolsSort';
+    const SORT_PREFERENCE = 'protocolsSort';
 
     function applySort(mode) {
         const container = document.querySelector(sortSelect.dataset.sortTarget);
@@ -703,147 +691,16 @@ include 'includes/guide.php';
     }
 
     sortSelect?.addEventListener('change', () => {
-        localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
+        saveViewPreference(SORT_PREFERENCE, sortSelect.value);
+        syncProtocolSortControls(sortSelect);
         applySort(sortSelect.value);
         pager.page = 1;
         renderProtocols();
     });
 
-    function hexToRgba(hex, alpha) {
-        const h = hex.replace('#', '');
-        const r = parseInt(h.substring(0, 2), 16);
-        const g = parseInt(h.substring(2, 4), 16);
-        const b = parseInt(h.substring(4, 6), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
+    restoreProtocolSort(sortSelect, SORT_PREFERENCE, applySort);
 
-    function updateStatusGuide(selected) {
-        const guide = document.getElementById('statusGuide');
-        if (!guide) return;
-
-        const meta = statusMeta[selected];
-        if (!meta) {
-            guide.classList.remove('open');
-            guide.style.background = '';
-            guide.innerHTML = '';
-            return;
-        }
-
-        guide.innerHTML = `<p class="status-guide-text">                    
-                                <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#info-icon" />
-                                </svg> ${meta.desc}
-                            </p>`;
-        guide.style.background = hexToRgba(meta.color, 0.12);
-        guide.classList.add('open');
-    }
-
-    function applySubmissionsFilter(selected) {
-        currentFilter = selected;
-        filterBtns.forEach(b => b.classList.toggle('active', b.dataset.status === selected));
-        mobileFilterOptions?.querySelectorAll('.status-card').forEach(b => b.classList.toggle('active', b.dataset.mobileFilter === selected));
-        if (mobileFilterLabel) mobileFilterLabel.textContent = [...filterBtns].find(b => b.dataset.status === selected)?.dataset.label ?? '';
-        updateStatusGuide(selected);
-
-        [...filterBtns].find(b => b.dataset.status === selected)?.scrollIntoView({
-            block: 'nearest',
-            inline: 'center'
-        });
-
-        const url = new URL(window.location);
-        if (selected === 'all') {
-            url.searchParams.delete('status');
-        } else {
-            url.searchParams.set('status', selected);
-        }
-        history.replaceState(null, '', url);
-
-        pager.page = 1;
-        renderProtocols();
-    }
-
-    // ===== Mobile sort dropdown open/close =====
-    function openDropdown(trigger, panel) {
-        if (!trigger || !panel) return;
-        const isOpen = panel.classList.toggle('active');
-        trigger.classList.toggle('open', isOpen);
-        trigger.setAttribute('aria-expanded', isOpen);
-        if (isOpen) {
-            positionEdgeAwareDropdown(panel.closest('.sort-wrapper'), panel);
-        }
-    }
-
-    function closeDropdown(trigger, panel) {
-        if (!trigger || !panel) return;
-        panel.classList.remove('active');
-        trigger.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-    }
-
-    mobileSortTrigger?.addEventListener('click', e => {
-        e.stopPropagation();
-        closeDropdown(mobileFilterTrigger, mobileFilterOptions);
-        openDropdown(mobileSortTrigger, mobileSortOptions);
-    });
-
-    mobileFilterTrigger?.addEventListener('click', e => {
-        e.stopPropagation();
-        closeDropdown(mobileSortTrigger, mobileSortOptions);
-        openDropdown(mobileFilterTrigger, mobileFilterOptions);
-    });
-
-    document.addEventListener('click', e => {
-        [
-            [mobileSortTrigger, mobileSortOptions],
-            [mobileFilterTrigger, mobileFilterOptions]
-        ].forEach(([trigger, panel]) => {
-            if (!panel?.contains(e.target) && !trigger?.contains(e.target)) {
-                closeDropdown(trigger, panel);
-            }
-        });
-    });
-
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            applySubmissionsFilter(btn.dataset.status);
-        });
-    });
-
-    mobileFilterOptions?.querySelectorAll('.status-card').forEach(btn => {
-        btn.addEventListener('click', () => {
-            closeDropdown(mobileFilterTrigger, mobileFilterOptions);
-            applySubmissionsFilter(btn.dataset.mobileFilter);
-        });
-    });
-
-    // ===== Mobile sort dropdown mirrors the desktop <select> =====
-    const mobileSortBtns = mobileSortOptions?.querySelectorAll('.status-card') ?? [];
-    mobileSortBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            mobileSortBtns.forEach(b => b.classList.toggle('active', b === btn));
-            if (mobileSortLabel) mobileSortLabel.textContent = btn.textContent.trim();
-            if (sortSelect) {
-                sortSelect.value = btn.dataset.sort;
-                sortSelect.dispatchEvent(new Event('change'));
-            }
-            closeDropdown(mobileSortTrigger, mobileSortOptions);
-        });
-    });
-
-    function openProtocol(href) {
-        window.location.href = href + '?from=' + encodeURIComponent(currentFilter);
-    }
-
-    restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);
-
-    (function restoreFilterFromUrl() {
-        const requestedStatus = new URLSearchParams(window.location.search).get('status');
-        if (requestedStatus && [...filterBtns].some(b => b.dataset.status === requestedStatus)) {
-            applySubmissionsFilter(requestedStatus);
-        }
-    })();
-
-    if (savedPage && savedPage.filter === currentFilter) pager.page = savedPage.page;
+    pager.page = savedPage;
 
     (function highlightFromUrl() {
         const url = new URL(window.location);
@@ -857,8 +714,8 @@ include 'includes/guide.php';
 
         const card = id && document.getElementById('protocol-' + id);
         if (!card) return;
-        applySubmissionsFilter(card.dataset.status);
-        pager.goToItem(matchingCards(), card);
+        if ((card.dataset.filterSlug === 'archived') !== archiveView.active) archiveView.set(!archiveView.active);
+        pager.goToItem(viewCards(), card);
         card.scrollIntoView({
             block: 'center'
         });
@@ -867,10 +724,6 @@ include 'includes/guide.php';
         if (openTarget === 'payment' &&
             card.querySelector('[data-rejection-reason]')) {
             openPaymentRejectedModal(+id);
-        }
-
-        if (openTarget === 'signed_scan' && card.dataset.signedScanUrl) {
-            openFilePopup(card.dataset.signedScanUrl, 'Signed Scan');
         }
     })();
 
@@ -931,36 +784,6 @@ include 'includes/guide.php';
                 });
             })
             .catch(() => {});
-    })();
-
-    // ===== Status legend info panel (single click to open/close) =====
-    (function() {
-        const wrapper = document.getElementById('legendInfoWrapper');
-        const btn = document.getElementById('legendInfoBtn');
-        const panel = document.getElementById('legendInfoPanel');
-        if (!wrapper || !btn || !panel) return;
-
-        function openPanel() {
-            panel.classList.add('open');
-            btn.setAttribute('aria-expanded', 'true');
-        }
-
-        function closePanel() {
-            panel.classList.remove('open');
-            btn.setAttribute('aria-expanded', 'false');
-        }
-
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            panel.classList.contains('open') ? closePanel() : openPanel();
-        });
-
-        document.addEventListener('click', e => {
-            if (!wrapper.contains(e.target)) closePanel();
-        });
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closePanel();
-        });
     })();
 
     // ===== Download Clearance: also open images in a new tab =====

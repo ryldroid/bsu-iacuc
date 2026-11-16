@@ -216,99 +216,7 @@
     margin-bottom: 10px;
 }
 
-.inbox-search-wrap {
-    position: relative;
-    flex: 1 1 220px;
-    max-width: 500px;
-    margin-left: auto;
-}
-
-.inbox-search-wrap>svg {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted-text);
-    pointer-events: none;
-    display: block;
-}
-
-.inbox-search-input {
-    width: 100%;
-    padding: 8px 32px 8px 34px;
-    border: 1px solid var(--input-border);
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-family: var(--font-body);
-    background: var(--card-background);
-    color: var(--primary-text);
-    transition: border-color 0.2s;
-    margin-bottom: 0;
-    display: block;
-    height: auto;
-    line-height: 1.4;
-}
-
-/* type="search" keeps password managers away; drop the native look and clear button (we have our own) */
-.inbox-search-input {
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.inbox-search-input::-webkit-search-cancel-button,
-.inbox-search-input::-webkit-search-decoration,
-.inbox-search-input::-webkit-search-results-button,
-.inbox-search-input::-webkit-search-results-decoration {
-    -webkit-appearance: none;
-    display: none;
-}
-
-.inbox-search-input:focus {
-    outline: none;
-    border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
-}
-
-.inbox-search-clear {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: var(--muted-text);
-    display: none;
-    background: none;
-    border: none;
-    box-shadow: none;
-    padding: 2px 4px;
-    margin: 0;
-}
-
-.inbox-search-clear.visible {
-    display: flex;
-}
-
-.inbox-search-clear:hover {
-    color: var(--secondary-text);
-    background: none;
-}
-
-@media (max-width: 767px) {
-    .inbox-search-wrap {
-        flex: 0 0 auto;
-        margin-left: 0;
-    }
-
-    .dashboard-filter-row .inbox-search-wrap {
-        order: -1;
-    }
-}
-
 @media (max-width: 768px) {
-    .inbox-search-wrap {
-        max-width: 100%;
-    }
-
     .bulk-actions-bar {
         padding: 12px;
         gap: 8px;
@@ -328,56 +236,6 @@
     .bulk-select-count {
         width: 100%;
     }
-}
-
-@media (max-width: 480px) {
-    .inbox-search-wrap {
-        max-width: 100%;
-    }
-
-    .inbox-search-input {
-        font-size: 1em;
-        padding: 10px 32px 10px 34px;
-    }
-}
-
-/* ===== Results summary ===== */
-.results-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px 16px;
-    margin: 0 0 12px 0;
-}
-
-.results-summary {
-    margin: 0;
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--primary-text);
-}
-
-.results-bar-end {
-    display: flex;
-    align-items: center;
-    gap: 4px 16px;
-    margin-left: auto;
-}
-
-/* ===== Archived: quieter than the status tabs ===== */
-.archived-link {
-    font-size: 0.9em;
-    color: var(--secondary-text);
-}
-
-.archived-link:hover {
-    color: var(--primary-text);
-}
-
-.archived-link.active {
-    color: var(--primary-text);
-    font-weight: 500;
 }
 
 /* ===== Upload Clearance modal ===== */
@@ -459,4 +317,32 @@ main:has(> .dashboard-panel > .pagination-bar--pinned) {
     display: flex;
     flex: 1;
     flex-direction: column;
+}
+
+/* ===== Endorsement proof modal ===== */
+.endorsement-protocol-list {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--divider-color);
+    border-radius: var(--radius);
+}
+
+.endorsement-protocol-list li {
+    padding: 8px 12px;
+    font-size: 0.9em;
+    color: var(--primary-text);
+    word-break: break-word;
+}
+
+.endorsement-protocol-list li+li {
+    border-top: 1px solid var(--divider-color-subtle);
+}
+
+.endorsement-protocol-researcher {
+    display: block;
+    font-size: 0.85em;
+    color: var(--muted-text);
 }

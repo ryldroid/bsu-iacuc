@@ -2,7 +2,7 @@
 // One table for every status action on the inbox. The row buttons
 // ([data-action]) and the three dots menu (protocol-menu.js) both dispatch
 // through window.protocolRowActions, each action receives (protocolId, btn).
-// Needs the inbox page globals: protocolsData, protocolsList, activeFilter,
+// Needs the inbox page globals: protocolsData, protocolsList, showArchived,
 // ROOT_URL, CSRF_TOKEN and the API urls.
 
 const rowProtocol = (protocolId) =>
@@ -13,8 +13,7 @@ function openProtocolViewer(protocolId) {
     ROOT_URL +
     "/apply/viewer/" +
     (rowProtocol(protocolId)?.viewer_ref ?? protocolId) +
-    "?from=" +
-    encodeURIComponent(activeFilter);
+    (showArchived ? "?from=archived" : "");
 }
 
 const protocolName = (protocolId) =>
@@ -103,11 +102,13 @@ window.protocolRowActions = {
   "view-clearance": (id) =>
     window.open(CLEARANCE_VIEW_URL + id, "_blank", "noopener"),
 
-  "mark-endorsed": (id, btn) =>
-    confirmThen(
-      `Mark ${protocolName(id)} as endorsed? Double-check that payment is verified and the signed scan is correct before proceeding.`,
-      "Mark as Endorsed",
-      () => submitStatusChange(id, "Endorsed", btn),
+  "endorse-with-proof": (id) => openEndorsementModal([id]),
+
+  "view-endorsement-proof": (id) =>
+    window.open(
+      ROOT_URL + "/apply/file/" + rowProtocol(id)?.latest_endorsement_proof_version_id,
+      "_blank",
+      "noopener",
     ),
 
   "revert-reviewed": (id, btn) =>
@@ -119,7 +120,7 @@ window.protocolRowActions = {
 
   "revert-endorsed": (id, btn) =>
     confirmThen(
-      `Revert ${protocolName(id)} back to **Reviewed**? Use this if **Mark as Endorsed** was clicked by mistake.`,
+      `Revert ${protocolName(id)} back to **Reviewed**? Use this if the protocol was endorsed by mistake.`,
       "Revert",
       () => submitStatusChange(id, "Reviewed", btn, "revert"),
     ),
@@ -129,36 +130,35 @@ window.protocolRowActions = {
       mode: "agencyReturn",
     }),
 
-  "mark-approved": (id, btn) =>
-    confirmThen(
-      `Mark ${protocolName(id)} as approved? Double-check that the attached clearance is correct before proceeding.`,
-      "Mark as Approved",
-      () => submitStatusChange(id, "Approved", btn),
-    ),
-
   "revert-approved": (id, btn) =>
     confirmThen(
-      `Revert ${protocolName(id)} back to **Endorsed**? Use this if **Mark as Approved** was clicked by mistake.`,
+      `Revert ${protocolName(id)} back to **Endorsed**? Use this if the clearance was wrong. Its image goes back to **Assign Clearances** so you can match it again.`,
       "Revert",
       () => submitStatusChange(id, "Endorsed", btn, "revert"),
     ),
 
-  "upload-signed-scan": (id) =>
-    openSignedScanModal(id, rowProtocol(id)?.research_title ?? ""),
+  restore: (id, btn) =>
+    confirmThen(
+      `Restore ${protocolName(id)} to the main list? ${
+        rowProtocol(id)?.deleted_at
+          ? "The researcher will be able to see it again."
+          : "The researcher will be able to continue it."
+      }`,
+      "Restore",
+      () =>
+        postProtocolAction(
+          RESTORE_API,
+          { protocol_id: id },
+          btn,
+          "Could not restore the protocol.",
+          "Restoring...",
+        ),
+    ),
 
   "assign-ipn": (id) => openNumberModal("ipn", id, ""),
 
-  "edit-ipn": (id) => {
-    const protocol = rowProtocol(id);
-    const open = () => openNumberModal("ipn", id, protocol?.reference_no ?? "");
-    if (!protocol?.latest_signed_scan_version_id) return open();
-    confirmThen(
-      `${protocolName(id)} already has a signed scan. Changing the IPN will make the signed scan not match the record.`,
-      "Edit IPN",
-      open,
-      { danger: true },
-    );
-  },
+  "edit-ipn": (id) =>
+    openNumberModal("ipn", id, rowProtocol(id)?.reference_no ?? ""),
 
   "undo-payment": (id, btn) =>
     confirmThen(
@@ -187,6 +187,7 @@ window.protocolRowActions = {
       id,
       p?.research_title ?? "",
       p?.payment_method ?? "online",
+      p?.payment_receipt_no ?? "",
       `${p?.first_name ?? ""} ${p?.last_name ?? ""}`.trim(),
       p?.school ?? "",
     );

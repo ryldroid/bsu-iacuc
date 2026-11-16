@@ -302,7 +302,7 @@ async function submitReupload() {
         );
     }
 
-    window.location.href = ROOT_URL + "/submissions?status=under-review";
+    window.location.href = ROOT_URL + "/submissions";
   } catch (err) {
     errBox.textContent = err.message || "Network error. Please try again.";
     errBox.hidden = false;

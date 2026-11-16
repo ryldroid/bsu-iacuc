@@ -4,7 +4,7 @@ class UserModel extends Model
 {
   public $table = 'users';
 
-  public const RESEARCHER_TYPES = ['Student', 'Faculty', 'Staff', 'Researcher'];
+  public const RESEARCHER_TYPES = ['Student', 'Student-Faculty', 'Faculty', 'Staff', 'External Researcher'];
 
   public const SCHOOLS = [
     'Abra High School',
@@ -256,7 +256,7 @@ class UserModel extends Model
   public function getCertHistory(int $userId): array
   {
     $stmt = $this->connection->prepare(
-      "SELECT h.id, h.action, h.note, h.file_path, h.original_name, h.created_at, CONCAT(u.first_name, ' ', u.last_name) AS actor_name, u.role AS actor_role
+      "SELECT h.id, h.action, h.note, h.file_path, h.original_name, h.created_at, h.actor_id, CONCAT(u.first_name, ' ', u.last_name) AS actor_name, u.role AS actor_role
       FROM cert_history h LEFT JOIN $this->table u ON u.id = h.actor_id
       WHERE h.user_id = ? ORDER BY h.id DESC"
     );
@@ -281,6 +281,30 @@ class UserModel extends Model
     return $stmt->execute();
   }
 
+  // ===== SAVED VIEW (sort and status filter, kept on the account so every device matches) =====
+  private const SORT_PATTERN = '/^(updated|submitted|title|status)_(asc|desc)$/';
+
+  private const VIEW_PREFERENCES = [
+    'protocolsSort' => self::SORT_PATTERN,
+    'inboxSort'     => self::SORT_PATTERN,
+    'inboxStatus'   => '/^(to-review|returned-for-revision|reviewed|endorsed|approved)?$/',
+  ];
+
+  public function saveViewPreference(int $id, string $key, string $value): bool
+  {
+    if (!isset(self::VIEW_PREFERENCES[$key]) || !preg_match(self::VIEW_PREFERENCES[$key], $value)) {
+      return false;
+    }
+
+    $saved = json_decode($this->getUser($id)['view_preferences'] ?? '', true) ?: [];
+    $saved[$key] = $value;
+    $json = json_encode($saved);
+
+    $stmt = $this->connection->prepare("UPDATE $this->table SET view_preferences = ? WHERE id = ?");
+    $stmt->bind_param('si', $json, $id);
+    return $stmt->execute();
+  }
+
   // ===== CREATE UPDATE DELETE =====
 
   public function insertUser(
@@ -294,15 +318,17 @@ class UserModel extends Model
     ?string $phone_number = null,
     ?string $school = null,
     ?string $sex = null,
-    ?string $researcher_type = null
+    ?string $researcher_type = null,
+    bool $consented = false
   ): bool {
     $stmt = $this->connection->prepare(
       "INSERT INTO `$this->table`
-      (username, first_name, last_name, email, phone_number, school, sex, researcher_type, password, role, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      (username, first_name, last_name, email, phone_number, school, sex, researcher_type, password, role, status, privacy_consent_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, IF(?, NOW(), NULL))"
     );
 
-    $stmt->bind_param('sssssssssss', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $researcher_type, $passwordHash, $role, $status);
+    $consent = (int) $consented;
+    $stmt->bind_param('sssssssssssi', $username, $first_name, $last_name, $email, $phone_number, $school, $sex, $researcher_type, $passwordHash, $role, $status, $consent);
     return $stmt->execute();
   }
 

@@ -145,7 +145,7 @@ class AccountLifecycle
   {
     $id = (int) ($user['id'] ?? 0);
 
-    if (!in_array($user['role'] ?? '', ['staff', 'reviewer'], true) || ($user['status'] ?? '') !== 'active') {
+    if (!Access::isPersonnelRole($user['role'] ?? '') || ($user['status'] ?? '') !== 'active') {
       return $user;
     }
 

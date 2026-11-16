@@ -24,19 +24,17 @@ if ($menuFlags['amendmentCount'] > 0) {
 foreach ($menu['extraItems'] ?? [] as $extra) {
   $menuItems[] = $extra;
 }
+if ($menuFlags['canDiscontinue']) {
+  $menuItems[] = ['action' => 'discontinue', 'label' => 'Discontinue', 'icon' => 'archive-icon', 'danger' => true];
+}
 if ($menuFlags['canDelete']) {
-  $menuItems[] = ['action' => 'delete', 'label' => 'Delete', 'icon' => 'trash-icon', 'danger' => true];
-} elseif ($menuFlags['canRequestDeletion']) {
-  $menuItems[] = !empty($menu['deletionRequested'])
-    ? ['action' => 'cancel-deletion', 'label' => 'Cancel Deletion Request', 'icon' => 'undo-icon']
-    : ['action' => 'delete', 'label' => 'Request Deletion', 'icon' => 'trash-icon', 'danger' => true];
+  $menuItems[] = ['action' => 'delete', 'label' => 'Archive', 'icon' => 'archive-icon', 'danger' => true];
 }
 
 ?>
 <div class="protocol-menu protocol-menu--<?= $menuIsViewer ? 'labeled' : 'icon' ?>"
   data-protocol-id="<?= (int) $menu['protocolId'] ?>"
   data-title="<?= $menuTitle ?>"
-  data-delete-mode="<?= $menuFlags['canDelete'] ? 'delete' : 'request' ?>"
   data-delete-redirect="<?= htmlspecialchars((string) ($menu['deleteRedirect'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
   data-amend-redirect="<?= htmlspecialchars((string) ($menu['amendRedirect'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
   <button type="button" class="<?= $menuIsViewer ? 'tool-btn tool-btn--ghost' : 'action-link' ?> protocol-menu-trigger<?= $menuHasUpdate ? ' has-update' : '' ?>"

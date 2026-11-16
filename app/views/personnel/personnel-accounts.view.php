@@ -19,7 +19,7 @@ $auditPerPage   = $auditPerPage   ?? 10;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditOffset    = ($auditPage - 1) * $auditPerPage;
 
-$allowedTabs = ['audit-logs', 'accounts', 'backups'];
+$allowedTabs = ['audit-logs', 'accounts', 'backups', 'number-formats'];
 $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', $allowedTabs, true)
     ? $_GET['tab']
     : $allowedTabs[0]);
@@ -30,6 +30,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
 <link rel="stylesheet" href="<?= asset_css('personnel/personnel-home.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('protocol-menu.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('personnel/accounts.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('personnel/records.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('tabs.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('content-manager.css') ?>">
 
@@ -41,7 +42,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
         <div class="page-banner">
             <div class="page-banner-text">
                 <h1>Administration</h1>
-                <p class="page-subtitle">Audit logs, user accounts and system backups</p>
+                <p class="page-subtitle">Audit logs, user accounts, system backups and number formats</p>
             </div>
         </div>
 
@@ -58,6 +59,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                 <button type="button" role="tab" class="has-guide" id="tab-backups" data-tab="backups"
                     aria-selected="<?= $activeTab === 'backups' ? 'true' : 'false' ?>"
                     aria-controls="panel-backups">Backups</button>
+                <button type="button" role="tab" class="has-guide" id="tab-number-formats" data-tab="number-formats"
+                    aria-selected="<?= $activeTab === 'number-formats' ? 'true' : 'false' ?>"
+                    aria-controls="panel-number-formats">Number Formats</button>
             </div>
             <?php $tabGuideId = 'audit-logs';
             $tabGuideLabel = 'Audit Logs';
@@ -67,6 +71,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
             <?php $tabGuideId = 'backups';
             $tabGuideLabel = 'Backups';
+            include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
+            <?php $tabGuideId = 'number-formats';
+            $tabGuideLabel = 'Number Formats';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
         </div>
 
@@ -349,21 +356,12 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                             $isDeactivated = $p['status'] === 'deactivated';
                                             $fullName      = $p['first_name'] . ' ' . $p['last_name'];
                                             ?>
-                                            <form method="POST" action="<?= ROOT ?>/personnel/<?= $isDeactivated ? 'reactivate_account' : 'deactivate_account' ?>"
-                                                data-confirm-message="<?= htmlspecialchars($isDeactivated
-                                                                            ? 'Reactivate the account of ' . confirm_bold($fullName) . '? They can sign in again and will be notified by email.'
-                                                                            : 'Deactivate the account of ' . confirm_bold($fullName) . '? They will be signed out and cannot sign in until administrative staff reactivate it. They will be notified by email.') ?>"
-                                                data-confirm-ok-text="<?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?>"
-                                                <?= $isDeactivated ? '' : 'data-confirm-danger="true"' ?>>
-                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                                                <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
-                                                <button type="submit" class="accounts-btn-primary accounts-btn-outline personnel-status-btn"><?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?></button>
-                                            </form>
-                                            <form method="POST" action="<?= ROOT ?>/personnel/delete_personnel">
+                                            <form method="POST" action="<?= ROOT ?>/personnel/<?= $isDeactivated ? 'reactivate_account' : 'deactivate_account' ?>">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                                                 <input type="hidden" name="user_id" value="<?= (int) $p['id'] ?>">
                                                 <input type="hidden" name="password" class="personnel-role-password">
-                                                <button type="button" class="reject-btn personnel-status-btn js-personnel-delete" data-name="<?= htmlspecialchars($p['first_name'] . ' ' . $p['last_name']) ?>">Delete</button>
+                                                <button type="button" class="<?= $isDeactivated ? 'accounts-btn-primary accounts-btn-outline' : 'reject-btn' ?> personnel-status-btn js-personnel-status"
+                                                    data-name="<?= htmlspecialchars($fullName) ?>" data-status-action="<?= $isDeactivated ? 'reactivate' : 'deactivate' ?>"><?= $isDeactivated ? 'Reactivate' : 'Deactivate' ?></button>
                                             </form>
                                         <?php endif; ?>
                                     </div>
@@ -410,6 +408,15 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     </section>
                 </div>
             </div>
+
+            <div class="tab-panel" id="panel-number-formats" role="tabpanel" aria-labelledby="tab-number-formats"
+                data-tab-panel="number-formats" <?= $activeTab === 'number-formats' ? '' : 'hidden' ?>>
+                <div class="sections-column">
+                    <?php foreach (NumberFormat::LABELS as $numberKind => $numberLabel): ?>
+                        <?php include __DIR__ . '/partials/number-format-form.php'; ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
 
     </main>
@@ -437,7 +444,7 @@ if ($isStaff) {
     $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
     $guideSteps[] = ['Registration link', 'Choose a role and generate a registration link to send to a new staff member or reviewer. The link works for 48 hours.', '.invite-section'];
 }
-$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed. Press **Deactivate** to lock a user out of their account, and **Reactivate** to let them back in. Personnel who have not signed in for 6 months are deactivated automatically, and only administrative staff can reactivate them. Press **Delete** to remove a user\'s account. You can delete your own account from your account settings.', '.personnel-manage-section'];
+$guideSteps[] = ['CCARD Personnel', 'Everyone approved is listed here. Use the role dropdown to switch someone between Administrative Staff and Reviewer. You will be asked for your password to confirm, and your own role cannot be changed. Press **Deactivate** to lock a user out of their account, and **Reactivate** to let them back in. You will be asked for your password for both. Personnel who have not signed in for 6 months are deactivated automatically, and only administrative staff can reactivate them. You can delete your own account from your account settings.', '.personnel-manage-section'];
 $guideSteps[] = ['Audit Logs tab', 'Switch to **Audit Logs** to review activity and download it.', '#tab-audit-logs'];
 include dirname(__DIR__) . '/includes/guide.php';
 
@@ -449,6 +456,16 @@ $guideSteps = [
     ['Backup health', 'This line shows when the last backup was made. It turns into a warning when the newest backup is 3 days old or more, or when none exists. Open **Technical details** for server limits.', '#backup-health'],
     ['Saved backups', '**Download** to keep a backup off the server, **Verify backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
     ['Restore', '**Restore this backup** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
+    ['Number Formats tab', 'Switch to **Number Formats** to change how new IPNs and AR numbers are written.', '#tab-number-formats'],
+];
+include dirname(__DIR__) . '/includes/guide.php';
+
+$guideId    = 'number-formats';
+$guideSteps = [
+    ['Number Formats', 'Choose how new IPNs and AR numbers are written. Let us walk through it.'],
+    ['IPN format', 'Set a prefix, a separator, how many digits the running number has, and whether the year comes before or after it. Existing IPNs are not changed.', '#ipnFormatForm'],
+    ['AR number format', 'Set how AR numbers from BAI must be written, for example AR-2026-0152. The prefix and year are pre-filled when you add one, and you type the count. Existing AR numbers are not changed.', '#arFormatForm'],
+    ['Example', 'This shows what a number would look like with your choices, before you save.', '#ipnPreview'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
 ?>
@@ -545,6 +562,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 <script src="<?= asset_js('protocol-menu.js') ?>" defer></script>
 <script src="<?= asset_js('backups.js') ?>" defer></script>
 <script src="<?= asset_js('content-manager.js') ?>" defer></script>
+<script src="<?= asset_js('number-formats.js') ?>" defer></script>
 
 <script>
     // ===== Copy invite link =====
@@ -606,12 +624,13 @@ include dirname(__DIR__) . '/includes/guide.php';
         let pendingForm = null;
         let pendingSelect = null;
 
-        function openConfirm(form, heading, message) {
+        function openConfirm(form, heading, message, danger = false) {
             pendingForm = form;
             title.textContent = heading;
             text.textContent = message;
             error.hidden = true;
             passwordInput.value = '';
+            submitBtn.classList.toggle('confirm-modal-ok-danger', danger);
 
             backdrop.classList.add('open');
             passwordInput.focus();
@@ -625,10 +644,15 @@ include dirname(__DIR__) . '/includes/guide.php';
         };
 
         document.addEventListener('click', (e) => {
-            const deleteButton = e.target.closest('.js-personnel-delete');
-            if (!deleteButton) return;
+            const statusButton = e.target.closest('.js-personnel-status');
+            if (!statusButton) return;
 
-            openConfirm(deleteButton.closest('form'), 'Confirm Account Deletion', `Delete the account of ${deleteButton.dataset.name}? Their personal details are removed and they can no longer sign in. This cannot be undone.`);
+            const name = statusButton.dataset.name;
+            if (statusButton.dataset.statusAction === 'deactivate') {
+                openConfirm(statusButton.closest('form'), 'Confirm Account Deactivation', `Deactivate the account of ${name}? They will be signed out and cannot sign in until administrative staff reactivate it. They will be notified by email.`, true);
+            } else {
+                openConfirm(statusButton.closest('form'), 'Confirm Account Reactivation', `Reactivate the account of ${name}? They can sign in again and will be notified by email.`);
+            }
         });
 
         window.closeRoleConfirm = function() {

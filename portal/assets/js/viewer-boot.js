@@ -1,23 +1,5 @@
 // ===== Viewer boot =====
-// Runs last: opens modals from notification links, loads the PDF, wires resize.
-
-// ===== Auto-open from notification/email links =====
-(function handleAutoOpenFromLink() {
-  const openTarget = new URLSearchParams(window.location.search).get("open");
-  if (
-    openTarget === "deletion_request" &&
-    typeof openDeletionReviewModal === "function"
-  ) {
-    openDeletionReviewModal();
-  } else if (
-    openTarget === "deletion_rejected" &&
-    typeof openDeletionRejectedModal === "function"
-  ) {
-    openDeletionRejectedModal();
-  } else if (openTarget === "signed_scan" && !IS_SIGNED_SCAN) {
-    if (SIGNED_SCAN_VIEWER_URL) window.location.replace(SIGNED_SCAN_VIEWER_URL);
-  }
-})();
+// Runs last: loads the PDF, wires resize.
 
 loadPdf();
 

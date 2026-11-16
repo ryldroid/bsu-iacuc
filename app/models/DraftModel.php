@@ -28,7 +28,7 @@ class DraftModel extends Model
     string $title,
     array $details
   ): bool {
-    $title       = mb_substr(normalize_pasted_text($title), 0, 255);
+    $title       = capitalize_first_letter(mb_substr(normalize_pasted_text($title), 0, 255));
     $animalType  = mb_substr(normalize_pasted_text($details['animal_type'] ?? ''), 0, 100);
     $adviser     = mb_substr(normalize_pasted_text($details['research_adviser'] ?? ''), 0, 255);
     $veterinarian = mb_substr(normalize_pasted_text($details['veterinarian'] ?? ''), 0, 255);

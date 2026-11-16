@@ -5,9 +5,7 @@
   var script = document.querySelector("script[data-root]");
   var root = script ? script.dataset.root : "";
   var userId = typeof CURRENT_USER_ID !== "undefined" ? CURRENT_USER_ID : 0;
-  var isPersonnel =
-    typeof SESSION_LOGIN_PATH !== "undefined" &&
-    SESSION_LOGIN_PATH === "personnel/login";
+  var isPersonnel = typeof IS_PERSONNEL !== "undefined" && IS_PERSONNEL;
 
   var WARM_INTERVAL_MS = 10 * 60 * 1000;
   var WARM_VIEWER_LIMIT =

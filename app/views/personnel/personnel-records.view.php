@@ -31,7 +31,6 @@ $stats           = $stats           ?? [
     'revisions_by_protocol' => [],
     'revisions_by_pi' => [],
     'endorsed' => 0,
-    'signed' => 0,
     'clearances_returned' => 0,
     'total_records' => 0,
     'total_records_all' => 0,
@@ -58,6 +57,8 @@ $incompleteOnly = $incompleteOnly ?? false;
 $hasFilters  = $incompleteOnly || $search !== '' || $school !== '' || $animalType !== '' || $sex !== '' || $researcherType !== '' || $status !== '' || $listPeriod !== null;
 $activeFilterCount = count(array_filter([$school, $animalType, $sex, $researcherType, $status])) + ($incompleteOnly ? 1 : 0);
 $isStaff = $role === 'staff';
+$ipnFormat = NumberFormat::of('ipn')->forJs();
+$arFormat  = NumberFormat::of('ar')->forJs();
 $colCount = 18;
 
 // ===== Chart helpers =====
@@ -362,8 +363,8 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                     </button>
 
                     <div class="records-filters-row<?= $hasFilters ? ' open' : '' ?>" id="recordsFilters">
-                        <select name="school" class="records-filter-select" aria-label="Filter by school" onchange="this.form.submit()">
-                            <option value="">All Schools</option>
+                        <select name="school" class="records-filter-select" aria-label="Filter by school/affiliation" onchange="this.form.submit()">
+                            <option value="">All Schools/Affiliations</option>
                             <?php foreach ($schools as $s): ?>
                                 <option value="<?= htmlspecialchars($s, ENT_QUOTES) ?>" <?= $school === $s ? 'selected' : '' ?>><?= htmlspecialchars($s) ?></option>
                             <?php endforeach; ?>
@@ -473,7 +474,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#sort-icon" />
                             </svg>
-                            Sort by:
+                            Sort by
                         </p>
                         <select name="sort" form="recordsFilterForm" class="records-filter-select" aria-label="Sort records" onchange="this.form.submit()">
                             <?php foreach (RecordModel::sortOptions() as $key => $opt): ?>
@@ -544,7 +545,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                             ['IPN', $r['reference_no'] ?? ''],
                                             ['AR No.', $r['ar_number'] ?? ''],
                                             ['Title of Research', $r['title_of_research'] ?? ''],
-                                            ['School', $r['school'] ?? ''],
+                                            ['School/Affiliation', $r['school'] ?? ''],
                                             ['Animal Type', $r['animal_type'] ?? ''],
                                             ['Animal Count', $r['animal_count'] ?? ''],
                                             ['Researcher', $r['principal_investigator'] ?? ''],
@@ -569,7 +570,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                                     <span class="pending-sync-badge" data-pending-sync="record:<?= (int)$r['id'] ?>" hidden></span>
                                                 </div>
                                             </td>
-                                            <td class="researcher-cell" data-label="School"><?= htmlspecialchars($r['school'] ?? '') ?></td>
+                                            <td class="researcher-cell" data-label="School/Affiliation"><?= htmlspecialchars($r['school'] ?? '') ?></td>
                                             <td class="records-detail date-cell" data-label="Animal Type"><?= htmlspecialchars($r['animal_type'] ?? '') ?></td>
                                             <td class="records-detail date-cell" data-label="Count"><?= htmlspecialchars($r['animal_count'] ?? '') ?></td>
                                             <td class="researcher-cell" data-label="Researcher"><?= htmlspecialchars($r['principal_investigator'] ?? '') ?></td>
@@ -684,8 +685,14 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                 <form method="GET" action="" class="records-period-bar" id="statsPeriodForm">
                     <input type="hidden" name="tab" value="statistics">
 
-                    <fieldset class="records-period-presets">
-                        <legend class="sr-only">Statistics period</legend>
+                    <p class="sort-filter-label" id="statsPeriodLabel">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#filter-icon" />
+                        </svg>
+                        Period:
+                    </p>
+
+                    <fieldset class="records-period-presets" aria-labelledby="statsPeriodLabel">
                         <?php foreach (RecordModel::PERIOD_PRESETS as $key => $label): ?>
                             <label class="records-period-chip">
                                 <input type="radio" name="period" value="<?= $key ?>" <?= $periodPreset === $key ? 'checked' : '' ?>>
@@ -754,7 +761,6 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                         'One protocol can be resubmitted several times, so resubmissions can be higher than protocols revised.'
                     );
                     renderStatCard('Protocols Endorsed', $stats['endorsed'], $previousTotals['endorsed'] ?? null, 'Endorsed by administrative staff', 'endorsed', 'timeline-endorse-icon');
-                    renderStatCard('Signed by IACUC Chairperson', $stats['signed'], $previousTotals['signed'] ?? null, 'Signed scans uploaded', 'signed', 'shield-check-icon');
                     ?>
                 </div>
 
@@ -767,7 +773,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                     <?php
                     renderStatCard('Total Records', $stats['total_records'], $previousTotals['total_records'] ?? null, number_format($stats['total_records_all']) . ' all time', 'neutral', 'protocols-icon');
                     renderStatCard('Average Revisions per Protocol', $stats['avg_revisions'], null, 'Resubmissions per revised protocol', 'revised', 'undo-icon');
-                    renderStatCard('Clearances Received', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', 'signed', 'clearance-page-icon');
+                    renderStatCard('Clearances Received', $stats['clearances_returned'], $previousTotals['clearances_returned'] ?? null, 'Clearance documents attached', 'clearances', 'clearance-page-icon');
                     renderStatCard('Total Animals Used', $stats['total_animals'], $previousTotals['total_animals'] ?? null, 'Avg ' . number_format($stats['avg_animals_per_record'], 1) . ' per record', 'animals', 'beaker-icon');
                     ?>
                 </div>
@@ -796,9 +802,9 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                     </div>
 
                     <div class="metric-card records-bar-card records-chart-wide">
-                        <div class="metric-card-label">Protocols by School</div>
+                        <div class="metric-card-label">Protocols by School/Affiliation</div>
                         <p class="records-card-hint">Where researchers come from</p>
-                        <?php renderDonut($schoolRows, 'protocols', 'No school data in this period.'); ?>
+                        <?php renderDonut($schoolRows, 'protocols', 'No school/affiliation data in this period.'); ?>
                     </div>
 
                     <div class="metric-card records-bar-card">
@@ -809,7 +815,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
 
                     <div class="metric-card records-bar-card">
                         <div class="metric-card-label">Protocols by Research Type</div>
-                        <p class="records-card-hint">Student, faculty, staff, or researcher</p>
+                        <p class="records-card-hint">Student, student-faculty, faculty, staff, or external researcher</p>
                         <?php renderDonut($researcherRows, 'protocols', 'No researcher type data in this period.'); ?>
                     </div>
 
@@ -846,12 +852,12 @@ $guideSteps = [
 if ($isStaff) {
     $guideSteps[] = ['Add Record', 'Add an entry to the table by hand.', '#addRecordBtn'];
 }
-$guideSteps[] = ['Filters', 'Narrow the table by school, animal type, sex, researcher type, status, or **Needs Completion**. The number beside **Filters** shows how many are on. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
+$guideSteps[] = ['Filters', 'Narrow the table by school/affiliation, animal type, sex, researcher type, status, or **Needs Completion**. The number beside **Filters** shows how many are on. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 $guideSteps[] = ['Sort', 'Change the order with **Sort by** above the table, or by clicking a column heading. A third click on the same heading resets the order.', '.records-sort-group'];
 $guideSteps[] = ['Statuses', '**Pending** means CCARD reviewed the protocol but it is not approved yet. **Ongoing** means it is approved and the research is running. **Completed** and **Cancelled** mean the research ended. **Expired** appears on an Ongoing record whose research period has ended. Researchers report Completed or Cancelled from My Protocols, which updates the record and notifies you. You can also change a status with **Edit**.', '.records-status'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
-    $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
+    $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school/affiliation, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
     $guideSteps[] = ['Row actions', $isStaff ? 'Edit or delete a record, or see all of its details with the eye icon.' : 'See all the details of a record with the eye icon.', '.records-table .row-actions:first-visible'];
 }
 if ($totalPages > 1) {
@@ -864,8 +870,8 @@ $guideId    = 'statistics';
 $guideSteps = [
     ['Statistics', 'See review activity and record totals for a period you choose. Let us walk through it.'],
     ['Period', 'Choose the period to report on, including a custom date range. Each card also shows how its figure compares with the period right before, for example September when you pick October.', '#statsPeriodForm'],
-    ['Cards', 'The cards count protocols reviewed, revised, endorsed, and signed, plus records, average revisions, clearances received, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
-    ['Breakdowns', 'Charts break the period down by animals used, school, researcher sex, researcher type, and resubmissions.', '.records-charts-grid'],
+    ['Cards', 'The cards count protocols reviewed, revised, and endorsed, plus records, average revisions, clearances received, and animals used. Most cards open the matching list when pressed.', '.records-metrics'],
+    ['Breakdowns', 'Charts break the period down by animals used, school/affiliation, researcher sex, researcher type, and resubmissions.', '.records-charts-grid'],
     ['Export period to Excel', 'Download the statistics and every record in the chosen period as an Excel file. Search and filters on the Records tab are not applied.', '.records-export-btn'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
@@ -895,11 +901,11 @@ include dirname(__DIR__) . '/includes/guide.php';
             <div class="records-form-grid">
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_reference_no">IPN <span class="records-required">*</span></label>
-                    <input type="text" id="add_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
+                    <input type="text" id="add_reference_no" name="reference_no" placeholder="<?= htmlspecialchars($ipnFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $ipnFormat['maxlength'] ?>" inputmode="<?= $ipnFormat['numeric'] ? 'numeric' : 'text' ?>">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_ar_number">AR Number</label>
-                    <input type="text" id="add_ar_number" name="ar_number" placeholder="From the BAI clearance">
+                    <input type="text" id="add_ar_number" name="ar_number" placeholder="<?= htmlspecialchars($arFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $arFormat['maxlength'] ?>">
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_title">Title of Research <span class="records-required">*</span></label>
@@ -910,7 +916,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <input type="text" id="add_pi" name="principal_investigator" placeholder="Full name">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="add_school">School <span class="records-required">*</span></label>
+                    <label class="field-label" for="add_school">School/Affiliation <span class="records-required">*</span></label>
                     <select id="add_school" name="school">
                         <option value="">Select</option>
                         <?= $renderOptions(UserModel::SCHOOLS) ?>
@@ -1014,11 +1020,11 @@ include dirname(__DIR__) . '/includes/guide.php';
                 <div class="records-form-grid records-form-full records-form-staff">
                     <div class="records-form-group records-form-full">
                         <label class="field-label" for="edit_reference_no">IPN</label>
-                        <input type="text" id="edit_reference_no" name="reference_no" placeholder="e.g. 000026" maxlength="6" inputmode="numeric" pattern="\d{6}">
+                        <input type="text" id="edit_reference_no" name="reference_no" placeholder="<?= htmlspecialchars($ipnFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $ipnFormat['maxlength'] ?>" inputmode="<?= $ipnFormat['numeric'] ? 'numeric' : 'text' ?>">
                     </div>
                     <div class="records-form-group records-form-full">
                         <label class="field-label" for="edit_ar_number">AR Number</label>
-                        <input type="text" id="edit_ar_number" name="ar_number" placeholder="From the BAI clearance">
+                        <input type="text" id="edit_ar_number" name="ar_number" placeholder="<?= htmlspecialchars($arFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $arFormat['maxlength'] ?>">
                     </div>
                     <div class="records-form-group">
                         <label class="field-label" for="edit_date_released">Date Released</label>
@@ -1046,7 +1052,7 @@ include dirname(__DIR__) . '/includes/guide.php';
                     <input type="text" id="edit_pi" name="principal_investigator">
                 </div>
                 <div class="records-form-group">
-                    <label class="field-label" for="edit_school">School <span class="records-required">*</span></label>
+                    <label class="field-label" for="edit_school">School/Affiliation <span class="records-required">*</span></label>
                     <select id="edit_school" name="school">
                         <option value="">Select</option>
                         <?= $renderOptions(UserModel::SCHOOLS) ?>
@@ -1144,6 +1150,10 @@ include dirname(__DIR__) . '/includes/guide.php';
     (function() {
         const ROOT = '<?= ROOT ?>';
         const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
+        const IPN_FORMAT = <?= json_encode($ipnFormat) ?>;
+        const IPN_PATTERN = new RegExp(IPN_FORMAT.pattern);
+        const AR_FORMAT = <?= json_encode($arFormat) ?>;
+        const AR_PATTERN = new RegExp(AR_FORMAT.pattern);
 
         // ===== Modal helpers =====
         function openModal(id) {
@@ -1231,14 +1241,14 @@ include dirname(__DIR__) . '/includes/guide.php';
         }
 
         let editOriginalIpn = '';
-        let editHasSignedScan = false;
+        let editOriginalAr = '';
         let editSkipFields = [];
 
         // ===== REQUIRED STATISTICS FIELDS =====
         const STAT_FIELDS = [
             ['title', 'Title of research'],
             ['pi', 'Principal investigator'],
-            ['school', 'School'],
+            ['school', 'School/Affiliation'],
             ['animal_type', 'Animal type'],
             ['animal_count', 'Animal count'],
             ['sex', 'Researcher sex'],
@@ -1322,6 +1332,15 @@ include dirname(__DIR__) . '/includes/guide.php';
         const editFile = fileField('edit');
 
         // ===== ADD =====
+        async function suggestIpn() {
+            try {
+                const res = await fetch(ROOT + '/apply/next_ipn');
+                const data = await res.json();
+                const input = document.getElementById('add_reference_no');
+                if (data.next && !input.value) input.value = data.next;
+            } catch (err) {}
+        }
+
         const addRecordBtn = document.getElementById('addRecordBtn');
         if (addRecordBtn) {
             addRecordBtn.addEventListener('click', () => {
@@ -1330,7 +1349,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                 document.getElementById('add_status').value = 'Ongoing';
                 document.getElementById('add_animal_count').value = 1;
                 addFile.reset();
+                document.getElementById('add_ar_number').value = AR_FORMAT.leading;
                 openModal('addModal');
+                suggestIpn();
             });
         }
 
@@ -1344,8 +1365,14 @@ include dirname(__DIR__) . '/includes/guide.php';
                     showErr('addError', 'IPN is required.');
                     return;
                 }
-                if (!/^\d{6}$/.test(ref)) {
-                    showErr('addError', 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+                if (!IPN_PATTERN.test(ref)) {
+                    showErr('addError', IPN_FORMAT.message);
+                    return;
+                }
+                const ar = document.getElementById('add_ar_number').value.trim();
+                const arNumber = ar === AR_FORMAT.leading ? '' : ar;
+                if (arNumber && !AR_PATTERN.test(arNumber)) {
+                    showErr('addError', AR_FORMAT.message);
                     return;
                 }
                 const missing = missingStatField('add');
@@ -1360,7 +1387,7 @@ include dirname(__DIR__) . '/includes/guide.php';
 
                 post('/personnel/records_add', {
                     reference_no: ref,
-                    ar_number: document.getElementById('add_ar_number').value,
+                    ar_number: arNumber,
                     title_of_research: title,
                     school: document.getElementById('add_school').value,
                     animal_type: document.getElementById('add_animal_type').value,
@@ -1434,9 +1461,9 @@ include dirname(__DIR__) . '/includes/guide.php';
                         const d = data.data;
                         document.getElementById('edit_id').value = d.id;
                         document.getElementById('edit_reference_no').value = d.reference_no ?? '';
-                        document.getElementById('edit_ar_number').value = d.ar_number ?? '';
+                        editOriginalAr = d.ar_number ?? '';
+                        document.getElementById('edit_ar_number').value = editOriginalAr;
                         editOriginalIpn = d.reference_no ?? '';
-                        editHasSignedScan = !!d.has_signed_scan;
                         document.getElementById('edit_title').value = d.title_of_research ?? '';
                         document.getElementById('edit_pi').value = d.principal_investigator ?? '';
                         setSelectValue(document.getElementById('edit_school'), d.school ?? '');
@@ -1468,19 +1495,14 @@ include dirname(__DIR__) . '/includes/guide.php';
 
             const ipnChanged = document.getElementById('edit_reference_no').value.trim() !== editOriginalIpn;
             const newIpn = document.getElementById('edit_reference_no').value.trim();
-            if (ipnChanged && newIpn !== '' && !/^\d{6}$/.test(newIpn)) {
-                showErr('editError', 'IPN must be 6 digits, with the last 2 digits as the year (e.g. 000026).');
+            if (ipnChanged && newIpn !== '' && !IPN_PATTERN.test(newIpn)) {
+                showErr('editError', IPN_FORMAT.message);
                 return;
             }
-            if (ipnChanged && editHasSignedScan) {
-                const confirmed = await confirmAction(
-                    'This record already has a signed scan. Changing the IPN will make the signed scan not match the record.', {
-                        okText: 'Change IPN',
-                        cancelText: 'Cancel',
-                        danger: true
-                    }
-                );
-                if (!confirmed) return;
+            const newAr = document.getElementById('edit_ar_number').value.trim();
+            if (newAr !== '' && newAr !== editOriginalAr && !AR_PATTERN.test(newAr)) {
+                showErr('editError', AR_FORMAT.message);
+                return;
             }
 
             const missing = missingStatField('edit', editSkipFields);

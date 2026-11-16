@@ -9,6 +9,7 @@ function openReviewPaymentModal(
   protocolId,
   title,
   paymentMethod,
+  receiptNo,
   researcherName,
   school,
 ) {
@@ -26,8 +27,15 @@ function openReviewPaymentModal(
   resetReviewPaymentModal();
   reviewPaymentModal.classList.add("open");
   if (paymentMethod === "in_person") {
-    document.getElementById("reviewPaymentImageFrame").innerHTML =
-      '<p class="review-payment-note">The researcher confirmed paying the fee in person at CCARD. Verify with your records before approving.</p>';
+    const note = document.createElement("p");
+    note.className = "review-payment-note";
+    note.append(
+      "The researcher confirmed paying the fee in person at CCARD with temporary receipt no. ",
+    );
+    const receipt = document.createElement("strong");
+    receipt.textContent = receiptNo || "(none recorded)";
+    note.append(receipt, ". Check it against your records before approving.");
+    document.getElementById("reviewPaymentImageFrame").replaceChildren(note);
   } else {
     loadPaymentProofImage(protocolId);
   }
@@ -71,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     openPaymentId,
     protocol.research_title ?? "",
     protocol.payment_method ?? "online",
+    protocol.payment_receipt_no ?? "",
     `${protocol.first_name ?? ""} ${protocol.last_name ?? ""}`.trim(),
     protocol.school ?? "",
   );

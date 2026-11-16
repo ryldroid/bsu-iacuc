@@ -5,7 +5,6 @@
 
   const endpoint = watcher.dataset.updatesEndpoint;
   const baseline = watcher.dataset.updatesBaseline;
-  const POLL_MS = 25000;
 
   // ===== Date helper =====
   function toDate(value) {
@@ -13,7 +12,6 @@
   }
 
   const baselineDate = toDate(baseline);
-  let pollId = null;
 
   // ===== Check for updates =====
   async function checkForUpdates() {
@@ -26,16 +24,18 @@
       const latestDate = toDate(data.latest);
 
       if (latestDate && (!baselineDate || latestDate > baselineDate)) {
-        clearInterval(pollId);
+        document.removeEventListener("notifications-updated", checkForUpdates);
         showToast("New activity detected.", "info", {
           autodismiss: 0,
-          action: { label: "Click to refresh.", onClick: () => location.reload() },
+          action: {
+            label: "Click to refresh.",
+            onClick: () => location.reload(),
+          },
         });
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
-  // ===== Start polling =====
-  pollId = setInterval(checkForUpdates, POLL_MS);
+  // ===== Check after every bell refresh =====
+  document.addEventListener("notifications-updated", checkForUpdates);
 })();

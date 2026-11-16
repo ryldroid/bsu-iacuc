@@ -37,25 +37,249 @@
 }
 
 /* ===== History timeline (reuses the payment timeline classes) ===== */
+.history-timeline-card {
+  display: flex;
+  flex-direction: column;
+  max-width: 680px;
+  height: min(560px, 90vh);
+}
+
 .history-timeline-body {
-  max-height: 60vh;
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   gap: 1.5rem;
 }
 
-.history-section-label {
-  margin: 0 0 .75rem;
-  font-size: .68rem;
-  font-weight: 700;
-  letter-spacing: .02em;
+/* ===== Status steps ===== */
+.history-stepper {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-step {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.history-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 2px;
+  background: var(--divider-color);
+}
+
+.history-step-button {
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--primary-text);
+  cursor: pointer;
+  text-align: center;
+}
+
+.history-step-button:hover {
+  background: none;
+  color: var(--primary-text);
+}
+
+.history-step-button:active,
+.history-timeline-card .action-link:active {
+  transform: none;
+}
+
+.history-step-button:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 4px;
+}
+
+.history-step-button:disabled {
+  cursor: default;
+}
+
+.history-step--under-review {
+  --step-tone: var(--status-color-under-review);
+}
+
+.history-step--needs-revision {
+  --step-tone: var(--status-color-needs-revision);
+}
+
+.history-step--reviewed {
+  --step-tone: var(--status-color-reviewed);
+}
+
+.history-step--endorsed {
+  --step-tone: var(--status-color-endorsed);
+}
+
+.history-step--approved {
+  --step-tone: var(--status-color-approved);
+}
+
+.history-step .payment-event-icon {
+  background: var(--step-tone);
+  color: var(--card-background);
+}
+
+.history-step.is-selected .payment-event-icon {
+  box-shadow: 0 0 0 3px var(--card-background), 0 0 0 5px var(--step-tone);
+}
+
+.history-step.is-upcoming {
+  opacity: .6;
+}
+
+.history-step.is-upcoming .payment-event-icon {
+  background: var(--divider-color);
   color: var(--muted-text);
 }
 
-.history-section+.history-section {
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--divider-color);
+.history-step.is-upcoming .history-step-label {
+  color: var(--muted-text);
 }
 
-.history-open {
-  gap: 6px;
+.history-step-label {
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-step-date {
+  font-size: .65rem;
+  color: var(--muted-text);
+}
+
+.history-step-current {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--step-tone);
+}
+
+.history-step-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: .9rem 1rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius);
+  background: var(--hover-surface-soft);
+}
+
+/* ===== Event rows ===== */
+.history-tone-info {
+  --event-tone: var(--status-color-under-review);
+}
+
+.history-tone-success {
+  --event-tone: var(--status-color-approved);
+}
+
+.history-tone-warning {
+  --event-tone: var(--status-color-endorsed);
+}
+
+.history-tone-danger {
+  --event-tone: var(--status-color-needs-revision);
+}
+
+.history-event {
+  --event-bg: color-mix(in srgb, var(--event-tone) 16%, var(--card-background));
+  --event-text: var(--event-tone);
+}
+
+.history-event .payment-event-detail strong {
+  color: var(--primary-text);
+}
+
+.history-event .payment-event-body,
+.history-event-aside {
+  padding-top: 6px;
+}
+
+.history-event .payment-event-title,
+.history-event-aside span:first-child {
+  line-height: 20px;
+}
+
+.history-event .payment-event-detail {
+  margin-top: 2px;
+  color: var(--secondary-text);
+}
+
+.history-event-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  font-size: .62rem;
+  color: var(--muted-text);
+  white-space: nowrap;
+}
+
+.history-event-aside span:nth-child(2) {
+  line-height: 1;
+  margin-top: -3px;
+}
+
+.history-event-aside .action-link {
+  margin-top: 3px;
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.history-event-aside .action-link+.action-link::before {
+  content: none;
+}
+
+.history-timeline-card .action-link:hover {
+  background: none;
+  color: var(--brand-color-hover);
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .history-timeline-body {
+    padding: 1rem .75rem;
+  }
+
+  .history-step-label {
+    white-space: normal;
+    font-size: .7rem;
+    line-height: 1.2;
+  }
+
+  .history-step-date {
+    font-size: .6rem;
+  }
+
+  .history-step .payment-event-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .history-step:not(:last-child)::after {
+    top: 14px;
+    left: calc(50% + 18px);
+    right: calc(-50% + 18px);
+  }
+
+  .history-step-panel {
+    padding: .75rem;
+  }
 }

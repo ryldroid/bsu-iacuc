@@ -6,6 +6,7 @@ include dirname(__DIR__) . '/includes/header.php';
 
 <link rel="stylesheet" href="<?= asset_css('account.css') ?>">
 <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
+<link rel="stylesheet" href="<?= asset_css('consent.css') ?>">
 
 <div class="body">
     <main class="main-content wide main-content--pinned-nav" id="main-content" tabindex="-1">
@@ -89,7 +90,7 @@ include dirname(__DIR__) . '/includes/header.php';
             <div class="input-group">
                 <input type="text" id="school" name="school" list="school-options" placeholder=" "
                     value="<?= htmlspecialchars($old['school'] ?? ''); ?>" required>
-                <label for="school">School</label>
+                <label for="school">School/Affiliation</label>
             </div>
             <?php include __DIR__ . '/../includes/school-options.php'; ?>
 
@@ -114,12 +115,37 @@ include dirname(__DIR__) . '/includes/header.php';
                 </ul>
             </div>
 
+            <!-- ===== Terms and privacy consent ===== -->
+            <div class="consent-list">
+                <label class="consent-item">
+                    <input type="checkbox" class="consent-checkbox" name="agree_terms" value="1" required>
+                    <span>I have read and agree to the
+                        <a href="#" class="underlined" onclick="openDocModal(event,'terms-modal')">terms of use</a>
+                    </span>
+                </label>
+                <label class="consent-item">
+                    <input type="checkbox" class="consent-checkbox" name="agree_privacy" value="1" required>
+                    <span>I have read and agree to the
+                        <a href="#" class="underlined" onclick="openDocModal(event,'privacy-modal')">privacy policy</a>
+                    </span>
+                </label>
+            </div>
+
+            <!-- ===== Captcha ===== -->
+            <div class="cf-turnstile captcha" id="captcha" data-sitekey="<?= htmlspecialchars(TURNSTILE_SITE_KEY); ?>" data-size="flexible"></div>
+            <script>
+                document.getElementById('captcha').dataset.theme = document.documentElement.dataset.theme;
+            </script>
+
             <button type="submit" class="register-btn">Register</button>
             <p class="underlined-p">Already have an account? <a class="underlined" href="<?= ROOT ?>/user/login">Log in here</a></p>
         </form>
     </main>
+    <?php include dirname(__DIR__) . '/includes/terms-privacy-modals.php'; ?>
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="<?= asset_js('doc-modal.js') ?>"></script>
 </body>
 
 </html>

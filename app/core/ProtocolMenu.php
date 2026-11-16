@@ -12,7 +12,7 @@ class ProtocolMenu
   public static function forRow(array $protocol, array $actor, array $extraItems = []): array
   {
     $flags      = ProtocolPermissions::flags($protocol, $actor);
-    $latestFile = (int) ($protocol['latest_signed_scan_version_id'] ?? $protocol['latest_protocol_version_id'] ?? 0);
+    $latestFile = (int) ($protocol['latest_protocol_version_id'] ?? 0);
     return self::base($protocol) + [
       'look'     => 'icon',
       'flags'    => $flags,
@@ -39,9 +39,8 @@ class ProtocolMenu
   private static function base(array $protocol): array
   {
     return [
-      'protocolId'        => (int) $protocol['protocol_id'],
-      'title'             => $protocol['research_title'],
-      'deletionRequested' => !empty($protocol['deletion_requested_at']),
+      'protocolId' => (int) $protocol['protocol_id'],
+      'title'      => $protocol['research_title'],
     ];
   }
 }

@@ -2,9 +2,7 @@
   // ===== State & settings =====
   var USER_ID = typeof CURRENT_USER_ID !== "undefined" ? CURRENT_USER_ID : 0;
   var STORAGE_KEY = "iacuc_action_queue_" + USER_ID;
-  var IS_PERSONNEL =
-    typeof SESSION_LOGIN_PATH !== "undefined" &&
-    SESSION_LOGIN_PATH === "personnel/login";
+  var IS_PERSONNEL_USER = typeof IS_PERSONNEL !== "undefined" && IS_PERSONNEL;
   var REPLAY_DELAY = 1200;
   var replayTimer = null;
   var bannerEl = null;
@@ -172,12 +170,11 @@
     "/apply/reject_payment": "Reject payment proof",
     "/apply/undo_payment": "Undo payment mark",
     "/apply/hard_copy": "Update hard copy pickup",
-    "/apply/approve_deletion": "Approve deletion request",
-    "/apply/reject_deletion": "Reject deletion request",
+    "/apply/endorse": "Endorse with proof",
     "/apply/assign_ipn": "Assign IPN",
     "/apply/rename": "Rename protocol",
-    "/apply/delete": "Delete protocol",
-    "/apply/signed_scan_upload": "Upload signed scan",
+    "/apply/delete": "Archive protocol",
+    "/apply/restore": "Restore protocol",
     "/apply/clearance_pool_upload": "Upload clearance screenshot",
     "/personnel/certverify": "Verify training certificate",
     "/personnel/certreject": "Reject training certificate",
@@ -206,7 +203,6 @@
         return revert ? "Revert endorsement" : "Finish review";
       if (s === "Endorsed")
         return revert ? "Revert approval" : "Mark as endorsed";
-      if (s === "Approved") return "Mark as approved";
       if (s === "Under Review") return "Send back to review";
       return "Status change";
     }
@@ -559,7 +555,7 @@
   );
 
   function shouldIntercept(url) {
-    if (!url || !IS_PERSONNEL) return false;
+    if (!url || !IS_PERSONNEL_USER) return false;
     var path = url.split("?")[0];
     return INTERCEPTED_PATHS.some(function (p) {
       return path.slice(-p.length) === p;

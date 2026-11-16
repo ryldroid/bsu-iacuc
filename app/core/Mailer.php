@@ -66,8 +66,15 @@ class Mailer
         $file = VIEWSPATH . "emails/{$template}.php";
         if (!file_exists($file)) return false;
 
-        extract($vars);
-        $body = require $file;
+        $level = ob_get_level();
+        try {
+            extract($vars);
+            $body = require $file;
+        } finally {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+        }
 
         $isSecurity = in_array($template, self::ACCOUNT_SECURITY_TEMPLATES, true);
 

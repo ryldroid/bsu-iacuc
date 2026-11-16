@@ -287,6 +287,7 @@ class User extends Controller
   {
     // ===== START SESSION =====
     session_regenerate_id(true);
+    unset($_SESSION['flash_error']);
     $_SESSION['user'] = [
       'user_id'        => $user['id'],
       'first_name'     => $user['first_name'],
@@ -345,10 +346,25 @@ class User extends Controller
     $errors = $this->validateUserFields($username, $first_name, $last_name, $email, $phone_number, $password, $confirm_pass, 'researcher', true, $sex, $researcher_type);
 
     if ($school === '') {
-      $errors[] = 'Please enter your school.';
+      $errors[] = 'Please enter your school or affiliation.';
     } elseif (mb_strlen($school) > 150) {
-      $errors[] = 'School name is too long.';
+      $errors[] = 'School/Affiliation is too long.';
     }
+
+    if (empty($_POST['agree_terms']) || empty($_POST['agree_privacy'])) {
+      $errors[] = 'Please accept the terms of use and the privacy policy.';
+    }
+
+    if (!Captcha::verify((string) ($_POST['cf-turnstile-response'] ?? ''))) {
+      $errors[] = 'Please complete the captcha and try again.';
+    }
+
+    // ===== REGISTRATION ATTEMPT LIMIT =====
+    $registerKey = 'register:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    if ($this->userModel->countRecentAttempts($registerKey, 900) >= 5) {
+      $errors[] = 'Too many registration attempts. Please wait 15 minutes before trying again.';
+    }
+    $this->userModel->recordLoginAttempt($registerKey);
 
     if (empty($errors)) {
       if ($this->userModel->getUserByEmail($email, 'researcher')) {
@@ -369,7 +385,7 @@ class User extends Controller
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex, $researcher_type);
+    $ok   = $this->userModel->insertUser($username, $first_name, $last_name, $email, $hash, 'researcher', 'active', $phone_number, $school, $sex, $researcher_type, true);
 
     if ($ok) {
       // No email goes out yet: the verify page lets the person send the link when they are ready
@@ -444,6 +460,20 @@ class User extends Controller
     unset($_SESSION['user']['show_welcome']);
 
     $this->jsonResponse(['ok' => true]);
+  }
+
+  // ===== SAVE SORT / FILTER CHOICE (POST /user/view_preference) =====
+
+  public function view_preference(): void
+  {
+    $this->requireLogin();
+    $this->requirePostMethod();
+    $this->verifyCsrfHeader();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $ok   = $this->userModel->saveViewPreference((int) $_SESSION['user']['user_id'], (string) ($body['key'] ?? ''), (string) ($body['value'] ?? ''));
+
+    $ok ? $this->jsonResponse(['ok' => true]) : $this->jsonError(422, 'Invalid preference.');
   }
 
   // ===== MANAGE ACCOUNT =====
@@ -574,9 +604,9 @@ class User extends Controller
 
     if ($role === 'researcher') {
       if ($school === '') {
-        $errors[] = 'Please enter your school.';
+        $errors[] = 'Please enter your school or affiliation.';
       } elseif (mb_strlen($school) > 150) {
-        $errors[] = 'School name is too long.';
+        $errors[] = 'School/Affiliation is too long.';
       }
     }
 
@@ -716,7 +746,7 @@ class User extends Controller
       }
 
       $this->userModel->logAudit('account_deleted', $id, $username, $role, 'user', $id, 'User deleted their account');
-      Mailer::sendTemplate('account_deleted', ['first_name' => $account['first_name'], 'deleted_by_admin' => false], $account['email'], $account['first_name'], 'Account Deleted');
+      Mailer::sendTemplate('account_deleted', ['first_name' => $account['first_name']], $account['email'], $account['first_name'], 'Account Deleted');
 
       session_destroy();
       session_start();

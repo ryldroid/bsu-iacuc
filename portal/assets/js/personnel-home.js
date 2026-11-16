@@ -4,28 +4,18 @@ const VERIFY_PAYMENT_API = ROOT_URL + "/apply/verify_payment";
 const UNDO_PAYMENT_API = ROOT_URL + "/apply/undo_payment";
 const HARD_COPY_API = ROOT_URL + "/apply/hard_copy";
 const REJECT_PAYMENT_API = ROOT_URL + "/apply/reject_payment";
-const SIGNED_SCAN_UPLOAD_API = ROOT_URL + "/apply/signed_scan_upload";
+const RESTORE_API = ROOT_URL + "/apply/restore";
 const CLEARANCE_VIEW_URL = ROOT_URL + "/apply/clearance/";
 
 // ===== DOM refs =====
 const protocolsList = document.getElementById("protocolsList");
 const noResultsMsg = document.getElementById("noResultsMsg");
-const filterPills = document.querySelectorAll(
-  "#filterPillsRow .status-card[data-filter]",
-);
-const mobileSortTrigger = document.querySelector(".mobile-sort-trigger");
-const mobileSortOptions = document.getElementById("mobileSortOptions");
-const mobileSortLabel = document.getElementById("mobileSortLabel");
-const mobileFilterTrigger = document.querySelector(".mobile-filter-trigger");
-const mobileFilterOptions = document.getElementById("mobileFilterOptions");
-const mobileFilterLabel = document.getElementById("mobileFilterLabel");
 const archivedLink = document.getElementById("archivedLink");
-const searchInput = document.getElementById("inboxSearchInput");
-const searchClearBtn = document.getElementById("inboxSearchClear");
-const resultsSummary = document.getElementById("resultsSummary");
+const archiveCategoryBar = document.getElementById("archiveCategories");
+const archiveBannerDesc = document.getElementById("archiveBannerDesc");
+const noResultsText = document.getElementById("noResultsText");
 const rowsPerPageSel = document.getElementById("rowsPerPageSelect");
 const bulkActionsBar = document.getElementById("bulkActionsBar");
-const clearanceBulk = document.getElementById("clearanceBulk");
 const paymentFilterWrapper = document.getElementById("paymentFilterWrapper");
 const paymentFilterSelect = document.getElementById("paymentFilterSelect");
 const clearancePanel = document.getElementById("clearancePanel");
@@ -41,17 +31,29 @@ const bulkDownloadBtn = document.getElementById("bulkDownloadBtn");
 const bulkEndorseBtn = document.getElementById("bulkEndorseBtn");
 const sortSelect = document.getElementById("inboxSortSelect");
 const paymentClearBtn = document.getElementById("paymentClearBtn");
+const statusFilters = document.getElementById("statusFilters");
 
 const allRows = protocolsList
   ? [...protocolsList.querySelectorAll(".protocol")]
   : [];
 
-const DEFAULT_FILTER = "to-review";
-const ARCHIVED_FILTER = "archived";
+const ARCHIVED_SLUG = "archived";
+const ALL_ARCHIVE = "all";
 const DEFAULT_ROWS = 10;
 
-let activeFilter = DEFAULT_FILTER;
-let searchQuery = "";
+let showArchived = false;
+let archiveCategory =
+  archiveCategoryBar?.querySelector(".archive-category.active")?.dataset
+    .archiveCategory ?? "";
+const requestedStatus =
+  new URLSearchParams(window.location.search).get("status") ??
+  VIEW_PREFERENCES.inboxStatus ??
+  "";
+let statusFilter = statusFilters?.querySelector(
+  `[data-status="${CSS.escape(requestedStatus)}"]`,
+)
+  ? requestedStatus
+  : "";
 const pager = createPagination({
   info: document.getElementById("paginationInfo"),
   buttons: document.getElementById("paginationButtons"),
@@ -61,8 +63,16 @@ const pager = createPagination({
   onChange: () => renderTable(),
 });
 
+// ===== Search =====
+const inboxSearch = createInboxSearch({
+  onChange: () => {
+    pager.page = 1;
+    renderTable();
+  },
+});
+
 // ===== Sort by =====
-const SORT_STORAGE_KEY = CURRENT_USER_ID + ":inboxSort";
+const SORT_PREFERENCE = "inboxSort";
 
 function setUrlParam(params, key, value) {
   if (value) params.set(key, value);
@@ -71,13 +81,19 @@ function setUrlParam(params, key, value) {
 
 function saveView() {
   const url = new URL(window.location);
-  setUrlParam(url.searchParams, "q", searchInput?.value.trim());
+  setUrlParam(url.searchParams, "q", inboxSearch.text);
   setUrlParam(
     url.searchParams,
     "rows",
     pager.rows !== DEFAULT_ROWS ? pager.rows : "",
   );
+  setUrlParam(url.searchParams, "status", statusFilter);
   setUrlParam(url.searchParams, "payment", paymentFilterSelect?.value);
+  setUrlParam(
+    url.searchParams,
+    "category",
+    showArchived && archiveCategory !== ALL_ARCHIVE ? archiveCategory : "",
+  );
   setUrlParam(url.searchParams, "page", pager.page > 1 ? pager.page : "");
   history.replaceState(null, "", url);
 }
@@ -88,39 +104,28 @@ function applySort(mode) {
 }
 
 sortSelect?.addEventListener("change", () => {
-  localStorage.setItem(SORT_STORAGE_KEY, sortSelect.value);
-  mobileSortOptions
-    ?.querySelectorAll(".status-card")
-    .forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.sort === sortSelect.value),
-    );
-  if (mobileSortLabel)
-    mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;
+  saveViewPreference(SORT_PREFERENCE, sortSelect.value);
+  syncProtocolSortControls(sortSelect);
   applySort(sortSelect.value);
   pager.page = 1;
   renderTable();
 });
 
-// ===== Only show the payment filter and select button while viewing the Reviewed tab, and
-// the clearance panel while viewing the Endorsed tab; hide the whole
-// bar when none of them has anything to do =====
+// ===== Show the payment filter and select button only on the Reviewed tab, and
+// the clearance panel only on the Endorsed tab =====
 function updateBulkActionsBarVisibility() {
   const canSelect =
-    activeFilter === "reviewed" && REVIEWED_DOWNLOADABLE_COUNT > 0;
+    !showArchived &&
+    statusFilter === "reviewed" &&
+    REVIEWED_DOWNLOADABLE_COUNT > 0;
 
   if (paymentFilterWrapper) {
     paymentFilterWrapper.hidden = !canSelect;
     if (!canSelect) paymentFilterSelect.value = "";
   }
   if (clearancePanel) {
-    const showClearances = activeFilter === "endorsed";
-    clearancePanel.hidden = !showClearances;
-    clearanceBulk.hidden = !showClearances;
-    document
-      .getElementById("clearanceLayout")
-      .classList.toggle("clearance-layout--split", showClearances);
-    if (showClearances && typeof ensureClearanceBoard === "function")
-      ensureClearanceBoard();
+    clearancePanel.hidden =
+      showArchived || statusFilter !== "endorsed" || ENDORSED_COUNT === 0;
   }
   if (toggleSelectBtn) {
     toggleSelectBtn.hidden = !canSelect;
@@ -131,8 +136,7 @@ function updateBulkActionsBarVisibility() {
   if (bulkActionsBar) {
     bulkActionsBar.hidden =
       (paymentFilterWrapper?.hidden ?? true) &&
-      (toggleSelectBtn?.hidden ?? true) &&
-      (clearanceBulk?.hidden ?? true);
+      (toggleSelectBtn?.hidden ?? true);
   }
 }
 
@@ -234,217 +238,82 @@ bulkEndorseBtn?.addEventListener("click", () => {
   const skippedCount =
     selectedProtocolIds(
       ".protocol:not(.protocol-row-hidden) .protocol-select-checkbox:checked",
-    ).length -
-    protocolIds.length;
+    ).length - protocolIds.length;
 
   if (protocolIds.length === 0) return;
-
-  const skippedNote =
-    skippedCount > 0
-      ? ` ${skippedCount} selected protocol${skippedCount === 1 ? " is" : "s are"} not paid with a signed scan and will be skipped.`
-      : "";
-
-  confirmAction(
-    `Mark ${protocolIds.length} selected protocol${protocolIds.length === 1 ? "" : "s"} as endorsed? Double-check that payment is verified and the signed scans are correct before proceeding.${skippedNote}`,
-    {
-      okText: "Mark as Endorsed",
-      cancelText: "Cancel",
-    },
-  ).then((ok) => ok && submitBulkEndorse(protocolIds, bulkEndorseBtn));
+  openEndorsementModal(protocolIds, skippedCount);
 });
 
-async function submitBulkEndorse(protocolIds, btn) {
-  setButtonBusy(btn, true, "Endorsing...");
+// ===== Archive: a quiet extra section with an obvious way back =====
+const archiveView = createArchiveView({
+  link: archivedLink,
+  banner: document.getElementById("archiveBanner"),
+  backButton: document.getElementById("archiveBackBtn"),
+  onChange: (on) => {
+    showArchived = on;
+    if (statusFilters) statusFilters.hidden = on;
+    pager.page = 1;
+    updateBulkActionsBarVisibility();
+    renderTable();
+  },
+});
+showArchived = archiveView.active;
+if (statusFilters) statusFilters.hidden = showArchived;
 
-  const results = await Promise.all(
-    protocolIds.map((protocolId) =>
-      fetch(STATUS_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...csrfHeaders(),
-        },
-        body: JSON.stringify({
-          protocol_id: protocolId,
-          status: "Endorsed",
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => ({
-          protocolId,
-          ok: !!data.ok,
-          queued: !!data.queued,
-        }))
-        .catch(() => ({
-          protocolId,
-          ok: false,
-        })),
-    ),
+// ===== Archive categories =====
+function setArchiveCategory(category) {
+  const chips = [
+    ...(archiveCategoryBar?.querySelectorAll(".archive-category") ?? []),
+  ];
+  const chosen = chips.find(
+    (chip) => chip.dataset.archiveCategory === category,
   );
+  if (!chosen) return;
 
-  const failedCount = results.filter((r) => !r.ok && !r.queued).length;
-  const okCount = results.filter((r) => r.ok).length;
-
-  if (results.some((r) => r.queued)) setButtonBusy(btn, false);
-
-  if (failedCount > 0) {
-    setButtonBusy(btn, false);
-    showToast(
-      okCount > 0
-        ? `${okCount} of ${results.length} protocol(s) were marked as endorsed. ${failedCount} could not be updated and may no longer be eligible.`
-        : `Could not mark the selected protocol(s) as endorsed. They may no longer be eligible, or a network error occurred.`,
-      "error",
-    );
-  }
-
-  if (okCount > 0) {
-    // Give the error toast time to be read before the reload wipes it
-    if (failedCount > 0) await new Promise((r) => setTimeout(r, 3500));
-    window.location.reload();
-  }
-}
-
-// ===== Status guide (colors & text) =====
-function hexToRgba(hex, alpha) {
-  const h = hex.replace("#", "");
-  const r = parseInt(h.substring(0, 2), 16);
-  const g = parseInt(h.substring(2, 4), 16);
-  const b = parseInt(h.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function updateStatusGuide(selected) {
-  const guide = document.getElementById("statusGuide");
-  if (!guide) return;
-
-  const meta = statusMeta[selected];
-  if (!meta) {
-    guide.classList.remove("open");
-    guide.style.background = "";
-    guide.innerHTML = "";
-    return;
-  }
-
-  guide.innerHTML = `<p class="status-guide-text">
-                            <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#info-icon" />
-                            </svg> ${meta.desc}
-                        </p>`;
-  guide.style.background = hexToRgba(meta.color, 0.12);
-  guide.classList.add("open");
-}
-
-// ===== Mobile sort dropdown open/close =====
-function openDropdown(trigger, panel) {
-  if (!trigger || !panel) return;
-  const isOpen = panel.classList.toggle("active");
-  trigger.classList.toggle("open", isOpen);
-  trigger.setAttribute("aria-expanded", isOpen);
-  if (isOpen) {
-    positionEdgeAwareDropdown(panel.closest(".sort-wrapper"), panel);
-  }
-}
-
-function closeDropdown(trigger, panel) {
-  if (!trigger || !panel) return;
-  panel.classList.remove("active");
-  trigger.classList.remove("open");
-  trigger.setAttribute("aria-expanded", "false");
-}
-
-mobileSortTrigger?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  openDropdown(mobileSortTrigger, mobileSortOptions);
-});
-
-document.addEventListener("click", (e) => {
-  [
-    [mobileSortTrigger, mobileSortOptions],
-    [mobileFilterTrigger, mobileFilterOptions],
-  ].forEach(([trigger, panel]) => {
-    if (!panel?.contains(e.target) && !trigger?.contains(e.target)) {
-      closeDropdown(trigger, panel);
-    }
+  archiveCategory = category;
+  chips.forEach((chip) => {
+    chip.classList.toggle("active", chip === chosen);
+    chip.setAttribute("aria-pressed", chip === chosen);
   });
-});
-
-// ===== Mobile sort dropdown mirrors the desktop <select> =====
-const mobileSortBtns =
-  mobileSortOptions?.querySelectorAll(".status-card") ?? [];
-mobileSortBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    sortSelect.value = btn.dataset.sort;
-    sortSelect.dispatchEvent(new Event("change"));
-    closeDropdown(mobileSortTrigger, mobileSortOptions);
-  });
-});
-
-// ===== Mobile status dropdown mirrors the filter pills =====
-function syncMobileFilter() {
-  mobileFilterOptions
-    ?.querySelectorAll(".status-card")
-    .forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.mobileFilter === activeFilter),
-    );
-  if (mobileFilterLabel) {
-    mobileFilterLabel.textContent =
-      activeFilter === ARCHIVED_FILTER
-        ? archivedLink.dataset.label
-        : ([...filterPills].find((pill) => pill.dataset.filter === activeFilter)
-            ?.dataset.label ?? "");
-  }
+  if (archiveBannerDesc) archiveBannerDesc.textContent = chosen.dataset.desc;
 }
 
-mobileFilterTrigger?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  closeDropdown(mobileSortTrigger, mobileSortOptions);
-  openDropdown(mobileFilterTrigger, mobileFilterOptions);
-});
-
-mobileFilterOptions?.querySelectorAll(".status-card").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    closeDropdown(mobileFilterTrigger, mobileFilterOptions);
-    [...filterPills]
-      .find((pill) => pill.dataset.filter === btn.dataset.mobileFilter)
-      ?.click();
-  });
-});
-
-// ===== Status filter tabs =====
-function markArchivedActive(on) {
-  archivedLink?.classList.toggle("active", on);
-  archivedLink?.setAttribute("aria-pressed", on);
-}
-
-function selectFilter(filter) {
-  activeFilter = filter;
+archiveCategoryBar?.addEventListener("click", (e) => {
+  const chip = e.target.closest(".archive-category");
+  if (!chip) return;
+  setArchiveCategory(chip.dataset.archiveCategory);
   pager.page = 1;
+  renderTable();
+});
 
-  filterPills.forEach((pill) => {
-    const isActive = pill.dataset.filter === filter;
-    pill.classList.toggle("active", isActive);
-    if (isActive) pill.scrollIntoView({ block: "nearest", inline: "center" });
+setArchiveCategory(new URLSearchParams(window.location.search).get("category"));
+
+// ===== Status filter =====
+function setStatusFilter(status) {
+  statusFilter = status;
+  saveViewPreference("inboxStatus", status);
+  statusFilters.querySelectorAll(".status-card").forEach((tab) => {
+    const active = tab.dataset.status === status;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-pressed", active);
   });
-  markArchivedActive(filter === ARCHIVED_FILTER);
-
-  updateStatusGuide(activeFilter);
-  syncMobileFilter();
-
-  const url = new URL(window.location);
-  url.searchParams.set("status", activeFilter);
-  history.replaceState(null, "", url);
+  pager.page = 1;
   updateBulkActionsBarVisibility();
   renderTable();
 }
 
-filterPills.forEach((pill) => {
-  pill.addEventListener("click", () => selectFilter(pill.dataset.filter));
+statusFilters?.addEventListener("click", (e) => {
+  const tab = e.target.closest(".status-card");
+  if (tab) setStatusFilter(tab.dataset.status);
 });
 
-// ===== Archived: a quiet extra section, not one of the status tabs. Press again to go back =====
-archivedLink?.addEventListener("click", () =>
-  selectFilter(activeFilter === ARCHIVED_FILTER ? DEFAULT_FILTER : ARCHIVED_FILTER),
-);
+if (statusFilters) {
+  statusFilters.querySelectorAll(".status-card").forEach((tab) => {
+    const active = tab.dataset.status === statusFilter;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-pressed", active);
+  });
+}
 
 // ===== Payment status filter =====
 paymentFilterSelect?.addEventListener("change", () => {
@@ -458,52 +327,7 @@ paymentClearBtn?.addEventListener("click", () => {
   paymentFilterSelect.focus({ preventScroll: true });
 });
 
-// ===== Search =====
-searchInput?.addEventListener("input", () => {
-  searchQuery = searchInput.value.trim().toLowerCase();
-  searchClearBtn.classList.toggle("visible", searchQuery.length > 0);
-  pager.page = 1;
-  renderTable();
-});
-
-searchClearBtn?.addEventListener("click", () => {
-  searchInput.value = "";
-  searchQuery = "";
-  searchClearBtn.classList.remove("visible");
-  pager.page = 1;
-  renderTable();
-  searchInput.focus();
-});
-
-// ===== Restore filter from URL param (?status=...) =====
-(function restoreFilterFromUrl() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const requestedStatus =
-    urlParams.get("status") ||
-    (urlParams.get("tab") === "clearance" ? "endorsed" : null);
-  if (requestedStatus) {
-    const matchingPill = [...filterPills].find(
-      (p) => p.dataset.filter === requestedStatus,
-    );
-    const showArchived = requestedStatus === ARCHIVED_FILTER && !!archivedLink;
-    if (matchingPill || showArchived) {
-      filterPills.forEach((p) => p.classList.toggle("active", p === matchingPill));
-      markArchivedActive(showArchived);
-      activeFilter = requestedStatus;
-      matchingPill?.scrollIntoView({
-        block: "nearest",
-        inline: "center",
-      });
-    }
-  } else {
-    const url = new URL(window.location);
-    url.searchParams.set("status", activeFilter);
-    history.replaceState(null, "", url);
-  }
-  updateStatusGuide(activeFilter);
-  syncMobileFilter();
-  updateBulkActionsBarVisibility();
-})();
+updateBulkActionsBarVisibility();
 
 // ===== Main render =====
 function renderTable() {
@@ -515,17 +339,22 @@ function renderTable() {
     const researcher = row.dataset.researcher ?? "";
 
     const matchesFilter =
-      activeFilter === "all" ? slug !== ARCHIVED_FILTER : slug === activeFilter;
+      (slug === ARCHIVED_SLUG) === showArchived &&
+      (showArchived
+        ? archiveCategory === ALL_ARCHIVE ||
+          row.dataset.archiveCategory === archiveCategory
+        : !statusFilter || slug === statusFilter);
     if (matchesFilter) tabTotal++;
 
     const matchesSearch =
-      !searchQuery ||
-      title.includes(searchQuery) ||
-      researcher.includes(searchQuery);
+      !inboxSearch.query ||
+      title.includes(inboxSearch.query) ||
+      researcher.includes(inboxSearch.query);
 
     const matchesPayment =
       !paymentFilterSelect?.value ||
-      row.dataset.payment === paymentFilterSelect.value;
+      (slug === "reviewed" &&
+        row.dataset.payment === paymentFilterSelect.value);
 
     return matchesFilter && matchesSearch && matchesPayment;
   });
@@ -550,47 +379,23 @@ function renderTable() {
 
   if (noResultsMsg) {
     noResultsMsg.style.display = totalRows === 0 ? "flex" : "none";
+    noResultsText.textContent =
+      showArchived && !inboxSearch.query
+        ? archiveCategory === ALL_ARCHIVE
+          ? "No archived protocols."
+          : "No protocols in this category."
+        : "No protocols match your search.";
   }
 
-  if (resultsSummary) {
-    resultsSummary.textContent = searchQuery
+  inboxSearch.setSummary(
+    inboxSearch.query
       ? `Showing ${totalRows} of ${tabTotal} protocol${tabTotal === 1 ? "" : "s"}`
-      : "";
-  }
+      : "",
+  );
 }
 
-// ===== Status legend info panel (single click to open/close) =====
-(function () {
-  const wrapper = document.getElementById("legendInfoWrapper");
-  const btn = document.getElementById("legendInfoBtn");
-  const panel = document.getElementById("legendInfoPanel");
-  if (!wrapper || !btn || !panel) return;
-
-  function openPanel() {
-    panel.classList.add("open");
-    btn.setAttribute("aria-expanded", "true");
-  }
-
-  function closePanel() {
-    panel.classList.remove("open");
-    btn.setAttribute("aria-expanded", "false");
-  }
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    panel.classList.contains("open") ? closePanel() : openPanel();
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!wrapper.contains(e.target)) closePanel();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePanel();
-  });
-})();
-
 // ===== Restore saved sort =====
-restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);
+restoreProtocolSort(sortSelect, SORT_PREFERENCE, applySort);
 
 // ===== Restore search, rows per page, payment filter and page from the URL =====
 (function restoreView() {
@@ -599,11 +404,7 @@ restoreProtocolSort(sortSelect, SORT_STORAGE_KEY, applySort);
   const searchText = urlParams.get("q") ?? "";
   const paymentValue = urlParams.get("payment") ?? "";
 
-  if (searchInput && searchText) {
-    searchInput.value = searchText;
-    searchQuery = searchText.trim().toLowerCase();
-    searchClearBtn.classList.toggle("visible", searchQuery.length > 0);
-  }
+  if (searchText) inboxSearch.setText(searchText);
 
   pager.setRows(rowsValue);
 

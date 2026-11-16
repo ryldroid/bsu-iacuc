@@ -218,6 +218,24 @@ main button:hover {
     margin: 0;
 }
 
+/* ===== Registration consent and captcha ===== */
+.consent-list,
+.captcha {
+    width: 80%;
+    margin-bottom: 1em;
+}
+
+.consent-list .consent-item {
+    width: 100%;
+    margin: 0;
+}
+
+.consent-list .consent-checkbox {
+    width: 22px;
+    padding: 0;
+    box-shadow: none;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 760px) {
     main {
@@ -243,7 +261,9 @@ main button:hover {
     form>a,
     form .helper,
     .password-requirements,
-    .password-field-wrap {
+    .password-field-wrap,
+    .consent-list,
+    .captcha {
         width: 90%;
     }
 

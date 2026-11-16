@@ -7,8 +7,8 @@ ob_start();
 ?>
 
 <p>Hi,</p>
-<p><strong><?= htmlspecialchars($actor_name) ?></strong> submitted an amendment for the approved protocol <strong><?= htmlspecialchars($title) ?></strong>. It does not need to be reviewed again.</p>
+<p><strong><?= htmlspecialchars($actor_name) ?></strong> submitted an amendment for the approved protocol <strong><?= htmlspecialchars($title) ?></strong>. No further review is required.</p>
 <p><strong>What changed:</strong><br><?= nl2br(htmlspecialchars($note)) ?></p>
 <p>You can <?= Mailer::link(ROOT . '/apply/viewer/' . protocol_ref((int) $protocol_id, $title), 'view it here') ?>.</p>
-<p>- - BSU-IACUC Team</p>
+<p>- BSU-IACUC Team</p>
 <?php return ob_get_clean(); ?>

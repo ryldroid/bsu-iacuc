@@ -986,40 +986,7 @@
   pointer-events: all;
 }
 
-#deletionReviewReasonWrap {
-  margin: 0.75rem 0;
-}
-
-#deletionReviewReasonText {
-  margin: .5em 0;
-}
-
 #annotOfflineNote.helper {
   margin-bottom: 1em;
   font-style: italic;
-}
-
-/* ===== Deletion request rejected modal ===== */
-.deletion-rejected-reason {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  background: var(--danger-background-soft);
-}
-
-.deletion-rejected-reason-label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--danger-color);
-}
-
-.deletion-rejected-reason p {
-  margin: 0;
-  font-size: 0.92em;
-  line-height: 1.5;
-  color: var(--primary-text);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }

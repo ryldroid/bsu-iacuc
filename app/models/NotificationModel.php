@@ -30,14 +30,11 @@ class NotificationModel extends Model
     'payment_verified'               => ['icon' => 'check-icon', 'variant' => 'success'],
     'payment_proof_rejected'         => ['icon' => 'close-icon', 'variant' => 'danger'],
     'protocol_paid'                  => ['icon' => 'download-icon', 'variant' => 'teal'],
-    'signed_scan_uploaded'           => ['icon' => 'edit-icon', 'variant' => 'purple'],
     'clearance_pool_uploaded'        => ['icon' => 'clearance-icon', 'variant' => 'teal'],
-    'protocol_deletion_requested'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
-    'protocol_deletion_rejected'     => ['icon' => 'close-icon', 'variant' => 'danger'],
     'research_outcome_reported'      => ['icon' => 'check-circle-icon', 'variant' => 'info'],
-    'protocol_deletion_cancelled'    => ['icon' => 'undo-icon', 'variant' => 'info'],
     'protocol_amendment_withdrawn'   => ['icon' => 'undo-icon', 'variant' => 'info'],
     'protocol_deleted'               => ['icon' => 'trash-icon', 'variant' => 'danger'],
+    'protocol_restored'              => ['icon' => 'undo-icon', 'variant' => 'info'],
     'protocol_returned_to_review'    => ['icon' => 'alert-triangle-icon', 'variant' => 'warning'],
     'protocol_reverted'              => ['icon' => 'undo-icon', 'variant' => 'warning'],
     'protocol_review_undone'         => ['icon' => 'undo-icon', 'variant' => 'warning'],
@@ -52,7 +49,7 @@ class NotificationModel extends Model
   ];
 
   // ===== CREATE NOTIFICATIONS =====
-  public function create(int $userId, string $type, string $title, string $message = '', ?string $link = null): int | false
+  public function create(int $userId, string $type, string $title, string $message = '', ?string $link = null, bool $broadcast = true): int | false
   {
     $stmt = $this->connection->prepare(
       "INSERT INTO `notifications` (user_id, type, title, message, link)
@@ -65,6 +62,10 @@ class NotificationModel extends Model
     $stmt->bind_param('issss', $userId, $type, $title, $message, $link);
     if (! $stmt->execute()) {
       return false;
+    }
+
+    if ($broadcast) {
+      Broadcaster::notify([$userId]);
     }
 
     return $this->connection->insert_id;
@@ -87,8 +88,10 @@ class NotificationModel extends Model
     ));
 
     foreach ($users as $u) {
-      $this->create((int) $u['id'], $type, $title, $message, $link);
+      $this->create((int) $u['id'], $type, $title, $message, $link, false);
     }
+
+    Broadcaster::notify(array_column($users, 'id'));
 
     return $users;
   }
@@ -256,7 +259,7 @@ class NotificationModel extends Model
 
   public function markPaymentProofRead(int $protocolId): bool
   {
-    $link = 'personnel/home?status=reviewed&open_payment=' . $protocolId;
+    $link = 'personnel/home?open_payment=' . $protocolId;
     $stmt = $this->connection->prepare(
       "UPDATE `notifications` SET is_read = 1 WHERE type = 'payment_proof_uploaded' AND link = ? AND is_read = 0"
     );

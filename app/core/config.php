@@ -89,6 +89,14 @@ function submission_round_label(int $versionNumber): string
   return $versionNumber <= 1 ? 'Original submission' : 'Revision ' . ($versionNumber - 1);
 }
 
+// ===== STATUS ICON HELPER =====
+function statusIconSvg(string $iconId, int $size = 14): string
+{
+  return '<svg class="status-icon-svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    . '<use href="#' . htmlspecialchars($iconId, ENT_QUOTES, 'UTF-8') . '" />'
+    . '</svg>';
+}
+
 // ===== MAIL SETTINGS =====
 define('MAIL_HOST', EnvLoader::get('MAIL_HOST'));
 define('MAIL_PORT', EnvLoader::get('MAIL_PORT', 587));
@@ -115,6 +123,16 @@ define('EXPIRY_CRON_SECRET', EnvLoader::get('EXPIRY_CRON_SECRET', ''));
 
 // ===== CLOUDCONVERT SETTINGS =====
 define('CLOUDCONVERT_API_KEY', EnvLoader::get('CLOUDCONVERT_API_KEY', ''));
+
+// ===== CAPTCHA SETTINGS =====
+define('TURNSTILE_SITE_KEY', $isLocal ? '1x00000000000000000000AA' : EnvLoader::get('TURNSTILE_SITE_KEY', ''));
+define('TURNSTILE_SECRET_KEY', $isLocal ? '1x0000000000000000000000000000000AA' : EnvLoader::get('TURNSTILE_SECRET_KEY', ''));
+
+// ===== PUSH SETTINGS (PUSHER) =====
+define('PUSHER_APP_ID', EnvLoader::get('PUSHER_APP_ID', ''));
+define('PUSHER_KEY', EnvLoader::get('PUSHER_KEY', ''));
+define('PUSHER_SECRET', EnvLoader::get('PUSHER_SECRET', ''));
+define('PUSHER_CLUSTER', EnvLoader::get('PUSHER_CLUSTER', 'ap1'));
 
 // ===== REQUIRED SETTINGS CHECK =====
 if (!$isLocal) {

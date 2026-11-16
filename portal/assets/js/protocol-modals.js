@@ -59,6 +59,10 @@ function openRenameModal(protocolId, title, opts) {
   renameTitleInput.select();
 }
 
+renameTitleInput.addEventListener("input", () =>
+  capitalizeInputFirstLetter(renameTitleInput),
+);
+
 function closeRenameModal() {
   renameBackdrop.classList.remove("open");
 }
@@ -129,33 +133,33 @@ async function reportResearchOutcome(protocolId, outcome, title) {
   }
 }
 
-// ===== Delete / request deletion =====
-// opts.mode: "delete" (personnel) or "request" (researcher)
+// ===== Delete / discontinue =====
+// opts.mode: "delete" (personnel), "discontinue" (researcher) or "agencyReturn" (staff)
 const DELETE_MODES = {
   delete: {
     api: "/apply/delete",
-    label: "Delete Protocol",
+    label: "Archive Protocol",
     intro:
-      "This will delete the protocol and notify the researcher. Please explain why.",
-    button: "Delete",
-    busy: "Deleting...",
-    confirm:
-      "Delete {title}? The researcher will be notified with your reason. This cannot be undone.",
+      "Please provide a reason for archiving this protocol. It moves to the Archive, where you can restore it. It stays hidden from the researcher while it is archived.",
+    button: "Archive",
+    busy: "Archiving...",
+    confirm: "Proceed to archive {title}?",
     danger: true,
     icon: "trash-icon",
-    placeholder: "Explain why this protocol should be deleted...",
+    placeholder: "Explain why this protocol should be archived...",
   },
-  request: {
-    api: "/apply/request_deletion",
-    label: "Request Deletion",
+  discontinue: {
+    api: "/apply/discontinue",
+    label: "Discontinue Protocol",
     intro:
-      "CCARD will be notified of your request along with the reason below.",
-    button: "Send Request",
-    busy: "Sending...",
-    confirm: "Send a deletion request for {title} with this reason?",
-    danger: false,
-    icon: "trash-icon",
-    placeholder: "Explain why this protocol should be deleted...",
+      "Use this if you are stopping this research. CCARD will be notified, and the protocol moves to your archive and can no longer be changed or resubmitted.",
+    button: "Discontinue",
+    busy: "Saving...",
+    confirm:
+      "Discontinue {title}? It will move to your archive. Only CCARD can restore it.",
+    danger: true,
+    icon: "archive-icon",
+    placeholder: "Explain why this research is being discontinued...",
   },
   agencyReturn: {
     api: "/apply/status",
@@ -181,7 +185,7 @@ const deleteCharCount = document.getElementById("deleteCharCount");
 let deleteCtx = null;
 
 function openDeleteModal(protocolId, title, opts) {
-  const mode = DELETE_MODES[opts?.mode] ?? DELETE_MODES.request;
+  const mode = DELETE_MODES[opts?.mode] ?? DELETE_MODES.delete;
   deleteCtx = { protocolId, title, opts, mode };
   document.getElementById("deleteModalLabel").textContent = mode.label;
   document.getElementById("deleteModalTitle").textContent = title;
@@ -258,25 +262,6 @@ async function submitDelete() {
     showProtocolModalError(errBox, "Network error. Please try again.");
   }
   setButtonBusy(submitBtn, false);
-}
-
-// ===== Cancel a pending deletion request (researcher) =====
-async function cancelDeletionRequest(protocolId, title, opts) {
-  const ok = await confirmAction(
-    `Cancel your deletion request for ${confirmName(title)}? The protocol stays active.`,
-    { okText: "Cancel Request", cancelText: "Keep Request" },
-  );
-  if (!ok) return;
-
-  try {
-    const data = await protocolModalPost("/apply/cancel_deletion", {
-      protocol_id: protocolId,
-    });
-    if (data.ok) return finishProtocolAction(opts);
-    showToast(data.error ?? "Could not cancel the deletion request.", "error");
-  } catch {
-    showToast("Network error. Please try again.", "error");
-  }
 }
 
 // ===== Amendments list =====

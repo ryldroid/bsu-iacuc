@@ -983,3 +983,26 @@
     width: fit-content;
     cursor: pointer;
 }
+
+/* ===== Number format example ===== */
+.number-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--divider-color-subtle);
+    border-radius: var(--radius);
+}
+
+.number-preview-label {
+    font-size: 0.85rem;
+    color: var(--muted-text);
+}
+
+.number-preview-value {
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    color: var(--tab-text-active);
+    overflow-wrap: anywhere;
+}

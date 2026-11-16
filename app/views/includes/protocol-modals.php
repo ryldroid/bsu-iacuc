@@ -1,5 +1,5 @@
 <?php
-// Shared protocol modals: file popup, rename, delete / request deletion,
+// Shared protocol modals: file popup, rename, delete / discontinue,
 // amendments, amendment submit and rename history.
 // They are driven by assets/js/protocol-modals.js and take a protocol id when
 // opened, so the viewer and the list pages can share them. The server still
@@ -47,7 +47,7 @@ include_once __DIR__ . '/file-popup.php';
   </div>
 </div>
 
-<!-- ===== Delete / request deletion modal ===== -->
+<!-- ===== Delete / discontinue modal ===== -->
 <div class="modal-backdrop" id="deleteModalBackdrop" data-static>
   <div class="modal-card panel-modal-card">
     <div class="modal-header">
@@ -71,7 +71,7 @@ include_once __DIR__ . '/file-popup.php';
 
       <label class="return-comment-label" for="deleteReasonText">Reason <span class="return-comment-optional" id="deleteReasonRequirement">(required)</span></label>
       <textarea id="deleteReasonText" class="return-comment-textarea"
-        placeholder="Explain why this protocol should be deleted..."
+        placeholder="Explain why this protocol should be archived..."
         rows="4" maxlength="1000"></textarea>
       <p class="return-char-count"><span id="deleteCharCount">0</span> / 1000</p>
 

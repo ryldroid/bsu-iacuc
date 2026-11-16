@@ -19,6 +19,7 @@ const SKIP_PATHS = [
   "/checkupdates",
   "/user/ping",
   "/verification_status",
+  "/next_ipn",
   "/download_selected",
   "/records_export",
   "/downloadauditlogs",

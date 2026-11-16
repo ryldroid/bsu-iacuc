@@ -13,6 +13,19 @@ function escapeHtml(value) {
   );
 }
 
+// ===== Capitalize the first letter, keeping the caret where it was =====
+function capitalizeFirstLetter(text) {
+  return text.replace(/^\p{Ll}/u, (letter) => letter.toLocaleUpperCase());
+}
+
+function capitalizeInputFirstLetter(input) {
+  const capitalized = capitalizeFirstLetter(input.value);
+  if (capitalized === input.value) return;
+  const { selectionStart, selectionEnd } = input;
+  input.value = capitalized;
+  input.setSelectionRange(selectionStart, selectionEnd);
+}
+
 // ===== Actor label ("Staff - Juan Admin") =====
 function formatActor(name, role) {
   if (!name) return "";

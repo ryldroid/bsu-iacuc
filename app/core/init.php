@@ -36,7 +36,9 @@ if (isset($_SESSION['last_activity'])) {
         session_start();
         session_regenerate_id(true);
 
-        if ($hadUser) {
+        $isPageLoad = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html');
+
+        if ($hadUser && $isPageLoad) {
             $_SESSION['flash_error'] = 'Your session has expired. Please log in again.';
         }
     }

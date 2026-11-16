@@ -28,45 +28,46 @@ class ProtocolModel extends Model
         1 => 'Researcher uploads their clearance processing payment proof',
         2 => 'Verify the submitted payment proof',
         3 => 'Assign an IPN',
-        4 => 'Print for the chairperson\'s signature, then upload the signed scan',
-        5 => 'Mark the protocol as endorsed',
+        4 => 'Upload proof of endorsement',
     ];
 
     // Returns [step number, label, waiting on researcher]
-    public static function nextStep(string $paymentStatus, bool $hasIpn, bool $hasSignedScan): array
+    public static function nextStep(string $paymentStatus, bool $hasIpn): array
     {
         return match (true) {
             $paymentStatus === 'proof_submitted' => [2, 'Verify the payment proof', false],
             $paymentStatus === 'rejected'        => [1, 'Waiting for the researcher to resubmit payment proof', true],
             $paymentStatus !== 'paid'            => [1, 'Waiting for the researcher to upload payment proof', true],
             !$hasIpn                             => [3, 'Assign an IPN', false],
-            !$hasSignedScan                      => [4, 'Print for the chairperson\'s signature, then upload the signed scan', false],
-            default                              => [5, 'Ready to endorse', false],
+            default                              => [4, 'Ready to endorse', false],
         };
     }
 
     public function insertProtocol(int $userId, string $title, array $details): int | false
     {
-        $title        = mb_substr(normalize_pasted_text($title), 0, 255) ?: 'Untitled Protocol';
+        $title        = capitalize_first_letter(mb_substr(normalize_pasted_text($title), 0, 255)) ?: 'Untitled Protocol';
         $animalType   = normalize_pasted_text($details['animal_type']);
         $adviser      = normalize_pasted_text($details['research_adviser']);
         $veterinarian = normalize_pasted_text($details['veterinarian']);
 
         $stmt = $this->connection->prepare(
-            "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, research_duration_start, research_duration_end, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Under Review')"
+            "INSERT INTO `protocols` (user_id, title, animal_type, animal_count, research_adviser, veterinarian, research_duration_start, research_duration_end, status,
+                                      submitter_first_name, submitter_last_name, submitter_school, submitter_sex, submitter_researcher_type)
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'Under Review', first_name, last_name, school, sex, researcher_type
+            FROM `users` WHERE id = ?"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('ississss', $userId, $title, $animalType, $details['animal_count'], $adviser, $veterinarian, $details['research_duration_start'], $details['research_duration_end']);
+        $stmt->bind_param('ississssi', $userId, $title, $animalType, $details['animal_count'], $adviser, $veterinarian, $details['research_duration_start'], $details['research_duration_end'], $userId);
         if (! $stmt->execute()) {
             return false;
         }
 
         $protocolId = $this->connection->insert_id;
         $this->insertTitleHistory($protocolId, $title, $userId, null, 'researcher');
+        $this->insertStatusHistory($protocolId, null, 'Under Review', ['id' => $userId, 'name' => '', 'role' => 'researcher'], '');
 
         return $protocolId;
     }
@@ -124,7 +125,7 @@ class ProtocolModel extends Model
         string $actorName,
         string $actorRole
     ): string | false {
-        $newTitle = mb_substr(trim($newTitle), 0, 255);
+        $newTitle = capitalize_first_letter(mb_substr(trim($newTitle), 0, 255));
         if ($newTitle === '') {
             return false;
         }
@@ -194,10 +195,12 @@ class ProtocolModel extends Model
     public function getTitleHistory(int $protocolId): array
     {
         $stmt = $this->connection->prepare(
-            "SELECT title, changed_by_name, changed_by_role, changed_at
-             FROM `protocol_title_history`
-             WHERE protocol_id = ?
-             ORDER BY changed_at DESC, id DESC"
+            "SELECT h.title, h.changed_by AS changed_by_id, h.changed_by_role, h.changed_at,
+                    COALESCE(NULLIF(TRIM(" . self::AUTHOR_SQL . "), ''), h.changed_by_name) AS changed_by_name
+             FROM `protocol_title_history` h
+             LEFT JOIN `users` u ON u.id = h.changed_by
+             WHERE h.protocol_id = ?
+             ORDER BY h.changed_at DESC, h.id DESC"
         );
         if (! $stmt) {
             return [];
@@ -208,34 +211,7 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // ===== DELETE / REQUEST DELETION =====
-
-    public function requestDeletion(
-        int $protocolId,
-        int $actorId,
-        string $actorName,
-        string $actorRole,
-        string $reason
-    ): bool {
-        $reason = mb_substr(trim($reason), 0, 1000);
-        if ($reason === '') {
-            return false;
-        }
-
-        $stmt = $this->connection->prepare(
-            "UPDATE `protocols`
-             SET deletion_requested_at = NOW(), deletion_requested_by = ?,
-                 deletion_requested_by_name = ?, deletion_requested_by_role = ?,
-                 deletion_request_reason = ?
-             WHERE id = ?"
-        );
-        if (! $stmt) {
-            return false;
-        }
-
-        $stmt->bind_param('isssi', $actorId, $actorName, $actorRole, $reason, $protocolId);
-        return $stmt->execute();
-    }
+    // ===== DELETE =====
 
     public function softDelete(
         int $protocolId,
@@ -261,14 +237,32 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
-    public function cancelDeletionRequest(int $protocolId): bool
+    public function discontinue(int $protocolId, string $reason): bool
     {
         $stmt = $this->connection->prepare(
             "UPDATE `protocols`
-             SET deletion_requested_at = NULL, deletion_requested_by = NULL,
-                 deletion_requested_by_name = NULL, deletion_requested_by_role = NULL,
-                 deletion_request_reason = NULL
-             WHERE id = ?"
+             SET discontinued_at = NOW(), discontinued_reason = ?
+             WHERE id = ? AND discontinued_at IS NULL AND deleted_at IS NULL"
+        );
+        if (! $stmt) {
+            return false;
+        }
+
+        $reason = mb_substr(trim($reason), 0, 1000);
+        $stmt->bind_param('si', $reason, $protocolId);
+        return $stmt->execute() && $stmt->affected_rows > 0;
+    }
+
+    // ===== ARCHIVE =====
+
+    // A protocol archived by personnel is a soft delete made by someone other than its owner.
+    // Account deletion also soft deletes, but always as the owner, so it never shows in the archive.
+    public const ARCHIVED_BY_PERSONNEL = "(p.deleted_at IS NOT NULL AND p.deleted_by IS NOT NULL AND p.deleted_by <> p.user_id)";
+
+    public function markDiscontinueCancelledRecord(int $protocolId): bool
+    {
+        $stmt = $this->connection->prepare(
+            "UPDATE `protocols` SET discontinued_record_cancelled = 1 WHERE id = ?"
         );
         if (! $stmt) {
             return false;
@@ -278,37 +272,74 @@ class ProtocolModel extends Model
         return $stmt->execute();
     }
 
-    public function rejectDeletionRequest(int $protocolId, string $reason): bool
+    /**
+     * Takes a protocol out of the archive. Returns what was restored ('archived' or
+     * 'discontinued') with the details the controller needs, or null when it is not archived.
+     */
+    public function restoreFromArchive(int $protocolId): ?array
     {
-        $reason = mb_substr(trim($reason), 0, 1000);
-
         $stmt = $this->connection->prepare(
-            "UPDATE `protocols`
-             SET deletion_requested_at = NULL, deletion_requested_by = NULL,
-                 deletion_requested_by_name = NULL, deletion_requested_by_role = NULL,
-                 deletion_request_reason = NULL, deletion_rejection_reason = ?
-             WHERE id = ?"
+            "SELECT p.id, p.user_id, p.title, p.status, p.discontinued_at, p.discontinued_record_cancelled,
+                    " . self::ARCHIVED_BY_PERSONNEL . " AS archived_by_personnel
+             FROM `protocols` p
+             WHERE p.id = ? LIMIT 1"
         );
         if (! $stmt) {
-            return false;
+            return null;
         }
 
-        $stmt->bind_param('si', $reason, $protocolId);
-        return $stmt->execute();
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        $protocol = $stmt->get_result()->fetch_assoc();
+        if (! $protocol) {
+            return null;
+        }
+
+        if ($protocol['archived_by_personnel']) {
+            $sql  = "UPDATE `protocols`
+                     SET deleted_at = NULL, deleted_by = NULL, deleted_by_name = NULL, deletion_reason = NULL
+                     WHERE id = ?";
+            $kind = 'archived';
+        } elseif (! empty($protocol['discontinued_at']) && empty($protocol['deleted_at'])) {
+            $sql  = "UPDATE `protocols`
+                     SET discontinued_at = NULL, discontinued_reason = NULL, discontinued_record_cancelled = 0
+                     WHERE id = ?";
+            $kind = 'discontinued';
+        } else {
+            return null;
+        }
+
+        $update = $this->connection->prepare($sql);
+        if (! $update) {
+            return null;
+        }
+
+        $update->bind_param('i', $protocolId);
+        if (! $update->execute()) {
+            return null;
+        }
+
+        return [
+            'kind'             => $kind,
+            'user_id'          => (int) $protocol['user_id'],
+            'title'            => $protocol['title'],
+            'status'           => $protocol['status'],
+            'revert_record'    => $kind === 'discontinued' && (int) $protocol['discontinued_record_cancelled'] === 1,
+        ];
     }
 
     // ===== PAYMENT =====
 
-    public function submitPaymentProof(int $protocolId, string $method): bool
+    public function submitPaymentProof(int $protocolId, string $method, ?string $receiptNo = null): bool
     {
         $stmt = $this->connection->prepare(
-            "UPDATE `protocols` SET payment_status = 'proof_submitted', payment_method = ? WHERE id = ?"
+            "UPDATE `protocols` SET payment_status = 'proof_submitted', payment_method = ?, payment_receipt_no = ? WHERE id = ?"
         );
         if (! $stmt) {
             return false;
         }
 
-        $stmt->bind_param('si', $method, $protocolId);
+        $stmt->bind_param('ssi', $method, $receiptNo, $protocolId);
         return $stmt->execute();
     }
 
@@ -406,10 +437,12 @@ class ProtocolModel extends Model
     {
         $marks = implode(',', array_fill(0, count($actions), '?'));
         $stmt  = $this->connection->prepare(
-            "SELECT action, username, role, details, old_status, new_status, created_at
-             FROM `audit_logs`
-             WHERE target_type = 'protocol' AND target_id = ? AND action IN ($marks)
-             ORDER BY created_at DESC, id DESC"
+            "SELECT al.action, al.user_id AS actor_id, al.username, al.role, al.details, al.old_status, al.new_status, al.created_at,
+                    COALESCE(NULLIF(TRIM(" . self::AUTHOR_SQL . "), ''), al.username) AS actor_name
+             FROM `audit_logs` al
+             LEFT JOIN `users` u ON u.id = al.user_id
+             WHERE al.target_type = 'protocol' AND al.target_id = ? AND al.action IN ($marks)
+             ORDER BY al.created_at DESC, al.id DESC"
         );
         if (! $stmt) {
             return [];
@@ -423,10 +456,12 @@ class ProtocolModel extends Model
     public function getPaymentRejections(int $protocolId): array
     {
         $stmt = $this->connection->prepare(
-            "SELECT comment, created_at
-             FROM `payment_proof_rejections`
-             WHERE protocol_id = ?
-             ORDER BY created_at DESC, id DESC"
+            "SELECT r.comment, r.created_at, r.reviewer_id AS actor_id, u.role AS actor_role,
+                    NULLIF(TRIM(" . self::AUTHOR_SQL . "), '') AS actor_name
+             FROM `payment_proof_rejections` r
+             LEFT JOIN `users` u ON u.id = r.reviewer_id
+             WHERE r.protocol_id = ?
+             ORDER BY r.created_at DESC, r.id DESC"
         );
         if (! $stmt) {
             return [];
@@ -461,13 +496,10 @@ class ProtocolModel extends Model
     {
         $sql = "SELECT
                     p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title,
-                    u.first_name, u.last_name,
-                    (SELECT pv.id FROM `protocol_versions` pv
-                     WHERE pv.protocol_id = p.id AND pv.file_type = 'clearance'
-                     ORDER BY pv.version_number DESC LIMIT 1) AS latest_clearance_version_id
+                    p.submitter_first_name AS first_name, p.submitter_last_name AS last_name
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
-                WHERE p.status = 'Endorsed'
+                WHERE p.status = 'Endorsed' AND p.discontinued_at IS NULL AND p.deleted_at IS NULL
                 ORDER BY p.reference_no ASC";
 
         $result = $this->connection->query($sql);
@@ -480,12 +512,11 @@ class ProtocolModel extends Model
                     p.id, p.reference_no, p.title AS research_title,
                     (SELECT pv.file_path
                      FROM `protocol_versions` pv
-                     WHERE pv.protocol_id = p.id
-                       AND (pv.file_type = 'protocol' OR " . self::scanIsCurrent('pv') . ")
-                     ORDER BY pv.file_type = 'signed_scan' DESC, pv.version_number DESC
+                     WHERE pv.protocol_id = p.id AND pv.file_type = 'protocol'
+                     ORDER BY pv.version_number DESC
                      LIMIT 1) AS file_path
                 FROM `protocols` p
-                WHERE p.status = 'Reviewed'
+                WHERE p.status = 'Reviewed' AND p.deleted_at IS NULL
                 ORDER BY p.reference_no ASC";
 
         $result = $this->connection->query($sql);
@@ -507,18 +538,20 @@ class ProtocolModel extends Model
                     p.title_changed_by_name,
                     p.title_changed_by_role,
                     p.title_changed_at,
-                    p.deletion_requested_at,
-                    p.deletion_requested_by_name,
-                    p.deletion_requested_by_role,
-                    p.deletion_request_reason,
+                    p.discontinued_at,
+                    p.discontinued_reason,
+                    p.deleted_at,
+                    p.deleted_by_name,
+                    p.deletion_reason,
                     p.payment_status,
                     p.payment_method,
+                    p.payment_receipt_no,
                     p.paid_at,
                     p.paid_by,
                     p.hard_copy_released_at,
-                    u.first_name,
-                    u.last_name,
-                    u.school,
+                    p.submitter_first_name AS first_name,
+                    p.submitter_last_name AS last_name,
+                    p.submitter_school AS school,
                     u.status AS researcher_status,
                     (SELECT MAX(pv.version_number)
                      FROM `protocol_versions` pv
@@ -536,19 +569,12 @@ class ProtocolModel extends Model
                        AND pv5.file_type = 'payment_proof'
                      ORDER BY pv5.version_number DESC
                      LIMIT 1) AS latest_payment_proof_version_id,
-                    (SELECT pv6.id
-                     FROM `protocol_versions` pv6
-                     WHERE pv6.protocol_id = p.id
-                       AND pv6.file_type = 'signed_scan'
-                       AND " . self::scanIsCurrent('pv6') . "
-                     ORDER BY pv6.version_number DESC
-                     LIMIT 1) AS latest_signed_scan_version_id,
-                    (SELECT pv7.id
-                     FROM `protocol_versions` pv7
-                     WHERE pv7.protocol_id = p.id
-                       AND pv7.file_type = 'clearance'
-                     ORDER BY pv7.version_number DESC
-                     LIMIT 1) AS latest_clearance_version_id,
+                    (SELECT pve.id
+                     FROM `protocol_versions` pve
+                     WHERE pve.protocol_id = p.id
+                       AND pve.file_type = 'endorsement_proof'
+                     ORDER BY pve.version_number DESC
+                     LIMIT 1) AS latest_endorsement_proof_version_id,
                     (SELECT COUNT(*) FROM `protocol_title_history` h
                      WHERE h.protocol_id = p.id) AS title_history_count,
                     (SELECT COUNT(*) FROM `protocol_versions` pva
@@ -567,7 +593,7 @@ class ProtocolModel extends Model
                     ) AS last_activity_at
                 FROM `protocols` p
                 JOIN `users` u ON u.id = p.user_id
-                WHERE p.deleted_at IS NULL
+                WHERE p.deleted_at IS NULL OR " . self::ARCHIVED_BY_PERSONNEL . "
                 ORDER BY last_activity_at DESC, p.id DESC";
 
         $result = $this->connection->query($sql);
@@ -589,12 +615,11 @@ class ProtocolModel extends Model
                 p.title_changed_by_name,
                 p.title_changed_by_role,
                 p.title_changed_at,
-                p.deletion_requested_at,
-                p.deletion_requested_by_name,
-                p.deletion_requested_by_role,
-                p.deletion_request_reason,
+                p.discontinued_at,
+                p.discontinued_reason,
                 p.payment_status,
                 p.payment_method,
+                p.payment_receipt_no,
                 p.paid_at,
                 p.clearance_claimed_at,
                 p.hard_copy_released_at,
@@ -615,13 +640,6 @@ class ProtocolModel extends Model
                    AND pv5.file_type = 'payment_proof'
                  ORDER BY pv5.version_number DESC
                  LIMIT 1) AS latest_payment_proof_version_id,
-                (SELECT pv6.id
-                 FROM `protocol_versions` pv6
-                 WHERE pv6.protocol_id = p.id
-                   AND pv6.file_type = 'signed_scan'
-                   AND " . self::scanIsCurrent('pv6') . "
-                 ORDER BY pv6.version_number DESC
-                 LIMIT 1) AS latest_signed_scan_version_id,
                 (SELECT pv7.original_name
                  FROM `protocol_versions` pv7
                  WHERE pv7.protocol_id = p.id
@@ -773,23 +791,20 @@ class ProtocolModel extends Model
                 p.title_changed_by_role,
                 p.title_changed_at,
                 p.title_change_seen_by,
-                p.deletion_requested_at,
-                p.deletion_requested_by,
-                p.deletion_requested_by_name,
-                p.deletion_requested_by_role,
-                p.deletion_request_reason,
-                p.deletion_rejection_reason,
+                p.discontinued_at,
+                p.discontinued_reason,
                 p.payment_status,
                 p.payment_method,
+                p.payment_receipt_no,
                 p.paid_at,
                 p.paid_by,
                 p.clearance_claimed_at,
                 p.hard_copy_released_at,
-                u.first_name AS submitter_first_name,
-                u.last_name AS submitter_last_name,
-                u.school AS submitter_school,
-                u.sex AS submitter_sex,
-                u.researcher_type AS submitter_researcher_type
+                p.submitter_first_name,
+                p.submitter_last_name,
+                p.submitter_school,
+                p.submitter_sex,
+                p.submitter_researcher_type
              FROM `protocols` p
              JOIN `users` u ON u.id = p.user_id
              WHERE p.id = ? AND p.deleted_at IS NULL LIMIT 1"
@@ -804,12 +819,16 @@ class ProtocolModel extends Model
     }
 
     // ===== STATUS & REFERENCE NUMBERS =====
-    public function updateStatus(int $protocolId, string $status): bool
+    // The one place a protocol's status changes, so protocol_status_history can never miss a change.
+    // $actor is the controller's actor() array; $reason is the note shown next to the change.
+    public function updateStatus(int $protocolId, string $status, ?array $actor = null, string $reason = ''): bool
     {
         $allowed = ['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'];
         if (! in_array($status, $allowed, true)) {
             return false;
         }
+
+        $current = $this->currentStatus($protocolId);
 
         $stmt = $this->connection->prepare(
             "UPDATE `protocols` SET status = ? WHERE id = ?"
@@ -819,7 +838,68 @@ class ProtocolModel extends Model
         }
 
         $stmt->bind_param('si', $status, $protocolId);
-        return $stmt->execute();
+        if (! $stmt->execute()) {
+            return false;
+        }
+
+        if ($current !== $status) {
+            $this->insertStatusHistory($protocolId, $current, $status, $actor, $reason);
+        }
+        return true;
+    }
+
+    private function currentStatus(int $protocolId): ?string
+    {
+        $stmt = $this->connection->prepare("SELECT status FROM `protocols` WHERE id = ?");
+        if (! $stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_row()[0] ?? null;
+    }
+
+    private function insertStatusHistory(int $protocolId, ?string $from, string $to, ?array $actor, string $reason): void
+    {
+        $by     = isset($actor['id']) && $actor['id'] > 0 ? (int) $actor['id'] : null;
+        $name   = ($actor['name'] ?? '') !== '' ? $actor['name'] : null;
+        $role   = ($actor['role'] ?? '') !== '' ? $actor['role'] : null;
+        $reason = mb_substr(trim($reason), 0, 1000) ?: null;
+
+        $stmt = $this->connection->prepare(
+            "INSERT INTO `protocol_status_history`
+                (protocol_id, from_status, to_status, changed_by, changed_by_name, changed_by_role, reason)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        if (! $stmt) {
+            return;
+        }
+
+        $stmt->bind_param('ississs', $protocolId, $from, $to, $by, $name, $role, $reason);
+        if (! $stmt->execute()) {
+            error_log("Status history insert failed (protocol #$protocolId): " . $stmt->error);
+        }
+    }
+
+    // Every status change, newest first. Meaning comes from the from/to pair.
+    public function getStatusHistory(int $protocolId): array
+    {
+        $stmt = $this->connection->prepare(
+            "SELECT h.from_status, h.to_status, h.reason, h.created_at, h.changed_by AS actor_id, h.changed_by_role AS actor_role,
+                    COALESCE(NULLIF(TRIM(" . self::AUTHOR_SQL . "), ''), h.changed_by_name) AS actor_name
+             FROM `protocol_status_history` h
+             LEFT JOIN `users` u ON u.id = h.changed_by
+             WHERE h.protocol_id = ?
+             ORDER BY h.created_at DESC, h.id DESC"
+        );
+        if (! $stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $protocolId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     public function referenceNoExists(string $refNo): bool
@@ -831,6 +911,23 @@ class ProtocolModel extends Model
         $stmt->bind_param('s', $refNo);
         $stmt->execute();
         return (bool) $stmt->get_result()->fetch_row();
+    }
+
+    // ===== NEXT IPN =====
+    public function nextIpn(): string
+    {
+        $result = $this->connection->query(
+            "SELECT reference_no FROM `protocols` WHERE reference_no IS NOT NULL
+             UNION ALL SELECT reference_no FROM `records` WHERE reference_no IS NOT NULL"
+        );
+
+        $ipnFormat = NumberFormat::of('ipn');
+        $last      = 0;
+        foreach ($result ? $result->fetch_all(MYSQLI_NUM) : [] as [$refNo]) {
+            $last = max($last, $ipnFormat->sequenceThisYear($refNo) ?? 0);
+        }
+
+        return $ipnFormat->format($last + 1);
     }
 
     public function setReferenceNo(int $protocolId, string $refNo): bool
@@ -931,7 +1028,7 @@ class ProtocolModel extends Model
         return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Protocol versions, signed scans and amendments as one list, newest first, each
+    // Protocol versions, older signed scans and amendments as one list, newest first, each
     // with a display label ("Original submission", "Revision 2", "Signed scan", "Amendment 1").
     public function getVersionTimeline(int $protocolId): array
     {
@@ -944,8 +1041,10 @@ class ProtocolModel extends Model
                 pv.file_type,
                 pv.note,
                 pv.uploaded_at,
+                pv.uploaded_by AS actor_id,
                 u.first_name,
-                u.last_name
+                u.last_name,
+                u.role AS uploader_role
              FROM `protocol_versions` pv
              JOIN `users` u ON u.id = pv.uploaded_by
              WHERE pv.protocol_id = ? AND pv.file_type IN ('protocol', 'signed_scan', 'amendment')
@@ -973,36 +1072,13 @@ class ProtocolModel extends Model
         return $rows;
     }
 
-    private static function scanIsCurrent(string $alias): string
-    {
-        return "$alias.uploaded_at >= COALESCE((SELECT MAX(latest_protocol.uploaded_at) FROM `protocol_versions` latest_protocol WHERE latest_protocol.protocol_id = $alias.protocol_id AND latest_protocol.file_type = 'protocol'), $alias.uploaded_at)";
-    }
-
-    public function getCurrentSignedScan(int $protocolId): ?array
-    {
-        $stmt = $this->connection->prepare(
-            "SELECT pv.*
-             FROM `protocol_versions` pv
-             WHERE pv.protocol_id = ? AND pv.file_type = 'signed_scan' AND " . self::scanIsCurrent('pv') . "
-             ORDER BY pv.version_number DESC
-             LIMIT 1"
-        );
-        if (! $stmt) {
-            return null;
-        }
-
-        $stmt->bind_param('i', $protocolId);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc() ?: null;
-    }
-
     public function getLatestVersion(int $protocolId, string $fileType = 'protocol'): ?array
     {
         $stmt = $this->connection->prepare(
             "SELECT pv.*, d.user_id AS owner_id
              FROM `protocol_versions` pv
              JOIN `protocols` d ON d.id = pv.protocol_id
-             WHERE pv.protocol_id = ? AND pv.file_type = ?
+             WHERE pv.protocol_id = ? AND pv.file_type = ? AND d.deleted_at IS NULL
              ORDER BY pv.version_number DESC
              LIMIT 1"
         );
@@ -1021,7 +1097,7 @@ class ProtocolModel extends Model
             "SELECT pv.*, p.user_id AS owner_id, p.status AS protocol_status, p.title AS protocol_title, p.reference_no
              FROM `protocol_versions` pv
              JOIN `protocols` p ON p.id = pv.protocol_id
-             WHERE pv.id = ? LIMIT 1"
+             WHERE pv.id = ? AND p.deleted_at IS NULL LIMIT 1"
         );
         if (! $stmt) {
             return null;
@@ -1038,7 +1114,7 @@ class ProtocolModel extends Model
             "SELECT pv.*, d.user_id AS owner_id
              FROM `protocol_versions` pv
              JOIN `protocols` d ON d.id = pv.protocol_id
-             WHERE pv.protocol_id = ? AND pv.file_type = ? AND pv.uploaded_at <= ?
+             WHERE pv.protocol_id = ? AND pv.file_type = ? AND pv.uploaded_at <= ? AND d.deleted_at IS NULL
              ORDER BY pv.version_number DESC
              LIMIT 1"
         );
@@ -1403,7 +1479,7 @@ class ProtocolModel extends Model
                 FROM `clearance_pool` cp
                 JOIN `protocols` p ON p.id = cp.protocol_id
                 JOIN `users` u ON u.id = cp.uploaded_by
-                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NULL
+                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NULL AND p.deleted_at IS NULL
                 ORDER BY cp.assigned_at ASC";
 
         $result = $this->connection->query($sql);
@@ -1417,7 +1493,7 @@ class ProtocolModel extends Model
                     p.title AS protocol_title, p.reference_no
                 FROM `clearance_pool` cp
                 JOIN `protocols` p ON p.id = cp.protocol_id
-                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NOT NULL
+                WHERE cp.protocol_id IS NOT NULL AND cp.version_id IS NOT NULL AND p.deleted_at IS NULL
                 ORDER BY cp.assigned_at DESC
                 LIMIT " . (int) $limit;
 
@@ -1477,7 +1553,7 @@ class ProtocolModel extends Model
     {
         $stmt = $this->connection->prepare(
             "SELECT 1 FROM `protocols`
-             WHERE user_id = ? AND deleted_at IS NULL AND status != 'Approved'
+             WHERE user_id = ? AND deleted_at IS NULL AND discontinued_at IS NULL AND status != 'Approved'
              LIMIT 1"
         );
         if (! $stmt) {

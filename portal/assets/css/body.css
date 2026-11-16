@@ -909,26 +909,12 @@ main a.underlined:hover {
 }
 
 /* ===== Dashboard filters & status cards ===== */
-.filter-wrapper {
-    position: relative;
-    width: fit-content;
-}
-
 .sort-wrapper {
     position: relative;
     width: fit-content;
 }
 
-.status-filters {
-    display: flex;
-    align-items: baseline;
-    gap: 32px;
-    margin: 20px 0;
-    border-bottom: 1px solid var(--divider-color);
-}
-
 .status-card {
-    --status-tone: var(--status-color-neutral);
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -959,62 +945,6 @@ main a.underlined:hover {
     font-weight: 500;
     border-bottom-color: var(--tab-underline);
     transform: none;
-}
-
-:is(.status-card, .protocol)[data-status="under-review"],
-.protocol[data-filter-slug="to-review"],
-.status-card[data-filter="to-review"] {
-    --status-tone: var(--status-color-under-review);
-}
-
-:is(.status-card, .protocol)[data-status="needs-revision"],
-.protocol[data-filter-slug="returned-for-revision"],
-.status-card[data-filter="returned-for-revision"] {
-    --status-tone: var(--status-color-needs-revision);
-}
-
-:is(.status-card, .protocol)[data-status="reviewed"],
-.protocol[data-filter-slug="reviewed"],
-.status-card[data-filter="reviewed"] {
-    --status-tone: var(--status-color-reviewed);
-}
-
-:is(.status-card, .protocol)[data-status="endorsed"],
-.protocol[data-filter-slug="endorsed"],
-.status-card[data-filter="endorsed"] {
-    --status-tone: var(--status-color-endorsed);
-}
-
-:is(.status-card, .protocol)[data-status="approved"],
-.protocol[data-filter-slug="approved"],
-.status-card[data-filter="approved"] {
-    --status-tone: var(--status-color-approved);
-}
-
-.status-card .status-count {
-    display: inline-block;
-    min-width: 1.8em;
-    text-align: center;
-    background: color-mix(in srgb, var(--status-tone) 20%, transparent);
-    color: var(--primary-text);
-    border-radius: 999px;
-    padding: 1px 7px;
-    font-size: 0.8em;
-    font-weight: 600;
-    margin-left: 0;
-}
-
-.status-card.active .status-count {
-    background: var(--accent-color);
-    color: var(--accent-text);
-}
-
-.dashboard-filter-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
 }
 
 /* ===== Status text: plain text with a small tone dot ===== */
@@ -1061,29 +991,32 @@ main a.underlined:hover {
     gap: 8px;
 }
 
-/* ===== Shared select/trigger box (native <select> and the mobile filter button) ===== */
-.dashboard-select-trigger {
+/* ===== Shared select/trigger box (native <select>, the mobile filter button and the Records filters) ===== */
+.dashboard-select-trigger,
+.records-filter-select {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
 
-    padding: 7px 10px;
+    padding: 9px 14px;
     font-size: 0.85em;
     font-family: var(--font-body);
     border: 1px solid var(--input-border);
-    border-radius: var(--btn-radius);
+    border-radius: 10px;
     background-color: var(--card-background);
-    color: var(--secondary-text);
+    color: var(--primary-text);
+    box-shadow: 0 1px 2px var(--shadow-color-soft);
     cursor: pointer;
     margin: 0;
     height: auto;
-    transition: border-color 150ms ease;
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
-.dashboard-select-trigger:hover {
-    background-color: var(--card-background);
-    color: var(--secondary-text);
+.dashboard-select-trigger:hover,
+.records-filter-select:hover {
+    background-color: var(--hover-surface-soft);
+    color: var(--primary-text);
     border-color: var(--brand-color-hover);
 }
 
@@ -1092,10 +1025,11 @@ main a.underlined:hover {
 }
 
 .dashboard-select-trigger:focus,
-.dashboard-select-trigger.open {
+.dashboard-select-trigger.open,
+.records-filter-select:focus {
     outline: none;
     border-color: var(--focus-ring-color);
-    box-shadow: 0 0 0 2px var(--focus-ring-tint);
+    box-shadow: 0 0 0 3px var(--focus-ring-tint);
 }
 
 /* ===== Dropdown arrow with space from the right edge (native selects) ===== */
@@ -1103,10 +1037,10 @@ select.dashboard-select-trigger,
 select.records-filter-select {
     appearance: none;
     -webkit-appearance: none;
-    padding-right: 32px;
+    padding-right: 38px;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 8l5 5 5-5'/></svg>");
     background-repeat: no-repeat;
-    background-position: right 10px center;
+    background-position: right 14px center;
     background-size: 14px 14px;
 }
 
@@ -1281,4 +1215,102 @@ select.records-filter-select {
     font-weight: 700;
     color: var(--muted-text);
     letter-spacing: 0.02em;
+}
+
+/* ===== Inbox search box (inbox modal, records and content toolbars) ===== */
+.inbox-search-wrap {
+    position: relative;
+    flex: 1 1 220px;
+    max-width: 500px;
+    margin-left: auto;
+}
+
+.inbox-search-wrap>svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-text);
+    pointer-events: none;
+    display: block;
+}
+
+.inbox-search-input {
+    width: 100%;
+    padding: 8px 32px 8px 34px;
+    border: 1px solid var(--input-border);
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-family: var(--font-body);
+    background: var(--card-background);
+    color: var(--primary-text);
+    transition: border-color 0.2s;
+    margin-bottom: 0;
+    display: block;
+    height: auto;
+    line-height: 1.4;
+}
+
+/* type="search" keeps password managers away; drop the native look and clear button (we have our own) */
+.inbox-search-input {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.inbox-search-input::-webkit-search-cancel-button,
+.inbox-search-input::-webkit-search-decoration,
+.inbox-search-input::-webkit-search-results-button,
+.inbox-search-input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    display: none;
+}
+
+.inbox-search-input:focus {
+    outline: none;
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 2px var(--focus-ring-tint);
+}
+
+.inbox-search-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--muted-text);
+    display: none;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 2px 4px;
+    margin: 0;
+}
+
+.inbox-search-clear.visible {
+    display: flex;
+}
+
+.inbox-search-clear:hover {
+    color: var(--secondary-text);
+    background: none;
+}
+
+@media (max-width: 767px) {
+    .inbox-search-wrap {
+        flex: 0 0 auto;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .inbox-search-wrap {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .inbox-search-input {
+        font-size: 1em;
+        padding: 10px 32px 10px 34px;
+    }
 }

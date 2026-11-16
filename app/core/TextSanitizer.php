@@ -147,6 +147,12 @@ function strip_wrapping_quotes(string $text): string
   return trim(preg_replace('/^["\x{201C}\x{201D}]([^"\x{201C}\x{201D}]*)["\x{201C}\x{201D}]$/u', '$1', trim($text)));
 }
 
+// ===== CAPITALIZE FIRST LETTER =====
+function capitalize_first_letter(string $text): string
+{
+  return mb_convert_case(mb_substr($text, 0, 1), MB_CASE_TITLE) . mb_substr($text, 1);
+}
+
 // ===== ESCAPE TEXT, TURNING [text](https://address) INTO LINKS =====
 function render_text_with_links(string $text): string
 {

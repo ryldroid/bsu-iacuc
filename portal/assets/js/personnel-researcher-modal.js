@@ -111,7 +111,7 @@ function renderResearcherDetails(d) {
     ["Username", d.username],
     ["Email", d.email],
     ["Phone", formatPhone(d.phone_number) || "N/A"],
-    ["School", d.school || "N/A"],
+    ["School/Affiliation", d.school || "N/A"],
     [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
     ["Account status", d.status_label || capitalize(d.status)],
     ["Last login", d.last_login_at ? formatDate(d.last_login_at) : "Never"],
@@ -161,7 +161,7 @@ function renderCertReview(d, fullName) {
   document.getElementById("researcherModalBody").innerHTML = `
         ${renderDetailRows([
           ["Researcher Name", fullName],
-          ["School", d.school || "N/A"],
+          ["School/Affiliation", d.school || "N/A"],
           [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
         ])}
         ${renderCertPreview(d.cert, fullName)}

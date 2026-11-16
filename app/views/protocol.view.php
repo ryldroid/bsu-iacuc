@@ -11,14 +11,11 @@
 /** @var bool   $isStaff    */
 /** @var array  $permissions */
 /** @var bool   $canRename */
-/** @var bool   $canRequestDeletion */
 /** @var bool   $canDelete */
 /** @var bool   $canAmend */
 /** @var array  $amendments */
 /** @var bool   $hasRenames */
 /** @var bool   $hasPaymentHistory */
-/** @var bool   $deletionRequested */
-/** @var bool   $deletionRequestedByYou */
 /** @var bool   $showTitleChangeBanner */
 /** @var array|null $cert */
 /** @var array|null $certReview */
@@ -37,6 +34,7 @@ $statusLabels = [
     'endorsed'       => 'Endorsed',
     'approved'       => 'Approved',
 ];
+$statusLabels = ($isPersonnel ? ProtocolPermissions::PERSONNEL_STATUS_LABELS : []) + $statusLabels;
 $statusMeta = [
     'under review'   => ['class' => 'under-review', 'icon' => 'clock-icon'],
     'needs revision' => ['class' => 'needs-revision', 'icon' => 'alert-triangle-icon'],
@@ -61,16 +59,18 @@ $statusBadgeLabel = match (true) {
     default          => 'Viewing history: read only',
 };
 
-$canReview = $isPersonnel && !$isStaff && $statusKey === 'under review' && $isLatestVersion;
+$isDiscontinued = !empty($protocol['discontinued_at']);
 
-$canResubmit = !$isPersonnel && $isLatestVersion && $statusKey === 'needs revision';
+$canReview = $isPersonnel && !$isStaff && !$isDiscontinued && $statusKey === 'under review' && $isLatestVersion;
+
+$canResubmit = !$isPersonnel && !$isDiscontinued && $isLatestVersion && $statusKey === 'needs revision';
 
 $researcherCertStatus = $cert['cert_status'] ?? null;
 $canResubmitCert      = !$isPersonnel && $researcherCertStatus === 'rejected' && $isLatestVersion;
 
 $paymentStatus     = $protocol['payment_status'] ?? 'unpaid';
 $paymentMethod     = $protocol['payment_method'] ?? null;
-$canConfirmPayment = !$isPersonnel && $isLatestVersion && $statusKey === 'reviewed'
+$canConfirmPayment = !$isPersonnel && !$isDiscontinued && $isLatestVersion && $statusKey === 'reviewed'
     && in_array($paymentStatus, ['unpaid', 'rejected'], true);
 $offerPaymentResubmit = $canConfirmPayment && $paymentStatus === 'rejected';
 $mustPayInPerson   = UserModel::mustPayInPerson($protocol['submitter_school'] ?? '');
@@ -112,16 +112,12 @@ foreach ($versions as $i => $v) {
 }
 
 $submitterName     = trim(($protocol['submitter_first_name'] ?? '') . ' ' . ($protocol['submitter_last_name'] ?? ''));
-$latestSignedScanViewerUrl = ! empty($latestSignedScanVersion['id']) ? versionViewerUrl($viewerRef, (int) $latestSignedScanVersion['id'], $fromFilter) : null;
 $amendRedirect = ROOT . '/apply/viewer/' . $viewerRef . ($fromFilter !== '' ? '?from=' . urlencode($fromFilter) : '');
 
 // ===== Notes shown above the document =====
 $viewerNotes = [];
-if (!$isStaff && $deletionRequested) {
-    $requestedBy   = $deletionRequestedByYou
-        ? 'you'
-        : trim(($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role'])) . ' ' . ($protocol['deletion_requested_by_name'] ?? ''));
-    $viewerNotes[] = ['danger', 'trash-icon', 'Deletion requested', 'A deletion request is pending for this protocol, requested by ' . $requestedBy . '.'];
+if ($isDiscontinued) {
+    $viewerNotes[] = ['danger', 'archive-icon', 'Discontinued', ($isPersonnel ? 'The researcher' : 'You') . ' discontinued this protocol on ' . date(DATE_FORMAT, strtotime($protocol['discontinued_at'])) . '. Reason: ' . $protocol['discontinued_reason']];
 }
 if ($isAmendment && !empty($version['note'])) {
     $viewerNotes[] = ['info', 'info-icon', 'Amendment note', $version['note']];
@@ -133,7 +129,7 @@ if ($canResubmitCert) {
     $viewerNotes[] = ['danger', 'alert-triangle-icon', 'Training certificate rejected', 'Your review is on hold until you resubmit it.' . (!empty($cert['cert_note']) ? ' Reason: ' . $cert['cert_note'] . '.' : '')];
 }
 if ($isPersonnel && $researcherCertStatus === 'rejected') {
-    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: "' . $certReview['note'] . '.' : '') . '" Finishing the review or returning the protocol is unavailable until it is verified.'];
+    $viewerNotes[] = ['warning', 'alert-triangle-icon', 'Training certificate rejected', 'Waiting for the researcher to resubmit it.' . (!empty($certReview['note']) ? ' Reason: "' . $certReview['note'] . '."' : '') . ' Finishing the review or returning the protocol is unavailable until it is verified.'];
 }
 if ($isPersonnel && $researcherCertStatus === 'pending') {
     $viewerNotes[] = ['info', 'info-icon', 'Training certificate not verified yet', 'Reload this page to review it. Finishing the review or returning the protocol is unavailable until it is verified.', 'cert-pending'];
@@ -158,6 +154,7 @@ include 'includes/header.php';
 <?php endif; ?>
 <?php if ($canResubmit || $canConfirmPayment || $canAmend || $amendments || $hasPaymentHistory): ?>
     <link rel="stylesheet" href="<?= asset_css('application.css') ?>">
+    <link rel="stylesheet" href="<?= asset_css('consent.css') ?>">
 <?php endif; ?>
 
 <div class="viewer-body">
@@ -183,7 +180,7 @@ include 'includes/header.php';
                     stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <use href="#back-icon" />
                 </svg>
-                Back
+                Back<?= $fromFilter === 'archived' ? ' to archive' : '' ?>
             </a>
 
             <h1 class="sr-only">Protocol Viewer</h1>
@@ -264,16 +261,6 @@ include 'includes/header.php';
             ]);
             include 'includes/protocol-menu.php';
             ?>
-
-            <?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
-                <button class="tool-btn tool-btn--urgent" type="button" onclick="openDeletionReviewModal()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#alert-triangle-icon" />
-                    </svg>
-                    Deletion Requested: Review
-                </button>
-            <?php endif; ?>
-
 
             <?php if ($canReview || $canResubmit || $canConfirmPayment || $canResubmitCert): ?>
                 <div class="viewer-review-actions">
@@ -622,126 +609,6 @@ include 'includes/header.php';
     include 'includes/payment-modal.php';
 endif; ?>
 
-<?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
-    <!-- ===== Approve / reject deletion request modal ===== -->
-    <div class="modal-backdrop" id="deletionReviewModalBackdrop" data-static>
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-                        <use href="#trash-icon" />
-                    </svg>
-                </span>
-                <div>
-                    <p class="modal-label" id="deletionReviewLabel">Deletion Requested</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeDeletionReviewModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro" id="deletionReviewRequestInfo">
-                    Deletion requested by
-                    <?= htmlspecialchars($roleLabels[$protocol['deletion_requested_by_role']] ?? ucfirst((string) $protocol['deletion_requested_by_role']), ENT_QUOTES, 'UTF-8') ?>
-                    <?= htmlspecialchars($protocol['deletion_requested_by_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-                    for the reason of:
-                    <span class="return-reason-bar-comment">"<?= htmlspecialchars($protocol['deletion_request_reason'] ?? '', ENT_QUOTES, 'UTF-8') ?>"</span>
-                </p>
-
-                <?php if (!$canDelete): ?>
-                    <p class="panel-modal-intro">This protocol is endorsed or approved, so it can no longer be deleted. You can only reject this request.</p>
-                <?php endif; ?>
-
-                <div id="deletionReviewChoiceActions" class="panel-modal-actions">
-                    <?php if ($canDelete): ?>
-                        <button class="confirm-modal-btn confirm-modal-ok" type="button" onclick="selectDeletionAction('approve')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#check-icon" />
-                            </svg>
-                            Approve
-                        </button>
-                    <?php endif; ?>
-                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-danger" type="button" onclick="selectDeletionAction('reject')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#close-icon" />
-                        </svg>
-                        Reject
-                    </button>
-                </div>
-
-                <div id="deletionReviewActionPanel" hidden>
-                    <p class="panel-modal-intro" id="deletionReviewIntro"></p>
-
-                    <div id="deletionReviewReasonWrap">
-                        <label class="return-comment-label" for="deletionReviewReasonText">Reason <span class="return-comment-optional">(required)</span></label>
-                        <textarea id="deletionReviewReasonText" class="return-comment-textarea"
-                            placeholder="Explain why this deletion request is being rejected..."
-                            rows="4" maxlength="1000"></textarea>
-                        <p class="return-char-count"><span id="deletionReviewCharCount">0</span> / 1000</p>
-                    </div>
-
-                    <div id="deletionReviewError" class="error-messages" hidden></div>
-
-                    <div class="panel-modal-actions">
-                        <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="backToDeletionChoice()">Back</button>
-                        <button class="confirm-modal-btn confirm-modal-ok" type="button" id="deletionReviewSubmitBtn" onclick="submitDeletionReview()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use id="deletionReviewSubmitIcon" href="#check-icon" />
-                            </svg>
-                            <span id="deletionReviewSubmitLabel">Confirm</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
-<?php if (!empty($protocol['deletion_rejection_reason'])): ?>
-    <!-- ===== Deletion request rejected modal ===== -->
-    <div class="modal-backdrop" id="deletionRejectedModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="deletionRejectedTitle">
-        <div class="modal-card panel-modal-card deletion-rejected-card">
-            <div class="modal-header">
-                <span class="modal-header-icon modal-header-icon--danger" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-                        <use href="#alert-triangle-icon" />
-                    </svg>
-                </span>
-                <div>
-                    <p class="modal-label">Deletion request</p>
-                    <p class="modal-title" id="deletionRejectedTitle">Request rejected</p>
-                </div>
-                <button class="modal-close" type="button" onclick="closeDeletionRejectedModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro">The request to delete this protocol was not approved, so the protocol stays as it is.</p>
-
-                <div class="deletion-rejected-reason">
-                    <span class="deletion-rejected-reason-label">Reason given</span>
-                    <p><?= htmlspecialchars($protocol['deletion_rejection_reason'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-
-                <div class="panel-modal-actions">
-                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="deletionRejectedCloseBtn" onclick="closeDeletionRejectedModal()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-icon" />
-                        </svg>
-                        Got it
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
-
 <?php include __DIR__ . '/includes/protocol-modals.php'; ?>
 <?php include __DIR__ . '/includes/history-modal.php'; ?>
 <?php if ($isPersonnel): ?>
@@ -758,12 +625,10 @@ endif; ?>
     const VERSION_ID = <?= $versionId              ?>;
     const PROTOCOL_ID = <?= $protocolId             ?>;
     const PROTOCOL_TITLE = <?= json_encode($protocol['research_title']) ?>;
-    const IS_PERSONNEL = <?= $isPersonnel    ? 'true' : 'false' ?>;
     const IS_STAFF = <?= $isStaff    ? 'true' : 'false' ?>;
     const IS_COMPLETED = <?= $isCompleted ? 'true' : 'false' ?>;
     const STATUS_KEY = <?= json_encode($statusKey) ?>;
     const IS_LATEST_VERSION = <?= $isLatestVersion ? 'true' : 'false' ?>;
-    const IS_SIGNED_SCAN = <?= $isSignedScan ? 'true' : 'false' ?>;
     const IS_READ_ONLY_FILE = <?= $isReadOnlyFile ? 'true' : 'false' ?>;
     const SCAN_IS_IMAGE = <?= $scanIsImage ? 'true' : 'false' ?>;
     const CAN_REVIEW = <?= $canReview ? 'true' : 'false' ?>;
@@ -778,7 +643,6 @@ endif; ?>
                                     'label' => 'Resubmit Payment',
                                 ]) : 'null' ?>;
     const BACK_URL = <?= json_encode($backUrl) ?>;
-    const SIGNED_SCAN_VIEWER_URL = <?= json_encode($latestSignedScanViewerUrl ?: null) ?>;
     const MUST_PAY_IN_PERSON = <?= $mustPayInPerson ? 'true' : 'false' ?>;
     const CERT_STATUS = <?= json_encode($researcherCertStatus) ?>;
     const RESEARCHER_ID = <?= (int) $protocol['user_id'] ?>;
@@ -788,12 +652,6 @@ endif; ?>
 <script src="<?= asset_js('viewer.js') ?>"></script>
 <?php if ($canConfirmPayment): ?>
     <script src="<?= asset_js('payment-modal.js') ?>"></script>
-<?php endif; ?>
-<?php if ($isStaff && !empty($protocol['deletion_requested_at'])): ?>
-    <script src="<?= asset_js('viewer-deletion-review.js') ?>"></script>
-<?php endif; ?>
-<?php if (!empty($protocol['deletion_rejection_reason'])): ?>
-    <script src="<?= asset_js('viewer-deletion-rejected.js') ?>"></script>
 <?php endif; ?>
 <?php if ($canReview): ?>
     <script src="<?= asset_js('viewer-review.js') ?>"></script>

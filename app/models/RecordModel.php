@@ -120,10 +120,27 @@ class RecordModel extends Model
   // A record's date for period purposes: the release date if staff filled it in,
   // otherwise the day its protocol was marked Reviewed (when the record was created).
   private const RECORD_DATE_SQL = "COALESCE(date_released, (
-      SELECT DATE(MIN(al.created_at)) FROM `audit_logs` al
-      WHERE al.action = 'status_updated' AND al.target_type = 'protocol'
-        AND al.target_id = records.protocol_id
-        AND al.details = 'Status changed to: Reviewed'))";
+      SELECT DATE(MIN(h.created_at)) FROM `protocol_status_history` h
+      WHERE h.protocol_id = records.protocol_id
+        AND h.to_status = 'Reviewed' AND h.from_status <> 'Endorsed'))";
+
+  // Status moves worth counting, read from protocol_status_history (alias given by the caller).
+  // Moving back down (Endorsed to Reviewed, Approved to Endorsed) is an undo, not a new review or endorsement.
+  private static function reviewedMove(string $alias): string
+  {
+    return "$alias.to_status = 'Reviewed' AND $alias.from_status <> 'Endorsed'";
+  }
+
+  private static function endorsedMove(string $alias): string
+  {
+    return "$alias.to_status = 'Endorsed' AND $alias.from_status <> 'Approved'";
+  }
+
+  // A researcher sending a returned protocol back in.
+  private static function revisedMove(string $alias): string
+  {
+    return "$alias.from_status = 'Needs Revision' AND $alias.to_status = 'Under Review'";
+  }
 
   public function resolvePeriod(string $preset, string $from = '', string $to = ''): ?array
   {
@@ -249,7 +266,7 @@ class RecordModel extends Model
     'ipn'           => ['reference_no',            'IPN',               'text'],
     'ar'            => ['ar_number',               'AR No.',            'text'],
     'title'         => ['title_of_research',       'Title of Research', 'text'],
-    'school'        => ['school',                  'School',            'text'],
+    'school'        => ['school',                  'School/Affiliation',     'text'],
     'animal'        => ['animal_type',             'Animal Type',       'text'],
     'count'         => ['animal_count',            'Count',             'number'],
     'researcher'    => ['principal_investigator',  'Researcher',        'text'],
@@ -382,7 +399,7 @@ class RecordModel extends Model
 
     $totals = $this->periodTotals($period);
 
-    $revisionSubmissions = $this->protocolEventCount('protocol_revised', null, $period, true);
+    $revisionSubmissions = $this->statusMoveCount(self::revisedMove('h'), $period, true);
     $avgRevisions        = $totals['revised'] > 0 ? round($revisionSubmissions / $totals['revised'], 1) : 0.0;
 
     // ===== REVISIONS PER PROTOCOL / PER PI =====
@@ -391,27 +408,25 @@ class RecordModel extends Model
     $revisionsByProtocol = $this->rows(
       "SELECT p.title AS label,
               CONCAT(p.title, ' (', COALESCE(NULLIF(p.ar_number, ''), NULLIF(p.reference_no, ''), CONCAT('Protocol #', p.id)), ')') AS tooltip,
-              COUNT(al.target_id) AS total
+              COUNT(al.protocol_id) AS total
        FROM `protocols` p
-       LEFT JOIN `audit_logs` al ON al.target_id = p.id AND al.target_type = 'protocol' AND al.action = 'protocol_revised'$window
+       LEFT JOIN `protocol_status_history` al ON al.protocol_id = p.id AND " . self::revisedMove('al') . "$window
        WHERE p.deleted_at IS NULL
-         AND (al.target_id IS NOT NULL OR p.id IN (
-           SELECT rv.target_id FROM `audit_logs` rv
-           WHERE rv.target_type = 'protocol' AND rv.action = 'status_updated'
-             AND rv.details = 'Status changed to: Reviewed'$reviewWindow
+         AND (al.protocol_id IS NOT NULL OR p.id IN (
+           SELECT rv.protocol_id FROM `protocol_status_history` rv
+           WHERE " . self::reviewedMove('rv') . "$reviewWindow
          ))
        GROUP BY p.id ORDER BY total DESC, p.id ASC",
       array_merge($windowParams, $reviewParams),
       $windowTypes . $reviewTypes
     );
     $revisionsByPi = $this->rows(
-      "SELECT TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS label,
+      "SELECT TRIM(CONCAT(p.submitter_first_name, ' ', p.submitter_last_name)) AS label,
               COUNT(*) AS total, COUNT(DISTINCT p.id) AS protocols
-       FROM `audit_logs` al
-       JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
-       JOIN `users` u ON u.id = p.user_id
-       WHERE al.action = 'protocol_revised' AND al.target_type = 'protocol'$window
-       GROUP BY u.id ORDER BY total DESC, label ASC LIMIT 8",
+       FROM `protocol_status_history` al
+       JOIN `protocols` p ON p.id = al.protocol_id AND p.deleted_at IS NULL
+       WHERE " . self::revisedMove('al') . "$window
+       GROUP BY p.user_id, label ORDER BY total DESC, label ASC LIMIT 8",
       $windowParams,
       $windowTypes
     );
@@ -488,10 +503,9 @@ class RecordModel extends Model
   {
     [$where, $params, $types] = $this->buildFilters('', '', '', '', '', $period);
 
-    $reviewed = $this->protocolEventCount('status_updated', 'Status changed to: Reviewed', $period);
-    $endorsed = $this->protocolEventCount('status_updated', 'Status changed to: Endorsed', $period);
-    $signed   = $this->protocolEventCount('signed_scan_uploaded', null, $period);
-    $revised  = $this->protocolEventCount('protocol_revised', null, $period);
+    $reviewed = $this->statusMoveCount(self::reviewedMove('h'), $period);
+    $endorsed = $this->statusMoveCount(self::endorsedMove('h'), $period);
+    $revised  = $this->statusMoveCount(self::revisedMove('h'), $period);
 
     [$window, $windowParams, $windowTypes] = $this->timeWindow('pv.uploaded_at', $period);
     $clearancesReturned = (int) ($this->scalarQuery(
@@ -506,7 +520,6 @@ class RecordModel extends Model
       'reviewed'            => $reviewed,
       'revised'             => $revised,
       'endorsed'            => $endorsed,
-      'signed'              => $signed,
       'clearances_returned' => $clearancesReturned,
       'total_records'       => (int) ($this->scalarQuery("SELECT COUNT(*) FROM `records` $where", $params, $types) ?? 0),
       'total_animals'       => (int) ($this->scalarQuery("SELECT COALESCE(SUM(animal_count), 0) FROM `records` $where", $params, $types) ?? 0),
@@ -515,25 +528,17 @@ class RecordModel extends Model
 
   // ===== STATISTICS HELPERS =====
 
-  // Protocols (or raw events when $countEvents) that logged $action within the period.
-  private function protocolEventCount(string $action, ?string $detail, ?array $period, bool $countEvents = false): int
+  // Protocols (or raw moves when $countEvents) with a status move matching $condition within the period.
+  private function statusMoveCount(string $condition, ?array $period, bool $countEvents = false): int
   {
-    [$window, $params, $types] = $this->timeWindow('al.created_at', $period);
+    [$window, $params, $types] = $this->timeWindow('h.created_at', $period);
 
-    $sql = "SELECT " . ($countEvents ? 'COUNT(*)' : 'COUNT(DISTINCT al.target_id)') . "
-            FROM `audit_logs` al
-            JOIN `protocols` p ON p.id = al.target_id AND p.deleted_at IS NULL
-            WHERE al.target_type = 'protocol' AND al.action = ?";
-    array_unshift($params, $action);
-    $types = 's' . $types;
+    $sql = "SELECT " . ($countEvents ? 'COUNT(*)' : 'COUNT(DISTINCT h.protocol_id)') . "
+            FROM `protocol_status_history` h
+            JOIN `protocols` p ON p.id = h.protocol_id AND p.deleted_at IS NULL
+            WHERE $condition$window";
 
-    if ($detail !== null) {
-      $sql .= ' AND al.details = ?';
-      array_splice($params, 1, 0, [$detail]);
-      $types = 's' . $types;
-    }
-
-    return (int) ($this->scalarQuery($sql . $window, $params, $types) ?? 0);
+    return (int) ($this->scalarQuery($sql, $params, $types) ?? 0);
   }
 
   // Extra "AND column BETWEEN period" fragment for timestamp columns.
@@ -1054,7 +1059,7 @@ class RecordModel extends Model
         $userId,
         'clearance_expiring',
         'Clearance Expiring Soon',
-        'Your animal research clearance ' . ($ended ? 'ended' : 'ends') . ' on ' . Notifier::bold($expiryDate) . '. Your account will be marked inactive on ' . Notifier::bold($inactiveDate) . ' unless you have a pending protocol. No action needed. You may reactivate it at any time by logging in and confirming.',
+        'Your animal research clearance ' . ($ended ? 'ended' : 'ends') . ' on ' . Notifier::bold($expiryDate) . '. Your account will be marked inactive on ' . Notifier::bold($inactiveDate) . ' unless you have a pending protocol. No action needed. You may reactivate your account at any time by logging in and confirming.',
         'submissions',
         [
           'template' => 'clearance_expiring',

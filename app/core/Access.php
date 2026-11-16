@@ -20,6 +20,13 @@
  */
 class Access
 {
+  public const PERSONNEL_ROLES = ['staff', 'reviewer'];
+
+  public static function isPersonnelRole(mixed $role): bool
+  {
+    return in_array($role, self::PERSONNEL_ROLES, true);
+  }
+
   private const RULES = [
     'home'          => ['index' => 'public'],
     'announcements' => ['index' => 'public'],
@@ -118,13 +125,13 @@ class Access
       'site_content_faq_delete' => 'staff',
       'site_content_faq_move' => 'staff',
       'accounts' => 'staff',
+      'number_formats_save' => 'staff',
       'auditlogresults' => 'staff',
       'downloadauditlogs' => 'staff',
       'generate_invite' => 'staff',
       'approve' => 'staff',
       'reject' => 'staff',
       'update_role' => 'staff',
-      'delete_personnel' => 'staff',
       'deactivate_account' => 'staff',
       'reactivate_account' => 'staff',
     ],
@@ -161,8 +168,7 @@ class Access
       'reuploadcert' => 'researcher',
       'payment_proof' => 'researcher',
       'amendment_upload' => 'researcher',
-      'request_deletion' => 'researcher',
-      'cancel_deletion' => 'researcher',
+      'discontinue' => 'researcher',
       'report_outcome' => 'researcher',
       'withdraw_amendment' => 'researcher',
       // signed in; each also checks protocol ownership / personnel inside
@@ -181,16 +187,15 @@ class Access
       // staff + reviewer
       'status' => 'personnel',
       'delete' => 'personnel',
+      'restore' => 'personnel',
       'return_revision' => 'reviewer',
       // administrative staff only
       'download_selected' => 'staff',
       'verify_payment' => 'staff',
+      'endorse' => 'staff',
       'undo_payment' => 'staff',
       'reject_payment' => 'staff',
       'hard_copy' => 'staff',
-      'signed_scan_upload' => 'staff',
-      'approve_deletion' => 'staff',
-      'reject_deletion' => 'staff',
       'clearance_pool_upload' => 'staff',
       'clearance_pool' => 'staff',
       'clearance_pool_file' => 'staff',
@@ -199,6 +204,7 @@ class Access
       'clearance_delete' => 'staff',
       'clearance_confirm' => 'staff',
       'assign_ipn' => 'staff',
+      'next_ipn' => 'staff',
     ],
   ];
 
@@ -244,7 +250,7 @@ class Access
     $allowed = match ($rule) {
       'auth'       => true,
       'researcher' => $role === 'researcher',
-      'personnel'  => in_array($role, ['staff', 'reviewer'], true),
+      'personnel'  => self::isPersonnelRole($role),
       'reviewer'   => $role === 'reviewer',
       'staff'      => $role === 'staff',
       default      => false, // unknown rule name: fail closed
@@ -278,7 +284,7 @@ class Access
       exit;
     }
 
-    if ($code === 403 && in_array($role, ['staff', 'reviewer'], true)) {
+    if ($code === 403 && self::isPersonnelRole($role)) {
       // Personnel who wander into a page that is not theirs go back to their dashboard
       header('Location: ' . ROOT . '/personnel/home');
       exit;

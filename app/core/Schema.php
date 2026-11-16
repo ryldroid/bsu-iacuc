@@ -41,6 +41,8 @@ class Schema
         $this->ensureColumn('users', 'school', "varchar(150) DEFAULT NULL AFTER `phone_number`");
         $this->ensureColumn('users', 'sex', "varchar(20) DEFAULT NULL AFTER `phone_number`");
         $this->ensureColumn('users', 'welcome_seen', "tinyint(1) NOT NULL DEFAULT 0 AFTER `status`");
+        $this->ensureColumn('users', 'view_preferences', "text DEFAULT NULL AFTER `welcome_seen`");
+        $this->ensureColumn('users', 'privacy_consent_at', "timestamp NULL DEFAULT NULL AFTER `welcome_seen`");
         $this->ensureColumn('users', 'account_type', "varchar(10) AS (IF(`role` = 'researcher', 'researcher', 'personnel')) STORED");
         $this->ensureIndex('users', 'unique_email_per_account_type', "(`email`, `account_type`)", true);
         $this->dropIndex('users', 'unique_email');
@@ -103,24 +105,25 @@ class Schema
         $this->ensureColumn('protocols', 'title_changed_by_role', "varchar(30) DEFAULT NULL AFTER `title_changed_by_name`");
         $this->ensureColumn('protocols', 'title_changed_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_by_role`");
         $this->ensureColumn('protocols', 'title_change_seen_by', "int(11) DEFAULT NULL AFTER `title_changed_at`");
-        $this->ensureColumn('protocols', 'deletion_requested_at', "timestamp NULL DEFAULT NULL AFTER `title_changed_at`");
-        $this->ensureColumn('protocols', 'deletion_requested_by', "int(11) DEFAULT NULL AFTER `deletion_requested_at`");
-        $this->ensureColumn('protocols', 'deletion_requested_by_name', "varchar(150) DEFAULT NULL AFTER `deletion_requested_by`");
-        $this->ensureColumn('protocols', 'deletion_requested_by_role', "varchar(30) DEFAULT NULL AFTER `deletion_requested_by_name`");
-        $this->ensureColumn('protocols', 'deletion_request_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_requested_by_role`");
-        $this->ensureColumn('protocols', 'deletion_rejection_reason', "varchar(1000) DEFAULT NULL AFTER `deletion_request_reason`");
-        $this->ensureColumn('protocols', 'deleted_at', "timestamp NULL DEFAULT NULL AFTER `deletion_request_reason`");
+        $this->ensureColumn('protocols', 'deleted_at', "timestamp NULL DEFAULT NULL AFTER `title_change_seen_by`");
+        $this->ensureColumn('protocols', 'discontinued_at', "timestamp NULL DEFAULT NULL AFTER `deleted_at`");
+        $this->ensureColumn('protocols', 'discontinued_reason', "varchar(1000) DEFAULT NULL AFTER `discontinued_at`");
+        $this->ensureColumn('protocols', 'discontinued_record_cancelled', "tinyint(1) NOT NULL DEFAULT 0 AFTER `discontinued_reason`");
         $this->ensureColumn('protocols', 'deleted_by', "int(11) DEFAULT NULL AFTER `deleted_at`");
         $this->ensureColumn('protocols', 'deleted_by_name', "varchar(150) DEFAULT NULL AFTER `deleted_by`");
         $this->ensureColumn('protocols', 'deletion_reason', "varchar(1000) DEFAULT NULL AFTER `deleted_by_name`");
         $this->ensureColumn('protocols', 'payment_status', "enum('unpaid','proof_submitted','rejected','paid') NOT NULL DEFAULT 'unpaid' AFTER `deletion_reason`");
         $this->ensureColumn('protocols', 'payment_method', "enum('in_person','online') DEFAULT NULL AFTER `payment_status`");
+        $this->ensureColumn('protocols', 'payment_receipt_no', "varchar(50) DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_at', "timestamp NULL DEFAULT NULL AFTER `payment_method`");
         $this->ensureColumn('protocols', 'paid_by', "int(11) DEFAULT NULL AFTER `paid_at`");
         $this->ensureColumn('protocols', 'clearance_claimed_at', "timestamp NULL DEFAULT NULL AFTER `paid_by`");
         $this->ensureColumn('protocols', 'hard_copy_released_at', "timestamp NULL DEFAULT NULL AFTER `clearance_claimed_at`");
         $this->ensureColumn('protocols', 'hard_copy_released_by', "int(11) DEFAULT NULL AFTER `hard_copy_released_at`");
         $arNumberIsNew = $c->query("SHOW COLUMNS FROM `protocols` LIKE 'ar_number'")->num_rows === 0;
+        foreach (['first_name' => 'varchar(100)', 'last_name' => 'varchar(100)', 'school' => 'varchar(150)', 'sex' => 'varchar(20)', 'researcher_type' => 'varchar(50)'] as $field => $type) {
+            $this->ensureColumn('protocols', "submitter_$field", "$type DEFAULT NULL");
+        }
         $this->ensureColumn('protocols', 'ar_number', "varchar(50) DEFAULT NULL AFTER `reference_no`");
         if ($arNumberIsNew) {
             $c->query("UPDATE `records` r JOIN `protocols` p ON p.id = r.protocol_id SET r.ar_number = p.reference_no, r.reference_no = NULL WHERE p.status IN ('Endorsed','Approved') AND p.reference_no IS NOT NULL");
@@ -172,7 +175,7 @@ class Schema
         $this->ensureEnumValues(
             'protocol_versions',
             'file_type',
-            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan', 'amendment'],
+            ['protocol', 'cert', 'clearance', 'payment_proof', 'signed_scan', 'amendment', 'endorsement_proof'],
             'protocol'
         );
 
@@ -290,6 +293,7 @@ class Schema
         $this->backfillPersonnelApplicationNotifications();
         $this->backfillFirstSubmissionNotifications();
         $this->backfillBackupDownloadNotifications();
+        $this->backfillProtocolArchivedWording();
 
         // ===== ANNOUNCEMENTS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `announcements` (
@@ -372,6 +376,31 @@ class Schema
         $this->ensureColumn('protocol_return_reasons', 'version_id', "int(11) DEFAULT NULL AFTER `comment`");
         $this->ensureIndex('protocol_return_reasons', 'idx_prr_version', '(version_id)');
         $this->backfillReturnReasonVersions();
+
+        // ===== STATUS HISTORY TABLE =====
+        // One row per status change. Read by the history modal and the Records statistics,
+        // so neither has to dig the same facts out of audit log text.
+        $c->query("CREATE TABLE IF NOT EXISTS `protocol_status_history` (
+                    `id`              int(11)       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    `protocol_id`     int(11)       NOT NULL,
+                    `from_status`     varchar(30)   DEFAULT NULL,
+                    `to_status`       varchar(30)   NOT NULL,
+                    `changed_by`      int(11)       DEFAULT NULL,
+                    `changed_by_name` varchar(150)  DEFAULT NULL,
+                    `changed_by_role` varchar(30)   DEFAULT NULL,
+                    `reason`          varchar(1000) DEFAULT NULL,
+                    `created_at`      timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+                    INDEX `idx_psh_protocol` (`protocol_id`, `created_at`),
+                    INDEX `idx_psh_move` (`to_status`, `from_status`, `created_at`),
+                    FOREIGN KEY (`protocol_id`) REFERENCES `protocols`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
+        $this->backfillStatusHistory();
+
+        $c->query("UPDATE `protocols` p JOIN `users` u ON u.id = p.user_id
+                   SET p.submitter_first_name = u.first_name, p.submitter_last_name = u.last_name, p.submitter_school = u.school,
+                       p.submitter_sex = u.sex, p.submitter_researcher_type = u.researcher_type
+                   WHERE p.submitter_first_name IS NULL");
+
         $this->clearStaleReturnedRecords();
         $this->backfillMissingRecords();
         $this->backfillPendingRecordStatus();
@@ -442,11 +471,21 @@ class Schema
 
         $this->ensureColumn('users', 'researcher_type', "varchar(50) DEFAULT NULL AFTER `sex`");
 
+        foreach (['users', 'records'] as $table) {
+            $this->connection->query("UPDATE `$table` SET researcher_type = 'External Researcher' WHERE researcher_type = 'Researcher'");
+        }
+
         $this->cleanProtocolEmojiText();
+        $this->backfillResearchTitleCapitalization();
 
         $this->dropColumn('protocol_drafts', 'is_pi');
         $this->dropColumn('protocol_drafts', 'auth_file_path');
         $this->dropColumn('protocol_drafts', 'auth_file_name');
+
+        $this->dropForeignKey('protocols', 'deletion_requested_by');
+        foreach (['deletion_requested_at', 'deletion_requested_by', 'deletion_requested_by_name', 'deletion_requested_by_role', 'deletion_request_reason', 'deletion_rejection_reason'] as $column) {
+            $this->dropColumn('protocols', $column);
+        }
 
         $this->addForeignKeys();
     }
@@ -455,13 +494,14 @@ class Schema
     // Links that were plain int columns. audit_logs stays unlinked on purpose: it keeps its own username/role snapshot
     private function addForeignKeys(): void
     {
-        foreach (['user_id', 'title_changed_by', 'title_change_seen_by', 'deletion_requested_by', 'deleted_by', 'paid_by', 'hard_copy_released_by'] as $column) {
+        foreach (['user_id', 'title_changed_by', 'title_change_seen_by', 'deleted_by', 'paid_by', 'hard_copy_released_by'] as $column) {
             $this->ensureForeignKey('protocols', $column, 'users', 'SET NULL');
         }
 
         $this->ensureForeignKey('records', 'user_id', 'users', 'SET NULL');
         $this->ensureForeignKey('records', 'protocol_id', 'protocols', 'SET NULL');
         $this->ensureForeignKey('protocol_title_history', 'changed_by', 'users', 'SET NULL');
+        $this->ensureForeignKey('protocol_status_history', 'changed_by', 'users', 'SET NULL');
         $this->ensureForeignKey('protocol_return_reasons', 'version_id', 'protocol_versions', 'SET NULL');
         $this->ensureForeignKey('clearance_pool', 'version_id', 'protocol_versions', 'SET NULL');
         $this->ensureForeignKey('invite_tokens', 'used_by', 'users', 'SET NULL');
@@ -488,6 +528,20 @@ class Schema
 
         if (! $c->query("ALTER TABLE `$table` ADD CONSTRAINT `fk_{$table}_{$column}` FOREIGN KEY (`$column`) REFERENCES `$refTable`(`id`) ON DELETE $onDelete")) {
             error_log("Schema: could not add foreign key `fk_{$table}_{$column}`: " . $c->error);
+        }
+    }
+
+    private function dropForeignKey(string $table, string $column): void
+    {
+        $c = $this->connection;
+
+        $exists = $c->query(
+            "SELECT 1 FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table'
+               AND COLUMN_NAME = '$column' AND CONSTRAINT_NAME = 'fk_{$table}_{$column}'"
+        );
+        if ($exists && $exists->num_rows > 0) {
+            $c->query("ALTER TABLE `$table` DROP FOREIGN KEY `fk_{$table}_{$column}`");
         }
     }
 
@@ -722,13 +776,7 @@ class Schema
         $retitled->bind_param('s', $unpaidTitle);
         $retitled->execute();
 
-        $signed = $c->prepare(
-            "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
-             WHERE type = 'signed_scan_uploaded' AND message NOT LIKE CONCAT('%', ?)"
-        );
-        $step = Notifier::SIGNED_SCAN_NEXT_STEP;
-        $signed->bind_param('ss', $step, $step);
-        $signed->execute();
+        $c->query("DELETE FROM `notifications` WHERE type = 'signed_scan_uploaded'");
 
         $appendStep = $c->prepare(
             "UPDATE `notifications` SET message = CONCAT(message, ' ', ?)
@@ -740,7 +788,7 @@ class Schema
              WHERE type = ? AND message LIKE '% Reason: %' AND message NOT LIKE CONCAT('%', ?, ' Reason: %')"
         );
         foreach (Notifier::NEXT_STEPS as $type => $step) {
-            $statement = in_array($type, ['protocol_deleted', 'protocol_deletion_rejected', 'protocol_deletion_requested'], true) ? $insertStep : $appendStep;
+            $statement = in_array($type, ['protocol_deleted'], true) ? $insertStep : $appendStep;
             $statement->bind_param('sss', $step, $type, $step);
             $statement->execute();
         }
@@ -846,7 +894,7 @@ class Schema
              WHERE n.type = 'new_submission' AND n.message LIKE CONCAT('%', ?)"
         );
 
-        foreach (['staff', 'reviewer'] as $role) {
+        foreach (Access::PERSONNEL_ROLES as $role) {
             $old = Notifier::NEXT_STEPS['new_submission_' . $role];
             $new = Notifier::NEXT_STEPS['first_submission_' . $role];
             $update->bind_param('ssss', $role, $old, $new, $old);
@@ -859,6 +907,23 @@ class Schema
         $this->connection->query(
             "UPDATE `notifications` SET message = REPLACE(message, 'Press Save a copy on', 'Press Download on')
              WHERE type = 'backup_download'"
+        );
+    }
+
+    private function backfillProtocolArchivedWording(): void
+    {
+        $c = $this->connection;
+        $c->query(
+            "UPDATE `notifications`
+             SET title = 'Protocol Archived',
+                 message = REPLACE(REPLACE(REPLACE(message, ' was **deleted** by ', ' was **archived** by '), ' was **removed** by ', ' was **archived** by '), '. No action needed. Reason: ', '. It is hidden from the portal but kept for record-keeping purposes. Reason: ')
+             WHERE type = 'protocol_deleted' AND title IN ('Protocol Deleted', 'Protocol Removed')"
+        );
+        $c->query(
+            "UPDATE `audit_logs`
+             SET action = 'protocol_archived',
+                 details = IF(details LIKE 'Deleted. Reason: %' OR details LIKE 'Removed. Reason: %', CONCAT('Archived. Reason: ', SUBSTRING(details, 18)), details)
+             WHERE action IN ('protocol_deleted', 'protocol_removed')"
         );
     }
 
@@ -967,6 +1032,95 @@ class Schema
         if (! $mergeCHED) return;
         $mergeCHED->bind_param('ss', $separate, $clause);
         $mergeCHED->execute();
+    }
+
+    // Rebuilds status history from the audit log for protocols that have none yet, then runs
+    // out of work: new protocols get their rows as they change. The last row always lands on
+    // the protocol's real status, so protocols from before some audit actions existed get one
+    // plain "moved to" row instead of a gap.
+    private function backfillStatusHistory(): void
+    {
+        $c = $this->connection;
+
+        $missing = $c->query(
+            "SELECT p.id, p.user_id, p.status, p.submitted_at, p.updated_at,
+                    TRIM(CONCAT(p.submitter_first_name, ' ', p.submitter_last_name)) AS submitter_name
+             FROM `protocols` p
+             WHERE NOT EXISTS (SELECT 1 FROM `protocol_status_history` h WHERE h.protocol_id = p.id)"
+        );
+        if (! $missing || $missing->num_rows === 0) return;
+
+        $statuses = ['Under Review', 'Needs Revision', 'Reviewed', 'Endorsed', 'Approved'];
+
+        $userIds = [];
+        if ($users = $c->query("SELECT id FROM `users`")) {
+            $userIds = array_flip(array_map('intval', array_column($users->fetch_all(MYSQLI_ASSOC), 'id')));
+        }
+
+        $eventsByProtocol = [];
+        $events = $c->query(
+            "SELECT target_id, action, user_id, username, role, details, old_status, new_status, created_at
+             FROM `audit_logs`
+             WHERE target_type = 'protocol'
+               AND action IN ('status_updated', 'status_reverted', 'clearance_confirmed', 'protocol_returned', 'protocol_revised')
+             ORDER BY created_at ASC, id ASC"
+        );
+        if ($events) {
+            foreach ($events->fetch_all(MYSQLI_ASSOC) as $event) {
+                $eventsByProtocol[(int) $event['target_id']][] = $event;
+            }
+        }
+
+        $insert = $c->prepare(
+            "INSERT INTO `protocol_status_history`
+                (protocol_id, from_status, to_status, changed_by, changed_by_name, changed_by_role, reason, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        if (! $insert) return;
+
+        $add = function (int $protocolId, ?string $from, string $to, ?int $by, ?string $name, ?string $role, ?string $reason, string $at) use ($insert, $userIds): void {
+            $by = $by !== null && isset($userIds[$by]) ? $by : null;
+            $insert->bind_param('ississss', $protocolId, $from, $to, $by, $name, $role, $reason, $at);
+            $insert->execute();
+        };
+
+        foreach ($missing->fetch_all(MYSQLI_ASSOC) as $protocol) {
+            $protocolId = (int) $protocol['id'];
+            $current    = 'Under Review';
+
+            // All of a protocol's rows or none, so a failure can't leave it half filled (and never retried)
+            $c->begin_transaction();
+
+            $add($protocolId, null, $current, $protocol['user_id'] !== null ? (int) $protocol['user_id'] : null, $protocol['submitter_name'] ?: null, 'researcher', null, $protocol['submitted_at']);
+
+            foreach ($eventsByProtocol[$protocolId] ?? [] as $event) {
+                $to = match ($event['action']) {
+                    'clearance_confirmed' => 'Approved',
+                    'protocol_returned'   => 'Needs Revision',
+                    'protocol_revised'    => 'Under Review',
+                    default               => $event['new_status']
+                        ?: (preg_match('/^Status changed to: ([^.]+)/', (string) $event['details'], $m) ? trim($m[1]) : null),
+                };
+                if (! in_array($to, $statuses, true)) continue;
+
+                $from = in_array($event['old_status'], $statuses, true) ? $event['old_status'] : $current;
+                if ($from === $to) continue;
+
+                $reason = null;
+                if (preg_match('/\. Reason: (.*)$/s', (string) $event['details'], $m) || preg_match('/Comment: (.*)$/s', (string) $event['details'], $m)) {
+                    $reason = mb_substr(trim($m[1]), 0, 1000) ?: null;
+                }
+
+                $add($protocolId, $from, $to, $event['user_id'] !== null ? (int) $event['user_id'] : null, $event['username'] ?: null, $event['role'] ?: null, $reason, $event['created_at']);
+                $current = $to;
+            }
+
+            if ($current !== $protocol['status'] && in_array($protocol['status'], $statuses, true)) {
+                $add($protocolId, $current, $protocol['status'], null, null, null, null, $protocol['updated_at']);
+            }
+
+            $c->commit();
+        }
     }
 
     private function backfillReturnReasonVersions(): void
@@ -1185,6 +1339,52 @@ class Schema
         }
     }
 
+    // ===== ONE-TIME BACKFILL: capitalize the first letter of research titles =====
+    // New titles are already capitalized on save (capitalize_first_letter). This fixes the ones saved before that.
+    // Protocols and records are updated together, so the title match used to link records to protocols still holds.
+    // updated_at is kept unchanged. Flag in site_settings, so it runs only once.
+    private function backfillResearchTitleCapitalization(): void
+    {
+        $c       = $this->connection;
+        $flagKey = 'research_title_capitalized_v1';
+
+        $check = $c->prepare("SELECT 1 FROM `site_settings` WHERE setting_key = ?");
+        if (! $check) return;
+        $check->bind_param('s', $flagKey);
+        $check->execute();
+        if ($check->get_result()->fetch_assoc()) return;
+
+        // table => [text column, whether the table has an updated_at to keep unchanged]
+        $targets = [
+            'protocols'              => [['title', 'previous_title'], true],
+            'records'                => [['title_of_research'],       false],
+            'protocol_drafts'        => [['title'],                   true],
+            'protocol_title_history' => [['title'],                   false],
+        ];
+
+        foreach ($targets as $table => [$columns, $keepStamp]) {
+            foreach ($columns as $col) {
+                $set = "`$col` = CONCAT(UPPER(LEFT(`$col`, 1)), SUBSTRING(`$col`, 2))";
+                if ($keepStamp) {
+                    $set .= ', `updated_at` = `updated_at`';
+                }
+                // BINARY: the default collation ignores case, so compare the raw characters
+                $c->query(
+                    "UPDATE `$table` SET $set
+                     WHERE `$col` IS NOT NULL AND `$col` <> ''
+                       AND BINARY LEFT(`$col`, 1) <> BINARY UPPER(LEFT(`$col`, 1))"
+                );
+            }
+        }
+
+        $flagValue = '1';
+        $flag      = $c->prepare("INSERT INTO `site_settings` (setting_key, setting_value) VALUES (?, ?)");
+        if ($flag) {
+            $flag->bind_param('ss', $flagKey, $flagValue);
+            $flag->execute();
+        }
+    }
+
     // ===== ONE-TIME CLEANUP: records kept after Endorsed -> To Review -> Reviewed =====
     // Deleted here, then backfillMissingRecords() recreates them from the protocol. Flag in site_settings.
     private function clearStaleReturnedRecords(): void
@@ -1239,8 +1439,7 @@ class Schema
     {
         $result = $this->connection->query(
             "SELECT p.id AS protocol_id, p.reference_no, p.ar_number, p.title AS research_title, p.user_id,
-                    u.first_name AS submitter_first_name, u.last_name AS submitter_last_name,
-                    u.school AS submitter_school, u.sex AS submitter_sex, u.researcher_type AS submitter_researcher_type,
+                    p.submitter_first_name, p.submitter_last_name, p.submitter_school, p.submitter_sex, p.submitter_researcher_type,
                     p.animal_type, p.animal_count, p.research_adviser, p.veterinarian,
                     p.research_duration_start, p.research_duration_end, p.status
              FROM `protocols` p

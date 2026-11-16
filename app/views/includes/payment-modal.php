@@ -43,13 +43,9 @@
       <?php endif; ?>
 
       <div id="paymentInPersonPanel">
-        <p class="modal-notice">Settle the fee at the BSU-CCARD office, then tick the box below to confirm payment.</p>
-        <div class="consent-list">
-          <label class="consent-item">
-            <input type="checkbox" class="consent-checkbox" id="confirm_in_person_paid">
-            <span>I confirm that I have paid the Php 100.00 fee in person at CCARD.</span>
-          </label>
-        </div>
+        <p class="modal-notice">Settle the Php 100.00 fee at the BSU-CCARD office, then enter the temporary receipt number you were given. Administrative staff will check it against their records.</p>
+        <label class="return-comment-label" for="payment_receipt_no">Temporary receipt no. <span class="required-asterisk">*</span></label>
+        <input type="text" id="payment_receipt_no" class="return-comment-textarea rename-title-input" maxlength="50" autocomplete="off">
       </div>
 
       <div id="paymentOnlinePanel" hidden>

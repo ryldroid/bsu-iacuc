@@ -14,6 +14,8 @@
  */
 class ProtocolPermissions
 {
+  public const PERSONNEL_STATUS_LABELS = ['under review' => 'To Review', 'needs revision' => 'Returned for Revision'];
+
   public const RENAMEABLE_STATUSES = ['under review', 'needs revision'];
 
   public const DELETABLE_STATUSES = ['under review', 'needs revision', 'reviewed'];
@@ -33,20 +35,22 @@ class ProtocolPermissions
   {
     $role        = (string) ($actor['role'] ?? '');
     $actorId     = (int) ($actor['id'] ?? 0);
-    $isPersonnel = in_array($role, ['staff', 'reviewer'], true);
+    $isPersonnel = Access::isPersonnelRole($role);
     $isOwner     = $actorId > 0 && (int) ($protocol['user_id'] ?? 0) === $actorId;
     $status      = strtolower((string) ($protocol['status'] ?? ''));
     $deletable   = self::isDeletable($status);
+    $discontinued = !empty($protocol['discontinued_at']);
 
     $flags = [
       'isOwner'            => $isOwner,
       'isPersonnel'        => $isPersonnel,
       'isStaff'            => $role === 'staff',
       'isReviewer'         => $role === 'reviewer',
-      'canRename'          => ($isOwner || $isPersonnel) && in_array($status, self::RENAMEABLE_STATUSES, true),
-      'canRequestDeletion' => $isOwner && !$isPersonnel && $deletable,
+      'isDiscontinued'     => $discontinued,
+      'canDiscontinue'     => $isOwner && !$isPersonnel && !$discontinued,
+      'canRename'          => ($isOwner || $isPersonnel) && !$discontinued && in_array($status, self::RENAMEABLE_STATUSES, true),
       'canDelete'          => $isPersonnel && $deletable,
-      'canAmend'           => $isOwner && !$isPersonnel && $status === 'approved',
+      'canAmend'           => $isOwner && !$isPersonnel && !$discontinued && $status === 'approved',
       'hasPaymentHistory'  => false,
       'hasRenames'         => false,
       'amendmentCount'     => 0,

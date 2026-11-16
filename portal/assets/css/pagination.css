@@ -93,6 +93,8 @@
 
 .pagination-bar--on-page {
   margin-top: auto;
+  margin-inline: -0.8em;
+  padding-inline: 0.8em;
   background: linear-gradient(var(--body-background-tint), var(--body-background-tint)), var(--page-background);
 }
 

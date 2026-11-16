@@ -29,6 +29,11 @@ class Submissions extends Controller
     {
         $this->requireResearcher();
 
+        if (isset($_GET['submitted'])) {
+            $_SESSION['flash_success'] = 'Your protocol has been submitted successfully. We will review it shortly.';
+            $this->redirect('submissions');
+        }
+
         $userId    = (int) $_SESSION['user']['user_id'];
         $protocols = $this->protocolModel->getByUser($userId);
 
@@ -36,21 +41,12 @@ class Submissions extends Controller
         $currentUser   = $this->userModel->getUser($userId);
         $mustPayInPerson = UserModel::mustPayInPerson($currentUser['school'] ?? '');
 
-        $statuses = [
-            'Under Review',
-            'Needs Revision',
-            'Reviewed',
-            'Endorsed',
-            'Approved',
-        ];
-
         $activityTimestamps = array_column($protocols, 'last_activity_at');
         $updatesBaseline    = $activityTimestamps ? max($activityTimestamps) : null;
 
         $this->view('submissions', [
             'protocols'       => $protocols,
             'actor'           => $this->actor(),
-            'statuses'        => $statuses,
             'cert'            => $cert,
             'mustPayInPerson' => $mustPayInPerson,
             'csrf'            => $this->generateCsrfToken(),
