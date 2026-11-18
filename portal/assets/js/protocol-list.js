@@ -37,11 +37,18 @@
     });
   }
 
-  // ===== Sort options: mobile dropdown panel, inline pills on tablet and desktop =====
+  // ===== Sort options: dropdown with order radios (mobile and compact), inline pills otherwise =====
   const sortSelect = document.querySelector(".dashboard-sort-select");
   const sortTrigger = document.querySelector(".mobile-sort-trigger");
   const sortPanel = document.getElementById("sortOptions");
   if (!sortSelect || !sortTrigger || !sortPanel) return;
+
+  const inPillMode = () => getComputedStyle(sortTrigger).display === "none";
+
+  function applySortValue(value) {
+    sortSelect.value = value;
+    sortSelect.dispatchEvent(new Event("change"));
+  }
 
   function closeSortPanel() {
     sortPanel.classList.remove("active");
@@ -65,13 +72,29 @@
     }
   });
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSortPanel();
+  });
+
+  // Pills flip the direction of the current choice; the dropdown keeps the chosen order
   sortPanel.querySelectorAll(".status-card").forEach((btn) => {
     btn.addEventListener("click", () => {
-      sortSelect.value = btn.classList.contains("active")
-        ? reverseProtocolSort(btn.dataset.sort)
-        : btn.dataset.sort;
-      sortSelect.dispatchEvent(new Event("change"));
-      closeSortPanel();
+      if (inPillMode()) {
+        applySortValue(
+          btn.classList.contains("active")
+            ? reverseProtocolSort(btn.dataset.sort)
+            : btn.dataset.sort,
+        );
+        return;
+      }
+      const currentDirection = sortSelect.value.split("_")[1];
+      applySortValue(btn.dataset.sortKey + "_" + currentDirection);
+    });
+  });
+
+  sortPanel.querySelectorAll(".sort-order input").forEach((radio) => {
+    radio.addEventListener("change", () => {
+      applySortValue(sortSelect.value.split("_")[0] + "_" + radio.value);
     });
   });
 })();

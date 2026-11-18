@@ -35,7 +35,7 @@ $activeTab     = $activeTab     ?? 'announcements';
 
     <div class="page-banner">
       <div class="page-banner-text">
-        <h1>Edit Site Content</h1>
+        <h1>Website Content</h1>
         <p class="page-subtitle">Announcements and the information shown on the public pages</p>
       </div>
     </div>

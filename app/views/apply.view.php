@@ -30,7 +30,7 @@ include "includes/scroll-top.php";
             <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <use href="#back-icon">
             </svg>
-            Back to Dashboard
+            Back to <?= RESEARCHER_HOME_LABEL ?>
         </a>
 
         <div class="portal">
@@ -48,7 +48,7 @@ $guideSteps = [
     ['Application', 'Applying for protocol review takes a few short steps. Let us walk through this page.'],
     ['Progress', 'Move through the requirements, terms and conditions, one-time upload of your IACUC training certificate, download of the official IACUC protocol review form, and finally the filling of protocol details and submission.', '#stepper'],
     ['Current step', 'Thoroughly read and follow the instructions. You can navigate the steps with **Back** and **Continue**.', '#page-content'],
-    ['Leave and resume', 'Press to go back to your dashboard. Your progress will be saved, and you can resume the application from any time.', '#btn-home'],
+    ['Leave and resume', 'Press to go back to ' . RESEARCHER_HOME_LABEL . '. Your progress will be saved, and you can resume the application from any time.', '#btn-home'],
 ];
 include 'includes/guide.php';
 ?>
@@ -656,7 +656,7 @@ include 'includes/guide.php';
         <ol>
             <li>Check that your files and details are correct and complete.</li>
             <li>Only the Principal Investigator (PI) should submit. If you are part of a group, the other members should not submit the same protocol.</li>
-            <li>Do not submit a protocol you already submitted. To send a revised version, resubmit through your dashboard. Duplicate submissions will be rejected.</li>
+            <li>Do not submit a protocol you already submitted. To send a revised version, resubmit through <?= RESEARCHER_HOME_LABEL ?>. Duplicate submissions will be rejected.</li>
         </ol>
     </div>
 
@@ -693,7 +693,7 @@ include 'includes/guide.php';
         </p>
         <div class="success-btn-row">
             <a href="${ROOT}/submissions?submitted=1" class="btn-link" onclick="disarmGuard();">
-                Go to My Protocols
+                Go to <?= RESEARCHER_HOME_LABEL ?>
             </a>
         </div>
     </div>`;

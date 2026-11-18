@@ -244,7 +244,7 @@ include "includes/scroll-top.php";
                             </span>
                             <div class="timeline-content">
                                 <h3>Track Protocol</h3>
-                                <p>Track your protocol's status through your dashboard. As long as there are comments or requested revisions on your protocol, revise and resubmit. You will be notified of every update via your verified email.</p>
+                                <p>Track your protocol's status through <?= RESEARCHER_HOME_LABEL ?>. As long as there are comments or requested revisions on your protocol, revise and resubmit. You will be notified of every update via your verified email.</p>
                             </div>
                         </li>
 
@@ -271,7 +271,7 @@ include "includes/scroll-top.php";
                             </span>
                             <div class="timeline-content">
                                 <h3>Receive Clearance</h3>
-                                <p>When your protocol is approved, your digital animal research clearance (ARC) will be released through your dashboard.</p>
+                                <p>When your protocol is approved, your digital animal research clearance (ARC) will be released through <?= RESEARCHER_HOME_LABEL ?>.</p>
                                 <p class="process-step-note">
                                     Visit the CCARD office to claim the embossed hard copy of your ARC.
                                 </p>

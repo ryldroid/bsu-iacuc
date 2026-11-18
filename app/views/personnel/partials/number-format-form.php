@@ -3,18 +3,19 @@ $numberKind  = $numberKind ?? '';
 $numberLabel = $numberLabel ?? '';
 $csrf        = $csrf ?? '';
 $numberFormat = NumberFormat::of($numberKind);
+$numberName   = NumberFormat::NAMES[$numberKind] ?? $numberLabel;
 $numberValues = $numberFormat->values();
 $numberIntro  = $numberKind === 'ar'
-    ? 'Sets how AR numbers must be written. Only the prefix and year are pre-filled. Modifying the format will not affect existing AR numbers.'
+    ? 'Sets how AR Numbers must be written. Only the prefix and year are pre-filled. Modifying the format will not affect existing AR Numbers.'
     : 'Sets how new IPNs are written and numbered. IPNs that already exist are not changed. Numbering restarts at 1 each year when the format includes a year.';
 ?>
-<!-- ===== <?= htmlspecialchars($numberLabel, ENT_QUOTES) ?> format ===== -->
+<!-- ===== <?= htmlspecialchars($numberLabel, ENT_QUOTES) ?> ===== -->
 <section class="accounts-card">
     <h2>
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <use href="#edit-icon" />
         </svg>
-        <?= htmlspecialchars(ucfirst($numberLabel), ENT_QUOTES) ?> Format
+        <?= htmlspecialchars($numberName, ENT_QUOTES) ?>
     </h2>
     <p class="audit-description"><?= $numberIntro ?></p>
     <form id="<?= $numberKind ?>FormatForm" method="POST" action="<?= ROOT ?>/personnel/number_formats_save" data-number-format="<?= $numberKind ?>" data-cm-dirty

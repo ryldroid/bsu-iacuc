@@ -1494,7 +1494,7 @@ class Apply extends Controller
         $isPersonnel = $perm['isPersonnel'];
         $backBase   = $isPersonnel ? ROOT . '/personnel/home' : ROOT . '/submissions';
         $fromFilter = isset($_GET['from']) ? preg_replace('/[^a-z0-9\-]/', '', strtolower((string) $_GET['from'])) : '';
-        $backUrl    = $fromFilter !== '' ? $backBase . '?status=' . $fromFilter : $backBase;
+        $backUrl    = $fromFilter === 'archived' ? $backBase . '?archive=1' : $backBase;
 
         $cert       = $this->userModel->getCert((int) $protocol['user_id']);
         $certReview = null;
@@ -1517,6 +1517,7 @@ class Apply extends Controller
             'version'           => $version,
             'versions'          => $timeline,
             'fromFilter'        => $fromFilter,
+            'annotationCount'   => $isPersonnel ? count($this->protocolModel->getAnnotations((int) $version['id'])) : 0,
             'isLatestVersion'   => $isLatestVersion,
             'isSignedScan'      => $isSignedScan,
             'isAmendment'       => $isAmendment,
@@ -2830,7 +2831,7 @@ class Apply extends Controller
             $this->renderError(404, 'No Clearance File Found', [
                 'No clearance document has been uploaded for this protocol yet.',
             ], [
-                ['label' => '← Back to Dashboard', 'href' => ROOT . '/' . $dashboard],
+                ['label' => '← Back to ' . ($this->isPersonnel() ? PERSONNEL_HOME_LABEL : RESEARCHER_HOME_LABEL), 'href' => ROOT . '/' . $dashboard],
             ]);
         }
 

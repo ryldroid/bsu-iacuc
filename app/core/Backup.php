@@ -24,6 +24,8 @@ class Backup
   private const SHADOW        = '_restore_';
   private const SCHEMA_MARKER = '/storage/.schema_checked';
   private const SKIP_TABLES   = ['login_attempts', 'password_resets', 'email_verifications', 'invite_tokens'];
+  private const MERGE_TABLES  = ['audit_logs'];
+  private const AUDIT_COLUMNS = ['user_id', 'username', 'role', 'action', 'target_type', 'target_id', 'details', 'old_status', 'new_status', 'ip_address', 'created_at'];
   private const FILE_ROOTS    = ['storage/uploads', 'portal/assets/uploads'];
   private const SKIP_PREFIX   = 'storage/uploads/staging/';
   private const BINARY_TYPES  = [249, 250, 251, 252, 253, 254];
@@ -659,12 +661,18 @@ class Backup
     $this->db->begin_transaction();
 
     try {
-      foreach (array_merge($tables, array_intersect(self::SKIP_TABLES, $this->liveTables())) as $table) {
+      $replaced = array_diff($tables, self::MERGE_TABLES);
+
+      foreach (array_merge($replaced, array_intersect(self::SKIP_TABLES, $this->liveTables())) as $table) {
         $this->exec('DELETE FROM `' . $table . '`', 'Could not clear the table ' . $table . '.');
       }
 
-      foreach ($tables as $table) {
+      foreach ($replaced as $table) {
         $this->exec('INSERT INTO `' . $table . '` SELECT * FROM `' . self::SHADOW . $table . '`', 'Could not restore the table ' . $table . '.');
+      }
+
+      if (in_array('audit_logs', $tables, true)) {
+        $this->mergeAuditLogs();
       }
 
       $this->swapFiles($job, $undo);
@@ -685,6 +693,23 @@ class Backup
     }
 
     $state['phase'] = 'cleanup';
+  }
+
+  // ===== KEEP LIVE AUDIT LOGS AND ADD ONLY THE BACKUP ROWS THEY LACK =====
+  private function mergeAuditLogs(): void
+  {
+    $columns = implode(', ', self::AUDIT_COLUMNS);
+    $backup  = 's.' . implode(', s.', self::AUDIT_COLUMNS);
+
+    $this->exec(
+      'INSERT INTO `audit_logs` (' . $columns . ') SELECT ' . $backup . ' FROM `' . self::SHADOW . 'audit_logs` s
+       WHERE NOT EXISTS (
+         SELECT 1 FROM `audit_logs` a
+         WHERE a.created_at = s.created_at AND a.action = s.action AND a.user_id <=> s.user_id
+           AND a.target_id <=> s.target_id AND a.details <=> s.details
+       ) ORDER BY s.id',
+      'Could not restore the audit logs.'
+    );
   }
 
   // ===== SWAP THE UPLOAD FOLDERS =====

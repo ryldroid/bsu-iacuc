@@ -52,7 +52,7 @@
       : mode.replace(/_desc$/, "_asc");
   };
 
-  // ===== Sort controls (pills with direction arrow on tablet and desktop, dropdown label on mobile) =====
+  // ===== Sort controls (pills with direction arrow on tablet and desktop, dropdown with order radios elsewhere) =====
   window.syncProtocolSortControls = function (sortSelect) {
     const [currentKey, currentDirection] = sortSelect.value.split("_");
     document.querySelectorAll("#sortOptions .status-card").forEach((btn) => {
@@ -68,6 +68,11 @@
           direction === "asc" ? "#chev-up-icon" : "#chev-down-icon",
         );
     });
+    document
+      .querySelectorAll("#sortOptions .sort-order input")
+      .forEach((radio) => {
+        radio.checked = radio.value === currentDirection;
+      });
     const mobileSortLabel = document.getElementById("mobileSortLabel");
     if (mobileSortLabel)
       mobileSortLabel.textContent = sortSelect.selectedOptions[0].textContent;

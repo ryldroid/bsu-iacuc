@@ -15,7 +15,8 @@ class NumberFormat
         'ar_year_position'  => 'before',
     ];
 
-    public const LABELS     = ['ipn' => 'IPN', 'ar' => 'AR number'];
+    public const LABELS     = ['ipn' => 'IPN', 'ar' => 'AR Number'];
+    public const NAMES      = ['ipn' => 'Institutional Protocol Number (IPN)', 'ar' => 'Animal Research (AR) Number'];
     public const SEPARATORS = ['' => 'None', '-' => 'Dash ( - )', '.' => 'Dot ( . )'];
     public const YEARS      = ['yy' => '2 digits (26)', 'yyyy' => '4 digits (2026)', 'none' => 'No year'];
     public const POSITIONS  = ['after' => 'After the number', 'before' => 'Before the number'];

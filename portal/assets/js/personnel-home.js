@@ -11,9 +11,11 @@ const CLEARANCE_VIEW_URL = ROOT_URL + "/apply/clearance/";
 const protocolsList = document.getElementById("protocolsList");
 const noResultsMsg = document.getElementById("noResultsMsg");
 const archivedLink = document.getElementById("archivedLink");
+const archiveList = document.getElementById("archiveList");
 const archiveCategoryBar = document.getElementById("archiveCategories");
-const archiveBannerDesc = document.getElementById("archiveBannerDesc");
-const noResultsText = document.getElementById("noResultsText");
+const archiveDesc = document.getElementById("archiveDesc");
+const archiveEmpty = document.getElementById("archiveEmpty");
+const archiveEmptyText = document.getElementById("archiveEmptyText");
 const rowsPerPageSel = document.getElementById("rowsPerPageSelect");
 const bulkActionsBar = document.getElementById("bulkActionsBar");
 const paymentFilterWrapper = document.getElementById("paymentFilterWrapper");
@@ -37,11 +39,9 @@ const allRows = protocolsList
   ? [...protocolsList.querySelectorAll(".protocol")]
   : [];
 
-const ARCHIVED_SLUG = "archived";
 const ALL_ARCHIVE = "all";
 const DEFAULT_ROWS = 10;
 
-let showArchived = false;
 let archiveCategory =
   archiveCategoryBar?.querySelector(".archive-category.active")?.dataset
     .archiveCategory ?? "";
@@ -92,7 +92,9 @@ function saveView() {
   setUrlParam(
     url.searchParams,
     "category",
-    showArchived && archiveCategory !== ALL_ARCHIVE ? archiveCategory : "",
+    archiveWindow.active && archiveCategory !== ALL_ARCHIVE
+      ? archiveCategory
+      : "",
   );
   setUrlParam(url.searchParams, "page", pager.page > 1 ? pager.page : "");
   history.replaceState(null, "", url);
@@ -115,17 +117,14 @@ sortSelect?.addEventListener("change", () => {
 // the clearance panel only on the Endorsed tab =====
 function updateBulkActionsBarVisibility() {
   const canSelect =
-    !showArchived &&
-    statusFilter === "reviewed" &&
-    REVIEWED_DOWNLOADABLE_COUNT > 0;
+    statusFilter === "reviewed" && REVIEWED_DOWNLOADABLE_COUNT > 0;
 
   if (paymentFilterWrapper) {
     paymentFilterWrapper.hidden = !canSelect;
     if (!canSelect) paymentFilterSelect.value = "";
   }
   if (clearancePanel) {
-    clearancePanel.hidden =
-      showArchived || statusFilter !== "endorsed" || ENDORSED_COUNT === 0;
+    clearancePanel.hidden = statusFilter !== "endorsed" || ENDORSED_COUNT === 0;
   }
   if (toggleSelectBtn) {
     toggleSelectBtn.hidden = !canSelect;
@@ -244,23 +243,34 @@ bulkEndorseBtn?.addEventListener("click", () => {
   openEndorsementModal(protocolIds, skippedCount);
 });
 
-// ===== Archive: a quiet extra section with an obvious way back =====
-const archiveView = createArchiveView({
-  link: archivedLink,
-  banner: document.getElementById("archiveBanner"),
-  backButton: document.getElementById("archiveBackBtn"),
-  onChange: (on) => {
-    showArchived = on;
-    if (statusFilters) statusFilters.hidden = on;
-    pager.page = 1;
-    updateBulkActionsBarVisibility();
-    renderTable();
-  },
+// ===== Archive: a window of its own, kept out of the main list =====
+const archiveRows = archiveList
+  ? [...archiveList.querySelectorAll(".protocol")]
+  : [];
+
+const archiveWindow = createArchiveWindow({
+  button: archivedLink,
+  backdrop: document.getElementById("archiveBackdrop"),
+  onChange: () => saveView(),
 });
-showArchived = archiveView.active;
-if (statusFilters) statusFilters.hidden = showArchived;
 
 // ===== Archive categories =====
+function renderArchive() {
+  const inCategory = (row) =>
+    archiveCategory === ALL_ARCHIVE ||
+    row.dataset.archiveCategory === archiveCategory;
+
+  archiveRows.forEach((row) =>
+    row.classList.toggle("protocol-row-hidden", !inCategory(row)),
+  );
+  archiveEmpty?.classList.toggle("is-visible", !archiveRows.some(inCategory));
+  if (archiveEmptyText)
+    archiveEmptyText.textContent =
+      archiveCategory === ALL_ARCHIVE
+        ? "No archived protocols."
+        : "No protocols in this category.";
+}
+
 function setArchiveCategory(category) {
   const chips = [
     ...(archiveCategoryBar?.querySelectorAll(".archive-category") ?? []),
@@ -275,18 +285,19 @@ function setArchiveCategory(category) {
     chip.classList.toggle("active", chip === chosen);
     chip.setAttribute("aria-pressed", chip === chosen);
   });
-  if (archiveBannerDesc) archiveBannerDesc.textContent = chosen.dataset.desc;
+  if (archiveDesc) archiveDesc.textContent = chosen.dataset.desc;
 }
 
 archiveCategoryBar?.addEventListener("click", (e) => {
   const chip = e.target.closest(".archive-category");
   if (!chip) return;
   setArchiveCategory(chip.dataset.archiveCategory);
-  pager.page = 1;
-  renderTable();
+  renderArchive();
+  saveView();
 });
 
 setArchiveCategory(new URLSearchParams(window.location.search).get("category"));
+renderArchive();
 
 // ===== Status filter =====
 function setStatusFilter(status) {
@@ -338,12 +349,7 @@ function renderTable() {
       row.querySelector(".research-title")?.textContent.toLowerCase() ?? "";
     const researcher = row.dataset.researcher ?? "";
 
-    const matchesFilter =
-      (slug === ARCHIVED_SLUG) === showArchived &&
-      (showArchived
-        ? archiveCategory === ALL_ARCHIVE ||
-          row.dataset.archiveCategory === archiveCategory
-        : !statusFilter || slug === statusFilter);
+    const matchesFilter = !statusFilter || slug === statusFilter;
     if (matchesFilter) tabTotal++;
 
     const matchesSearch =
@@ -379,12 +385,6 @@ function renderTable() {
 
   if (noResultsMsg) {
     noResultsMsg.style.display = totalRows === 0 ? "flex" : "none";
-    noResultsText.textContent =
-      showArchived && !inboxSearch.query
-        ? archiveCategory === ALL_ARCHIVE
-          ? "No archived protocols."
-          : "No protocols in this category."
-        : "No protocols match your search.";
   }
 
   inboxSearch.setSummary(

@@ -130,7 +130,7 @@ class Schema
             $c->query("UPDATE `protocols` SET ar_number = reference_no, reference_no = NULL WHERE status IN ('Endorsed','Approved') AND reference_no IS NOT NULL");
         }
 
-        // ===== IDEMPOTENCY KEYS TABLE =====
+        // ===== DUPLICATE REQUEST KEYS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `idempotency_keys` (
                     `id`          int(11)      NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     `user_id`     int(11)      NOT NULL,
@@ -242,6 +242,9 @@ class Schema
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;");
 
         $this->ensureIndex('audit_logs', 'idx_audit_created_at', "(`created_at`)");
+        $this->ensureIndex('audit_logs', 'idx_audit_user_action', "(`user_id`, `action`, `created_at`)");
+        $this->ensureIndex('audit_logs', 'idx_audit_action_created', "(`action`, `created_at`)");
+        $this->ensureIndex('audit_logs', 'idx_audit_target', "(`target_type`, `target_id`, `created_at`)");
         $this->ensureColumn('audit_logs', 'old_status', "varchar(30) DEFAULT NULL AFTER `details`");
         $this->ensureColumn('audit_logs', 'new_status', "varchar(30) DEFAULT NULL AFTER `old_status`");
         $this->addAccountLifecycle();

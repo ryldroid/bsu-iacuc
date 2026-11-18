@@ -49,6 +49,15 @@ $sortDefaultKey = explode('_', $sortDefault)[0];
                     </svg>
                 </button>
             <?php endforeach; ?>
+
+            <div class="sort-order" role="radiogroup" aria-label="Sort order">
+                <?php foreach (['asc' => 'Ascending', 'desc' => 'Descending'] as $sortDir => $sortDirLabel): ?>
+                    <label class="sort-order-option">
+                        <input type="radio" name="<?= $sortSelectId ?>Order" value="<?= $sortDir ?>" <?= explode('_', $sortDefault)[1] === $sortDir ? 'checked' : '' ?>>
+                        <?= $sortDirLabel ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
         </div>
     </div>
 </div>

@@ -1,4 +1,4 @@
-// ===== Number Formats: live example =====
+// ===== System Settings: live example =====
 document.querySelectorAll("form[data-number-format]").forEach((form) => {
   const kind = form.dataset.numberFormat;
   const preview = form.querySelector(".number-preview-value");

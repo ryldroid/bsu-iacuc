@@ -149,6 +149,30 @@
   margin: 1rem 0 0;
 }
 
+/* ===== Training certificate section: status beside the heading, small review note under the preview ===== */
+.researcher-cert-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .5rem;
+}
+
+.researcher-cert-heading .researcher-protocol-heading {
+  margin: 0;
+}
+
+.researcher-cert-section .cert-preview,
+.researcher-cert-section .cert-preview-link {
+  margin-top: 0;
+}
+
+.researcher-cert-note {
+  margin: .5rem 0 0;
+  font-size: .72rem;
+  color: var(--muted-text);
+}
+
 .cert-reject-panel {
   margin-top: 1rem;
   padding: .75rem;

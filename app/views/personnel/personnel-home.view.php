@@ -5,7 +5,7 @@
 /** @var array       $statuses */
 /** @var array       $actor */
 
-$title = 'Personnel Dashboard';
+$title = PERSONNEL_HOME_LABEL;
 
 include dirname(__DIR__) . '/includes/header.php';
 include dirname(__DIR__) . '/includes/scroll-top.php';
@@ -44,8 +44,8 @@ $statusDescByRole = [
     'staff' => [
         'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and archive protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
-        'reviewed'              => "The reviewer has finished review. Here, in a step-by-step process:\n(1) Wait for the researcher to pay their clearance processing fee,\n(2) Verify submitted payment,\n(3) Assign IPN, and\n(4) Upload the proof that the protocol was **endorsed** to DA-RFO-CAR.",
-        'endorsed'              => "Protocols have been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). On the **Endorsed** tab, press **Assign Clearances** (or **Assign clearance** on a protocol) and choose the released animal research clearance images. Each image gets a row: enter its AR number first, then pick its protocol, then press **Approve** to mark them **approved**.",
+        'reviewed'              => "The reviewer has finished review. Here, in a step-by-step process:\n(1) Wait for the researcher to pay their clearance processing fee,\n(2) Verify submitted payment,\n(3) Assign the IPN (Institutional Protocol Number), and\n(4) Upload the proof that the protocol was **endorsed** to DA-RFO-CAR.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). On the **Endorsed** tab, press **Assign Clearances** (or **Assign clearance** on a protocol) and choose the released animal research clearance images. Each image gets a row: enter its AR Number (Animal Research Number) first, then pick its protocol, then press **Approve** to mark them **approved**.",
         'approved'              => "Digital animal research clearances issued! The protocols are now fully approved. Confirm when researchers have picked up the embossed hard copy of their clearances.",
     ],
     'reviewer' => [
@@ -182,7 +182,7 @@ foreach ($protocols as $p) {
         <div class="page-banner">
             <div class="page-banner-text">
                 <div class="page-banner-title">
-                    <h1>Protocol Inbox</h1>
+                    <h1><?= PERSONNEL_HOME_LABEL ?></h1>
                     <?php $pageGuideId = 'inbox';
                     include dirname(__DIR__) . '/includes/page-guide.php'; ?>
                 </div>
@@ -225,7 +225,7 @@ foreach ($protocols as $p) {
                                 <use href="#search-icon" />
                             </svg>
                         </button>
-                        <button type="button" class="action-link archived-link" id="archivedLink" data-label="Archived" aria-pressed="false">
+                        <button type="button" class="action-link archived-link" id="archivedLink" aria-haspopup="dialog">
                             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#archive-icon" />
                             </svg>
@@ -266,9 +266,6 @@ foreach ($protocols as $p) {
 
                 <?php $searchPlaceholder = 'Search by title or researcher...';
                 include dirname(__DIR__) . '/includes/inbox-search-modal.php'; ?>
-
-                <?php $archiveBannerText = $archiveCategories[$archiveCategoryDefault]['desc'];
-                include dirname(__DIR__) . '/includes/archive-banner.php'; ?>
 
                 <?php if (($user['role'] ?? '') === 'staff'): ?>
                     <!-- ===== Bulk actions ===== -->
@@ -329,14 +326,11 @@ foreach ($protocols as $p) {
                     <!-- ===== Clearances ===== -->
                     <section class="clearance-panel" id="clearancePanel" hidden>
                         <div class="clearance-panel-bar">
-                            <h2 class="clearance-panel-title">
-                                Clearances
-                                <span class="clearance-count"><?= (int) $endorsedCount ?> waiting for clearance</span>
-                            </h2>
+                            <h2 class="clearance-panel-title">Clearances</h2>
 
                             <div class="bulk-actions-bar clearance-actions">
-                                <button type="button" class="row-btn row-btn-outline" id="clearanceUploadBtn"
-                                    title="Upload clearance images, enter their AR numbers and assign each to a protocol">
+                                <button type="button" class="row-btn row-btn-primary" id="clearanceUploadBtn"
+                                    title="Upload clearance images, enter their AR Numbers and assign each to a protocol">
                                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#upload-icon" />
                                     </svg>
@@ -351,6 +345,7 @@ foreach ($protocols as $p) {
                 <div class="protocols-list" id="protocolsList">
 
                     <?php
+                    $archivedRows = '';
                     $iconMap = [
                         'review'   => '#review-icon',
                         'history'  => '#history-icon',
@@ -384,7 +379,9 @@ foreach ($protocols as $p) {
 
                         if ($filterSlug === 'archived') {
                             $archiveCategory = $protocol['archive_category'];
+                            ob_start();
                             include __DIR__ . '/partials/archived-protocol.php';
+                            $archivedRows .= ob_get_clean();
                             continue;
                         }
 
@@ -649,14 +646,6 @@ foreach ($protocols as $p) {
                                         <span class="status-dot status-dot--warning">Inactive</span>
                                     <?php endif; ?>
                                 </p>
-                                <?php if ($userRole === 'staff' && $statusLower === 'endorsed'): ?>
-                                    <button type="button" class="action-link clearance-add-btn" data-protocol-id="<?= $protocolId ?>" aria-label="Assign clearance for <?= $title ?>">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                            <use href="#upload-icon" />
-                                        </svg>
-                                        Assign clearance
-                                    </button>
-                                <?php endif; ?>
                             </div>
 
                             <div class="protocol-progress">
@@ -696,6 +685,14 @@ foreach ($protocols as $p) {
                                 <?php endforeach; ?>
 
                                 <div class="actions-secondary">
+                                    <?php if ($userRole === 'staff' && $statusLower === 'endorsed'): ?>
+                                        <button type="button" class="action-link clearance-add-btn" data-protocol-id="<?= $protocolId ?>" aria-label="Assign clearance for <?= $title ?>">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <use href="#upload-icon" />
+                                            </svg>
+                                            Assign clearance
+                                        </button>
+                                    <?php endif; ?>
                                     <?php foreach ($actions as $action): ?>
                                         <?php if (empty($action['primary']) && empty($action['menu'])): ?>
                                             <?php if ($action['action'] === 'view'): ?>
@@ -756,6 +753,9 @@ foreach ($protocols as $p) {
                     </div>
                 </div>
 
+                <?php $archiveText = $archiveCategories[$archiveCategoryDefault]['desc'];
+                include dirname(__DIR__) . '/includes/archive-modal.php'; ?>
+
             <?php endif; ?>
 
         </div>
@@ -790,16 +790,16 @@ foreach ($protocols as $p) {
             </div>
             <div class="panel-modal-body">
                 <div class="clearance-dropzone" id="clearanceDropzone">
-                    <span>Drop JPG or PNG images here, or</span>
+                    <span id="clearanceDropText">Drop JPG or PNG images here, or</span>
                     <input type="file" id="clearanceFileInput" multiple accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden>
                     <button type="button" class="modal-file-picker" id="clearanceChooseBtn">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <use href="#upload-icon" />
                         </svg>
-                        Choose files
+                        <span id="clearanceChooseLabel">Choose files</span>
                     </button>
                 </div>
-                <p class="helper clearance-modal-helper">AR No. is the animal research clearance ID printed on the clearance issued by BAI.</p>
+                <p class="helper clearance-modal-helper">The AR Number (Animal Research Number) is the clearance ID printed on the clearance issued by BAI.</p>
 
                 <div id="clearanceWindowError" class="alert error-messages clearance-modal-error" hidden></div>
 
@@ -838,7 +838,7 @@ foreach ($protocols as $p) {
                 </button>
             </div>
             <div class="panel-modal-body">
-                <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check each AR number and clearance image before proceeding.</strong> These protocols will be marked <strong>Approved</strong>:</p>
+                <p class="helper clearance-modal-helper"><strong class="clearance-modal-warning">Double-check each AR Number and clearance image before proceeding.</strong> These protocols will be marked <strong>Approved</strong>:</p>
                 <ul class="clearance-review-list" id="confirmReviewList"></ul>
                 <p class="helper clearance-modal-helper" id="confirmReviewNote" hidden></p>
 
@@ -969,7 +969,7 @@ foreach ($protocols as $p) {
     const REVIEWED_DOWNLOADABLE_COUNT = <?= (int) $reviewedDownloadableCount ?>;
     const ENDORSED_COUNT = <?= (int) $endorsedCount ?>;
 </script>
-<script src="<?= asset_js('archive-view.js') ?>"></script>
+<script src="<?= asset_js('archive-window.js') ?>"></script>
 <script src="<?= asset_js('inbox-search.js') ?>"></script>
 <script src="<?= asset_js('personnel-home.js') ?>"></script>
 <script src="<?= asset_js('protocol-details.js') ?>"></script>
@@ -982,20 +982,20 @@ foreach ($protocols as $p) {
 <?php
 $guideId    = 'inbox';
 $guideSteps = [
-    ['Protocol Inbox', $personnelRole === 'staff'
+    [PERSONNEL_HOME_LABEL, $personnelRole === 'staff'
         ? 'This is where protocols submitted to CCARD show up, and what you need to do with each one. Let us walk through it.'
         : 'This is where protocols waiting for your feedback show up. Let us walk through it.'],
     ['Sort', 'Change the order: newest or oldest submitted, recently updated, or by title. Your choice is saved to your account.', '.dashboard-sort-group'],
     ['Status tabs', $personnelRole === 'staff'
         ? 'Show one stage at a time. The tools for a stage appear on its tab: **Reviewed** has selecting and downloading several protocols at once, and **Endorsed** has the clearances.'
         : 'Show one stage at a time, with the number of protocols in each.', '#statusFilters'],
-    ['Search', "Press the magnifier to find a protocol by its title or the researcher's name. It stays highlighted while a search is active.", '#inboxSearchBtn'],
+    ['Search', "Press the magnifier to find a protocol in the list by its title or the researcher's name. It stays highlighted while a search is active.", '#inboxSearchBtn'],
     ['Stage guide', 'Press the question mark to read what each stage means any time.', '.legend-info-wrapper'],
 ];
 foreach ($statusMeta as $meta) {
     $guideSteps[] = [$meta['label'], $meta['desc'], '.legend-info-wrapper'];
 }
-$guideSteps[] = [$archivedMeta['label'], $archivedMeta['desc'] . "\n\nProtocols here are kept out of the main list and sorted into categories. **All** shows everything and is where the Archive opens, or pick a category at the top. Press **View** to open a protocol, or **Restore** to bring it back to the main list. Approved protocols of inactive researchers have no button, because they move back on their own when the researcher reactivates their account.\n\nPress **Back to protocols** to leave the archive.", '#archivedLink'];
+$guideSteps[] = [$archivedMeta['label'], $archivedMeta['desc'] . "\n\nPress **Archive** to open the archive window. Protocols in it are kept out of the main list and sorted into categories. **All** shows everything and is where the window opens, or pick a category at the top. Press **View** to open a protocol, or **Restore** to bring it back to the main list. Approved protocols of inactive researchers have no button, because they move back on their own when the researcher reactivates their account.\n\nPress the **X** or click outside the window to close it.", '#archivedLink'];
 $guideSteps = array_merge($guideSteps, [
     ['Protocol card', "Each card represents one protocol. It shows the research title, the researcher's school or institution, and a timeline of the stage the protocol is at.", '.protocols-list .protocol:first-visible'],
     ['Details', "Press the **show details** bar at the bottom of the card to see the round, the researcher, and the dates the protocol was submitted and last updated.\n\nPress the researcher's name there to see their contact details or review their training certificate.", '.protocols-list .protocol .protocol-details-toggle:first-visible'],

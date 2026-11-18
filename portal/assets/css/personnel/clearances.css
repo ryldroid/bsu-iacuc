@@ -24,25 +24,11 @@
   color: var(--primary-text);
 }
 
-.clearance-count {
-  font-weight: 400;
-  color: var(--muted-text);
-}
-
 .clearance-panel .clearance-actions {
   align-items: center;
   justify-content: flex-start;
   padding: 0;
   border: none;
-}
-
-/* ===== Add clearance button on an Endorsed card ===== */
-.clearance-add-btn {
-  align-self: flex-start;
-  margin-top: 10px;
-  padding: 6px 0;
-  font-size: 0.85em;
-  font-weight: 600;
 }
 
 /* ===== Clearances window ===== */

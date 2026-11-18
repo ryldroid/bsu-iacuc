@@ -15,13 +15,13 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
             <!-- PERSONNEL (STAFF / REVIEWER) NAVIGATION -->
             <?php if ($role === 'staff' || $role === 'reviewer'): ?>
                 <li>
-                    <a href="<?= ROOT ?>/personnel/home" aria-label="Dashboard">
+                    <a href="<?= ROOT ?>/personnel/home" aria-label="<?= PERSONNEL_HOME_LABEL ?>">
                         <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#dashboard-icon" />
+                            <use href="#inbox-icon" />
                         </svg>
                     </a>
                     <div aria-hidden="true">
-                        <span>Dashboard</span>
+                        <span><?= PERSONNEL_HOME_LABEL ?></span>
                     </div>
                 </li>
 
@@ -30,7 +30,7 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                     <li>
                         <a href="<?= ROOT ?>/personnel/records" aria-label="Records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#protocols-icon" />
+                                <use href="#records-icon" />
                             </svg>
                         </a>
                         <div aria-hidden="true">
@@ -45,7 +45,7 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                             </svg>
                         </a>
                         <div aria-hidden="true">
-                            <span>Site Content</span>
+                            <span>Website Content</span>
                         </div>
                     </li>
                 <?php endif; ?>
@@ -55,7 +55,7 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                     <li>
                         <a href="<?= ROOT ?>/personnel/records" aria-label="Records">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#protocols-icon" />
+                                <use href="#records-icon" />
                             </svg>
                         </a>
                         <div aria-hidden="true">
@@ -69,7 +69,7 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                     <li>
                         <a href="<?= ROOT ?>/personnel/accounts" aria-label="Administration">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#accounts-icon" />
+                                <use href="#administration-icon" />
                             </svg>
                         </a>
                         <div aria-hidden="true">
@@ -94,13 +94,13 @@ $pubRoot     = $pubRoot ?? ($previewMode ? ROOT . '/preview' : ROOT);
                 <?php if ($role === 'researcher'): ?>
                     <!-- RESEARCHER ONLY -->
                     <li>
-                        <a href="<?= ROOT ?>/submissions" aria-label="My Protocols">
+                        <a href="<?= ROOT ?>/submissions" aria-label="<?= RESEARCHER_HOME_LABEL ?>">
                             <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                 <use href="#protocols-icon" />
                             </svg>
                         </a>
                         <div aria-hidden="true">
-                            <span>My Protocols</span>
+                            <span><?= RESEARCHER_HOME_LABEL ?></span>
                         </div>
                     </li>
                 <?php endif; ?>

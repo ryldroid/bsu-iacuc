@@ -64,7 +64,7 @@ $backups = $backups ?? [];
                       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#undo-icon" />
                       </svg>
-                      Restore this backup
+                      Restore
                     </button>
                     <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-backup-download"
                       data-name="<?= htmlspecialchars($backup['name']) ?>">
@@ -78,7 +78,7 @@ $backups = $backups ?? [];
                       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#shield-check-icon" />
                       </svg>
-                      Verify backup
+                      Verify
                     </button>
                   <?php endif; ?>
                   <button type="button" class="reject-btn personnel-status-btn js-backup-delete"

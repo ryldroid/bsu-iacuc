@@ -2,7 +2,7 @@
 // One table for every status action on the inbox. The row buttons
 // ([data-action]) and the three dots menu (protocol-menu.js) both dispatch
 // through window.protocolRowActions, each action receives (protocolId, btn).
-// Needs the inbox page globals: protocolsData, protocolsList, showArchived,
+// Needs the inbox page globals: protocolsData, protocolsList, archiveList, archiveWindow,
 // ROOT_URL, CSRF_TOKEN and the API urls.
 
 const rowProtocol = (protocolId) =>
@@ -13,7 +13,7 @@ function openProtocolViewer(protocolId) {
     ROOT_URL +
     "/apply/viewer/" +
     (rowProtocol(protocolId)?.viewer_ref ?? protocolId) +
-    (showArchived ? "?from=archived" : "");
+    (archiveWindow.active ? "?from=archived" : "");
 }
 
 const protocolName = (protocolId) =>
@@ -194,12 +194,14 @@ window.protocolRowActions = {
   },
 };
 
-// ===== Row buttons =====
-protocolsList?.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-action]");
-  const protocolId = parseInt(
-    btn?.closest(".protocol")?.dataset.protocolId,
-    10,
-  );
-  if (protocolId) protocolRowActions[btn.dataset.action]?.(protocolId, btn);
-});
+// ===== Row buttons (main list and archive window) =====
+[protocolsList, archiveList].forEach((list) =>
+  list?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    const protocolId = parseInt(
+      btn?.closest(".protocol")?.dataset.protocolId,
+      10,
+    );
+    if (protocolId) protocolRowActions[btn.dataset.action]?.(protocolId, btn);
+  }),
+);

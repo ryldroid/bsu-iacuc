@@ -19,7 +19,7 @@ $auditPerPage   = $auditPerPage   ?? 10;
 $auditFilterDate = $auditFilterDate ?? null;
 $auditOffset    = ($auditPage - 1) * $auditPerPage;
 
-$allowedTabs = ['audit-logs', 'accounts', 'backups', 'number-formats'];
+$allowedTabs = ['audit-logs', 'accounts', 'backups', 'system-settings'];
 $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', $allowedTabs, true)
     ? $_GET['tab']
     : $allowedTabs[0]);
@@ -42,7 +42,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
         <div class="page-banner">
             <div class="page-banner-text">
                 <h1>Administration</h1>
-                <p class="page-subtitle">Audit logs, user accounts, system backups and number formats</p>
+                <p class="page-subtitle">Audit logs, user accounts, system backups and system settings</p>
             </div>
         </div>
 
@@ -55,25 +55,25 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     aria-controls="panel-audit-logs">Audit Logs</button>
                 <button type="button" role="tab" class="has-guide" id="tab-accounts" data-tab="accounts"
                     aria-selected="<?= $activeTab === 'accounts' ? 'true' : 'false' ?>"
-                    aria-controls="panel-accounts">Manage Accounts</button>
+                    aria-controls="panel-accounts">Accounts</button>
                 <button type="button" role="tab" class="has-guide" id="tab-backups" data-tab="backups"
                     aria-selected="<?= $activeTab === 'backups' ? 'true' : 'false' ?>"
                     aria-controls="panel-backups">Backups</button>
-                <button type="button" role="tab" class="has-guide" id="tab-number-formats" data-tab="number-formats"
-                    aria-selected="<?= $activeTab === 'number-formats' ? 'true' : 'false' ?>"
-                    aria-controls="panel-number-formats">Number Formats</button>
+                <button type="button" role="tab" class="has-guide" id="tab-system-settings" data-tab="system-settings"
+                    aria-selected="<?= $activeTab === 'system-settings' ? 'true' : 'false' ?>"
+                    aria-controls="panel-system-settings">System Settings</button>
             </div>
             <?php $tabGuideId = 'audit-logs';
             $tabGuideLabel = 'Audit Logs';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
             <?php $tabGuideId = 'accounts';
-            $tabGuideLabel = 'Manage Accounts';
+            $tabGuideLabel = 'Accounts';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
             <?php $tabGuideId = 'backups';
             $tabGuideLabel = 'Backups';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
-            <?php $tabGuideId = 'number-formats';
-            $tabGuideLabel = 'Number Formats';
+            <?php $tabGuideId = 'system-settings';
+            $tabGuideLabel = 'System Settings';
             include dirname(__DIR__) . '/includes/tab-guide.php'; ?>
         </div>
 
@@ -86,9 +86,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                         <div class="audit-viewer-header">
                             <h2>
                                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#history-icon" />
+                                    <use href="#calendar-icon" />
                                 </svg>
-                                Audit Log Viewer
+                                Log Viewer
                             </h2>
 
                             <div class="audit-jump-to-date">
@@ -118,9 +118,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     <section class="accounts-card audit-section">
                         <h2>
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#calendar-icon" />
+                                <use href="#download-icon" />
                             </svg>
-                            Download Audit Logs
+                            Export Logs
                         </h2>
                         <p class="audit-description">Export system activity logs to Excel (default at 90 days selection)</p>
 
@@ -234,7 +234,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     <section class="accounts-card invite-section">
                         <h2>
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#website-icon" />
+                                <use href="#add-icon" />
                             </svg>
                             Personnel Registration Link
                         </h2>
@@ -289,7 +289,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                     <div class="personnel-manage-header">
                         <h2>
                             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                <use href="#shield-check-icon" />
+                                <use href="#account-icon" />
                             </svg>
                             CCARD Personnel
                             <span class="cm-count" data-cm-count="personnelListWrap" aria-live="polite"><?= count($personnel) ?></span>
@@ -351,7 +351,9 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                                 <button type="button" class="accounts-btn-primary accounts-btn-outline personnel-status-btn js-role-edit">Change role</button>
                                             <?php endif; ?>
                                         </form>
-                                        <?php if (!$isSelf): ?>
+                                        <?php if ($isSelf): ?>
+                                            <span class="reject-btn personnel-status-btn personnel-status-spacer" aria-hidden="true">Deactivate</span>
+                                        <?php else: ?>
                                             <?php
                                             $isDeactivated = $p['status'] === 'deactivated';
                                             $fullName      = $p['first_name'] . ' ' . $p['last_name'];
@@ -381,7 +383,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                         <div class="audit-viewer-header">
                             <h2>
                                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                    <use href="#download-icon" />
+                                    <use href="#refresh-icon" />
                                 </svg>
                                 Backups
                             </h2>
@@ -390,7 +392,7 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <use href="#upload-icon" />
                                     </svg>
-                                    Restore from a file
+                                    Restore from File
                                 </button>
                                 <button type="button" id="backup-create" class="accounts-btn-primary">
                                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -409,8 +411,8 @@ $activeTab   = !empty($invite_url) ? 'accounts' : (in_array($_GET['tab'] ?? '', 
                 </div>
             </div>
 
-            <div class="tab-panel" id="panel-number-formats" role="tabpanel" aria-labelledby="tab-number-formats"
-                data-tab-panel="number-formats" <?= $activeTab === 'number-formats' ? '' : 'hidden' ?>>
+            <div class="tab-panel" id="panel-system-settings" role="tabpanel" aria-labelledby="tab-system-settings"
+                data-tab-panel="system-settings" <?= $activeTab === 'system-settings' ? '' : 'hidden' ?>>
                 <div class="sections-column">
                     <?php foreach (NumberFormat::LABELS as $numberKind => $numberLabel): ?>
                         <?php include __DIR__ . '/partials/number-format-form.php'; ?>
@@ -433,12 +435,12 @@ if ($auditPages > 1) {
     $guideSteps[] = ['Pagination', 'Move between pages of entries.', '#audit-log-results .pagination-bar'];
 }
 $guideSteps[] = ['Download Audit Logs', 'Export entries to Excel for the dates you choose. The default is the last 90 days, or tick **Export full history** for everything.', '#auditForm'];
-$guideSteps[] = ['Manage Accounts tab', 'Switch to **Manage Accounts** to approve new personnel and manage roles.', '#tab-accounts'];
+$guideSteps[] = ['Accounts tab', 'Switch to **Accounts** to approve new personnel and manage roles.', '#tab-accounts'];
 include dirname(__DIR__) . '/includes/guide.php';
 
 $guideId    = 'accounts';
 $guideSteps = [
-    ['Manage Accounts', 'Approve new personnel, invite staff or reviewers, and manage roles. Let us walk through it.'],
+    ['Accounts', 'Approve new personnel, invite staff or reviewers, and manage roles. Let us walk through it.'],
 ];
 if ($isStaff) {
     $guideSteps[] = ['Pending approvals', 'New personnel applications wait here. **Approve** gives access, and **Reject** deletes the application.', '.pending-section'];
@@ -452,19 +454,19 @@ $guideId    = 'backups';
 $guideSteps = [
     ['Backups', 'Create and download copies of the database and uploaded files. Let us walk through it.'],
     ['Create a backup', 'Press **Create Backup**. It runs in steps, so keep this page open until the bar reaches 100%.', '#backup-create'],
-    ['Upload a backup', 'Press **Restore from a file** and choose a backup ZIP you saved earlier. It is sent in small pieces and checked before it appears in the list. Then press **Restore this backup** on it to bring it back.', '#backup-upload'],
+    ['Upload a backup', 'Press **Restore from File** and choose a backup ZIP you saved earlier. It is sent in small pieces and checked before it appears in the list. Then press **Restore** on it to bring it back.', '#backup-upload'],
     ['Backup health', 'This line shows when the last backup was made. It turns into a warning when the newest backup is 3 days old or more, or when none exists. Open **Technical details** for server limits.', '#backup-health'],
-    ['Saved backups', '**Download** to keep a backup off the server, **Verify backup** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
-    ['Restore', '**Restore this backup** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
-    ['Number Formats tab', 'Switch to **Number Formats** to change how new IPNs and AR numbers are written.', '#tab-number-formats'],
+    ['Saved backups', '**Download** to keep a backup off the server, **Verify** to confirm it is intact without restoring it, or **Delete** ones you no longer need. The 10 newest are kept. Backups marked **Encrypted** can only be restored with the BACKUP_PASSPHRASE from your .env file. If you lose it, those backups cannot be opened.', '#backup-results'],
+    ['Restore', '**Restore** replaces all current data and uploads with a backup. A safety backup of the current data is saved first, and you confirm with your password. If a backup has data that points to missing records, the restore is refused and nothing changes. Use a newer backup instead.', '#backup-results'],
+    ['System Settings tab', 'Switch to **System Settings** to change how new IPNs and AR Numbers are written.', '#tab-system-settings'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';
 
-$guideId    = 'number-formats';
+$guideId    = 'system-settings';
 $guideSteps = [
-    ['Number Formats', 'Choose how new IPNs and AR numbers are written. Let us walk through it.'],
-    ['IPN format', 'Set a prefix, a separator, how many digits the running number has, and whether the year comes before or after it. Existing IPNs are not changed.', '#ipnFormatForm'],
-    ['AR number format', 'Set how AR numbers from BAI must be written, for example AR-2026-0152. The prefix and year are pre-filled when you add one, and you type the count. Existing AR numbers are not changed.', '#arFormatForm'],
+    ['System Settings', 'Choose how new IPNs (Institutional Protocol Numbers) and AR Numbers (Animal Research Numbers) are written. Let us walk through it.'],
+    ['IPN', 'Set a prefix, a separator, how many digits the running number has, and whether the year comes before or after it. Existing IPNs are not changed.', '#ipnFormatForm'],
+    ['AR Number', 'Set how AR Numbers from BAI must be written, for example AR-2026-0152. The prefix and year are pre-filled when you add one, and you type the count. Existing AR Numbers are not changed.', '#arFormatForm'],
     ['Example', 'This shows what a number would look like with your choices, before you save.', '#ipnPreview'],
 ];
 include dirname(__DIR__) . '/includes/guide.php';

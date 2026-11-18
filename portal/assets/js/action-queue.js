@@ -602,7 +602,7 @@
     }
 
     var headers = new Headers(init.headers || {});
-    headers.set("X-Idempotency-Key", key);
+    headers.set("X-Request-Key", key);
     return _origFetch
       .call(this, input, Object.assign({}, init, { headers: headers }))
       .catch(function (err) {
@@ -725,7 +725,7 @@
     var token =
       typeof NOTIF_CSRF_TOKEN !== "undefined" ? NOTIF_CSRF_TOKEN : null;
 
-    headers.set("X-Idempotency-Key", entry.id);
+    headers.set("X-Request-Key", entry.id);
     headers.set("Accept", "application/json");
     if (token) headers.set("X-CSRF-Token", token);
     if (entry.fields) headers.delete("Content-Type");

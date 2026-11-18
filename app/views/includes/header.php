@@ -26,7 +26,7 @@ $showWelcome = $user && !empty($user['show_welcome']);
 $navLink = fn($path) => ["aside a[href$='" . $path . "']", "#mobileNav a[href$='" . $path . "']"];
 $guideWelcome = ['Welcome to BSU-IACUC!', 'Let us show you around the website. It only takes a minute.'];
 if ($role === 'reviewer') {
-  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents. Return them for revision or finish review. You may also verify training certificates and rename or archive protocols.";
+  $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as a reviewer:**\nReview protocols by leaving comments directly on the submitted documents. With comments, return the protocol for revision. With none, finish review. You may also verify training certificates and rename or archive protocols.";
 } elseif ($role === 'staff') {
   $guideWelcome[1] = "Let us show you around the website.\n\n**Your role as staff:**\nManage protocols post-review, including the verification of payments, assignment of IPNs and digital clearances, and confirmation of pickups of the hard copies. You may also rename or archive protocols. Moreover, manage the records, site content, audit logs, personnel accounts, and data backups.";
 }
@@ -45,10 +45,10 @@ $welcomeSteps = [];
 if ($role === 'researcher') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **home**, **your dashboard**, **announcements**, and **contact** pages.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **home**, **' . strtolower(RESEARCHER_HOME_LABEL) . '**, **announcements**, and **contact** pages.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
     $guideHome,
-    ['My Protocols', 'Apply for IACUC protocol review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
+    [RESEARCHER_HOME_LABEL, 'Apply for IACUC protocol review here, then track each protocol, answer reviewer comments, pay the processing fee, and download your clearance.', ...$navLink('/submissions')],
     $guideAnnouncements,
     $guideContact,
     $guideNotifications,
@@ -59,9 +59,9 @@ if ($role === 'researcher') {
 } elseif ($role === 'staff') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **dashboard**, **records**, **site content**, and **administration** pages.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **' . strtolower(PERSONNEL_HOME_LABEL) . '**, **records**, **site content**, and **administration** pages.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
-    ['Dashboard', 'The **protocol inbox** lists all submitted protocols. View protocols and execute actions accordingly.', ...$navLink('/personnel/home')],
+    [PERSONNEL_HOME_LABEL, 'Lists all submitted protocols. View protocols and execute actions accordingly.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     ['Site Content', 'Edit what visitors see: post announcements and update the home page text, FAQs, and contact page offices.', ...$navLink('/personnel/announcements')],
     ['Administration', 'View and download audit logs, manage personnel accounts, and create system and data backups.', ...$navLink('/personnel/accounts')],
@@ -73,9 +73,9 @@ if ($role === 'researcher') {
 } elseif ($role === 'reviewer') {
   $welcomeSteps = [
     $guideWelcome,
-    ['Page menu', 'These links take you between the **dashboard** and **records**.', 'aside nav ul', '.mobile-menu'],
+    ['Page menu', 'These links take you between the **' . strtolower(PERSONNEL_HOME_LABEL) . '** and **records**.', 'aside nav ul', '.mobile-menu'],
     $guideSidebar,
-    ['Dashboard', 'The **protocol inbox** lists protocols for review. View protocols and draw annotation or comment boxes on submitted documents.', ...$navLink('/personnel/home')],
+    [PERSONNEL_HOME_LABEL, 'Lists protocols for review. View protocols and draw annotation or comment boxes on submitted documents.', ...$navLink('/personnel/home')],
     ['Records', 'Browse the full table of protocol records and see statistics for a chosen period.', ...$navLink('/personnel/records')],
     $guideNotifications,
     $guideAccount,
@@ -127,6 +127,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
   <link rel="stylesheet" href="<?= asset_css('body.css') ?>">
   <link rel="stylesheet" href="<?= asset_css('modals.css') ?>">
   <link rel="stylesheet" href="<?= asset_css('action-queue.css') ?>">
+  <link rel="stylesheet" href="<?= asset_css('tooltip.css') ?>">
   <?php if ($user): ?>
     <link rel="stylesheet" href="<?= asset_css('notifications.css') ?>">
     <link rel="stylesheet" href="<?= asset_css('form.css') ?>">
@@ -139,6 +140,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
   <script src="<?= asset_js('protocol-sort.js') ?>"></script>
   <script src="<?= asset_js('email-verification.js') ?>" defer></script>
   <script src="<?= asset_js('header.js') ?>" defer></script>
+  <script src="<?= asset_js('tooltip.js') ?>" defer></script>
   <script src="<?= asset_js('theme-toggle.js') ?>" defer></script>
   <script src="<?= asset_js('modals.js') ?>" defer></script>
   <script src="<?= asset_js('action-queue.js') ?>" defer></script>
@@ -498,8 +500,8 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                   <div class="account-actions">
                     <form method="POST" action="<?= ROOT ?>/user/delete"
                       data-confirm-message="<?= $role === 'researcher'
-                                              ? 'Deleting your account permanently removes your personal details and training certificate. Your submitted protocols and their files stay in an archive for internal recordkeeping and are no longer linked to your account, though they may still contain personal information you provided. This cannot be undone.'
-                                              : 'Deleting your account permanently removes your personal details and your access to the portal. Your past actions stay in the system records. This cannot be undone.' ?>"
+                                              ? "Deleting your account removes your personal information and training certificate from the portal, and you will no longer be able to sign in.\n\nYour submitted protocols and related files will stay in our archive for internal recordkeeping and may still contain personal information you provided.\n\nThis cannot be undone."
+                                              : "Deleting your account removes your personal information from the portal, and you will no longer be able to sign in.\n\nThis cannot be undone." ?>"
                       data-confirm-ok-text="Delete Account"
                       data-confirm-danger="true"
                       data-confirm-password="true">
@@ -593,7 +595,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
                 </svg><span>Home</span></a></li>
             <li><a href="<?= ROOT ?>/submissions"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#protocols-icon" />
-                </svg><span>My Protocols</span></a></li>
+                </svg><span><?= RESEARCHER_HOME_LABEL ?></span></a></li>
             <li><a href="<?= ROOT ?>/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                   <use href="#announcement-icon" />
                 </svg><span>Announcements</span></a></li>
@@ -608,10 +610,10 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
         <nav id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
           <ul class="nav-sidebar" id="nav-sidebar" inert>
             <li><a href="<?= ROOT ?>/personnel/home"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#home-icon" />
-                </svg><span>Dashboard</span></a></li>
+                  <use href="#inbox-icon" />
+                </svg><span><?= PERSONNEL_HOME_LABEL ?></span></a></li>
             <li><a href="<?= ROOT ?>/personnel/records"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <use href="#protocols-icon" />
+                  <use href="#records-icon" />
                 </svg><span>Records</span></a></li>
             <?php if ($role === 'staff'): ?>
               <li><a href="<?= ROOT ?>/personnel/announcements"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -620,7 +622,7 @@ $canReplayGuide = $welcomeSteps && !$accountRequired;
             <?php endif; ?>
             <?php if ($role === 'staff'): ?>
               <li><a href="<?= ROOT ?>/personnel/accounts"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <use href="#accounts-icon" />
+                    <use href="#administration-icon" />
                   </svg><span>Administration</span></a></li>
             <?php endif; ?>
           </ul>

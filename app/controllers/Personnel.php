@@ -131,15 +131,13 @@ class Personnel extends Controller
             exit;
         }
 
-        $protocols     = $this->protocolModel->getByUser($id);
-        $cert          = $this->userModel->getCert($id);
+        $cert = $this->userModel->getCert($id);
 
         echo json_encode([
             'ok'   => true,
             'data' => [
                 'first_name'     => $user['first_name'],
                 'last_name'      => $user['last_name'],
-                'username'       => $user['username'],
                 'email'          => $user['email'],
                 'phone_number'   => $user['phone_number'] ?? '',
                 'school'         => $user['school'] ?? '',
@@ -147,15 +145,11 @@ class Personnel extends Controller
                 'researcher_type' => $user['researcher_type'] ?? '',
                 'status'         => $user['status'],
                 'status_label'   => AccountLifecycle::statusLabel($user),
-                'last_login_at'  => $user['last_login_at'] ?? null,
                 'can_manage'     => $_SESSION['user']['role'] === 'staff'
                     && $user['role'] === 'researcher'
                     && in_array($user['status'], ['active', 'deactivated'], true),
-                'created_at'     => $user['created_at'],
-                'protocol_count' => count($protocols),
                 'cert'           => $cert ? [
                     'status'      => $cert['cert_status'],
-                    'uploaded_at' => $cert['cert_uploaded_at'],
                     'reviewed_at' => $cert['cert_reviewed_at'],
                     'reviewer_name' => $cert['cert_reviewer_name'],
                     'reviewer_role' => $cert['cert_reviewer_role'],
@@ -163,12 +157,6 @@ class Personnel extends Controller
                     'file_url'    => ROOT . '/apply/cert/' . $id,
                     'is_image'    => (bool) preg_match('/\.(jpe?g|png)$/i', $cert['cert_path']),
                 ] : null,
-                'protocols'      => array_map(fn($p) => [
-                    'reference_no'   => $p['reference_no'],
-                    'research_title' => $p['research_title'],
-                    'status'         => $p['status'],
-                    'submitted_at'   => $p['submitted_at'],
-                ], array_slice($protocols, 0, 5)),
             ],
         ]);
         exit;
@@ -1186,7 +1174,7 @@ class Personnel extends Controller
         ];
     }
 
-    // ===== NUMBER FORMATS: SAVE =====
+    // ===== System Settings: SAVE =====
     public function number_formats_save(): void
     {
         $this->requireStaff();
@@ -1206,7 +1194,7 @@ class Personnel extends Controller
             $_SESSION['flash_success'] = NumberFormat::LABELS[$kind] . ' format updated.';
         }
 
-        $this->redirect('personnel/accounts?tab=number-formats');
+        $this->redirect('personnel/accounts?tab=system-settings');
     }
 
     // ===== ACCOUNTS PAGE =====

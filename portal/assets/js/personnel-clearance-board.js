@@ -31,6 +31,7 @@ let boardReady = Promise.resolve();
 let clearanceRows = [];
 let nextRowKey = 1;
 let preselectProtocolId = null;
+let singleMode = false;
 
 // ===== Helpers =====
 function isImage(name) {
@@ -110,7 +111,9 @@ function newRow(file) {
 }
 
 const endorsedProtocol = (id) =>
-  (boardData.endorsed_protocols || []).find((p) => Number(p.protocol_id) === id);
+  (boardData.endorsed_protocols || []).find(
+    (p) => Number(p.protocol_id) === id,
+  );
 
 const holderOf = (row, protocolId) =>
   clearanceRows.find(
@@ -122,8 +125,10 @@ function protocolLabel(row) {
   return endorsedProtocol(row.protocolId)?.research_title || row.protocolTitle;
 }
 
-const isArBlank = (row) => !row.ar.trim() || row.ar.trim() === AR_FORMAT.leading;
-const isArValid = (row) => !isArBlank(row) && AR_FORMAT.pattern.test(row.ar.trim());
+const isArBlank = (row) =>
+  !row.ar.trim() || row.ar.trim() === AR_FORMAT.leading;
+const isArValid = (row) =>
+  !isArBlank(row) && AR_FORMAT.pattern.test(row.ar.trim());
 
 function rowStatus(row) {
   const ar = row.ar.trim();
@@ -134,13 +139,13 @@ function rowStatus(row) {
   if (!validAr && row.arTouched && !blank)
     return { text: AR_FORMAT.message, tone: "error" };
   if (!validAr || noProtocol) {
-    const missing = [!validAr && "AR number", noProtocol && "protocol"]
+    const missing = [!validAr && "AR Number", noProtocol && "protocol"]
       .filter(Boolean)
       .join(" and ");
     return { text: `Needs ${missing}`, tone: "pending" };
   }
   if (clearanceRows.some((other) => other !== row && other.ar.trim() === ar))
-    return { text: "Another row has this AR number.", tone: "error" };
+    return { text: "Another row has this AR Number.", tone: "error" };
   return { text: "Ready", tone: "ready", ready: true };
 }
 
@@ -160,7 +165,7 @@ function rowHtml(row) {
         <div class="clearance-row-fields">
             <p class="clearance-row-name">${name}</p>
             <div class="clearance-number-field">
-                <label for="clearance-ar-${key}">AR No.</label>
+                <label for="clearance-ar-${key}">AR Number</label>
                 <input type="text" id="clearance-ar-${key}" class="clearance-ar-input" value="${escapeHtml(row.ar)}"
                     maxlength="${AR_FORMAT.maxlength}" placeholder="${escapeHtml(AR_FORMAT.placeholder)}"
                     autocomplete="off" ${antiAutofill} ${row.poolId ? "readonly" : ""}>
@@ -172,7 +177,7 @@ function rowHtml(row) {
         </div>
         <p class="clearance-row-status"></p>
         <button type="button" class="clearance-row-remove" aria-label="Remove ${name}">
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#close-icon" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#trash-icon" /></svg>
         </button>
     </li>`;
 }
@@ -183,16 +188,21 @@ function fillProtocolSelect(row) {
     `[data-key="${row.key}"] .clearance-protocol-select`,
   );
   const locked = !isArValid(row) && row.protocolId === null;
-  const options = (boardData.endorsed_protocols || []).map((p) => {
-    const id = Number(p.protocol_id);
-    const taken = holderOf(row, id) ? " (clearance already assigned)" : "";
-    const label = `${p.research_title} (${p.first_name} ${p.last_name}, ${p.reference_no})${taken}`;
-    return `<option value="${id}">${escapeHtml(label)}</option>`;
-  });
+  const fixed = singleMode && row.protocolId !== null;
+  const options = (boardData.endorsed_protocols || [])
+    .filter((p) => !fixed || Number(p.protocol_id) === row.protocolId)
+    .map((p) => {
+      const id = Number(p.protocol_id);
+      const taken = holderOf(row, id) ? " (clearance already assigned)" : "";
+      const label = `${p.research_title} (${p.first_name} ${p.last_name}, ${p.reference_no})${taken}`;
+      return `<option value="${id}">${escapeHtml(label)}</option>`;
+    });
 
-  select.disabled = locked;
+  select.disabled = locked || fixed;
   select.innerHTML =
-    `<option value="">${locked ? "Enter the AR No. first" : "Select a protocol"}</option>` +
+    (fixed
+      ? ""
+      : `<option value="">${locked ? "Enter the AR Number first" : "Select a protocol"}</option>`) +
     options.join("");
   select.value = row.protocolId === null ? "" : String(row.protocolId);
 }
@@ -244,12 +254,21 @@ function rowOf(el) {
 // ===== Open and close =====
 function openClearanceWindow(protocolId = null) {
   preselectProtocolId = protocolId;
+  singleMode = protocolId !== null;
+  clearanceFileInput.multiple = !singleMode;
+  document.getElementById("clearanceDropText").textContent = singleMode
+    ? "Drop a JPG or PNG image here, or"
+    : "Drop JPG or PNG images here, or";
+  document.getElementById("clearanceChooseLabel").textContent = singleMode
+    ? "Choose file"
+    : "Choose files";
   setWindowError("");
   clearanceRows = [];
   renderClearanceRows();
   clearanceWindow.classList.add("open");
 
   boardReady = loadBoard().then(() => {
+    if (singleMode) return;
     clearanceRows = [
       ...boardData.unassigned.map((item) => savedRow(item)),
       ...boardData.staged.map((item) =>
@@ -288,14 +307,22 @@ async function addClearanceFiles(fileList) {
     setWindowError("Please choose JPG or PNG screenshots.");
     return;
   }
-  setWindowError("");
+  setWindowError(
+    singleMode && files.length > 1
+      ? "Only one image can be assigned to a protocol. Using the first one."
+      : "",
+  );
   await boardReady;
 
-  const added = files.map(newRow);
+  if (singleMode) {
+    clearanceRows.forEach(revokePreview);
+    clearanceRows = [];
+  }
+  const added = (singleMode ? files.slice(0, 1) : files).map(newRow);
   clearanceRows.push(...added);
 
   const preselected = preselectProtocolId;
-  preselectProtocolId = null;
+  if (!singleMode) preselectProtocolId = null;
   if (
     preselected &&
     endorsedProtocol(preselected) &&
@@ -413,7 +440,7 @@ clearanceApproveBtn.addEventListener("click", () => {
         </button>
         <div class="clearance-review-text">
             <strong>${escapeHtml(protocolLabel(row))}</strong>
-            <span>AR No. <strong>${escapeHtml(row.ar.trim())}</strong></span>
+            <span>AR Number <strong>${escapeHtml(row.ar.trim())}</strong></span>
         </div>
     </li>`,
     )
@@ -423,7 +450,7 @@ clearanceApproveBtn.addEventListener("click", () => {
     (row) => row.file && !isReady(row),
   ).length;
   const note = document.getElementById("confirmReviewNote");
-  note.textContent = `${skipped} image${skipped === 1 ? " is" : "s are"} still missing an AR number or protocol and will not be saved.`;
+  note.textContent = `${skipped} image${skipped === 1 ? " is" : "s are"} still missing an AR Number or protocol and will not be saved.`;
   note.hidden = skipped === 0;
 
   document.getElementById("confirmReviewError").hidden = true;
@@ -497,7 +524,9 @@ async function syncClearanceRows() {
   const saved = clearanceRows.filter((r) => r.poolId);
   const targetOf = (row) => (isReady(row) ? row.protocolId : null);
 
-  for (const row of saved.filter((r) => r.stagedTo !== null && r.stagedTo !== targetOf(r))) {
+  for (const row of saved.filter(
+    (r) => r.stagedTo !== null && r.stagedTo !== targetOf(r),
+  )) {
     const data = await postJson(CLEARANCE_UNSTAGE_API, { pool_id: row.poolId });
     if (data.success) row.stagedTo = null;
     else {
@@ -506,7 +535,9 @@ async function syncClearanceRows() {
     }
   }
 
-  for (const row of saved.filter((r) => r.stagedTo === null && targetOf(r) !== null)) {
+  for (const row of saved.filter(
+    (r) => r.stagedTo === null && targetOf(r) !== null,
+  )) {
     const target = targetOf(row);
     const data = await postJson(CLEARANCE_STAGE_API, {
       pool_id: row.poolId,
@@ -571,7 +602,7 @@ const NUMBER_FIELDS = {
     maxlength: Number(numberModalBackdrop.dataset.maxlength),
     numeric: numberModalBackdrop.dataset.numeric === "1",
     helper:
-      "Write this IPN on the printed protocol before the IACUC chairperson signs it. It is kept in sync with the Records page.",
+      "Write this IPN (Institutional Protocol Number) on the printed protocol before the IACUC chairperson signs it. It is kept in sync with the Records page.",
     saved: () => window.location.reload(),
   },
 };

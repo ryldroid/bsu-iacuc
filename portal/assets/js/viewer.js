@@ -570,6 +570,7 @@ function renderAnnotations() {
 
 function renderSidebar() {
   if (IS_READ_ONLY_FILE) return;
+  if (CAN_REVIEW) syncReviewButton();
   updateExtractButton();
   const list = document.getElementById("annotList");
   const offlineNote = document.getElementById("annotOfflineNote");

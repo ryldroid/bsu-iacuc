@@ -264,7 +264,7 @@ class RecordModel extends Model
   // Sort keys are "<column>_asc" / "<column>_desc" (e.g. ipn_desc).
   public const SORT_COLUMNS = [
     'ipn'           => ['reference_no',            'IPN',               'text'],
-    'ar'            => ['ar_number',               'AR No.',            'text'],
+    'ar'            => ['ar_number',               'AR Number',         'text'],
     'title'         => ['title_of_research',       'Title of Research', 'text'],
     'school'        => ['school',                  'School/Affiliation',     'text'],
     'animal'        => ['animal_type',             'Animal Type',       'text'],

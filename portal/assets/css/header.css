@@ -375,59 +375,12 @@ html:has(#sidebar-backdrop.active, .modal-backdrop.open) {
     font-size: .85em;
 }
 
-/* ===== Header icon tooltips (hover on desktop, press-and-hold on touch) ===== */
+/* ===== Header icon buttons: tooltips come from the shared tooltip (tooltip.css / tooltip.js) ===== */
 header [data-tooltip] {
     position: relative;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-}
-
-header [data-tooltip]::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-
-    padding: 5px 9px;
-    border-radius: 6px;
-    background-color: var(--tooltip-background);
-    color: var(--tooltip-text);
-    font-size: .8rem;
-    font-weight: 500;
-    line-height: 1.2;
-    white-space: nowrap;
-    pointer-events: none;
-
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity .15s ease, visibility 0s linear .15s;
-    z-index: 1002;
-}
-
-@media (hover: hover) {
-    header [data-tooltip]:hover::after {
-        opacity: 1;
-        visibility: visible;
-        transition: opacity .15s ease .4s, visibility 0s linear .4s;
-    }
-}
-
-header .mobile-menu[data-tooltip]::after {
-    left: 0;
-    right: auto;
-}
-
-header [data-tooltip]:focus-visible::after,
-header [data-tooltip].tooltip-show::after {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity .15s ease, visibility 0s;
-}
-
-header [data-tooltip][aria-expanded="true"]::after {
-    opacity: 0 !important;
-    visibility: hidden !important;
 }
 
 /* ===== Preview label ===== */

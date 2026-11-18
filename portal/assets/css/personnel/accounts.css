@@ -510,6 +510,10 @@
     white-space: nowrap;
 }
 
+.personnel-status-spacer {
+    visibility: hidden;
+}
+
 .personnel-you-tag {
     margin-left: .4em;
 }

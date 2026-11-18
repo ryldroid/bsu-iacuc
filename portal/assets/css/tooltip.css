@@ -1,0 +1,39 @@
+/* ===== Shared tooltip (every hover/tooltip on the site uses this one) =====
+   Single floating element created by tooltip.js. It lives on <body> with
+   position: fixed, so no card, list or panel with overflow: hidden can cut it off. */
+.app-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10050;
+
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: var(--tooltip-background);
+  color: var(--tooltip-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+}
+
+.app-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s ease, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-tooltip,
+  .app-tooltip.is-visible {
+    transition: none;
+  }
+}

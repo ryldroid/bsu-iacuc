@@ -799,6 +799,7 @@ img[data-zoom-src] {
     color: var(--primary-text);
     font-size: 1rem;
     line-height: 1.45;
+    white-space: pre-line;
     overflow-wrap: anywhere;
 }
 

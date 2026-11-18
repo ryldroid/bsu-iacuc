@@ -32,6 +32,10 @@ define('CSSPATH', ROOT . '/assets/css');
 define('JSPATH', ROOT . '/assets/js');
 define('IMGPATH', ROOT . '/assets/images');
 
+// ===== PAGE NAMES (nav, page titles, guides, emails, messages: rename here only) =====
+define('RESEARCHER_HOME_LABEL', 'My Submissions');
+define('PERSONNEL_HOME_LABEL', 'Protocol Inbox');
+
 // ===== TRUSTED PROXIES =====
 final class TrustedProxies
 {

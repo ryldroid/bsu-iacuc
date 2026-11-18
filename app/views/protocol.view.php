@@ -17,6 +17,7 @@
 /** @var bool   $hasRenames */
 /** @var bool   $hasPaymentHistory */
 /** @var bool   $showTitleChangeBanner */
+/** @var int    $annotationCount  comments on the version on screen (personnel only) */
 /** @var array|null $cert */
 /** @var array|null $certReview */
 /** @var bool   $isOriginalSubmission */
@@ -167,7 +168,7 @@ include 'includes/header.php';
                 <?php if ($canReview): ?>
                 onclick="event.preventDefault();
    confirmAction(
-       'Leave this review and return to the dashboard? Your comments have been saved.',
+       'Leave this review and return to the <?= PERSONNEL_HOME_LABEL ?>? Your comments have been saved.',
        {
            okText: 'Leave',
            cancelText: 'Cancel'
@@ -184,7 +185,18 @@ include 'includes/header.php';
             </a>
 
             <h1 class="sr-only">Protocol Viewer</h1>
-            <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
+            <div class="viewer-title-block">
+                <span class="viewer-title" id="viewerTitle" role="button" tabindex="0" aria-expanded="false" title="<?= $title ?>"><?= $title ?></span>
+                <?php if ($isPersonnel && $submitterName !== ''):
+                    $researcherName = htmlspecialchars($submitterName, ENT_QUOTES, 'UTF-8'); ?>
+                    <button type="button" class="researcher-name-link viewer-researcher" data-user-id="<?= (int) $protocol['user_id'] ?>" data-researcher-name="<?= $researcherName ?>" aria-label="View researcher profile: <?= $researcherName ?>" title="View researcher profile">
+                        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <use href="#account-icon" />
+                        </svg>
+                        <?= $researcherName ?>
+                    </button>
+                <?php endif; ?>
+            </div>
 
             <div class="version-switcher" id="versionSwitcher">
                 <a class="version-nav-btn<?= !$prevVersion ? ' is-disabled' : '' ?>"
@@ -264,11 +276,14 @@ include 'includes/header.php';
 
             <?php if ($canReview || $canResubmit || $canConfirmPayment || $canResubmitCert): ?>
                 <div class="viewer-review-actions">
-                    <?php if ($canReview): ?>
-                        <button class="tool-btn tool-btn--success" id="btnFinishReview"
-                            onclick="openReviewDecisionModal()"
-                            <?= $researcherCertStatus === 'verified' ? '' : 'aria-disabled="true" title="The researcher\'s training certificate must be verified first."' ?>>
-                            Finish Review
+                    <?php if ($canReview):
+                        $hasComments = ($annotationCount ?? 0) > 0; ?>
+                        <?php $reviewHint = 'Reads Finish Review when you have no comments, and changes to Return for Revision once you add one.'; ?>
+                        <button class="tool-btn <?= $hasComments ? 'tool-btn--warn' : 'tool-btn--success' ?>" id="btnReviewAction" type="button"
+                            onclick="reviewAction(this)"
+                            data-hint="<?= $reviewHint ?>"
+                            <?= $researcherCertStatus === 'verified' ? 'title="' . $reviewHint . '"' : 'aria-disabled="true" title="The researcher\'s training certificate must be verified first."' ?>>
+                            <?= $hasComments ? 'Return for Revision' : 'Finish Review' ?>
                         </button>
                     <?php elseif ($canResubmitCert): ?>
                         <button class="tool-btn tool-btn--success" id="btnResubmitCert" type="button"
@@ -453,48 +468,6 @@ include 'includes/header.php';
 </div><!-- .viewer-body -->
 
 <?php if ($canReview): ?>
-    <!-- ===== Finish Review decision modal ===== -->
-    <div class="modal-backdrop" id="reviewDecisionBackdrop">
-        <div class="modal-card panel-modal-card">
-            <div class="modal-header">
-                <span class="modal-header-icon" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
-                        <use href="#review-icon" />
-                    </svg>
-                </span>
-                <div>
-                    <p class="modal-label">Finish Review</p>
-                    <p class="modal-title"><?= htmlspecialchars($protocol['research_title'], ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-                <button class="modal-close" onclick="closeReviewDecisionModal()" aria-label="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <use href="#close-icon" />
-                    </svg>
-                </button>
-            </div>
-            <div class="panel-modal-body">
-                <p class="panel-modal-intro" id="reviewDecisionSummary">Choose what to do with this protocol.</p>
-
-                <div class="panel-modal-actions">
-                    <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-warn" type="button"
-                        onclick="closeReviewDecisionModal(); openReturnModal();">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#back-icon" />
-                        </svg>
-                        Return for Revision
-                    </button>
-                    <button class="confirm-modal-btn confirm-modal-ok" type="button" id="btnCompleteReview"
-                        onclick="completeReview(this)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <use href="#check-icon" />
-                        </svg>
-                        Complete Review
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ===== Return for Revision modal ===== -->
     <div class="modal-backdrop" id="returnRevisionBackdrop" data-static>
         <div class="modal-card panel-modal-card">
@@ -528,7 +501,7 @@ include 'includes/header.php';
                 <div id="returnRevisionError" class="error-messages" hidden></div>
 
                 <div class="panel-modal-actions">
-                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeReturnModal(); openReviewDecisionModal();">Back</button>
+                    <button class="confirm-modal-btn confirm-modal-cancel" type="button" onclick="closeReturnModal()">Cancel</button>
                     <button class="confirm-modal-btn confirm-modal-ok confirm-modal-ok-warn" type="button" id="returnRevisionSubmitBtn"
                         onclick="submitReturnRevision()">
                         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">

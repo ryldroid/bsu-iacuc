@@ -4,11 +4,11 @@
 // Personnel can close it with the X if they would rather not verify it themselves.
 // The decision belongs to the researcher, so whoever makes it first settles it for everyone.
 let certState = CERT_STATUS;
-const finishReviewBtn = document.getElementById("btnFinishReview");
+const reviewActionBtn = document.getElementById("btnReviewAction");
 
 const REJECT_NOTE = IS_STAFF
-  ? "The researcher is asked to resubmit their certificate. While waiting, the reviewer can still review and comment on this protocol. Their comments are saved. Finishing the review is unavailable until the certificate is verified."
-  : "The researcher is asked to resubmit their certificate. While waiting, you can still review and comment on this protocol. Your comments are saved. Finishing the review is unavailable until the certificate is verified.";
+  ? "The researcher is asked to resubmit their certificate. While waiting, the reviewer can still review and comment on this protocol. Their comments are saved. Finishing the review or returning the protocol is unavailable until the certificate is verified."
+  : "The researcher is asked to resubmit their certificate. While waiting, you can still review and comment on this protocol. Your comments are saved. Finishing the review or returning the protocol is unavailable until the certificate is verified.";
 
 function removePendingNote() {
   const notes = document.querySelector(".viewer-notes");
@@ -16,18 +16,18 @@ function removePendingNote() {
   if (notes && !notes.children.length) notes.remove();
 }
 
-function syncFinishReviewButton() {
-  if (!finishReviewBtn) return;
+function syncReviewActionButton() {
+  if (!reviewActionBtn) return;
   const verified = certState === "verified";
-  finishReviewBtn.setAttribute("aria-disabled", String(!verified));
-  finishReviewBtn.title = verified
-    ? ""
+  reviewActionBtn.setAttribute("aria-disabled", String(!verified));
+  reviewActionBtn.title = verified
+    ? reviewActionBtn.dataset.hint
     : "The researcher's training certificate must be verified first.";
 }
 
 document.addEventListener("cert-reviewed", (e) => {
   certState = e.detail.status;
-  syncFinishReviewButton();
+  syncReviewActionButton();
   removePendingNote();
 });
 

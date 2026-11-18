@@ -324,7 +324,7 @@ function formatDateTime(value) {
       queue.capture(url, { method: "POST", headers }, formData, queueKey);
 
     if (queueKey && !navigator.onLine) return saveOffline();
-    if (queueKey) headers["X-Idempotency-Key"] = queueKey;
+    if (queueKey) headers["X-Request-Key"] = queueKey;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();

@@ -108,17 +108,22 @@ aside :is(a, button):is(:hover, :focus-visible)+div {
     z-index: 800;
 }
 
+/* Collapsed sidebar: the label that pops out on hover looks like the shared tooltip */
 aside div {
-    border-radius: 16px;
+    border-radius: 6px;
+    background-color: var(--tooltip-background);
+    color: var(--tooltip-text);
 
     opacity: 0;
     pointer-events: none;
 
     margin-left: .5em;
-    padding: 10px 16px;
+    padding: 6px 10px;
     width: fit-content;
 
-    font-size: 1.05em;
+    font-size: .8rem;
+    font-weight: 500;
+    line-height: 1.3;
 
     position: relative;
     white-space: nowrap;
@@ -133,14 +138,29 @@ aside svg {
 #protocols-icon,
 #contact-icon,
 #announcement-icon,
-#accounts-icon,
-#clearance-icon,
-#dashboard-icon {
+#clearance-icon {
     fill: inherit;
+}
+
+#home-icon,
+#inbox-icon,
+#protocols-icon,
+#records-icon,
+#announcement-icon,
+#contact-icon,
+#administration-icon {
+    stroke-width: var(--nav-icon-stroke, 2);
 }
 
 .icon-detail {
     stroke: var(--icon-detail-color, currentColor);
+}
+
+aside :is(a, button):is(:hover, :focus-visible),
+aside a.active-link {
+    margin: 0;
+    padding: 22px 16px;
+    border-radius: 0;
 }
 
 aside :is(a, button):is(:hover, :focus-visible) {
@@ -154,8 +174,7 @@ aside a.active-link {
 }
 
 aside a.active-link svg {
-    fill: currentColor;
-    --icon-detail-color: var(--sidebar-background);
+    --nav-icon-stroke: 2.35;
 }
 
 /* ===== Expanded sidebar (saved preference) ===== */
@@ -170,7 +189,12 @@ html[data-sidebar="expanded"] aside li>div {
     transform: translateY(-50%);
     margin: 0;
     padding: 0;
+    border-radius: 0;
     background-color: transparent;
+    color: var(--nav-icons);
+    font-size: 1.05em;
+    font-weight: inherit;
+    line-height: inherit;
     opacity: 1;
     transition: opacity .2s ease .1s;
 }
@@ -185,14 +209,4 @@ html[data-sidebar="expanded"] aside a.active-link+div {
     aside {
         display: none;
     }
-}
-
-aside a.active-link svg path,
-aside a.active-link svg rect {
-    fill: currentColor;
-}
-
-aside a.active-link svg path.icon-detail {
-    fill: none !important;
-    stroke: var(--sidebar-background);
 }

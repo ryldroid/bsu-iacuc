@@ -6,7 +6,7 @@
 /** @var string $csrf */
 /** @var array $actor */
 
-$title = 'My Protocols';
+$title = RESEARCHER_HOME_LABEL;
 
 include 'includes/header.php';
 include 'includes/scroll-top.php';
@@ -87,7 +87,7 @@ $allCount      = count($protocols) - $archivedCount;
         <div class="submission-header page-banner">
             <div class="page-banner-text">
                 <div class="page-banner-title">
-                    <h1>My Protocols</h1>
+                    <h1><?= RESEARCHER_HOME_LABEL ?></h1>
                     <?php $pageGuideId = 'protocols';
                     include 'includes/page-guide.php'; ?>
                 </div>
@@ -136,7 +136,7 @@ $allCount      = count($protocols) - $archivedCount;
                         <use href="#search-icon" />
                     </svg>
                 </button>
-                <button type="button" class="action-link archived-link" id="archivedLink" data-label="Archived" aria-pressed="false">
+                <button type="button" class="action-link archived-link" id="archivedLink" aria-haspopup="dialog">
                     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <use href="#archive-icon" />
                     </svg>
@@ -178,9 +178,6 @@ $allCount      = count($protocols) - $archivedCount;
         <?php $searchPlaceholder = 'Search by title...';
         include __DIR__ . '/includes/inbox-search-modal.php'; ?>
 
-        <?php $archiveBannerText = 'Protocols you discontinued are kept here for your records. They no longer move forward.';
-        include 'includes/archive-banner.php'; ?>
-
         <?php if (empty($protocols)): ?>
             <div class="empty-state">
                 <h3>
@@ -194,7 +191,8 @@ $allCount      = count($protocols) - $archivedCount;
 
         <?php else: ?>
             <div class="protocols-list">
-                <?php foreach ($protocols as $protocol):
+                <?php $archivedRows = '';
+                foreach ($protocols as $protocol):
                     $date          = date(DATE_FORMAT, strtotime($protocol['submitted_at']));
                     $updatedDate   = date(DATE_FORMAT, strtotime($protocol['last_activity_at']));
                     $statusLower   = strtolower($protocol['status']);
@@ -215,6 +213,7 @@ $allCount      = count($protocols) - $archivedCount;
                     $protocolIdInt = (int) $protocol['protocol_id'];
                     $viewerRef     = protocol_ref($protocolIdInt, (string) $protocol['research_title']);
                     $submittedIso  = date('c', strtotime($protocol['submitted_at']));
+                    ob_start();
                 ?>
                     <div class="protocol protocol--timeline" id="protocol-<?= $protocolIdInt ?>"
                         data-filter-slug="<?= $isDiscontinued ? 'archived' : htmlspecialchars($stageSlug, ENT_QUOTES, 'UTF-8') ?>"
@@ -382,7 +381,14 @@ $allCount      = count($protocols) - $archivedCount;
                         include 'includes/protocol-details.php';
                         ?>
                     </div>
-                <?php endforeach; ?>
+                <?php
+                    $cardHtml = ob_get_clean();
+                    if ($isDiscontinued) {
+                        $archivedRows .= $cardHtml;
+                    } else {
+                        echo $cardHtml;
+                    }
+                endforeach; ?>
 
                 <p class="no-results" id="noResultsMsg">
                     <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -405,6 +411,9 @@ $allCount      = count($protocols) - $archivedCount;
                     </select>
                 </div>
             </div>
+
+            <?php $archiveText = 'Protocols you discontinued are kept here for your records. They no longer move forward.';
+            include 'includes/archive-modal.php'; ?>
         <?php endif; ?>
     </main>
 </div>
@@ -412,12 +421,12 @@ $allCount      = count($protocols) - $archivedCount;
 <?php
 $guideId    = 'protocols';
 $guideSteps = [
-    ['My Protocols', 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
+    [RESEARCHER_HOME_LABEL, 'This page lists every protocol you have submitted and what to do with each one. Let us walk through it.'],
     ['New Application', 'Start a new protocol application here. If you have one in progress, you can click on **resume**.', '#apply-actions-sub'],
     ['Sort', 'Change the order of your list: newest or oldest submitted, recently updated, or by title.', '.dashboard-sort-group'],
     ['Status tabs', 'Show one stage at a time, with the number of protocols in each.', '#statusFilters'],
-    ['Search', 'Press the magnifier to find a protocol by its title. It stays highlighted while a search is active.', '#inboxSearchBtn'],
-    ['Archive', 'Discontinued protocols move to the archive, out of your main list. Press **Archive** to open it and **Back to protocols** to return.', '#archivedLink'],
+    ['Search', 'Press the magnifier to find a protocol in the list by its title. It stays highlighted while a search is active.', '#inboxSearchBtn'],
+    ['Archive', 'Discontinued protocols move to the archive, out of your main list. Press **Archive** to open the archive window. Press the **X** or click outside the window to close it.', '#archivedLink'],
     ['Stage guide', 'Press the question mark to read what each stage means and what you need to do.', '.legend-info-wrapper'],
 ];
 foreach ($statusMeta as $meta) {
@@ -584,7 +593,7 @@ include 'includes/guide.php';
 </script>
 
 <script src="<?= asset_js('pagination.js') ?>"></script>
-<script src="<?= asset_js('archive-view.js') ?>"></script>
+<script src="<?= asset_js('archive-window.js') ?>"></script>
 <script src="<?= asset_js('inbox-search.js') ?>"></script>
 <script>
     const ROOT_URL = <?= json_encode(ROOT) ?>;
@@ -604,22 +613,18 @@ include 'includes/guide.php';
     const PAGE_STORAGE_KEY = CURRENT_USER_ID + ':protocolsPage';
     const savedPage = parseInt(sessionStorage.getItem(PAGE_STORAGE_KEY), 10) || 1;
 
-    // ===== Archive: discontinued protocols live in their own view =====
+    // ===== Archive: discontinued protocols live in their own window =====
     const noResultsMsg = document.getElementById('noResultsMsg');
     const noResultsText = document.getElementById('noResultsText');
     const statusFilters = document.getElementById('statusFilters');
     let statusFilter = '';
-    const archiveView = createArchiveView({
-        link: document.getElementById('archivedLink'),
-        banner: document.getElementById('archiveBanner'),
-        backButton: document.getElementById('archiveBackBtn'),
-        onChange: on => {
-            statusFilters.hidden = on;
-            pager.page = 1;
-            renderProtocols();
-        }
+    const archiveList = document.getElementById('archiveList');
+    const archiveEmpty = document.getElementById('archiveEmpty');
+    const archiveWindow = createArchiveWindow({
+        button: document.getElementById('archivedLink'),
+        backdrop: document.getElementById('archiveBackdrop')
     });
-    statusFilters.hidden = archiveView.active;
+    archiveEmpty?.classList.toggle('is-visible', !archiveList?.querySelector('.protocol'));
 
     // ===== Search =====
     const inboxSearch = createInboxSearch({
@@ -648,9 +653,7 @@ include 'includes/guide.php';
     }
 
     function inCurrentTab(card) {
-        const slug = card.dataset.filterSlug;
-        return (slug === 'archived') === archiveView.active &&
-            (archiveView.active || !statusFilter || slug === statusFilter);
+        return !statusFilter || card.dataset.filterSlug === statusFilter;
     }
 
     function viewCards() {
@@ -669,8 +672,7 @@ include 'includes/guide.php';
         });
 
         noResultsMsg.classList.toggle('is-visible', shownCards.length === 0);
-        if (archiveView.active) noResultsText.textContent = 'No archived protocols.';
-        else if (inboxSearch.query) noResultsText.textContent = 'No protocols match your search.';
+        if (inboxSearch.query) noResultsText.textContent = 'No protocols match your search.';
         else noResultsText.textContent = statusFilter ? 'No protocols in this stage.' : 'All your protocols are in the archive.';
 
         const tabTotal = protocolCards().filter(inCurrentTab).length;
@@ -714,8 +716,8 @@ include 'includes/guide.php';
 
         const card = id && document.getElementById('protocol-' + id);
         if (!card) return;
-        if ((card.dataset.filterSlug === 'archived') !== archiveView.active) archiveView.set(!archiveView.active);
-        pager.goToItem(viewCards(), card);
+        if (card.closest('#archiveList')) archiveWindow.set(true);
+        else pager.goToItem(viewCards(), card);
         card.scrollIntoView({
             block: 'center'
         });

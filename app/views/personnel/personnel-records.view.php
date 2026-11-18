@@ -543,7 +543,7 @@ $renderOptions = fn(array $list): string => implode('', array_map(fn($item) => '
                                         $fileUrl       = !empty($r['file_path']) ? ROOT . '/personnel/records_file/' . (int)$r['id'] . '/' . (slugify(strtok($r['file_original_name'] ?? 'record', '.')) ?: 'record') : '';
                                         $viewDetails   = [
                                             ['IPN', $r['reference_no'] ?? ''],
-                                            ['AR No.', $r['ar_number'] ?? ''],
+                                            ['AR Number', $r['ar_number'] ?? ''],
                                             ['Title of Research', $r['title_of_research'] ?? ''],
                                             ['School/Affiliation', $r['school'] ?? ''],
                                             ['Animal Type', $r['animal_type'] ?? ''],
@@ -854,7 +854,7 @@ if ($isStaff) {
 }
 $guideSteps[] = ['Filters', 'Narrow the table by school/affiliation, animal type, sex, researcher type, status, or **Needs Completion**. The number beside **Filters** shows how many are on. **Clear all** appears when a filter is on.', '#recordsFilterForm .records-filters-row'];
 $guideSteps[] = ['Sort', 'Change the order with **Sort by** above the table, or by clicking a column heading. A third click on the same heading resets the order.', '.records-sort-group'];
-$guideSteps[] = ['Statuses', '**Pending** means CCARD reviewed the protocol but it is not approved yet. **Ongoing** means it is approved and the research is running. **Completed** and **Cancelled** mean the research ended. **Expired** appears on an Ongoing record whose research period has ended. Researchers report Completed or Cancelled from My Protocols, which updates the record and notifies you. You can also change a status with **Edit**.', '.records-status'];
+$guideSteps[] = ['Statuses', '**Pending** means CCARD reviewed the protocol but it is not approved yet. **Ongoing** means it is approved and the research is running. **Completed** and **Cancelled** mean the research ended. **Expired** appears on an Ongoing record whose research period has ended. Researchers report Completed or Cancelled from ' . RESEARCHER_HOME_LABEL . ', which updates the record and notifies you. You can also change a status with **Edit**.', '.records-status'];
 $guideSteps[] = ['Columns', 'Hide the columns you do not use so the table fits your screen. Your choice is remembered on this computer. **Show all columns** brings them back.', '#recordsColumnsToggle'];
 if ($records) {
     $guideSteps[] = ['Records table', 'Each row is one record: reference number, title, school/affiliation, animal type, researcher, dates, status, and a link to the protocol file.', '.records-table-wrap'];
@@ -902,10 +902,12 @@ include dirname(__DIR__) . '/includes/guide.php';
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_reference_no">IPN <span class="records-required">*</span></label>
                     <input type="text" id="add_reference_no" name="reference_no" placeholder="<?= htmlspecialchars($ipnFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $ipnFormat['maxlength'] ?>" inputmode="<?= $ipnFormat['numeric'] ? 'numeric' : 'text' ?>">
+                    <span class="helper">Institutional Protocol Number</span>
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_ar_number">AR Number</label>
                     <input type="text" id="add_ar_number" name="ar_number" placeholder="<?= htmlspecialchars($arFormat['placeholder'], ENT_QUOTES) ?>" maxlength="<?= $arFormat['maxlength'] ?>">
+                    <span class="helper">Animal Research Number</span>
                 </div>
                 <div class="records-form-group records-form-full">
                     <label class="field-label" for="add_title">Title of Research <span class="records-required">*</span></label>

@@ -1,12 +1,17 @@
 // ===== Viewer: finish review and return for revision =====
 // Loaded only while the reviewer can review this version.
 
-// ===== Finish Review decision modal =====
-const reviewDecisionBackdrop = document.getElementById(
-  "reviewDecisionBackdrop",
-);
+// ===== Top right button: Return for Revision when there are comments, Finish Review when there are none =====
+function syncReviewButton() {
+  const btn = document.getElementById("btnReviewAction");
+  if (!btn || annotationsFailed) return;
+  const hasComments = annotations.length > 0;
+  btn.classList.toggle("tool-btn--warn", hasComments);
+  btn.classList.toggle("tool-btn--success", !hasComments);
+  btn.textContent = hasComments ? "Return for Revision" : "Finish Review";
+}
 
-function openReviewDecisionModal() {
+function reviewAction(btn) {
   if (certState !== "verified") {
     confirmAction(
       "The researcher's training certificate has to be resubmitted and verified first. Don't worry, your comments are saved, so you can leave this page and come back later.",
@@ -14,36 +19,12 @@ function openReviewDecisionModal() {
     );
     return;
   }
-  const count = annotations.length;
-  document.getElementById("reviewDecisionSummary").textContent = count
-    ? "You have " +
-      count +
-      (count === 1 ? " comment" : " comments") +
-      ". Return for Revision sends them to the researcher. A review can be completed if there are no more comments."
-    : "You have no comments. Complete Review marks this protocol as reviewed.";
-  reviewDecisionBackdrop.classList.add("open");
+  if (annotations.length) openReturnModal();
+  else completeReview(btn);
 }
-
-function closeReviewDecisionModal() {
-  reviewDecisionBackdrop.classList.remove("open");
-}
-
-reviewDecisionBackdrop.addEventListener("click", (e) => {
-  if (e.target === reviewDecisionBackdrop) closeReviewDecisionModal();
-});
 
 async function completeReview(btn) {
   if (await commentsStillSyncing()) return;
-  if (annotations.length) {
-    await confirmAction(
-      "This protocol still has comments. Either return for revision so the researcher can address them, or remove comments to confirm that your review is finished.",
-      {
-        okText: "Back",
-        hideCancel: true,
-      },
-    );
-    return;
-  }
   const ok = await confirmAction(
     `Finish your review of ${confirmName(PROTOCOL_TITLE)}? The protocol will be marked as reviewed.`,
     {
@@ -52,7 +33,6 @@ async function completeReview(btn) {
     },
   );
   if (!ok) return;
-  closeReviewDecisionModal();
   updateStatus(btn, "Reviewed");
 }
 

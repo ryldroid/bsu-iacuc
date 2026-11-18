@@ -500,69 +500,6 @@ if (mainHeader) {
   syncHeaderOffset();
 }
 
-// ===== HEADER ICON TOOLTIPS: press-and-hold on touch screens =====
-(function () {
-  const HOLD_MS = 450;
-  const LINGER_MS = 1500;
-  let holdTimer = null;
-  let hideTimer = null;
-  let activeEl = null;
-  let suppressClick = false;
-
-  function clearTip() {
-    clearTimeout(holdTimer);
-    clearTimeout(hideTimer);
-    if (activeEl) activeEl.classList.remove("tooltip-show");
-    activeEl = null;
-  }
-
-  document.addEventListener(
-    "touchstart",
-    (e) => {
-      const el = e.target.closest("header [data-tooltip]");
-      if (!el) return clearTip();
-      clearTip();
-      holdTimer = setTimeout(() => {
-        activeEl = el;
-        el.classList.add("tooltip-show");
-        suppressClick = true;
-      }, HOLD_MS);
-    },
-    { passive: true },
-  );
-
-  function release() {
-    clearTimeout(holdTimer);
-    if (activeEl) {
-      hideTimer = setTimeout(clearTip, LINGER_MS);
-      setTimeout(() => (suppressClick = false), 400);
-    }
-  }
-  document.addEventListener("touchend", release);
-  document.addEventListener("touchcancel", clearTip);
-  document.addEventListener("touchmove", () => clearTimeout(holdTimer), {
-    passive: true,
-  });
-
-  document.addEventListener(
-    "click",
-    (e) => {
-      if (suppressClick && e.target.closest("header [data-tooltip]")) {
-        e.preventDefault();
-        e.stopPropagation();
-        suppressClick = false;
-      }
-    },
-    true,
-  );
-
-  document.addEventListener("contextmenu", (e) => {
-    if (e.target.closest("header [data-tooltip]") && "ontouchstart" in window) {
-      e.preventDefault();
-    }
-  });
-})();
-
 if (
   accountButton &&
   !verifyEmailForm &&

@@ -6,10 +6,10 @@ class Notifier
   public const STATUS_NOTICES = [
     'under review'   => ['Protocol Under Review', 'is now under review by CCARD. No action needed for now. You will be notified if revisions are needed or once the review is finished.'],
     'needs revision' => ['Revision Needed', 'was returned by CCARD for revision. Read the comments, fix your files, then re-submit.'],
-    'reviewed'       => ['Review Passed: Pay Clearance Fee', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to My Protocols and press "Pay Clearance Fee" on this protocol.'],
+    'reviewed'       => ['Review Passed: Pay Clearance Fee', 'passed CCARD review. Please pay the Php 100.00 clearance fee. Go to ' . RESEARCHER_HOME_LABEL . ' and press "Pay Clearance Fee" on this protocol.'],
     'reviewed paid'  => ['Protocol Moved Back to Reviewed', 'was moved back to Reviewed. Your payment is already verified, so no action is needed. Please wait for endorsement to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR).'],
     'endorsed'       => ['Protocol Endorsed', 'has been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). No action needed. Please wait while BAI processes your animal research clearance.'],
-    'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from My Protocols, then visit the CCARD office to claim the embossed hard copy. Once your research is completed or cancelled, press "Report as Completed" or "Report as Cancelled" on this protocol in My Protocols so CCARD can update its records.'],
+    'approved'       => ['Protocol Approved', 'has been approved. Download your clearance from ' . RESEARCHER_HOME_LABEL . ', then visit the CCARD office to claim the embossed hard copy. Once your research is completed or cancelled, press "Report as Completed" or "Report as Cancelled" on this protocol in ' . RESEARCHER_HOME_LABEL . ' so CCARD can update its records.'],
   ];
 
   public const NEXT_STEPS = [
@@ -33,9 +33,9 @@ class Notifier
 
   public const CERT_VERIFIED_NEXT_STEP = 'No action needed. The review of your protocol continues and you may now submit new protocols.';
 
-  public const CERT_REJECTED_NEXT_STEP = 'Press Resubmit Certificate on My Protocols or on your protocol.';
+  public const CERT_REJECTED_NEXT_STEP = 'Press Resubmit Certificate on ' . RESEARCHER_HOME_LABEL . ' or on your protocol.';
 
-  public const PAYMENT_REJECTED_NEXT_STEP = 'Go to My Protocols, press "Pay Clearance Fee" and submit your payment again.';
+  public const PAYMENT_REJECTED_NEXT_STEP = 'Go to ' . RESEARCHER_HOME_LABEL . ', press "Pay Clearance Fee" and submit your payment again.';
 
   public const PAYMENT_UNDONE_NEXT_STEP = 'No action needed. CCARD will verify your payment again.';
 

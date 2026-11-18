@@ -20,8 +20,8 @@ const CERT_STATUS_LABELS = {
   rejected: "Resubmission requested",
 };
 const CERT_REVIEW_LABELS = {
-  verified: ["Verified on", "Verified by"],
-  rejected: ["Reviewed on", "Reviewed by"],
+  verified: ["Verified on"],
+  rejected: ["Reviewed on"],
 };
 const CERT_STATUS_BADGES = {
   pending: "payment-badge--proof_submitted",
@@ -105,42 +105,17 @@ function renderResearcherDetails(d) {
 
   document.getElementById("researcherModalName").textContent = fullName;
 
-  const joined = d.created_at ? formatDate(d.created_at) : "N/A";
-
   const rows = renderDetailRows([
-    ["Username", d.username],
     ["Email", d.email],
     ["Phone", formatPhone(d.phone_number) || "N/A"],
     ["School/Affiliation", d.school || "N/A"],
     [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
     ["Account status", d.status_label || capitalize(d.status)],
-    ["Last login", d.last_login_at ? formatDate(d.last_login_at) : "Never"],
-    ["Joined", joined],
   ]);
-
-  const protocolsHtml =
-    d.protocols && d.protocols.length
-      ? d.protocols
-          .map(
-            (p) => `
-            <li class="researcher-protocol-item">
-                <span class="researcher-protocol-title">${escapeHtml(p.research_title)}</span>
-                <span class="researcher-protocol-meta">
-                    ${[p.reference_no, p.status, p.submitted_at && formatDate(p.submitted_at)].filter(Boolean).map(escapeHtml).join(" &middot; ")}
-                </span>
-            </li>
-        `,
-          )
-          .join("")
-      : '<li class="researcher-protocol-item researcher-protocol-empty">No protocols submitted yet.</li>';
 
   document.getElementById("researcherModalBody").innerHTML = `
         ${rows}
-        ${renderCertSection(d.cert)}
-        <div class="researcher-protocol-section">
-            <p class="researcher-protocol-heading">Protocols (${d.protocol_count})</p>
-            <ul class="researcher-protocol-list">${protocolsHtml}</ul>
-        </div>
+        ${renderCertSection(d.cert, fullName)}
         ${renderAccountActions(d)}
     `;
 
@@ -207,41 +182,41 @@ function renderCertActions(cert) {
     : "";
 }
 
-function renderCertSection(cert) {
+function renderCertSection(cert, fullName) {
   if (!cert) {
     return `
-        <div class="researcher-protocol-section">
-            <p class="researcher-protocol-heading">Training certificate</p>
-            <ul class="researcher-protocol-list">
-                <li class="researcher-protocol-item researcher-protocol-empty">No certificate on file.</li>
-            </ul>
+        <div class="researcher-detail-rows">
+          <div class="researcher-detail-row">
+              <p class="researcher-protocol-label">Training certificate</p>
+              <ul class="researcher-protocol-list">
+                  <li class="researcher-protocol-item researcher-protocol-empty">No certificate on file.</li>
+              </ul>
+          </div>
         </div>
     `;
   }
 
   return `
-        <div class="researcher-protocol-section">
-            <p class="researcher-protocol-heading">Training certificate</p>
-            <div class="researcher-detail-rows">
-                ${detailRow("Status", `<span class="status-dot payment-badge ${CERT_STATUS_BADGES[cert.status] || ""}">${escapeHtml(CERT_STATUS_LABELS[cert.status] || cert.status)}</span>`)}
-                ${detailRow("Submitted", escapeHtml(cert.uploaded_at ? formatDateTime(cert.uploaded_at) : "N/A"))}
-                ${renderCertReviewRows(cert)}
-                ${detailRow("File", `<a class="researcher-name-link" href="${escapeHtml(cert.file_url)}" target="_blank" rel="noopener">View certificate</a>`)}
+        <div class="researcher-protocol-section researcher-cert-section">
+          <div class="researcher-detail-rows">
+              <div class="researcher-detail-row">
+                  <p class="researcher-protocol-label">Training certificate</p>
+                  <span class="status-dot payment-badge ${CERT_STATUS_BADGES[cert.status] || ""}">${escapeHtml(CERT_STATUS_LABELS[cert.status] || cert.status)}</span>
+              </div>
+              ${renderCertPreview(cert, fullName)}
+              ${renderCertReviewNote(cert)}
+              ${renderCertActions(cert)}
             </div>
-            ${renderCertActions(cert)}
         </div>
     `;
 }
 
-function renderCertReviewRows(cert) {
+function renderCertReviewNote(cert) {
   const labels = CERT_REVIEW_LABELS[cert.status];
   if (!labels || !cert.reviewed_at) return "";
 
   const reviewer = formatActor(cert.reviewer_name, cert.reviewer_role) || "N/A";
-  return (
-    detailRow(labels[0], escapeHtml(formatDateTime(cert.reviewed_at))) +
-    detailRow(labels[1], escapeHtml(reviewer))
-  );
+  return `<p class="researcher-cert-note">${escapeHtml(labels[0])} ${escapeHtml(formatDateTime(cert.reviewed_at))} by ${escapeHtml(reviewer)}</p>`;
 }
 
 function bindCertActions() {
