@@ -12,7 +12,6 @@ const clearanceWindow = document.getElementById("clearanceWindowBackdrop");
 const clearanceDropzone = document.getElementById("clearanceDropzone");
 const clearanceFileInput = document.getElementById("clearanceFileInput");
 const clearanceRowsEl = document.getElementById("clearanceRows");
-const clearanceEmpty = document.getElementById("clearanceEmpty");
 const clearanceWindowError = document.getElementById("clearanceWindowError");
 const clearanceSummary = document.getElementById("clearanceSummary");
 const clearanceApproveBtn = document.getElementById("clearanceApproveBtn");
@@ -226,7 +225,6 @@ function refreshClearanceRows() {
   });
 
   const ready = readyRows().length;
-  clearanceEmpty.hidden = clearanceRows.length > 0;
   clearanceSummary.textContent = clearanceRows.length
     ? `${ready} of ${clearanceRows.length} ready`
     : "";

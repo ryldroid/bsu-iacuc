@@ -1456,12 +1456,18 @@ class Personnel extends Controller
         $this->redirect('personnel/login');
     }
 
-    public function login(): void
+    private function redirectIfSignedIn(): void
     {
         if ($this->isLoggedIn()) {
             $role = $_SESSION['user']['role'] ?? '';
             $this->redirect(Access::isPersonnelRole($role) ? 'personnel/home' : 'submissions');
         }
+    }
+
+    public function login(): void
+    {
+        $this->redirectIfSignedIn();
+        $this->flashIfSessionExpired();
 
         $this->view('personnel/personnel-login', [
             'csrf'  => $this->generateCsrfToken(),
@@ -1472,6 +1478,8 @@ class Personnel extends Controller
 
     public function login_process(): void
     {
+        $this->redirectIfSignedIn();
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('personnel/login');
         }

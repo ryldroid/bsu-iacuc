@@ -75,6 +75,7 @@ class Access
       'ping' => 'auth',
       'snooze_verification' => 'auth', // "Remind me later" on the verify email modal
       'welcome_done' => 'auth', // finishing the required welcome guide
+      'view_preference' => 'auth',
       'resend_verification' => 'public', // signed-in users, or a sign-in blocked until the email is verified
       'school_options' => 'auth',
       'delete' => 'auth',

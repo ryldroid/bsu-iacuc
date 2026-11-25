@@ -45,12 +45,15 @@ function closeProtocolMenus() {
   });
 }
 
-function positionProtocolMenu(trigger, panel) {
+function positionProtocolMenu(trigger, panel, alignStart = false) {
   const anchor = trigger.getBoundingClientRect();
   const size = panel.getBoundingClientRect();
   const maxLeft = window.innerWidth - PROTOCOL_MENU_MARGIN - size.width;
   const left = Math.min(
-    Math.max(anchor.right - size.width, PROTOCOL_MENU_MARGIN),
+    Math.max(
+      alignStart ? anchor.left : anchor.right - size.width,
+      PROTOCOL_MENU_MARGIN,
+    ),
     maxLeft,
   );
 

@@ -88,6 +88,8 @@
   text-align: center;
   gap: 6px;
   background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: 14px;
 }
 
 .no-results.is-visible {
@@ -97,11 +99,7 @@
 .protocols-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border: 1px solid var(--divider-color);
-  border-radius: 10px;
-  overflow: hidden;
-  /* margin-top: 1em; */
+  gap: 12px;
 }
 
 .protocol {
@@ -110,15 +108,13 @@
   align-items: center;
 
   margin: 0;
-  padding: 18px 22px;
+  padding: 20px 22px;
   background-color: var(--card-background);
-  border-bottom: 1px solid var(--divider-color);
+  border: 1px solid var(--divider-color);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px var(--shadow-color-soft);
 
-  transition: background-color 0.15s ease;
-}
-
-.protocol:last-of-type {
-  border-bottom: none;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .protocol:hover {
@@ -293,10 +289,6 @@
 }
 
 /* ===== Card depth ===== */
-.protocols-list {
-  box-shadow: 0 2px 12px var(--shadow-color-soft);
-}
-
 /* ===== Sort row above the list ===== */
 .results-bar {
   display: flex;
@@ -350,13 +342,13 @@
 
 /* The window is narrower than the page, so cards use the compact layout at any screen width */
 .archive-list .protocol--timeline {
-  grid-template-areas: "meta actions" "progress progress" "drawer drawer";
+  grid-template-areas: "meta actions" "progress progress";
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
 @media (max-width: 640px) {
   .archive-list .protocol--timeline {
-    grid-template-areas: "meta" "progress" "actions" "drawer";
+    grid-template-areas: "meta" "progress" "actions";
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -929,7 +921,7 @@
 
 /* ===== Protocol row: title, progress timeline, actions ===== */
 .protocol--timeline {
-  grid-template-areas: "meta progress actions" "drawer drawer drawer";
+  grid-template-areas: "meta progress actions";
   grid-template-columns: minmax(0, 1fr) minmax(300px, 420px) 17rem;
   display: grid;
   gap: 12px 24px;
@@ -947,12 +939,6 @@
 .protocol--timeline .actions {
   grid-area: actions;
   justify-content: flex-end;
-}
-
-.protocol--timeline .protocol-drawer {
-  grid-area: drawer;
-  /* full-bleed: cancels the card padding so the strip meets the card edges */
-  margin: 6px -22px -18px;
 }
 
 .protocol--timeline .research-title {
@@ -977,10 +963,34 @@
   line-height: 1.2;
 }
 
-/* Researcher name link inside the details drawer */
-.protocol-details .researcher-name-link {
+/* Researcher name link inside the details popover */
+.protocol-details dd .researcher-name-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
   padding: 0;
   font-weight: inherit;
+  color: var(--primary-text);
+  text-decoration: none;
+}
+
+.protocol-details dd .researcher-name-link svg {
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
+  flex-shrink: 0;
+  color: var(--muted-text);
+}
+
+.protocol-details dd .researcher-name-link:hover svg,
+.protocol-details dd .researcher-name-link:focus-visible svg {
+  color: var(--brand-text);
+}
+
+.protocol-details dd .researcher-name-link:hover,
+.protocol-details dd .researcher-name-link:focus-visible {
+  color: var(--brand-text);
+  /* text-decoration: underline; */
 }
 
 .protocol-progress .protocol-next-step {
@@ -988,93 +998,73 @@
   margin-top: 8px;
 }
 
-/* ===== Details drawer: slim strip at the card bottom + vertical panel ===== */
-.protocol-drawer {
-  --drawer-background: color-mix(in srgb, var(--card-background) 94%, black);
-  --drawer-background-hover: color-mix(in srgb, var(--card-background) 89%, black);
-}
-
-.protocol-details-toggle {
-  display: flex;
+/* ===== Details popover: info button in the card meta line + floating panel ===== */
+.protocol-details-trigger {
+  display: inline-flex;
   align-items: center;
-  /* justify-content: center; */
-  gap: 4px;
-  width: 100%;
-  min-height: 28px;
-  margin: 0;
-  padding: 4px 22px;
+  justify-content: center;
+  margin: -4px 0 -4px -4px;
+  padding: 4px;
   border: 0;
-  border-top: 1px solid var(--divider-color);
-  border-radius: 0;
+  border-radius: 50%;
+  background: transparent;
   box-shadow: none;
-  background: var(--drawer-background);
   color: var(--muted-text);
-  font-size: 0.75rem;
-  font-weight: 500;
-  transition: background-color .15s ease, color .15s ease;
 }
 
-.protocol-details-toggle:hover,
-.protocol-details-toggle:focus-visible,
-.protocol-details-toggle[aria-expanded="true"] {
-  background: var(--drawer-background-hover);
-  color: var(--brand-text);
+.protocol-details-trigger svg {
+  width: 16px;
+  height: 16px;
 }
 
-.protocol-details-toggle:active {
+.protocol-details-trigger:hover,
+.protocol-details-trigger:focus-visible,
+.protocol-details-trigger[aria-expanded="true"] {
+  background: var(--table-row-hover);
+  color: var(--primary-text);
+}
+
+.protocol-details-trigger:active {
   transform: none;
   box-shadow: none;
 }
 
-.protocol-details-toggle[aria-expanded="true"] {
-  border-bottom: 1px solid var(--divider-color);
+.protocol-details-panel {
+  position: fixed;
+  z-index: 9001;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  padding: 4px 16px;
+  background: var(--card-background);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--btn-radius);
+  box-shadow: 0 8px 24px var(--shadow-color);
 }
 
-.protocol-details-toggle svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  transition: transform .2s ease;
-}
-
-.protocol-details-toggle[aria-expanded="true"] svg {
-  transform: rotate(180deg);
-}
-
-@media (pointer: coarse) {
-  .protocol-details-toggle {
-    min-height: 36px;
-  }
-}
-
-.protocol-details {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 4px 22px 8px;
-  background: var(--drawer-background);
-}
-
-.protocol-details[hidden] {
+.protocol-details-panel[hidden] {
   display: none;
 }
 
-.protocol-details:not([hidden]) {
+.protocol-details-panel:not([hidden]) {
   animation: protocol-details-in .2s ease-out;
+}
+
+.protocol-details {
+  margin: 0;
 }
 
 .protocol-details>div {
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(96px, 40%) minmax(0, 1fr);
+  gap: 12px;
   align-items: baseline;
-  max-width: 34rem;
-  padding: .6rem 0;
-  border-top: 1px solid var(--divider-color);
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider-color);
 }
 
-.protocol-details>div:first-child {
-  border-top: 0;
+.protocol-details>div:last-child {
+  border-bottom: 0;
 }
 
 .protocol-details dt {
@@ -1084,10 +1074,31 @@
 
 .protocol-details dd {
   margin: 0;
-  font-size: 0.78em;
+  font-size: 0.85em;
   font-weight: 500;
   color: var(--primary-text);
   overflow-wrap: anywhere;
+}
+
+/* Light dim behind an open popover; the panel (z-index above) stays on top of it */
+html.protocol-details-open body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, var(--backdrop-color) 40%, transparent);
+  animation: protocol-details-backdrop-in .2s ease-out;
+}
+
+@keyframes protocol-details-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes protocol-details-in {
@@ -1103,20 +1114,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .protocol-details:not([hidden]) {
-    animation: none;
-  }
 
-  .protocol-details-toggle svg {
-    transition: none;
+  .protocol-details-panel:not([hidden]),
+  html.protocol-details-open body::after {
+    animation: none;
   }
 }
 
 /* ===== Protocol timeline (reuses the history stepper) ===== */
-.protocol-stepper .history-step-button {
-  cursor: default;
-}
-
 .protocol-stepper .history-step.is-done .payment-event-icon {
   background: var(--brand-fill-hover);
   color: var(--text-on-brand);
@@ -1152,33 +1157,20 @@
 
 @media (max-width: 1100px) {
   .protocol--timeline {
-    grid-template-areas: "meta actions" "progress progress" "drawer drawer";
+    grid-template-areas: "meta actions" "progress progress";
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
 
 @media (max-width: 640px) {
   .protocol--timeline {
-    grid-template-areas: "meta" "progress" "actions" "drawer";
+    grid-template-areas: "meta" "progress" "actions";
     grid-template-columns: minmax(0, 1fr);
     padding: 16px;
   }
 
   .protocol--timeline .actions {
     justify-content: flex-start;
-  }
-
-  .protocol--timeline .protocol-drawer {
-    margin: 4px -16px -16px;
-  }
-
-  .protocol-details {
-    padding: 4px 16px 8px;
-  }
-
-  .protocol-details>div {
-    grid-template-columns: 7rem minmax(0, 1fr);
-    gap: .75rem;
   }
 }
 

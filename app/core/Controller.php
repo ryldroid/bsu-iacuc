@@ -19,6 +19,7 @@ class Controller
       } else {
         // Always trust the database for the role, never a stale session (e.g. after a role change)
         $_SESSION['user']['role'] = $fresh['role'];
+        $_SESSION['user']['view_preferences'] = json_decode($fresh['view_preferences'] ?? '', true) ?: [];
         $this->currentUser = $fresh;
         $this->requireCompleteAccount($fresh);
       }
@@ -181,7 +182,6 @@ class Controller
     if ($fresh) {
       $_SESSION['user']['email_verified'] = (bool) $fresh['email_verified'];
       $_SESSION['user']['email']          = $fresh['email'];
-      $_SESSION['user']['view_preferences'] = json_decode($fresh['view_preferences'] ?? '', true) ?: [];
     }
   }
 
@@ -217,6 +217,13 @@ class Controller
 
     // The account panel opens with its own explanation, so no flash message here
     $this->redirect($home . '?account=1&required=1');
+  }
+
+  protected function flashIfSessionExpired(): void
+  {
+    if (isset($_GET['expired'])) {
+      $_SESSION['flash_error'] = 'Your session has expired. Please log in again.';
+    }
   }
 
   // ===== CSRF TOKENS =====
@@ -256,9 +263,13 @@ class Controller
         exit;
       }
 
+      $referer = $_SERVER['HTTP_REFERER'] ?? '';
+      $retry   = str_starts_with($referer, ROOT . '/') ? $referer : ROOT . '/home';
+
       $this->renderError(403, '403 - Forbidden', [
-        'Invalid or missing security token. Please reload the page and try again.',
+        'Your page was out of date. Please open it again and retry.',
       ], [
+        ['label' => 'Try Again', 'href' => $retry],
         ['label' => '← Go Back', 'href' => 'javascript:history.back()'],
       ]);
       exit;

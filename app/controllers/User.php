@@ -122,6 +122,7 @@ class User extends Controller
     }
 
     unset($_SESSION['pending_reactivation']);
+    $this->flashIfSessionExpired();
 
     $prefill = $_SESSION['new_username'] ?? $_SESSION['new_email'] ?? '';
     unset($_SESSION['new_username'], $_SESSION['new_email']);
@@ -148,8 +149,8 @@ class User extends Controller
 
   public function login_process()
   {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-      $this->redirect('user/login');
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $this->isLoggedIn()) {
+      $this->redirect($this->isLoggedIn() ? 'submissions' : 'user/login');
     }
 
     $this->verifyCsrfToken(true);

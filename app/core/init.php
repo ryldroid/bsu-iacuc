@@ -19,32 +19,36 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 
+define('SESSION_TIMEOUT', 1800);
+ini_set('session.gc_maxlifetime', (string) (SESSION_TIMEOUT + 300));
+
 session_name('bsu_iacuc');
 session_start();
 
 // ===== IDLE SESSION TIMEOUT =====
-define('SESSION_TIMEOUT', 1800);
+$isBackgroundPoll = in_array(trim($_GET['url'] ?? '', '/'), [
+    'notifications',
+    'notifications/index',
+    'submissions/checkupdates',
+    'personnel/checkupdates',
+    'user/verification_status',
+], true);
+
 define('EMAIL_VERIFY_SNOOZE', 3600); // "Remind me later" on the verify email modal: seconds before it asks again
 
 if (isset($_SESSION['last_activity'])) {
     $idle = time() - $_SESSION['last_activity'];
     if ($idle > SESSION_TIMEOUT) {
-        $hadUser = isset($_SESSION['user']);
-
         session_unset();
         session_destroy();
         session_start();
         session_regenerate_id(true);
-
-        $isPageLoad = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html');
-
-        if ($hadUser && $isPageLoad) {
-            $_SESSION['flash_error'] = 'Your session has expired. Please log in again.';
-        }
     }
 }
 
-$_SESSION['last_activity'] = time();
+if (!$isBackgroundPoll) {
+    $_SESSION['last_activity'] = time();
+}
 
 // ===== LOAD APP FILES =====
 require_once 'config.php';

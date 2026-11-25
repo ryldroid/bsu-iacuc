@@ -27,6 +27,22 @@
   white-space: nowrap;
 }
 
+.actions-secondary .protocol-view-btn {
+  position: relative;
+}
+
+.actions-secondary .action-link+.protocol-view-btn {
+  margin-left: 8px;
+}
+
+.actions-secondary .protocol-view-btn::before {
+  position: absolute;
+  top: 50%;
+  left: -8px;
+  margin: 0;
+  transform: translateY(-50%);
+}
+
 .protocol-menu--icon .protocol-menu-trigger:hover,
 .protocol-menu--icon .protocol-menu-trigger[aria-expanded="true"],
 .protocol-view-btn:hover {

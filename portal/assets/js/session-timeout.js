@@ -10,6 +10,9 @@
   var IDLE_LIMIT_MS = window.SESSION_IDLE_LIMIT_MS || 30 * 60 * 1000;
   var WARNING_LEAD_MS = Math.min(2 * 60 * 1000, IDLE_LIMIT_MS / 2);
   var ACTIVITY_THROTTLE_MS = 15 * 1000;
+  var KEEPALIVE_MS = 60 * 1000;
+
+  var lastPingAt = Date.now();
 
   var warnTimer = null;
   var expireTimer = null;
@@ -30,6 +33,7 @@
       throttleTimer = null;
     }, ACTIVITY_THROTTLE_MS);
     armTimers();
+    if (Date.now() - lastPingAt >= KEEPALIVE_MS) extendSession();
   }
 
   // ===== Warning prompt =====
@@ -44,12 +48,13 @@
     if (stayedSignedIn) {
       await extendSession();
     } else {
-      forceLogout();
+      forceLogout(false);
     }
   }
 
   // ===== Extend session =====
   async function extendSession() {
+    lastPingAt = Date.now();
     try {
       var res = await fetch(NOTIF_ROOT + "/user/ping", {
         method: "POST",
@@ -61,7 +66,7 @@
         res.redirected ||
         contentType.indexOf("application/json") === -1
       ) {
-        forceLogout();
+        forceLogout(true);
         return;
       }
     } catch (e) {}
@@ -71,16 +76,23 @@
   // ===== Idle expiry =====
   function expireIdle() {
     if (navigator.onLine) {
-      forceLogout();
+      forceLogout(true);
       return;
     }
     window.addEventListener("online", extendSession, { once: true });
   }
 
   // ===== Force logout =====
-  function forceLogout() {
+  async function forceLogout(expired) {
     var loginPath = window.SESSION_LOGIN_PATH || "user/login";
-    window.top.location.href = NOTIF_ROOT + "/" + loginPath;
+    try {
+      await fetch(NOTIF_ROOT + "/" + loginPath.replace(/login$/, "logout"), {
+        method: "POST",
+        redirect: "manual",
+      });
+    } catch (e) {}
+    window.top.location.href =
+      NOTIF_ROOT + "/" + loginPath + (expired ? "?expired=1" : "");
   }
 
   // ===== Activity listeners =====

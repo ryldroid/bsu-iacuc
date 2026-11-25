@@ -1100,6 +1100,10 @@ select.records-filter-select {
     white-space: nowrap;
 }
 
+.sort-filter-label svg {
+    fill: none;
+}
+
 .straight-helper {
     font-style: normal !important;
 }

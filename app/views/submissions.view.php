@@ -232,9 +232,17 @@ $allCount      = count($protocols) - $archivedCount;
                                     </span>
                                 <?php endif; ?>
                             </p>
-                            <p class="protocol-meta-line">
+                            <div class="protocol-meta-line">
                                 <span class="protocol-updated">Last updated <?= $updatedDate ?></span>
-                            </p>
+                                <?php
+                                $detailsId   = $protocolIdInt;
+                                $detailItems = [
+                                    ['Round', $versionNum],
+                                    ['Submitted', $date],
+                                ];
+                                include 'includes/protocol-details.php';
+                                ?>
+                            </div>
                             <?php if ($isDiscontinued):
                                 $archiveReason = [
                                     'tone'    => 'danger',
@@ -371,15 +379,6 @@ $allCount      = count($protocols) - $archivedCount;
                                 include 'includes/protocol-menu.php'; ?>
                             </div>
                         </div>
-
-                        <?php
-                        $detailsId   = $protocolIdInt;
-                        $detailItems = [
-                            ['Round', $versionNum],
-                            ['Submitted', $date],
-                        ];
-                        include 'includes/protocol-details.php';
-                        ?>
                     </div>
                 <?php
                     $cardHtml = ob_get_clean();
@@ -434,7 +433,7 @@ foreach ($statusMeta as $meta) {
 }
 $guideSteps = array_merge($guideSteps, [
     ['Your protocols', 'Each card is one protocol. It shows the title and a timeline of the stage it is at.', '.protocols-list .protocol:first-visible'],
-    ['Details', 'Press the **show details** bar at the bottom of the card to see the round and the dates the protocol was submitted and last updated.', '.protocols-list .protocol .protocol-details-toggle:first-visible'],
+    ['Details', 'Press the **Submission details** button, the circled "i" under the protocol title, to see the round and the date the protocol was submitted.', '.protocols-list .protocol .protocol-details-trigger:first-visible'],
     ['Actions', 'The **view** button opens the protocol so you can read your submission and any comments made. When applicable, you will be able to resubmit, pay your clearance processing fee, and download your digital animal research clearance.', '.protocols-list .protocol .actions:first-visible'],
     ['More actions', "The three dots menu holds everything else you can do with a protocol. You may download, rename, or discontinue your protocol, which moves it to your archive. View your protocol history, and submit an amendment to your protocol. \n\nSubmit an amendment of your protocol **IF AND ONLY IF** you absolutely must change details in your protocol after you have received your animal research clearance. Submitting an amendment informs CCARD of these necessary changes.", '.protocols-list .protocol .actions-secondary .protocol-menu-trigger:first-visible'],
     ['Pagination', 'Move between pages and choose how many protocols to show per page.', '#paginationBar'],

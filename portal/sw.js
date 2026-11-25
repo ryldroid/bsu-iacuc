@@ -1,5 +1,5 @@
 // ===== Cache settings =====
-const CACHE_VERSION = "bsu-iacuc-v10";
+const CACHE_VERSION = "bsu-iacuc-v11";
 const FILE_CACHE = "bsu-iacuc-files-v1";
 const MAX_CACHED_FILES = 150;
 const NETWORK_TIMEOUT_MS = 4000;
@@ -14,7 +14,7 @@ const PRECACHE_URLS = [
   "assets/images/favicon.ico",
 ];
 
-// Never cached: live polling, downloads and server-side tools
+// Never cached: live polling, downloads, server-side tools and sign-in pages
 const SKIP_PATHS = [
   "/checkupdates",
   "/user/ping",
@@ -24,6 +24,15 @@ const SKIP_PATHS = [
   "/records_export",
   "/downloadauditlogs",
   "/backups",
+  "/user/login",
+  "/personnel/login",
+  "/user/register",
+  "/personnel/register",
+  "/user/forgot_password",
+  "/personnel/forgot_password",
+  "/user/reset_password",
+  "/personnel/reset_password",
+  "/reactivate",
 ];
 
 // ===== Install =====

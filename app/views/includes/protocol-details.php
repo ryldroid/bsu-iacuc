@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Details drawer at the bottom of a protocol card: a slim toggle strip plus the
- * collapsible label/value panel it controls (toggled by protocol-details.js).
+ * Info button in a protocol card's meta line plus the popover it opens with the
+ * label/value details (toggled by protocol-details.js).
  *
  * @var string                            $detailsId   Unique id suffix for the panel
  * @var array<int, array{0: string, 1: string, 2?: bool}> $detailItems [label, value, raw?] triples;
@@ -10,14 +10,14 @@
  */
 
 ?>
-<div class="protocol-drawer">
-    <button type="button" class="protocol-details-toggle" aria-expanded="false" aria-controls="protocol-details-<?= htmlspecialchars((string) $detailsId, ENT_QUOTES, 'UTF-8') ?>">
-        <span>Details</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <use href="#chev-down-icon" />
-        </svg>
-    </button>
-    <dl class="protocol-details" id="protocol-details-<?= htmlspecialchars((string) $detailsId, ENT_QUOTES, 'UTF-8') ?>" hidden>
+<button type="button" class="protocol-details-trigger" aria-expanded="false" aria-controls="protocol-details-<?= htmlspecialchars((string) $detailsId, ENT_QUOTES, 'UTF-8') ?>"
+    title="Submission details" aria-label="Submission details">
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <use href="#info-icon" />
+    </svg>
+</button>
+<div class="protocol-details-panel" id="protocol-details-<?= htmlspecialchars((string) $detailsId, ENT_QUOTES, 'UTF-8') ?>" role="dialog" aria-label="Submission details" hidden>
+    <dl class="protocol-details">
         <?php foreach ($detailItems as $detailItem): ?>
             <div>
                 <dt><?= htmlspecialchars((string) $detailItem[0], ENT_QUOTES, 'UTF-8') ?></dt>

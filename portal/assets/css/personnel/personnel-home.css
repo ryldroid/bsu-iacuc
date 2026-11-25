@@ -60,8 +60,10 @@
     flex-wrap: wrap;
     /* background: var(--brand-surface-faint); */
     /* border: 1px dashed var(--brand-color); */
-    /* border-radius: var(--btn-radius); */
+    border-radius: 14px;
     border: 1px solid var(--divider-color);
+    /* Same gap as between protocol cards (.protocols-list) */
+    margin-bottom: 12px;
 }
 
 .bulk-actions-bar[hidden] {
@@ -110,7 +112,9 @@
     display: none;
 }
 
-.bulk-payment-filter {
+/* Left-hand part of the bar: payment filter, or the Clearances label */
+.bulk-payment-filter,
+.bulk-actions-lead {
     display: flex;
     align-items: center;
     gap: 12px;

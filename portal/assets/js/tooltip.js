@@ -2,7 +2,8 @@
 // One black tooltip for the whole site. Any element with data-tooltip="..." gets it,
 // and so does any element with a plain title="..." (the title is moved into
 // data-tooltip so the browser's own grey hover box never appears).
-// Hover on desktop, keyboard focus, press-and-hold (or tap on non-clickable items) on touch.
+// Hover on desktop, keyboard focus, press-and-hold on touch. A click or tap on a non-clickable item
+// keeps its tooltip open until the next click, tap, scroll or Escape.
 (function () {
   "use strict";
 
@@ -12,7 +13,8 @@
   const GAP = 8;
   const EDGE = 8;
   const SKIP_TAGS = ["IFRAME", "OPTION", "OPTGROUP"];
-  const INTERACTIVE = "a, button, input, select, textarea, label, summary, [role='button']";
+  const INTERACTIVE =
+    "a, button, input, select, textarea, label, summary, [role='button']";
 
   const canHover = window.matchMedia("(hover: hover)");
 
@@ -22,7 +24,8 @@
   let holdTimer = null;
   let hideTimer = null;
   let lastX = 0;
-  let touchMoved = false;
+  let pinned = null;
+  let unpinOnClick = null;
   let heldShown = false;
   let suppressClick = false;
 
@@ -106,11 +109,12 @@
     if (tip) tip.classList.remove("is-visible");
     if (current) current.removeAttribute("aria-describedby");
     current = null;
+    pinned = null;
   }
 
   // ----- Mouse -----
   document.addEventListener("mouseover", (e) => {
-    if (!canHover.matches) return;
+    if (!canHover.matches || pinned) return;
     lastX = e.clientX;
     const el = findTarget(e.target);
     if (el === current) return;
@@ -122,7 +126,19 @@
     if (!e.relatedTarget) hide();
   });
 
-  document.addEventListener("mousedown", hide);
+  document.addEventListener("mousedown", (e) => {
+    unpinOnClick = findTarget(e.target) === pinned ? pinned : null;
+    hide();
+  });
+
+  document.addEventListener("click", (e) => {
+    const el = findTarget(e.target);
+    const unpin = el === unpinOnClick;
+    unpinOnClick = null;
+    if (!el || unpin || el.matches(INTERACTIVE)) return;
+    show(el);
+    pinned = el;
+  });
   window.addEventListener("scroll", hide, true);
   window.addEventListener("resize", hide);
   document.addEventListener("keydown", (e) => {
@@ -138,12 +154,11 @@
   });
   document.addEventListener("focusout", hide);
 
-  // ----- Touch: press-and-hold anywhere, quick tap on non-clickable items -----
+  // ----- Touch: press-and-hold anywhere (a tap on non-clickable items is handled by the click listener) -----
   document.addEventListener(
     "touchstart",
     (e) => {
       clearTimeout(holdTimer);
-      touchMoved = false;
       heldShown = false;
       const el = findTarget(e.target);
       if (!el) return hide();
@@ -157,27 +172,15 @@
     { passive: true },
   );
 
-  document.addEventListener(
-    "touchmove",
-    () => {
-      touchMoved = true;
-      clearTimeout(holdTimer);
-    },
-    { passive: true },
-  );
+  document.addEventListener("touchmove", () => clearTimeout(holdTimer), {
+    passive: true,
+  });
 
-  document.addEventListener("touchend", (e) => {
+  document.addEventListener("touchend", () => {
     clearTimeout(holdTimer);
     if (heldShown) {
       hideTimer = setTimeout(hide, LINGER_MS);
       setTimeout(() => (suppressClick = false), 400);
-      return;
-    }
-    if (touchMoved) return;
-    const el = findTarget(e.target);
-    if (el && !el.matches(INTERACTIVE)) {
-      show(el);
-      hideTimer = setTimeout(hide, LINGER_MS + 1000);
     }
   });
 
@@ -190,7 +193,11 @@
   document.addEventListener(
     "click",
     (e) => {
-      if (suppressClick && e.target.closest && e.target.closest("[data-tooltip]")) {
+      if (
+        suppressClick &&
+        e.target.closest &&
+        e.target.closest("[data-tooltip]")
+      ) {
         e.preventDefault();
         e.stopPropagation();
         suppressClick = false;

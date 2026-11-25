@@ -1,6 +1,6 @@
 <!-- ===== Researcher details modal ===== -->
 <div class="modal-backdrop" id="researcherModalBackdrop">
-  <div class="modal-card history-modal-card researcher-modal-card">
+  <div class="modal-card history-modal-card researcher-modal-card" role="dialog" aria-modal="true" aria-labelledby="researcherModalName">
     <div class="modal-header">
       <span class="modal-header-icon" aria-hidden="true">
         <svg width="20" height="20" viewBox="0 0 24 24" focusable="false">
@@ -11,7 +11,7 @@
         <p class="modal-label" id="researcherModalLabel">Researcher</p>
         <p class="modal-title" id="researcherModalName"></p>
       </div>
-      <button class="modal-close" onclick="closeResearcherModal()" aria-label="Close">
+      <button class="modal-close" id="researcherModalClose" onclick="closeResearcherModal()" aria-label="Close">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <use href="#close-icon" />
         </svg>

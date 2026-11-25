@@ -5,8 +5,7 @@ let currentResearcherId = null;
 let accountStatusChanged = false;
 let currentResearcherName = "";
 let certReviewMode = false;
-
-const RESEARCHER_TYPE_LABEL = "Researcher Type";
+let researcherLastFocus = null;
 
 const CERT_REVIEW_TITLES = {
   pending: "Review before you continue",
@@ -37,17 +36,20 @@ function announceCertState(status) {
 
 // ===== Open & render researcher details =====
 function openResearcherModal(userId, fallbackName, options = {}) {
+  if (!researcherBackdrop.classList.contains("open"))
+    researcherLastFocus = document.activeElement;
   currentResearcherId = userId;
   certReviewMode = !!options.review;
-  document.getElementById("researcherModalLabel").textContent = certReviewMode
-    ? "Training certificate"
-    : "Researcher";
+  const modalLabel = document.getElementById("researcherModalLabel");
+  modalLabel.textContent = "Training certificate";
+  modalLabel.hidden = !certReviewMode;
   document.getElementById("researcherModalName").textContent = certReviewMode
     ? ""
-    : fallbackName || "";
+    : "Researcher details";
   document.getElementById("researcherModalBody").innerHTML =
     '<p class="helper history-loading">Loading…</p>';
   researcherBackdrop.classList.add("open");
+  document.getElementById("researcherModalClose").focus();
 
   if (!userId) {
     document.getElementById("researcherModalBody").innerHTML =
@@ -75,23 +77,46 @@ function openResearcherModal(userId, fallbackName, options = {}) {
     });
 }
 
-function detailRow(label, valueHtml) {
+function infoRow(icon, label, valueHtml) {
   return `
-        <div class="researcher-detail-row">
-            <span class="researcher-detail-label">${escapeHtml(label)}</span>
-            <span class="researcher-detail-value">${valueHtml}</span>
+        <div class="researcher-info-row">
+            <dt>
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#${icon}" /></svg>
+                ${escapeHtml(label)}
+            </dt>
+            <dd>${valueHtml}</dd>
         </div>
     `;
 }
 
-function renderDetailRows(rows) {
-  return `<div class="researcher-detail-rows">${rows
-    .map(([label, value]) => detailRow(label, escapeHtml(value)))
-    .join("")}</div>`;
+function infoValue(text) {
+  return text
+    ? escapeHtml(text)
+    : '<span class="researcher-info-empty">N/A</span>';
 }
 
-function capitalize(text) {
-  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "N/A";
+function contactLink(scheme, target, text) {
+  return target
+    ? `<a href="${scheme}:${escapeHtml(target)}">${escapeHtml(text)}</a>`
+    : infoValue("");
+}
+
+function renderInfoRows(rows) {
+  return `<dl class="researcher-info">${rows
+    .map(([icon, label, valueHtml]) => infoRow(icon, label, valueHtml))
+    .join("")}</dl>`;
+}
+
+function accountRows(d) {
+  return d.status === "deactivated"
+    ? [
+        [
+          "alert-triangle-icon",
+          "Account",
+          `<span class="status-dot status-dot--danger">${escapeHtml(d.status_label || "Deactivated")}</span>`,
+        ],
+      ]
+    : [];
 }
 
 function renderResearcherDetails(d) {
@@ -103,18 +128,23 @@ function renderResearcherDetails(d) {
     return;
   }
 
-  document.getElementById("researcherModalName").textContent = fullName;
-
-  const rows = renderDetailRows([
-    ["Email", d.email],
-    ["Phone", formatPhone(d.phone_number) || "N/A"],
-    ["School/Affiliation", d.school || "N/A"],
-    [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
-    ["Account status", d.status_label || capitalize(d.status)],
-  ]);
-
   document.getElementById("researcherModalBody").innerHTML = `
-        ${rows}
+        ${renderInfoRows([
+          ["account-icon", "Name", infoValue(fullName)],
+          ["records-icon", "Researcher type", infoValue(d.researcher_type)],
+          ["email-icon", "Email", contactLink("mailto", d.email, d.email)],
+          [
+            "phone-icon",
+            "Phone",
+            contactLink(
+              "tel",
+              (d.phone_number || "").replace(/[^\d+]/g, ""),
+              formatPhone(d.phone_number),
+            ),
+          ],
+          ["location-icon", "School/Affiliation", infoValue(d.school)],
+          ...accountRows(d),
+        ])}
         ${renderCertSection(d.cert, fullName)}
         ${renderAccountActions(d)}
     `;
@@ -134,13 +164,16 @@ function renderCertReview(d, fullName) {
     CERT_REVIEW_TITLES[d.cert.status] || "";
 
   document.getElementById("researcherModalBody").innerHTML = `
-        ${renderDetailRows([
-          ["Researcher Name", fullName],
-          ["School/Affiliation", d.school || "N/A"],
-          [RESEARCHER_TYPE_LABEL, d.researcher_type || "N/A"],
+        ${renderInfoRows([
+          ["account-icon", "Name", infoValue(fullName)],
+          ["records-icon", "Researcher type", infoValue(d.researcher_type)],
+          ["location-icon", "School/Affiliation", infoValue(d.school)],
+          ...accountRows(d),
         ])}
-        ${renderCertPreview(d.cert, fullName)}
-        ${renderCertActions(d.cert)}
+        <section class="researcher-cert">
+            ${renderCertPreview(d.cert, fullName)}
+            ${renderCertActions(d.cert)}
+        </section>
     `;
 
   bindCertActions();
@@ -183,31 +216,22 @@ function renderCertActions(cert) {
 }
 
 function renderCertSection(cert, fullName) {
-  if (!cert) {
-    return `
-        <div class="researcher-detail-rows">
-          <div class="researcher-detail-row">
-              <p class="researcher-protocol-label">Training certificate</p>
-              <ul class="researcher-protocol-list">
-                  <li class="researcher-protocol-item researcher-protocol-empty">No certificate on file.</li>
-              </ul>
-          </div>
-        </div>
-    `;
-  }
+  const badge =
+    cert && cert.status !== "verified"
+      ? `<span class="status-dot payment-badge ${CERT_STATUS_BADGES[cert.status] || ""}">${escapeHtml(CERT_STATUS_LABELS[cert.status] || cert.status)}</span>`
+      : "";
+  const content = cert
+    ? `${renderCertPreview(cert, fullName)}${renderCertReviewNote(cert)}${renderCertActions(cert)}`
+    : '<p class="researcher-cert-empty">No certificate on file.</p>';
 
   return `
-        <div class="researcher-protocol-section researcher-cert-section">
-          <div class="researcher-detail-rows">
-              <div class="researcher-detail-row">
-                  <p class="researcher-protocol-label">Training certificate</p>
-                  <span class="status-dot payment-badge ${CERT_STATUS_BADGES[cert.status] || ""}">${escapeHtml(CERT_STATUS_LABELS[cert.status] || cert.status)}</span>
-              </div>
-              ${renderCertPreview(cert, fullName)}
-              ${renderCertReviewNote(cert)}
-              ${renderCertActions(cert)}
+        <section class="researcher-cert" aria-labelledby="researcherCertTitle">
+            <div class="researcher-cert-head">
+                <h3 class="researcher-section-title" id="researcherCertTitle">Training certificate</h3>
+                ${badge}
             </div>
-        </div>
+            ${content}
+        </section>
     `;
 }
 
@@ -307,7 +331,7 @@ function renderAccountActions(d) {
 
   const deactivated = d.status === "deactivated";
   return `
-        <div class="modal-actions" id="accountActions">
+        <div class="modal-actions researcher-actions" id="accountActions">
             <button class="confirm-modal-btn confirm-modal-ok${deactivated ? "" : " confirm-modal-ok-danger"}" type="button" id="accountStatusBtn">${deactivated ? "Reactivate account" : "Deactivate account"}</button>
         </div>
     `;
@@ -369,8 +393,10 @@ async function submitAccountStatus(endpoint, btn) {
 
 // ===== Close researcher modal (reloads after an account change so Archived regroups) =====
 function closeResearcherModal() {
+  if (!researcherBackdrop.classList.contains("open")) return;
   researcherBackdrop.classList.remove("open");
   if (accountStatusChanged) window.location.reload();
+  else if (researcherLastFocus) researcherLastFocus.focus();
 }
 
 researcherBackdrop.addEventListener("click", (e) => {

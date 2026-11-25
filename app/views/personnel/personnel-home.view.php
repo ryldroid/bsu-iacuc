@@ -45,7 +45,7 @@ $statusDescByRole = [
         'to-review'             => "Submitted protocols waiting on the reviewer's review. You may view, download, rename, and archive protocols. Any CCARD personnel can verify a researcher's first-time IACUC training certificate submission. Reviewers can still read and comment when a certificate is rejected, but cannot finish a review or return a protocol until it is verified.",
         'returned-for-revision' => 'Sent back to the researcher with feedback. No action needed.',
         'reviewed'              => "The reviewer has finished review. Here, in a step-by-step process:\n(1) Wait for the researcher to pay their clearance processing fee,\n(2) Verify submitted payment,\n(3) Assign the IPN (Institutional Protocol Number), and\n(4) Upload the proof that the protocol was **endorsed** to DA-RFO-CAR.",
-        'endorsed'              => "Protocols have been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). On the **Endorsed** tab, press **Assign Clearances** (or **Assign clearance** on a protocol) and choose the released animal research clearance images. Each image gets a row: enter its AR Number (Animal Research Number) first, then pick its protocol, then press **Approve** to mark them **approved**.",
+        'endorsed'              => "Protocols have been endorsed to Department of Agriculture - Regional Field Office - Cordillera Administrative Region (DA-RFO-CAR). On the **Endorsed** tab, press **Assign Clearances** (or **Assign clearance** on a protocol) and choose the released animal research clearance images. Each image gets a row: enter its AR Number first (the Animal Research Number, the clearance ID printed on the clearance issued by BAI), then pick its protocol, then press **Approve** to mark them **approved**.",
         'approved'              => "Digital animal research clearances issued! The protocols are now fully approved. Confirm when researchers have picked up the embossed hard copy of their clearances.",
     ],
     'reviewer' => [
@@ -324,20 +324,22 @@ foreach ($protocols as $p) {
 
                 <?php if ($personnelRole === 'staff'): ?>
                     <!-- ===== Clearances ===== -->
-                    <section class="clearance-panel" id="clearancePanel" hidden>
-                        <div class="clearance-panel-bar">
-                            <h2 class="clearance-panel-title">Clearances</h2>
-
-                            <div class="bulk-actions-bar clearance-actions">
-                                <button type="button" class="row-btn row-btn-primary" id="clearanceUploadBtn"
-                                    title="Upload clearance images, enter their AR Numbers and assign each to a protocol">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                        <use href="#upload-icon" />
-                                    </svg>
-                                    Assign Clearances
-                                </button>
-                            </div>
+                    <section class="bulk-actions-bar" id="clearancePanel" hidden>
+                        <div class="bulk-actions-lead">
+                            <span class="sort-filter-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <use href="#clearance-icon" />
+                                </svg>
+                                Clearances
+                            </span>
                         </div>
+                        <button type="button" class="row-btn row-btn-primary" id="clearanceUploadBtn"
+                            title="Upload clearance images, enter their AR Numbers and assign each to a protocol">
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <use href="#upload-icon" />
+                            </svg>
+                            Assign Clearances
+                        </button>
                     </section>
                 <?php endif; ?>
 
@@ -632,7 +634,7 @@ foreach ($protocols as $p) {
                                     <?php endif; ?>
                                     <span class="pending-sync-badge" data-pending-sync="<?= $protocolId ?>" hidden></span>
                                 </p>
-                                <p class="protocol-meta-line">
+                                <div class="protocol-meta-line">
                                     <?php if ($userRole === 'staff' && $statusLower === 'reviewed'): ?>
                                         <label class="protocol-select-label" title="Select this protocol">
                                             <input type="checkbox" class="consent-checkbox protocol-select-checkbox"
@@ -645,7 +647,21 @@ foreach ($protocols as $p) {
                                     <?php if (($protocol['researcher_status'] ?? 'active') === 'deactivated'): ?>
                                         <span class="status-dot status-dot--warning">Inactive</span>
                                     <?php endif; ?>
-                                </p>
+                                    <?php
+                                    $detailsId   = $protocolId;
+                                    $researcherLink = '<button type="button" class="researcher-name-link" data-user-id="' . (int) $protocol['user_id'] . '" data-researcher-name="' . $researcherName . '" aria-label="View researcher profile: ' . $researcherName . '" title="View researcher profile">' . $researcherName . '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#info-icon" /></svg></button>';
+                                    $detailItems = [
+                                        ['Round', $protocol['version_display']],
+                                        ['Researcher', $researcherLink, true],
+                                    ];
+                                    $detailItems[] = ['Submitted', $submittedDate];
+                                    $detailItems[] = ['Last updated', $updatedDate];
+                                    if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)) {
+                                        $detailItems[] = ['IPN', $protocol['reference_no']];
+                                    }
+                                    include dirname(__DIR__) . '/includes/protocol-details.php';
+                                    ?>
+                                </div>
                             </div>
 
                             <div class="protocol-progress">
@@ -713,21 +729,6 @@ foreach ($protocols as $p) {
                                     include dirname(__DIR__) . '/includes/protocol-menu.php'; ?>
                                 </div>
                             </div>
-
-                            <?php
-                            $detailsId   = $protocolId;
-                            $researcherLink = '<button type="button" class="researcher-name-link" data-user-id="' . (int) $protocol['user_id'] . '" data-researcher-name="' . $researcherName . '" aria-label="View researcher profile: ' . $researcherName . '" title="View researcher profile">' . $researcherName . '</button>';
-                            $detailItems = [
-                                ['Round', $protocol['version_display']],
-                                ['Researcher', $researcherLink, true],
-                            ];
-                            $detailItems[] = ['Submitted', $submittedDate];
-                            $detailItems[] = ['Last updated', $updatedDate];
-                            if ($userRole === 'staff' && $hasIpn && in_array($statusLower, ['reviewed', 'endorsed'], true)) {
-                                $detailItems[] = ['IPN', $protocol['reference_no']];
-                            }
-                            include dirname(__DIR__) . '/includes/protocol-details.php';
-                            ?>
                         </div>
                     <?php endforeach; ?>
 
@@ -799,12 +800,10 @@ foreach ($protocols as $p) {
                         <span id="clearanceChooseLabel">Choose files</span>
                     </button>
                 </div>
-                <p class="helper clearance-modal-helper">The AR Number (Animal Research Number) is the clearance ID printed on the clearance issued by BAI.</p>
 
                 <div id="clearanceWindowError" class="alert error-messages clearance-modal-error" hidden></div>
 
                 <ul class="clearance-rows" id="clearanceRows"></ul>
-                <p class="helper clearance-empty" id="clearanceEmpty">No images yet.</p>
             </div>
             <div class="clearance-window-footer">
                 <span class="clearance-summary" id="clearanceSummary" aria-live="polite"></span>
@@ -972,6 +971,7 @@ foreach ($protocols as $p) {
 <script src="<?= asset_js('archive-window.js') ?>"></script>
 <script src="<?= asset_js('inbox-search.js') ?>"></script>
 <script src="<?= asset_js('personnel-home.js') ?>"></script>
+<script src="<?= asset_js('protocol-menu.js') ?>"></script>
 <script src="<?= asset_js('protocol-details.js') ?>"></script>
 <script src="<?= asset_js('protocol-list.js') ?>"></script>
 <script src="<?= asset_js('personnel-protocol-actions.js') ?>"></script>
@@ -998,7 +998,7 @@ foreach ($statusMeta as $meta) {
 $guideSteps[] = [$archivedMeta['label'], $archivedMeta['desc'] . "\n\nPress **Archive** to open the archive window. Protocols in it are kept out of the main list and sorted into categories. **All** shows everything and is where the window opens, or pick a category at the top. Press **View** to open a protocol, or **Restore** to bring it back to the main list. Approved protocols of inactive researchers have no button, because they move back on their own when the researcher reactivates their account.\n\nPress the **X** or click outside the window to close it.", '#archivedLink'];
 $guideSteps = array_merge($guideSteps, [
     ['Protocol card', "Each card represents one protocol. It shows the research title, the researcher's school or institution, and a timeline of the stage the protocol is at.", '.protocols-list .protocol:first-visible'],
-    ['Details', "Press the **show details** bar at the bottom of the card to see the round, the researcher, and the dates the protocol was submitted and last updated.\n\nPress the researcher's name there to see their contact details or review their training certificate.", '.protocols-list .protocol .protocol-details-toggle:first-visible'],
+    ['Details', "Press the **Submission details** button, the circled \"i\" under the protocol title, to see the round, the researcher, and the dates the protocol was submitted and last updated.\n\nPress the researcher's name there to see their contact details or review their training certificate.", '.protocols-list .protocol .protocol-details-trigger:first-visible'],
     ['Card buttons', $personnelRole === 'staff'
         ? "The main button on a card is your next task, and it changes with the status.\n\n**Reviewed**: verify payment, assign IPN, upload proof of endorsement.\n**Endorsed**: assign the clearance, which approves the protocol. The three dots hold **view endorsement proof**.\n**Approved**: view clearance.\n\n**To review** cards have no task for you, since the reviewers handle them."
         : "Press **review** to read and give your feedback on protocols.\n\nCards in any other status have no task for you. **view clearance** appears once a protocol is approved.", '.protocols-list .protocol .actions:first-visible'],
