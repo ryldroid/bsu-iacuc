@@ -47,6 +47,7 @@ class Schema
         $this->ensureIndex('users', 'unique_email_per_account_type', "(`email`, `account_type`)", true);
         $this->dropIndex('users', 'unique_email');
         $this->addCertVerification();
+        $this->seeder->seedDefaultStaff();
 
         // ===== RECORDS TABLE =====
         $c->query("CREATE TABLE IF NOT EXISTS `records` (

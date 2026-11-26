@@ -8,7 +8,7 @@ EnvLoader::load();
 $isLocal = ($_SERVER['SERVER_NAME'] == 'localhost');
 
 if ($isLocal) {
-  define('ROOT', EnvLoader::get('LOCAL_ROOT', 'http://localhost/mvc-oct/portal'));
+  define('ROOT', EnvLoader::get('LOCAL_ROOT', 'http://localhost/bsu-iacuc/portal'));
   define('DBNAME', EnvLoader::get('LOCAL_DBNAME', 'bsu_iacuc'));
   define('DBSERVER', EnvLoader::get('LOCAL_DBSERVER', 'localhost'));
   define('DBUSER', EnvLoader::get('LOCAL_DBUSER', 'root'));

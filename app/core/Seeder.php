@@ -10,6 +10,32 @@ class Seeder
         $this->connection = $connection;
     }
 
+    // ===== DEFAULT STAFF ACCOUNT (ONLY WHEN .ENV HAS ITS LOGIN AND THERE ARE NO USERS YET) =====
+    public function seedDefaultStaff(): void
+    {
+        $username = (string) EnvLoader::get('DEFAULT_STAFF_USERNAME', '');
+        $password = (string) EnvLoader::get('DEFAULT_STAFF_PASSWORD', '');
+        if ($username === '' || $password === '') {
+            return;
+        }
+
+        $c      = $this->connection;
+        $result = $c->query("SELECT COUNT(*) AS n FROM `users`");
+        $row    = $result ? $result->fetch_assoc() : null;
+        if (! $row || (int) $row['n'] > 0) {
+            return;
+        }
+
+        $first = 'Default';
+        $last  = 'Staff';
+        $email = 'staff@example.com';
+        $hash  = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $c->prepare("INSERT INTO `users` (username, first_name, last_name, email, email_verified, password, role, status) VALUES (?, ?, ?, ?, 1, ?, 'staff', 'active')");
+        $stmt->bind_param('sssss', $username, $first, $last, $email, $hash);
+        $stmt->execute();
+    }
+
     // ===== DEFAULT CONTENT SEEDS =====
     public function seedSiteSettings(): void
     {
