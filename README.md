@@ -28,6 +28,34 @@ The default staff account is intended for initial setup only. Create your own st
 
 Staff can also create registration links for reviewers. Researchers can register on their own.
 
+## Troubleshooting
+
+If the portal does not load or you cannot log in, check the following.
+
+### If the portal does not load:
+
+1. Make sure the project folder is located in `C:\xampp\htdocs\` and is named `bsu-iacuc`.
+2. Open the XAMPP Control Panel and make sure Apache and MySQL are running.
+3. Check that the `.env.example` file has been copied and renamed to `.env`.
+4. Open `.env` and make sure the `LOCAL_` settings are configured for XAMPP.
+5. Open `http://localhost/bsu-iacuc/portal` in your browser.
+
+If the portal still does not load, check `C:\xampp\apache\logs\error.log` for errors.
+
+### If the default staff account was not created:
+
+If you see the error "No account found with that username or email." when logging in:
+
+1. Make sure the `.env.example` file has been renamed to `.env`.
+2. Open `.env` and check that `DEFAULT_STAFF_USERNAME` and `DEFAULT_STAFF_PASSWORD` are set correctly, with no spaces around the `=`.
+3. Make sure the default staff account has not already been created with different credentials.
+4. Delete the file `storage\.schema_checked`.
+5. Reload `http://localhost/bsu-iacuc/portal`.
+
+The default staff account is only created when the database has no users yet. If the database already contains users, the account will not be created automatically.
+
+If the problem persists, check `C:\xampp\apache\logs\error.log` for errors.
+
 ## Notes
 
 - Email, CAPTCHA, live notifications, and file conversion require API keys in `.env`. The portal will still run without them, but these features will not work.
